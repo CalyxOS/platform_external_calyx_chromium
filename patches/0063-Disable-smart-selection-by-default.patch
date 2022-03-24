@@ -1,0 +1,132 @@
+From a561b345e2a1dc29c365293d4f6f8564ec7b138d Mon Sep 17 00:00:00 2001
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Fri, 24 Jan 2020 19:17:22 +0100
+Subject: [PATCH 063/107] Disable smart selection by default
+
+Allow web search in incognito mode (reverts
+commit 48d4ae54f7565c429bf29cd63806aee5d7e93e69)
+
+Partial revert of da1d809c003749846cb4ade8c11b6d038e44416b to restore
+the ChromeSmartSelection feature flag.
+
+Notice that re-enabling smart selection would make incognito mode potentially
+leak information through the TextClassifier set by OEM, if any
+---
+ .../contextualsearch/SelectionClientManager.java  |  4 +++-
+ .../browser/flags/android/chrome_feature_list.cc  |  4 ++++
+ .../browser/flags/android/chrome_feature_list.h   |  1 +
+ .../chrome/browser/flags/ChromeFeatureList.java   |  1 +
+ .../selection/SelectionPopupControllerImpl.java   |  2 +-
+ testing/variations/fieldtrial_testing_config.json | 15 +++++++++++++++
+ 6 files changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/contextualsearch/SelectionClientManager.java b/chrome/android/java/src/org/chromium/chrome/browser/contextualsearch/SelectionClientManager.java
+index e6273f6637..0bbd7a58fe 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/contextualsearch/SelectionClientManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/contextualsearch/SelectionClientManager.java
+@@ -10,6 +10,7 @@ import android.view.textclassifier.TextClassifier;
+ import androidx.annotation.Nullable;
+ import androidx.annotation.VisibleForTesting;
+ 
++import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.content_public.browser.SelectAroundCaretResult;
+ import org.chromium.content_public.browser.SelectionClient;
+ import org.chromium.content_public.browser.SelectionEventProcessor;
+@@ -45,7 +46,8 @@ public class SelectionClientManager {
+      * @param webContents The {@link WebContents} that will show popups for this client.
+      */
+     SelectionClientManager(WebContents webContents) {
+-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O) {
++        if (ChromeFeatureList.isEnabled(ChromeFeatureList.CHROME_SMART_SELECTION)
++                && Build.VERSION.SDK_INT > Build.VERSION_CODES.O) {
+             assert webContents != null;
+             mOptionalSelectionClient = SelectionClient.createSmartSelectionClient(webContents);
+             SelectionPopupController controller =
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+index 89b5645265..c44c69692e 100644
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -177,6 +177,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kCCTClientDataHeader,
+     &kCCTExternalLinkHandling,
+     &kCCTIncognito,
++    &kChromeSmartSelection,
+     &kCCTIncognitoAvailableToThirdParty,
+     &kCCTNewDownloadTab,
+     &kCCTPostMessageAPI,
+@@ -516,6 +517,9 @@ const base::Feature kChromeSharingHubLaunchAdjacent{
+ const base::Feature kChromeSurveyNextAndroid{"ChromeSurveyNextAndroid",
+                                              base::FEATURE_ENABLED_BY_DEFAULT};
+ 
++const base::Feature kChromeSmartSelection{"ChromeSmartSelection",
++                                          base::FEATURE_DISABLED_BY_DEFAULT};
++
+ const base::Feature kCommandLineOnNonRooted{"CommandLineOnNonRooted",
+                                             base::FEATURE_DISABLED_BY_DEFAULT};
+ 
+diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
+index 8f485f10a8..940d27eaae 100644
+--- a/chrome/browser/flags/android/chrome_feature_list.h
++++ b/chrome/browser/flags/android/chrome_feature_list.h
+@@ -53,6 +53,7 @@ extern const base::Feature kDontAutoHideBrowserControls;
+ extern const base::Feature kChromeNewDownloadTab;
+ extern const base::Feature kChromeShareLongScreenshot;
+ extern const base::Feature kChromeShareScreenshot;
++extern const base::Feature kChromeSmartSelection;
+ extern const base::Feature kChromeSharingHub;
+ extern const base::Feature kChromeSharingHubLaunchAdjacent;
+ extern const base::Feature kChromeSurveyNextAndroid;
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
+index 62275d38a6..7529c70fd8 100644
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
+@@ -244,6 +244,7 @@ public abstract class ChromeFeatureList {
+     public static final String CCT_NEW_DOWNLOAD_TAB = "CCTNewDownloadTab";
+     public static final String CCT_POST_MESSAGE_API = "CCTPostMessageAPI";
+     public static final String CCT_REDIRECT_PRECONNECT = "CCTRedirectPreconnect";
++    public static final String CHROME_SMART_SELECTION = "ChromeSmartSelection";
+     public static final String CCT_REMOVE_REMOTE_VIEW_IDS = "CCTRemoveRemoteViewIds";
+     public static final String CCT_RESIZABLE_90_MAXIMUM_HEIGHT = "CCTResizable90MaximumHeight";
+     public static final String CCT_RESIZABLE_ALLOW_RESIZE_BY_USER_GESTURE =
+diff --git a/content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java b/content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java
+index 8217f49603..5fa9fb0529 100644
+--- a/content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java
++++ b/content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java
+@@ -840,7 +840,7 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
+             menu.removeItem(R.id.select_action_menu_share);
+         }
+ 
+-        if (isFocusedNodeEditable() || isIncognito()
++        if (isFocusedNodeEditable()
+                 || !isSelectActionModeAllowed(MENU_ITEM_WEB_SEARCH)) {
+             menu.removeItem(R.id.select_action_menu_web_search);
+         }
+diff --git a/testing/variations/fieldtrial_testing_config.json b/testing/variations/fieldtrial_testing_config.json
+index 8cb859a77f..a27542213e 100644
+--- a/testing/variations/fieldtrial_testing_config.json
++++ b/testing/variations/fieldtrial_testing_config.json
+@@ -2243,6 +2243,21 @@
+             ]
+         }
+     ],
++    "ChromeSmartSelection": [
++        {
++            "platforms": [
++                "android"
++            ],
++            "experiments": [
++                {
++                    "name": "Enabled_Launch",
++                    "enable_features": [
++                        "ChromeSmartSelection"
++                    ]
++                }
++            ]
++        }
++    ],
+     "ChromeStart": [
+         {
+             "platforms": [
+-- 
+2.35.1
+

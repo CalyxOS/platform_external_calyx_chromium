@@ -1,0 +1,31 @@
+From dd74ae5cf4a1e0878d19f66fa2595024a082bef0 Mon Sep 17 00:00:00 2001
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Mon, 12 Feb 2018 21:30:30 +0100
+Subject: [PATCH 019/107] ungoogled-chromium: Disable intranet redirect
+ detector
+
+Disables the intranet redirect detector. It generates extra DNS requests and the functionality using this is disabled.
+
+See this page for more information: https://mikewest.org/2012/02/chrome-connects-to-three-random-domains-at-startup
+---
+ chrome/browser/intranet_redirect_detector.cc | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/chrome/browser/intranet_redirect_detector.cc b/chrome/browser/intranet_redirect_detector.cc
+index 637ae03856..243ddef0dc 100644
+--- a/chrome/browser/intranet_redirect_detector.cc
++++ b/chrome/browser/intranet_redirect_detector.cc
+@@ -119,9 +119,7 @@ void IntranetRedirectDetector::FinishSleep() {
+   simple_loaders_.clear();
+   resulting_origins_.clear();
+ 
+-  const base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
+-  if (cmd_line->HasSwitch(switches::kDisableBackgroundNetworking))
+-    return;
++  return;
+ 
+   DCHECK(simple_loaders_.empty() && resulting_origins_.empty());
+ 
+-- 
+2.35.1
+

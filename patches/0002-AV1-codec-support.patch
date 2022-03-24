@@ -1,0 +1,230 @@
+From b2d1f675a4ee3ad8fd2dec16b5d52469f8375ca2 Mon Sep 17 00:00:00 2001
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Sun, 16 Dec 2018 15:24:19 +0100
+Subject: [PATCH 002/107] AV1 codec support
+
+libaom build fixes (requires -fPIC)
+Report AV1 as playable on Android
+---
+ third_party/libaom/BUILD.gn                                 | 6 ++++--
+ third_party/libaom/libaom_srcs.gni                          | 5 +++++
+ .../config/linux/arm-neon-cpu-detect/config/aom_config.asm  | 2 +-
+ .../config/linux/arm-neon-cpu-detect/config/aom_config.h    | 2 +-
+ .../source/config/linux/arm-neon/config/aom_config.asm      | 2 +-
+ .../libaom/source/config/linux/arm-neon/config/aom_config.h | 2 +-
+ .../libaom/source/config/linux/arm/config/aom_config.asm    | 2 +-
+ .../libaom/source/config/linux/arm/config/aom_config.h      | 2 +-
+ .../libaom/source/config/linux/arm64/config/aom_config.asm  | 2 +-
+ .../libaom/source/config/linux/arm64/config/aom_config.h    | 2 +-
+ .../source/config/linux/generic/config/aom_config.asm       | 2 +-
+ .../libaom/source/config/linux/generic/config/aom_config.h  | 2 +-
+ .../libaom/source/config/linux/x64/config/aom_config.asm    | 2 +-
+ .../libaom/source/config/linux/x64/config/aom_config.h      | 2 +-
+ 14 files changed, 21 insertions(+), 14 deletions(-)
+
+diff --git a/third_party/libaom/BUILD.gn b/third_party/libaom/BUILD.gn
+index 49dbee305c..62a2abeb8a 100644
+--- a/third_party/libaom/BUILD.gn
++++ b/third_party/libaom/BUILD.gn
+@@ -81,7 +81,7 @@ if (current_cpu == "x86" || (current_cpu == "x64" && !is_msan)) {
+       sources += aom_dsp_encoder_asm_sse2_x86_64
+       sources += aom_dsp_encoder_asm_ssse3_x86_64
+     }
+-    defines = [ "CHROMIUM" ]
++    defines = [ "CHROMIUM", "PIC" ]
+     include_dirs = libaom_include_dirs
+   }
+ 
+@@ -193,7 +193,7 @@ if (current_cpu == "arm64" || cpu_arch_full == "arm-neon" ||
+     configs += [ "//build/config/compiler:no_chromium_code" ]
+     if (current_cpu == "arm") {
+       configs -= [ "//build/config/compiler:compiler_arm_fpu" ]
+-      cflags = [ "-mfpu=neon" ]
++      cflags = [ "-mfpu=neon", "-fPIC" ]
+     }
+     configs += [ ":libaom_config" ]
+ 
+@@ -255,6 +255,8 @@ static_library("libaom") {
+   if (current_cpu == "arm64" || cpu_arch_full == "arm-neon" ||
+       cpu_arch_full == "arm-neon-cpu-detect") {
+     deps += [ ":libaom_intrinsics_neon" ]
++    # will detect CPU
++    sources += aom_ports_arm_sources
+   }
+   if (is_android) {
+     deps += [ "//third_party/android_ndk:cpu_features" ]
+diff --git a/third_party/libaom/libaom_srcs.gni b/third_party/libaom/libaom_srcs.gni
+index 5fdf4177fb..3751c4fff4 100644
+--- a/third_party/libaom/libaom_srcs.gni
++++ b/third_party/libaom/libaom_srcs.gni
+@@ -643,6 +643,11 @@ aom_mem_sources = [
+ 
+ aom_ports_asm_x86 = [ "//third_party/libaom/source/libaom/aom_ports/float.asm" ]
+ 
++aom_ports_arm_sources = [
++  "//third_party/libaom/source/libaom/aom_ports/arm_cpudetect.c",
++  "//third_party/libaom/source/libaom/aom_ports/arm.h",
++ ]
++
+ aom_rtcd_sources = [
+   "//third_party/libaom/source/libaom/aom_dsp/aom_dsp_rtcd.c",
+   "//third_party/libaom/source/libaom/aom_scale/aom_scale_rtcd.c",
+diff --git a/third_party/libaom/source/config/linux/arm-neon-cpu-detect/config/aom_config.asm b/third_party/libaom/source/config/linux/arm-neon-cpu-detect/config/aom_config.asm
+index 41428b282d..47fb19ea35 100644
+--- a/third_party/libaom/source/config/linux/arm-neon-cpu-detect/config/aom_config.asm
++++ b/third_party/libaom/source/config/linux/arm-neon-cpu-detect/config/aom_config.asm
+@@ -50,7 +50,7 @@ CONFIG_NORMAL_TILE_MODE equ 1
+ CONFIG_OPTICAL_FLOW_API equ 0
+ CONFIG_OS_SUPPORT equ 1
+ CONFIG_PARTITION_SEARCH_ORDER equ 0
+-CONFIG_PIC equ 0
++CONFIG_PIC equ 1
+ CONFIG_RD_COMMAND equ 0
+ CONFIG_RD_DEBUG equ 0
+ CONFIG_REALTIME_ONLY equ 1
+diff --git a/third_party/libaom/source/config/linux/arm-neon-cpu-detect/config/aom_config.h b/third_party/libaom/source/config/linux/arm-neon-cpu-detect/config/aom_config.h
+index 7e0c46b0ba..ae89eac367 100644
+--- a/third_party/libaom/source/config/linux/arm-neon-cpu-detect/config/aom_config.h
++++ b/third_party/libaom/source/config/linux/arm-neon-cpu-detect/config/aom_config.h
+@@ -52,7 +52,7 @@
+ #define CONFIG_OPTICAL_FLOW_API 0
+ #define CONFIG_OS_SUPPORT 1
+ #define CONFIG_PARTITION_SEARCH_ORDER 0
+-#define CONFIG_PIC 0
++#define CONFIG_PIC 1
+ #define CONFIG_RD_COMMAND 0
+ #define CONFIG_RD_DEBUG 0
+ #define CONFIG_REALTIME_ONLY 1
+diff --git a/third_party/libaom/source/config/linux/arm-neon/config/aom_config.asm b/third_party/libaom/source/config/linux/arm-neon/config/aom_config.asm
+index 14a2b3f212..c18460978b 100644
+--- a/third_party/libaom/source/config/linux/arm-neon/config/aom_config.asm
++++ b/third_party/libaom/source/config/linux/arm-neon/config/aom_config.asm
+@@ -50,7 +50,7 @@ CONFIG_NORMAL_TILE_MODE equ 1
+ CONFIG_OPTICAL_FLOW_API equ 0
+ CONFIG_OS_SUPPORT equ 1
+ CONFIG_PARTITION_SEARCH_ORDER equ 0
+-CONFIG_PIC equ 0
++CONFIG_PIC equ 1
+ CONFIG_RD_COMMAND equ 0
+ CONFIG_RD_DEBUG equ 0
+ CONFIG_REALTIME_ONLY equ 1
+diff --git a/third_party/libaom/source/config/linux/arm-neon/config/aom_config.h b/third_party/libaom/source/config/linux/arm-neon/config/aom_config.h
+index f4cd4953b8..d84a3e7355 100644
+--- a/third_party/libaom/source/config/linux/arm-neon/config/aom_config.h
++++ b/third_party/libaom/source/config/linux/arm-neon/config/aom_config.h
+@@ -52,7 +52,7 @@
+ #define CONFIG_OPTICAL_FLOW_API 0
+ #define CONFIG_OS_SUPPORT 1
+ #define CONFIG_PARTITION_SEARCH_ORDER 0
+-#define CONFIG_PIC 0
++#define CONFIG_PIC 1
+ #define CONFIG_RD_COMMAND 0
+ #define CONFIG_RD_DEBUG 0
+ #define CONFIG_REALTIME_ONLY 1
+diff --git a/third_party/libaom/source/config/linux/arm/config/aom_config.asm b/third_party/libaom/source/config/linux/arm/config/aom_config.asm
+index 2ac0950af5..8d90bb2a09 100644
+--- a/third_party/libaom/source/config/linux/arm/config/aom_config.asm
++++ b/third_party/libaom/source/config/linux/arm/config/aom_config.asm
+@@ -50,7 +50,7 @@ CONFIG_NORMAL_TILE_MODE equ 1
+ CONFIG_OPTICAL_FLOW_API equ 0
+ CONFIG_OS_SUPPORT equ 1
+ CONFIG_PARTITION_SEARCH_ORDER equ 0
+-CONFIG_PIC equ 0
++CONFIG_PIC equ 1
+ CONFIG_RD_COMMAND equ 0
+ CONFIG_RD_DEBUG equ 0
+ CONFIG_REALTIME_ONLY equ 1
+diff --git a/third_party/libaom/source/config/linux/arm/config/aom_config.h b/third_party/libaom/source/config/linux/arm/config/aom_config.h
+index c955b43ca8..a71ed5461c 100644
+--- a/third_party/libaom/source/config/linux/arm/config/aom_config.h
++++ b/third_party/libaom/source/config/linux/arm/config/aom_config.h
+@@ -52,7 +52,7 @@
+ #define CONFIG_OPTICAL_FLOW_API 0
+ #define CONFIG_OS_SUPPORT 1
+ #define CONFIG_PARTITION_SEARCH_ORDER 0
+-#define CONFIG_PIC 0
++#define CONFIG_PIC 1
+ #define CONFIG_RD_COMMAND 0
+ #define CONFIG_RD_DEBUG 0
+ #define CONFIG_REALTIME_ONLY 1
+diff --git a/third_party/libaom/source/config/linux/arm64/config/aom_config.asm b/third_party/libaom/source/config/linux/arm64/config/aom_config.asm
+index 14a2b3f212..c18460978b 100644
+--- a/third_party/libaom/source/config/linux/arm64/config/aom_config.asm
++++ b/third_party/libaom/source/config/linux/arm64/config/aom_config.asm
+@@ -50,7 +50,7 @@ CONFIG_NORMAL_TILE_MODE equ 1
+ CONFIG_OPTICAL_FLOW_API equ 0
+ CONFIG_OS_SUPPORT equ 1
+ CONFIG_PARTITION_SEARCH_ORDER equ 0
+-CONFIG_PIC equ 0
++CONFIG_PIC equ 1
+ CONFIG_RD_COMMAND equ 0
+ CONFIG_RD_DEBUG equ 0
+ CONFIG_REALTIME_ONLY equ 1
+diff --git a/third_party/libaom/source/config/linux/arm64/config/aom_config.h b/third_party/libaom/source/config/linux/arm64/config/aom_config.h
+index f4cd4953b8..d84a3e7355 100644
+--- a/third_party/libaom/source/config/linux/arm64/config/aom_config.h
++++ b/third_party/libaom/source/config/linux/arm64/config/aom_config.h
+@@ -52,7 +52,7 @@
+ #define CONFIG_OPTICAL_FLOW_API 0
+ #define CONFIG_OS_SUPPORT 1
+ #define CONFIG_PARTITION_SEARCH_ORDER 0
+-#define CONFIG_PIC 0
++#define CONFIG_PIC 1
+ #define CONFIG_RD_COMMAND 0
+ #define CONFIG_RD_DEBUG 0
+ #define CONFIG_REALTIME_ONLY 1
+diff --git a/third_party/libaom/source/config/linux/generic/config/aom_config.asm b/third_party/libaom/source/config/linux/generic/config/aom_config.asm
+index 794411fe9e..6220218def 100644
+--- a/third_party/libaom/source/config/linux/generic/config/aom_config.asm
++++ b/third_party/libaom/source/config/linux/generic/config/aom_config.asm
+@@ -50,7 +50,7 @@ CONFIG_NORMAL_TILE_MODE equ 1
+ CONFIG_OPTICAL_FLOW_API equ 0
+ CONFIG_OS_SUPPORT equ 1
+ CONFIG_PARTITION_SEARCH_ORDER equ 0
+-CONFIG_PIC equ 0
++CONFIG_PIC equ 1
+ CONFIG_RD_COMMAND equ 0
+ CONFIG_RD_DEBUG equ 0
+ CONFIG_REALTIME_ONLY equ 1
+diff --git a/third_party/libaom/source/config/linux/generic/config/aom_config.h b/third_party/libaom/source/config/linux/generic/config/aom_config.h
+index 16abf79d3e..8de3f381c0 100644
+--- a/third_party/libaom/source/config/linux/generic/config/aom_config.h
++++ b/third_party/libaom/source/config/linux/generic/config/aom_config.h
+@@ -52,7 +52,7 @@
+ #define CONFIG_OPTICAL_FLOW_API 0
+ #define CONFIG_OS_SUPPORT 1
+ #define CONFIG_PARTITION_SEARCH_ORDER 0
+-#define CONFIG_PIC 0
++#define CONFIG_PIC 1
+ #define CONFIG_RD_COMMAND 0
+ #define CONFIG_RD_DEBUG 0
+ #define CONFIG_REALTIME_ONLY 1
+diff --git a/third_party/libaom/source/config/linux/x64/config/aom_config.asm b/third_party/libaom/source/config/linux/x64/config/aom_config.asm
+index b0c30d6e69..d6a1e4b501 100644
+--- a/third_party/libaom/source/config/linux/x64/config/aom_config.asm
++++ b/third_party/libaom/source/config/linux/x64/config/aom_config.asm
+@@ -40,7 +40,7 @@
+ %define CONFIG_OPTICAL_FLOW_API 0
+ %define CONFIG_OS_SUPPORT 1
+ %define CONFIG_PARTITION_SEARCH_ORDER 0
+-%define CONFIG_PIC 0
++%define CONFIG_PIC 1
+ %define CONFIG_RD_COMMAND 0
+ %define CONFIG_RD_DEBUG 0
+ %define CONFIG_REALTIME_ONLY 1
+diff --git a/third_party/libaom/source/config/linux/x64/config/aom_config.h b/third_party/libaom/source/config/linux/x64/config/aom_config.h
+index 4e5fe6e965..e1d005418b 100644
+--- a/third_party/libaom/source/config/linux/x64/config/aom_config.h
++++ b/third_party/libaom/source/config/linux/x64/config/aom_config.h
+@@ -52,7 +52,7 @@
+ #define CONFIG_OPTICAL_FLOW_API 0
+ #define CONFIG_OS_SUPPORT 1
+ #define CONFIG_PARTITION_SEARCH_ORDER 0
+-#define CONFIG_PIC 0
++#define CONFIG_PIC 1
+ #define CONFIG_RD_COMMAND 0
+ #define CONFIG_RD_DEBUG 0
+ #define CONFIG_REALTIME_ONLY 1
+-- 
+2.35.1
+
