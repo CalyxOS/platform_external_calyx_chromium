@@ -1,0 +1,52 @@
+From 1ba6d38fb06a0306cd28b9f8ee4bc80bc1ce4cdc Mon Sep 17 00:00:00 2001
+From: uazo <uazo@users.noreply.github.com>
+Date: Wed, 27 Oct 2021 10:57:09 +0000
+Subject: [PATCH 154/177] Keep empty tabs between sessions
+
+---
+ .../chrome/browser/tabmodel/TabPersistentStore.java | 13 -------------
+ .../browser/tab/state/CriticalPersistedTabData.java |  4 ----
+ 2 files changed, 17 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
+index 75957ed5cf..33dae8d7c1 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
+@@ -780,19 +780,6 @@ public class TabPersistentStore {
+                     .createFrozenTab(tabState, serializedCriticalPersistedTabData, tabToRestore.id,
+                             isIncognito, restoredIndex);
+         } else {
+-            if (UrlUtilities.isNTPUrl(tabToRestore.url) && !setAsActive
+-                    && !tabToRestore.fromMerge) {
+-                Log.i(TAG, "Skipping restore of non-selected NTP.");
+-                RecordHistogram.recordEnumeratedHistogram("Tabs.TabRestoreMethod",
+-                        TabRestoreMethod.SKIPPED_NTP, TabRestoreMethod.NUM_ENTRIES);
+-                return;
+-            } else if (TextUtils.isEmpty(tabToRestore.url)) {
+-                Log.i(TAG, "Skipping restore of empty Tabs.");
+-                RecordHistogram.recordEnumeratedHistogram("Tabs.TabRestoreMethod",
+-                        TabRestoreMethod.SKIPPED_EMPTY_URL, TabRestoreMethod.NUM_ENTRIES);
+-                return;
+-            }
+-
+             Log.w(TAG, "Failed to restore TabState; creating Tab with last known URL.");
+             Tab fallbackTab = mTabCreatorManager.getTabCreator(isIncognito)
+                                       .createNewTab(new LoadUrlParams(tabToRestore.url),
+diff --git a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/CriticalPersistedTabData.java b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/CriticalPersistedTabData.java
+index 75064a4e0f..7332360a6b 100644
+--- a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/CriticalPersistedTabData.java
++++ b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/CriticalPersistedTabData.java
+@@ -552,10 +552,6 @@ public class CriticalPersistedTabData extends PersistedTabData {
+         if (getUrl() == null || TextUtils.isEmpty(getUrl().getSpec())) {
+             return false;
+         }
+-        if (UrlUtilities.isNTPUrl(getUrl().getSpec()) && !mTab.canGoBack()
+-                && !mTab.canGoForward()) {
+-            return false;
+-        }
+         if (isTabUrlContentScheme(getUrl().getSpec())) {
+             return false;
+         }
+-- 
+2.35.1
+

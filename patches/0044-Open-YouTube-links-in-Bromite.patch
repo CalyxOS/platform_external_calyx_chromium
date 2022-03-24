@@ -1,0 +1,29 @@
+From 580fbcb8dd03ef27256bf47f153ed14fcc46cc6a Mon Sep 17 00:00:00 2001
+From: AlexeyBarabash <alexey@brave.com>
+Date: Thu, 11 Jan 2018 13:27:34 +0200
+Subject: [PATCH 044/177] Open YouTube links in Bromite
+
+---
+ .../external_intents/ExternalNavigationHandler.java         | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
+index d93a1ab397..e47d1480f6 100644
+--- a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
++++ b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
+@@ -1311,6 +1311,12 @@ public class ExternalNavigationHandler {
+                     OverrideUrlLoadingAsyncActionType.UI_GATING_BROWSER_NAVIGATION);
+         }
+ 
++        // force to open YouTube URLs in Bromite
++        String intentPackageName = targetIntent.getPackage();
++        if (intentPackageName != null && intentPackageName.equals("com.google.android.youtube")) {
++            if (DEBUG) Log.i(TAG, "NO_OVERRIDE: YouTube URL for YouTube app");
++            return OverrideUrlLoadingResult.forNoOverride();
++        }
+         // This should come after file intents, but before any returns of
+         // OVERRIDE_WITH_EXTERNAL_INTENT.
+         if (externalIntentRequestsDisabledForUrl(params)) {
+-- 
+2.35.1
+

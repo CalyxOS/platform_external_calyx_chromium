@@ -1,0 +1,35 @@
+From 5c5431453207c31c29199c6a791ff6aca7ccba61 Mon Sep 17 00:00:00 2001
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Fri, 6 Apr 2018 10:29:05 +0200
+Subject: [PATCH 005/177] exit on failure of inclusion
+
+---
+ chrome/installer/linux/debian/build.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/chrome/installer/linux/debian/build.sh b/chrome/installer/linux/debian/build.sh
+index 67c0de84ef..3cf2f010ae 100755
+--- a/chrome/installer/linux/debian/build.sh
++++ b/chrome/installer/linux/debian/build.sh
+@@ -235,15 +235,15 @@ DEB_CHANGELOG="${TMPFILEDIR}/changelog"
+ DEB_FILES="${TMPFILEDIR}/files"
+ DEB_CONTROL="${TMPFILEDIR}/control"
+ 
+-source ${OUTPUTDIR}/installer/common/installer.include
++source ${OUTPUTDIR}/installer/common/installer.include || exit $?
+ 
+ get_version_info
+ VERSIONFULL="${VERSION}-${PACKAGE_RELEASE}"
+ 
+ if [ "$BRANDING" = "google_chrome" ]; then
+-  source "${OUTPUTDIR}/installer/common/google-chrome.info"
++  source "${OUTPUTDIR}/installer/common/google-chrome.info" || exit $?
+ else
+-  source "${OUTPUTDIR}/installer/common/chromium-browser.info"
++  source "${OUTPUTDIR}/installer/common/chromium-browser.info" || exit $?
+ fi
+ eval $(sed -e "s/^\([^=]\+\)=\(.*\)$/export \1='\2'/" \
+   "${OUTPUTDIR}/installer/theme/BRANDING")
+-- 
+2.35.1
+
