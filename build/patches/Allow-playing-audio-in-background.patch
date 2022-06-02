@@ -1,0 +1,53 @@
+From: AlexeyBarabash <alexey@brave.com>
+Date: Thu, 2 Nov 2017 18:21:16 +0200
+Subject: Allow playing audio in background
+
+---
+ .../renderer/platform/media/web_media_player_impl.cc | 12 +++++++++++-
+ .../renderer/platform/media/web_media_player_impl.h  |  3 +++
+ 2 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/third_party/blink/renderer/platform/media/web_media_player_impl.cc b/third_party/blink/renderer/platform/media/web_media_player_impl.cc
+--- a/third_party/blink/renderer/platform/media/web_media_player_impl.cc
++++ b/third_party/blink/renderer/platform/media/web_media_player_impl.cc
+@@ -1214,6 +1214,12 @@ bool WebMediaPlayerImpl::HasAudio() const {
+   return pipeline_metadata_.has_audio;
+ }
+ 
++bool WebMediaPlayerImpl::HasVideoNonEmptySize() const {
++  DCHECK(main_task_runner_->BelongsToCurrentThread());
++
++  return pipeline_metadata_.has_video && pipeline_metadata_.natural_size.width() != 0 && pipeline_metadata_.natural_size.height() != 0;
++}
++
+ void WebMediaPlayerImpl::EnabledAudioTracksChanged(
+     const WebVector<WebMediaPlayer::TrackId>& enabledTrackIds) {
+   DCHECK(main_task_runner_->BelongsToCurrentThread());
+@@ -3586,7 +3592,11 @@ bool WebMediaPlayerImpl::ShouldPausePlaybackWhenHidden() const {
+   // Audio only stream is allowed to play when in background.
+   // TODO: We should check IsBackgroundOptimizationCandidate here. But we need
+   // to move the logic of checking video frames out of that function.
+-  if (!HasVideo())
++
++  //pipeline_metadata_.has_video is true for MediaPlayerRenderer,
++  //see media/base/pipeline_metadata.h. This is a workaround to allow audio
++  //streams be played in background.
++  if (!HasVideoNonEmptySize())
+     return false;
+ 
+   if (using_media_player_renderer_ &&
+diff --git a/third_party/blink/renderer/platform/media/web_media_player_impl.h b/third_party/blink/renderer/platform/media/web_media_player_impl.h
+--- a/third_party/blink/renderer/platform/media/web_media_player_impl.h
++++ b/third_party/blink/renderer/platform/media/web_media_player_impl.h
+@@ -191,6 +191,9 @@ class PLATFORM_EXPORT WebMediaPlayerImpl
+   bool HasVideo() const override;
+   bool HasAudio() const override;
+ 
++  // True is has video and it's frame size is not zero
++  bool HasVideoNonEmptySize() const;
++
+   void EnabledAudioTracksChanged(
+       const WebVector<WebMediaPlayer::TrackId>& enabledTrackIds) override;
+   void SelectedVideoTrackChanged(
+--
+2.25.1

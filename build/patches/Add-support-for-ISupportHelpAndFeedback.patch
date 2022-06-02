@@ -1,0 +1,51 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 17 May 2021 12:30:12 +0000
+Subject: Add support for ISupportHelpAndFeedback
+
+---
+ .../chrome/browser/settings/SettingsActivity.java     | 11 ++++++++---
+ .../components/browser_ui/settings/SettingsUtils.java |  4 ++++
+ 2 files changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
+@@ -69,6 +69,7 @@ import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
+ import org.chromium.components.browser_ui.bottomsheet.BottomSheetControllerFactory;
+ import org.chromium.components.browser_ui.settings.FragmentSettingsLauncher;
+ import org.chromium.components.browser_ui.settings.SettingsLauncher;
++import org.chromium.components.browser_ui.settings.SettingsUtils;
+ import org.chromium.components.browser_ui.site_settings.SiteSettingsPreferenceFragment;
+ import org.chromium.components.browser_ui.widget.displaystyle.UiConfig;
+ import org.chromium.components.browser_ui.widget.displaystyle.ViewResizer;
+@@ -333,9 +334,13 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+             finish();
+             return true;
+         } else if (item.getItemId() == R.id.menu_id_general_help) {
+-            HelpAndFeedbackLauncherImpl.getInstance().show(this,
+-                    getString(R.string.help_context_settings), Profile.getLastUsedRegularProfile(),
+-                    null);
++            if (mainFragment instanceof SettingsUtils.ISupportHelpAndFeedback) {
++                ((SettingsUtils.ISupportHelpAndFeedback)mainFragment).onHelpAndFeebackPressed();
++            } else {
++                HelpAndFeedbackLauncherImpl.getInstance().show(this,
++                        getString(R.string.help_context_settings), Profile.getLastUsedRegularProfile(),
++                        null);
++            }
+             return true;
+         }
+         return super.onOptionsItemSelected(item);
+diff --git a/components/browser_ui/settings/android/java/src/org/chromium/components/browser_ui/settings/SettingsUtils.java b/components/browser_ui/settings/android/java/src/org/chromium/components/browser_ui/settings/SettingsUtils.java
+--- a/components/browser_ui/settings/android/java/src/org/chromium/components/browser_ui/settings/SettingsUtils.java
++++ b/components/browser_ui/settings/android/java/src/org/chromium/components/browser_ui/settings/SettingsUtils.java
+@@ -97,4 +97,8 @@ public class SettingsUtils {
+         ToolbarUtils.setOverflowMenuVisibility(toolbar, visibility);
+         return true;
+     }
++
++    public interface ISupportHelpAndFeedback {
++        void onHelpAndFeebackPressed();
++    }
+ }
+--
+2.25.1

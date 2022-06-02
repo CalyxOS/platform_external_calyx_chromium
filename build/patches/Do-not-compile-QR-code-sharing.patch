@@ -1,0 +1,105 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Thu, 27 Feb 2020 23:23:59 +0100
+Subject: Do not compile QR code sharing
+
+---
+ .../chrome/browser/ui/RootUiCoordinator.java  |  5 -----
+ .../ChromeProvidedSharingOptionsProvider.java | 19 -------------------
+ chrome/browser/share/android/java_sources.gni | 18 ------------------
+ 3 files changed, 42 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
+@@ -85,7 +85,6 @@ import org.chromium.chrome.browser.share.ShareButtonController;
+ import org.chromium.chrome.browser.share.ShareDelegate;
+ import org.chromium.chrome.browser.share.ShareDelegate.ShareOrigin;
+ import org.chromium.chrome.browser.share.ShareUtils;
+-import org.chromium.chrome.browser.share.qrcode.QrCodeDialog;
+ import org.chromium.chrome.browser.share.scroll_capture.ScrollCaptureManager;
+ import org.chromium.chrome.browser.subscriptions.CommerceSubscriptionsServiceFactory;
+ import org.chromium.chrome.browser.tab.AccessibilityVisibilityHandler;
+@@ -433,10 +432,6 @@ public class RootUiCoordinator
+     }
+ 
+     public void onAttachFragment(Fragment fragment) {
+-        if (fragment instanceof QrCodeDialog) {
+-            QrCodeDialog qrCodeDialog = (QrCodeDialog) fragment;
+-            qrCodeDialog.setWindowAndroid(mWindowAndroid);
+-        }
+     }
+ 
+     @Override
+diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/share_sheet/ChromeProvidedSharingOptionsProvider.java b/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/share_sheet/ChromeProvidedSharingOptionsProvider.java
+--- a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/share_sheet/ChromeProvidedSharingOptionsProvider.java
++++ b/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/share_sheet/ChromeProvidedSharingOptionsProvider.java
+@@ -29,7 +29,6 @@ import org.chromium.chrome.browser.share.ChromeShareExtras.DetailedContentType;
+ import org.chromium.chrome.browser.share.SaveBitmapDelegate;
+ import org.chromium.chrome.browser.share.link_to_text.LinkToTextCoordinator.LinkGeneration;
+ import org.chromium.chrome.browser.share.long_screenshots.LongScreenshotsCoordinator;
+-import org.chromium.chrome.browser.share.qrcode.QrCodeCoordinator;
+ import org.chromium.chrome.browser.share.screenshot.ScreenshotCoordinator;
+ import org.chromium.chrome.browser.share.send_tab_to_self.SendTabToSelfCoordinator;
+ import org.chromium.chrome.browser.share.share_sheet.ShareSheetLinkToggleMetricsHelper.LinkToggleMetricsDetails;
+@@ -300,9 +299,6 @@ public class ChromeProvidedSharingOptionsProvider {
+         mOrderedFirstPartyOptions.add(createCopyFirstPartyOption());
+         mOrderedFirstPartyOptions.add(createCopyTextFirstPartyOption());
+         mOrderedFirstPartyOptions.add(createSendTabToSelfFirstPartyOption());
+-        if (!mIsIncognito) {
+-            mOrderedFirstPartyOptions.add(createQrCodeFirstPartyOption());
+-        }
+         if (mTabProvider.hasValue()
+                 && UserPrefs.get(Profile.getLastUsedRegularProfile())
+                            .getBoolean(Pref.PRINTING_ENABLED)) {
+@@ -462,21 +458,6 @@ public class ChromeProvidedSharingOptionsProvider {
+                 .build();
+     }
+ 
+-    private FirstPartyOption createQrCodeFirstPartyOption() {
+-        return new FirstPartyOptionBuilder(
+-                ContentType.LINK_PAGE_VISIBLE, ContentType.LINK_PAGE_NOT_VISIBLE, ContentType.IMAGE)
+-                .setDetailedContentTypesToDisableFor(
+-                        DetailedContentType.LIGHTWEIGHT_REACTION, DetailedContentType.WEB_NOTES)
+-                .setIcon(R.drawable.qr_code, R.string.qr_code_share_icon_label)
+-                .setFeatureNameForMetrics("SharingHubAndroid.QRCodeSelected")
+-                .setOnClickCallback((view) -> {
+-                    QrCodeCoordinator qrCodeCoordinator =
+-                            new QrCodeCoordinator(mActivity, mUrl, mShareParams.getWindow());
+-                    qrCodeCoordinator.show();
+-                })
+-                .build();
+-    }
+-
+     private FirstPartyOption createPrintingFirstPartyOption() {
+         return new FirstPartyOptionBuilder(ContentType.LINK_PAGE_VISIBLE)
+                 .setIcon(R.drawable.sharing_print, R.string.print_share_activity_title)
+diff --git a/chrome/browser/share/android/java_sources.gni b/chrome/browser/share/android/java_sources.gni
+--- a/chrome/browser/share/android/java_sources.gni
++++ b/chrome/browser/share/android/java_sources.gni
+@@ -25,24 +25,6 @@ share_java_sources = [
+   "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/long_screenshots/bitmap_generation/LongScreenshotsTabService.java",
+   "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/long_screenshots/bitmap_generation/LongScreenshotsTabServiceFactory.java",
+   "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/long_screenshots/bitmap_generation/ScreenshotBoundsManager.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/QRCodeGenerationRequest.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/QrCodeCoordinator.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/QrCodeDialog.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/QrCodeDialogTab.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/QrCodePageAdapter.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/TabLayoutPageListener.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/scan_tab/CameraPreview.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/scan_tab/CameraPreviewOverlay.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/scan_tab/QrCodeScanCoordinator.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/scan_tab/QrCodeScanMediator.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/scan_tab/QrCodeScanView.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/scan_tab/QrCodeScanViewBinder.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/scan_tab/QrCodeScanViewProperties.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/share_tab/QrCodeShareCoordinator.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/share_tab/QrCodeShareMediator.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/share_tab/QrCodeShareView.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/share_tab/QrCodeShareViewBinder.java",
+-  "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/qrcode/share_tab/QrCodeShareViewProperties.java",
+   "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/screenshot/EditorScreenshotSource.java",
+   "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/screenshot/EditorScreenshotTask.java",
+   "//chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/screenshot/ScreenshotCoordinator.java",
+--
+2.25.1

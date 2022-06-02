@@ -1,0 +1,125 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Mon, 13 Jul 2020 00:37:06 +0200
+Subject: Add menu item to view source
+
+---
+ chrome/android/java/res/menu/custom_tabs_menu.xml  |  3 +++
+ chrome/android/java/res/menu/main_menu.xml         |  3 +++
+ .../chrome/browser/ChromeTabbedActivity.java       |  2 ++
+ .../chrome/browser/app/ChromeActivity.java         |  5 +++++
+ .../app/appmenu/AppMenuPropertiesDelegateImpl.java | 14 ++++++++++++++
+ .../CustomTabAppMenuPropertiesDelegate.java        |  1 +
+ .../ui/android/strings/android_chrome_strings.grd  |  4 ++++
+ 7 files changed, 32 insertions(+)
+
+diff --git a/chrome/android/java/res/menu/custom_tabs_menu.xml b/chrome/android/java/res/menu/custom_tabs_menu.xml
+--- a/chrome/android/java/res/menu/custom_tabs_menu.xml
++++ b/chrome/android/java/res/menu/custom_tabs_menu.xml
+@@ -46,6 +46,9 @@
+         <item android:id="@+id/add_to_homescreen_id"
+             android:title="@string/menu_add_to_homescreen"
+             android:orderInCategory="2" />
++        <item android:id="@+id/view_source_id"
++            android:title="@string/view_source"
++            android:orderInCategory="2" />
+         <item android:id="@+id/open_webapk_id"
+             android:title="@string/menu_open_webapk"
+             android:orderInCategory="2" />
+diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
+--- a/chrome/android/java/res/menu/main_menu.xml
++++ b/chrome/android/java/res/menu/main_menu.xml
+@@ -106,6 +106,9 @@
+         <item android:id="@+id/add_to_homescreen_id"
+             android:title="@string/menu_add_to_homescreen"
+             android:icon="@drawable/ic_add_to_home_screen" />
++        <item android:id="@+id/view_source_id"
++            android:title="@string/view_source"
++            android:icon="@drawable/ic_drive_document_24dp" />
+         <item android:id="@+id/open_webapk_id"
+             android:title="@string/menu_open_webapk"
+             android:icon="@drawable/ic_add_to_home_screen" />
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+@@ -2176,6 +2176,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+                 NewTabPageUma.recordAction(NewTabPageUma.ACTION_OPENED_DOWNLOADS_MANAGER);
+             }
+             RecordUserAction.record("MobileMenuDownloadManager");
++        } else if (id == R.id.view_source_id) {
++            currentTab.getWebContents().getNavigationController().loadUrl(new LoadUrlParams("view-source:"+currentTab.getUrl().getSpec()));
+         } else if (id == R.id.open_recently_closed_tab) {
+             TabModel currentModel = mTabModelSelector.getCurrentModel();
+             if (!currentModel.isIncognito()) currentModel.openMostRecentlyClosedEntry();
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
+@@ -2518,6 +2518,11 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+             return true;
+         }
+ 
++        if (id == R.id.view_source_id) {
++            currentTab.getWebContents().getNavigationController().loadUrl(new LoadUrlParams("view-source:"+currentTab.getUrl().getSpec()));
++            return true;
++        }
++
+         if (id == R.id.request_desktop_site_id || id == R.id.request_desktop_site_check_id) {
+             boolean usingDesktopUserAgent =
+                     currentTab.getWebContents().getNavigationController().getUseDesktopUserAgent();
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
+@@ -507,6 +507,7 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
+                         isChromeScheme, isFileScheme, isContentScheme, isIncognito, url));
+ 
+         updateRequestDesktopSiteMenuItem(menu, currentTab, true /* can show */, isChromeScheme);
++        updateViewSourceMenuItem(menu, currentTab);
+ 
+         updateAutoDarkMenuItem(menu, currentTab, isChromeScheme);
+ 
+@@ -1153,6 +1154,19 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
+         stopPriceTrackingMenuItem.setVisible(priceTrackingEnabled);
+     }
+ 
++    /**
++     * Updates the view source menu item's state.
++     *
++     * @param menu {@link Menu} for view source.
++     * @param currentTab      Current tab being displayed.
++     */
++    protected void updateViewSourceMenuItem(
++            Menu menu, Tab currentTab) {
++        MenuItem viewSourceMenuItem = menu.findItem(R.id.view_source_id);
++        String url = currentTab.getUrl().getSpec();
++        viewSourceMenuItem.setVisible(!url.isEmpty() && !url.startsWith("view-source:"));
++    }
++
+     /**
+      * Updates the request desktop site item's state.
+      *
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabAppMenuPropertiesDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabAppMenuPropertiesDelegate.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabAppMenuPropertiesDelegate.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabAppMenuPropertiesDelegate.java
+@@ -216,6 +216,7 @@ public class CustomTabAppMenuPropertiesDelegate extends AppMenuPropertiesDelegat
+ 
+             updateRequestDesktopSiteMenuItem(
+                     menu, currentTab, requestDesktopSiteVisible, isChromeScheme);
++            updateViewSourceMenuItem(menu, currentTab);
+             prepareAddToHomescreenMenuItem(menu, currentTab, addToHomeScreenVisible);
+         }
+     }
+diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
+--- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
++++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
+@@ -306,6 +306,10 @@ CHAR_LIMIT guidelines:
+         Chrome tips
+       </message>
+ 
++      <message name="IDS_VIEW_SOURCE" desc="Title for the menu command to view the source of the current page. [CHAR-LIMIT=40]">
++        View source
++      </message>
++
+       <message name="IDS_UNSUPPORTED" desc="Message displayed to the user when an attempted action is not supported.">
+         Unsupported
+       </message>
+--
+2.25.1
