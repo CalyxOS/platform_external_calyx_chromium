@@ -1,0 +1,77 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Thu, 12 Oct 2017 08:15:17 +0200
+Subject: Disable NTP remote suggestions by default
+
+---
+ .../chrome/browser/feed/FeedSurfaceMediator.java    | 13 ++++++++++---
+ components/feed/core/shared_prefs/pref_names.cc     |  4 ++--
+ components/ntp_snippets/features.cc                 |  4 ++--
+ 3 files changed, 14 insertions(+), 7 deletions(-)
+
+diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java b/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java
+--- a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java
++++ b/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java
+@@ -294,9 +294,13 @@ public class FeedSurfaceMediator
+     /** Update the content based on supervised user or enterprise policy. */
+     void updateContent() {
+         mFeedEnabled = FeedFeatures.isFeedEnabled();
+-        if (mFeedEnabled == !mTabToStreamMap.isEmpty()) {
+-            return;
+-        }
++        // Bromite needs the next lines removed because mFeedEnabled
++        // is always false and mTabToStreamMap never empty
++        //
++        // addHeaderAndStream is called at least once
++        // if (mFeedEnabled == !mTabToStreamMap.isEmpty()) {
++        //     return;
++        // }
+ 
+         RecyclerView recyclerView = mCoordinator.getRecyclerView();
+         if (mSnapScrollHelper != null && recyclerView != null) {
+@@ -450,6 +454,9 @@ public class FeedSurfaceMediator
+     }
+ 
+     private void addHeaderAndStream(String headerText, Stream stream) {
++        // Bromite also needs this early return because
++        // the first item inserted is the feed setting
++        if (FeedFeatures.isFeedEnabled() == false) return;
+         int tabId = mSectionHeaderModel.get(SectionHeaderListProperties.SECTION_HEADERS_KEY).size();
+         mTabToStreamMap.put(tabId, stream);
+ 
+diff --git a/components/feed/core/shared_prefs/pref_names.cc b/components/feed/core/shared_prefs/pref_names.cc
+--- a/components/feed/core/shared_prefs/pref_names.cc
++++ b/components/feed/core/shared_prefs/pref_names.cc
+@@ -20,8 +20,8 @@ const char kArticlesListVisible[] = "ntp_snippets.list_visible";
+ const char kVideoPreviewsType[] = "ntp_snippets.video_previews_type";
+ 
+ void RegisterFeedSharedProfilePrefs(PrefRegistrySimple* registry) {
+-  registry->RegisterBooleanPref(kEnableSnippets, true);
+-  registry->RegisterBooleanPref(kArticlesListVisible, true);
++  registry->RegisterBooleanPref(kEnableSnippets, false);
++  registry->RegisterBooleanPref(kArticlesListVisible, false);
+   registry->RegisterIntegerPref(kVideoPreviewsType, 1);
+ }
+ 
+diff --git a/components/ntp_snippets/features.cc b/components/ntp_snippets/features.cc
+--- a/components/ntp_snippets/features.cc
++++ b/components/ntp_snippets/features.cc
+@@ -38,7 +38,7 @@ const base::Feature* const kAllFeatures[] = {
+     &kOptionalImagesEnabledFeature};
+ 
+ const base::Feature kArticleSuggestionsFeature{
+-    "NTPArticleSuggestions", base::FEATURE_ENABLED_BY_DEFAULT};
++    "NTPArticleSuggestions", base::FEATURE_DISABLED_BY_DEFAULT};
+ 
+ const base::Feature kRemoteSuggestionsEmulateM58FetchingSchedule{
+     "RemoteSuggestionsEmulateM58FetchingSchedule",
+@@ -68,7 +68,7 @@ const char kNotificationsDailyLimit[] = "daily_limit";
+ const char kNotificationsIgnoredLimitParam[] = "ignored_limit";
+ 
+ const base::Feature kKeepPrefetchedContentSuggestions{
+-    "KeepPrefetchedContentSuggestions", base::FEATURE_ENABLED_BY_DEFAULT};
++    "KeepPrefetchedContentSuggestions", base::FEATURE_DISABLED_BY_DEFAULT};
+ 
+ const base::Feature kOptionalImagesEnabledFeature{
+     "NTPRemoteSuggestionsOptionalImages", base::FEATURE_ENABLED_BY_DEFAULT};
+--
+2.25.1
