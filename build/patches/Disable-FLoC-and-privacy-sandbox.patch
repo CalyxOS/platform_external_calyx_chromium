@@ -8,7 +8,7 @@ the marking the history navigation and the javascript API and permission policie
 Also added the disabling of blink features through the DisabledForBromite tag
 ---
  .../java/res/xml/privacy_preferences.xml      |  4 ---
- .../privacy/settings/PrivacySettings.java     | 22 ------------
+ .../privacy/settings/PrivacySettings.java     | 21 -----------
  .../browser/chrome_content_browser_client.cc  |  3 ++
  .../privacy_sandbox/generated_floc_pref.cc    |  2 +-
  .../history/core/browser/history_backend.cc   | 13 +------
@@ -16,34 +16,26 @@ Also added the disabling of blink features through the DisabledForBromite tag
  .../privacy_sandbox/privacy_sandbox_prefs.cc  |  4 +--
  .../privacy_sandbox_settings.cc               | 36 +++++++++++--------
  .../privacy_sandbox_settings.h                |  1 -
- 9 files changed, 29 insertions(+), 58 deletions(-)
+ 9 files changed, 29 insertions(+), 57 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -65,10 +65,6 @@
-         android:title="@string/open_external_links_incognito_title"
-         android:summary="@string/open_external_links_incognito_summary"
-         android:defaultValue="false" />
+@@ -41,10 +41,6 @@
+         android:fragment="org.chromium.chrome.browser.privacy.settings.DoNotTrackSettings"
+         android:key="do_not_track"
+         android:title="@string/do_not_track_title"/>
 -    <Preference
 -        android:key="privacy_sandbox"
 -        android:title="@string/prefs_privacy_sandbox"
 -        android:fragment="org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsFragment"/>
-     <PreferenceCategory
-         android:key="services_category"
-         android:title="@string/services_category_title">
+     <Preference
+         android:key="phone_as_a_security_key"
+         android:title="@string/cablev2_paask_title"
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -62,7 +62,6 @@ public class PrivacySettings
-     private static final String PREF_SECURE_DNS = "secure_dns";
-     private static final String PREF_DO_NOT_TRACK = "do_not_track";
-     private static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
--    private static final String PREF_PRIVACY_SANDBOX = "privacy_sandbox";
-     private static final String PREF_PROXY_OPTIONS = "proxy";
-     private static final String PREF_PRIVACY_REVIEW = "privacy_review";
-     private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
-@@ -93,21 +92,6 @@ public class PrivacySettings
+@@ -71,21 +71,6 @@ public class PrivacySettings
          SettingsUtils.addPreferencesFromResource(this, R.xml.privacy_preferences);
          getActivity().setTitle(R.string.prefs_privacy_security);
  
@@ -65,7 +57,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          Preference privacyReviewPreference = findPreference(PREF_PRIVACY_REVIEW);
          if (!ChromeFeatureList.isEnabled(ChromeFeatureList.PRIVACY_REVIEW)) {
              getPreferenceScreen().removePreference(privacyReviewPreference);
-@@ -239,12 +223,6 @@ public class PrivacySettings
+@@ -180,12 +165,6 @@ public class PrivacySettings
              secureDnsPref.setSummary(SecureDnsSettings.getSummary(getContext()));
          }
  
@@ -286,5 +278,6 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings.h b/components/
  };
  
  }  // namespace privacy_sandbox
---
-2.25.1
+-- 
+2.36.1
+
