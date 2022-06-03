@@ -1,0 +1,33 @@
+From d87d63bce9313e6656d28199e7e51de353b3d869 Mon Sep 17 00:00:00 2001
+From: Chirayu Desai <chirayudesai1@gmail.com>
+Date: Thu, 23 Jun 2022 03:17:03 +0530
+Subject: [PATCH] fixup! Enable native Android autofill
+
+---
+ android_webview/browser/aw_contents.cc | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/android_webview/browser/aw_contents.cc b/android_webview/browser/aw_contents.cc
+index 16edc59f0fdc5..9de8836f7e792 100644
+--- a/android_webview/browser/aw_contents.cc
++++ b/android_webview/browser/aw_contents.cc
+@@ -336,14 +336,14 @@ void AwContents::InitAutofillIfNecessary(bool autocomplete_enabled) {
+   // WebView browser tests may shall use BrowserAutofillManager if
+   // `!autofill_provider`.
+   ContentAutofillDriverFactory::DriverInitCallback driver_init_hook =
+-      /*enable_browser_autofill_manager*/ false,
+       autofill_provider
+           ? base::BindRepeating(&autofill::AndroidDriverInitHook,
+                                 AwAutofillClient::FromWebContents(web_contents),
+                                 enable_download_manager)
+           : base::BindRepeating(&autofill::BrowserDriverInitHook,
+                                 AwAutofillClient::FromWebContents(web_contents),
+-                                base::android::GetDefaultLocaleString());
++                                base::android::GetDefaultLocaleString(),
++                                /*enable_secondary_autofill_manager*/ true);
+ 
+   ContentAutofillDriverFactory::CreateForWebContentsAndDelegate(
+       web_contents, AwAutofillClient::FromWebContents(web_contents),
+-- 
+2.36.1
+
