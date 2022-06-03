@@ -49,45 +49,47 @@ deleting the session content settings of `UntilOriginClosed`.
 
 See also: https://github.com/bromite/bromite/issues/1549
 ---
- .../permissions/last_tab_standing_tracker.cc  | 33 +++++++-
- .../permissions/last_tab_standing_tracker.h   |  4 +-
- .../last_tab_standing_tracker_factory.cc      |  2 +-
- ...hrome_browser_main_extra_parts_profiles.cc |  5 +-
- chrome/browser/ui/tab_helpers.cc              |  1 +
- .../site_settings/PermissionInfo.java         | 14 +++-
- .../site_settings/SingleWebsiteSettings.java  | 10 +++
- .../WebsitePreferenceBridge.java              |  6 +-
- .../android/website_preference_bridge.cc      |  7 +-
- .../strings/android/browser_ui_strings.grd    |  5 ++
- components/content_settings/android/BUILD.gn  |  1 +
- .../core/browser/content_settings_utils.cc    | 29 +++++++
- .../core/browser/content_settings_utils.h     |  6 ++
- .../core/browser/host_content_settings_map.cc |  2 +-
- .../core/common/content_settings.cc           |  7 +-
- .../core/common/content_settings.h            |  4 +-
- .../common/content_settings_constraints.h     | 11 +++
- .../page_info/PageInfoController.java         |  4 +-
- .../PermissionParamsListBuilder.java          | 13 ++-
- .../android/page_info_controller_android.cc   | 10 ++-
- components/page_info/page_info.cc             |  2 +
- components/page_info/page_info.h              |  1 +
- .../permissions/PermissionDialogDelegate.java | 13 +++
- .../permissions/PermissionDialogModel.java    | 81 ++++++++++++++++++-
- .../android/permission_dialog_delegate.cc     | 19 +++++
- .../android/permission_dialog_delegate.h      |  1 +
- .../android/permission_prompt_android.cc      |  8 ++
- .../android/permission_prompt_android.h       |  2 +
- .../android/permissions_android_strings.grd   | 17 ++++
- .../geolocation_permission_context_android.cc | 35 ++++++--
- .../geolocation_permission_context_android.h  | 13 ++-
- .../permissions/permission_context_base.cc    | 50 ++++++++++--
- .../permissions/permission_context_base.h     | 24 +++++-
- components/permissions/permission_prompt.h    |  3 +-
- components/permissions/permission_request.cc  | 34 +++++++-
- components/permissions/permission_request.h   | 17 +++-
- .../permissions/permission_request_manager.cc | 38 ++++++---
- .../permissions/permission_request_manager.h  | 11 ++-
- 38 files changed, 481 insertions(+), 62 deletions(-)
+ .../permissions/last_tab_standing_tracker.cc  |  33 ++-
+ .../permissions/last_tab_standing_tracker.h   |   4 +-
+ .../last_tab_standing_tracker_factory.cc      |   2 +-
+ ...hrome_browser_main_extra_parts_profiles.cc |   5 +-
+ chrome/browser/ui/tab_helpers.cc              |   1 +
+ .../site_settings/PermissionInfo.java         |  14 +-
+ .../site_settings/SingleWebsiteSettings.java  |  10 +
+ .../WebsitePreferenceBridge.java              |   6 +-
+ .../android/website_preference_bridge.cc      |   7 +-
+ .../strings/android/browser_ui_strings.grd    |   5 +
+ components/content_settings/android/BUILD.gn  |   1 +
+ .../core/browser/content_settings_utils.cc    |  29 +++
+ .../core/browser/content_settings_utils.h     |   6 +
+ .../core/browser/host_content_settings_map.cc |   2 +-
+ .../core/common/content_settings.cc           |   7 +-
+ .../core/common/content_settings.h            |   4 +-
+ .../common/content_settings_constraints.h     |  11 +
+ .../page_info/PageInfoController.java         |   4 +-
+ .../PermissionParamsListBuilder.java          |  13 +-
+ .../android/page_info_controller_android.cc   |  10 +-
+ components/page_info/page_info.cc             |   2 +
+ components/page_info/page_info.h              |   1 +
+ .../permissions/PermissionDialogDelegate.java |  13 +
+ .../permissions/PermissionDialogModel.java    |  81 ++++++-
+ .../permission_dialog_delegate.cc             |  19 ++
+ .../permission_dialog_delegate.h              |   1 +
+ .../permission_prompt_android.cc              |   8 +
+ .../permission_prompt_android.h               |   2 +
+ .../android/permission_prompt_android.cc      | 228 ++++++++++++++++++
+ .../android/permissions_android_strings.grd   |  17 ++
+ .../geolocation_permission_context_android.cc |  35 ++-
+ .../geolocation_permission_context_android.h  |  13 +-
+ .../permissions/permission_context_base.cc    |  50 +++-
+ .../permissions/permission_context_base.h     |  24 +-
+ components/permissions/permission_prompt.h    |   3 +-
+ components/permissions/permission_request.cc  |  34 ++-
+ components/permissions/permission_request.h   |  17 +-
+ .../permissions/permission_request_manager.cc |  38 ++-
+ .../permissions/permission_request_manager.h  |  11 +-
+ 39 files changed, 709 insertions(+), 62 deletions(-)
+ create mode 100644 components/permissions/android/permission_prompt_android.cc
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -183,7 +185,7 @@ diff --git a/chrome/browser/permissions/last_tab_standing_tracker_factory.cc b/c
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -370,10 +370,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -376,10 +376,7 @@ void ChromeBrowserMainExtraPartsProfiles::
    InstantServiceFactory::GetInstance();
  #endif
    LanguageModelManagerFactory::GetInstance();
@@ -198,7 +200,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -481,6 +481,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -477,6 +477,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
          web_contents);
    }
    video_tutorials::VideoTutorialTabHelper::CreateForWebContents(web_contents);
@@ -362,7 +364,7 @@ diff --git a/components/browser_ui/strings/android/browser_ui_strings.grd b/comp
 diff --git a/components/content_settings/android/BUILD.gn b/components/content_settings/android/BUILD.gn
 --- a/components/content_settings/android/BUILD.gn
 +++ b/components/content_settings/android/BUILD.gn
-@@ -57,6 +57,7 @@ java_cpp_enum("content_settings_enums_javagen") {
+@@ -58,6 +58,7 @@ java_cpp_enum("content_settings_enums_javagen") {
      "../core/common/content_settings_types.h",
      "../core/common/cookie_controls_enforcement.h",
      "../core/common/cookie_controls_status.h",
@@ -615,7 +617,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
 diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.cc
 --- a/components/page_info/page_info.cc
 +++ b/components/page_info/page_info.cc
-@@ -982,6 +982,8 @@ void PageInfo::PresentSitePermissions() {
+@@ -1057,6 +1057,8 @@ void PageInfo::PresentSitePermissions() {
      permission_info.source = info.source;
      permission_info.is_one_time =
          (info.session_model == content_settings::SessionModel::OneTime);
@@ -627,7 +629,7 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
 diff --git a/components/page_info/page_info.h b/components/page_info/page_info.h
 --- a/components/page_info/page_info.h
 +++ b/components/page_info/page_info.h
-@@ -174,6 +174,7 @@ class PageInfo {
+@@ -175,6 +175,7 @@ class PageInfo {
      content_settings::SettingSource source =
          content_settings::SETTING_SOURCE_NONE;
      bool is_one_time = false;
@@ -777,9 +779,9 @@ diff --git a/components/permissions/android/java/src/org/chromium/components/per
      }
  
      private static View loadDialogView(Context context) {
-diff --git a/components/permissions/android/permission_dialog_delegate.cc b/components/permissions/android/permission_dialog_delegate.cc
---- a/components/permissions/android/permission_dialog_delegate.cc
-+++ b/components/permissions/android/permission_dialog_delegate.cc
+diff --git a/components/permissions/android/permission_prompt/permission_dialog_delegate.cc b/components/permissions/android/permission_prompt/permission_dialog_delegate.cc
+--- a/components/permissions/android/permission_prompt/permission_dialog_delegate.cc
++++ b/components/permissions/android/permission_prompt/permission_dialog_delegate.cc
 @@ -67,6 +67,11 @@ void PermissionDialogJavaDelegate::DismissDialog() {
    Java_PermissionDialogDelegate_dismissFromNative(env, j_delegate_);
  }
@@ -819,9 +821,9 @@ diff --git a/components/permissions/android/permission_dialog_delegate.cc b/comp
    permission_prompt_->Deny();
  }
  
-diff --git a/components/permissions/android/permission_dialog_delegate.h b/components/permissions/android/permission_dialog_delegate.h
---- a/components/permissions/android/permission_dialog_delegate.h
-+++ b/components/permissions/android/permission_dialog_delegate.h
+diff --git a/components/permissions/android/permission_prompt/permission_dialog_delegate.h b/components/permissions/android/permission_prompt/permission_dialog_delegate.h
+--- a/components/permissions/android/permission_prompt/permission_dialog_delegate.h
++++ b/components/permissions/android/permission_prompt/permission_dialog_delegate.h
 @@ -35,6 +35,7 @@ class PermissionDialogJavaDelegate {
                                    PermissionDialogDelegate* owner);
    virtual void CreateDialog();
@@ -830,10 +832,10 @@ diff --git a/components/permissions/android/permission_dialog_delegate.h b/compo
  
   private:
    base::android::ScopedJavaGlobalRef<jobject> j_delegate_;
-diff --git a/components/permissions/android/permission_prompt_android.cc b/components/permissions/android/permission_prompt_android.cc
---- a/components/permissions/android/permission_prompt_android.cc
-+++ b/components/permissions/android/permission_prompt_android.cc
-@@ -83,6 +83,14 @@ void PermissionPromptAndroid::Accept() {
+diff --git a/components/permissions/android/permission_prompt/permission_prompt_android.cc b/components/permissions/android/permission_prompt/permission_prompt_android.cc
+--- a/components/permissions/android/permission_prompt/permission_prompt_android.cc
++++ b/components/permissions/android/permission_prompt/permission_prompt_android.cc
+@@ -40,6 +40,14 @@ void PermissionPromptAndroid::Accept() {
    delegate_->Accept();
  }
  
@@ -848,10 +850,10 @@ diff --git a/components/permissions/android/permission_prompt_android.cc b/compo
  void PermissionPromptAndroid::Deny() {
    delegate_->Deny();
  }
-diff --git a/components/permissions/android/permission_prompt_android.h b/components/permissions/android/permission_prompt_android.h
---- a/components/permissions/android/permission_prompt_android.h
-+++ b/components/permissions/android/permission_prompt_android.h
-@@ -50,7 +50,9 @@ class PermissionPromptAndroid : public permissions::PermissionPrompt,
+diff --git a/components/permissions/android/permission_prompt/permission_prompt_android.h b/components/permissions/android/permission_prompt/permission_prompt_android.h
+--- a/components/permissions/android/permission_prompt/permission_prompt_android.h
++++ b/components/permissions/android/permission_prompt/permission_prompt_android.h
+@@ -43,7 +43,9 @@ class PermissionPromptAndroid : public PermissionPrompt {
  
    void Closing();
    void Accept();
@@ -861,6 +863,240 @@ diff --git a/components/permissions/android/permission_prompt_android.h b/compon
    void SetManageClicked();
    void SetLearnMoreClicked();
    bool ShouldCurrentRequestUseQuietUI();
+diff --git a/components/permissions/android/permission_prompt_android.cc b/components/permissions/android/permission_prompt_android.cc
+new file mode 100644
+index 0000000000000000000000000000000000000000..f714fe3a933195f163760ca19fec1e2cd52d358a
+--- /dev/null
++++ b/components/permissions/android/permission_prompt_android.cc
+@@ -0,0 +1,228 @@
++// Copyright 2016 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/permissions/android/permission_prompt_android.h"
++
++#include <vector>
++
++#include "components/infobars/core/infobar.h"
++#include "components/infobars/core/infobar_manager.h"
++#include "components/messages/android/message_dispatcher_bridge.h"
++#include "components/permissions/android/permission_dialog_delegate.h"
++#include "components/permissions/permission_request.h"
++#include "components/resources/android/theme_resources.h"
++#include "components/strings/grit/components_strings.h"
++#include "components/url_formatter/elide_url.h"
++#include "ui/base/l10n/l10n_util.h"
++
++namespace permissions {
++
++PermissionPromptAndroid::PermissionPromptAndroid(
++    content::WebContents* web_contents,
++    Delegate* delegate)
++    : web_contents_(web_contents),
++      delegate_(delegate),
++      permission_infobar_(nullptr),
++      weak_factory_(this) {
++  DCHECK(web_contents);
++
++  auto* permission_client = PermissionsClient::Get();
++  if ((message_delegate_ = permission_client->MaybeCreateMessageUI(
++           web_contents, GetContentSettingType(0u /* position */),
++           weak_factory_.GetWeakPtr()))) {
++    prompt_disposition_ = permissions::PermissionPromptDisposition::MESSAGE_UI;
++  } else if ((permission_infobar_ = permission_client->MaybeCreateInfoBar(
++                  web_contents, GetContentSettingType(0u /* position */),
++                  weak_factory_.GetWeakPtr()))) {
++    prompt_disposition_ =
++        permissions::PermissionPromptDisposition::MINI_INFOBAR;
++    permission_client->GetInfoBarManager(web_contents_)->AddObserver(this);
++  } else {
++    prompt_disposition_ =
++        permissions::PermissionPromptDisposition::MODAL_DIALOG;
++    PermissionDialogDelegate::Create(web_contents_, this);
++  }
++}
++
++PermissionPromptAndroid::~PermissionPromptAndroid() {
++  if (message_delegate_) {
++    return;
++  }
++  infobars::InfoBarManager* infobar_manager =
++      PermissionsClient::Get()->GetInfoBarManager(web_contents_);
++  if (!infobar_manager)
++    return;
++  // RemoveObserver before RemoveInfoBar to not get notified about the removal
++  // of the `permission_infobar_` infobar.
++  infobar_manager->RemoveObserver(this);
++  if (permission_infobar_) {
++    infobar_manager->RemoveInfoBar(permission_infobar_);
++  }
++}
++
++void PermissionPromptAndroid::UpdateAnchor() {
++  NOTIMPLEMENTED();
++}
++
++permissions::PermissionPrompt::TabSwitchingBehavior
++PermissionPromptAndroid::GetTabSwitchingBehavior() {
++  return TabSwitchingBehavior::kKeepPromptAlive;
++}
++
++permissions::PermissionPromptDisposition
++PermissionPromptAndroid::GetPromptDisposition() const {
++  return prompt_disposition_;
++}
++
++void PermissionPromptAndroid::Closing() {
++  delegate_->Dismiss();
++}
++
++void PermissionPromptAndroid::Accept() {
++  delegate_->Accept();
++}
++
++void PermissionPromptAndroid::AcceptThisTime(content_settings::LifetimeMode lifetimeOption) {
++  delegate_->AcceptThisTime(lifetimeOption);
++}
++
++void PermissionPromptAndroid::DenyThisTime(content_settings::LifetimeMode lifetimeOption) {
++  delegate_->DenyThisTime(lifetimeOption);
++}
++
++void PermissionPromptAndroid::Deny() {
++  delegate_->Deny();
++}
++
++void PermissionPromptAndroid::SetManageClicked() {
++  delegate_->SetManageClicked();
++}
++
++void PermissionPromptAndroid::SetLearnMoreClicked() {
++  delegate_->SetLearnMoreClicked();
++}
++
++bool PermissionPromptAndroid::ShouldCurrentRequestUseQuietUI() {
++  return delegate_->ShouldCurrentRequestUseQuietUI();
++}
++
++absl::optional<PermissionUiSelector::QuietUiReason>
++PermissionPromptAndroid::ReasonForUsingQuietUi() const {
++  return delegate_->ReasonForUsingQuietUi();
++}
++
++size_t PermissionPromptAndroid::PermissionCount() const {
++  return delegate_->Requests().size();
++}
++
++ContentSettingsType PermissionPromptAndroid::GetContentSettingType(
++    size_t position) const {
++  const std::vector<permissions::PermissionRequest*>& requests =
++      delegate_->Requests();
++  CHECK_LT(position, requests.size());
++  return requests[position]->GetContentSettingsType();
++}
++
++static bool IsValidMediaRequestGroup(
++    const std::vector<permissions::PermissionRequest*>& requests) {
++  if (requests.size() < 2)
++    return false;
++  return (
++      (requests[0]->request_type() == permissions::RequestType::kMicStream &&
++       requests[1]->request_type() ==
++           permissions::RequestType::kCameraStream) ||
++      (requests[0]->request_type() == permissions::RequestType::kCameraStream &&
++       requests[1]->request_type() == permissions::RequestType::kMicStream));
++}
++
++static bool IsValidARCameraAccessRequestGroup(
++    const std::vector<permissions::PermissionRequest*>& requests) {
++  if (requests.size() < 2)
++    return false;
++  return (
++      (requests[0]->request_type() == permissions::RequestType::kArSession &&
++       requests[1]->request_type() ==
++           permissions::RequestType::kCameraStream) ||
++      (requests[0]->request_type() == permissions::RequestType::kCameraStream &&
++       requests[1]->request_type() == permissions::RequestType::kArSession));
++}
++
++// Grouped permission requests can only be Mic+Camera, Camera+Mic,
++// AR + Camera, or Camera + AR.
++static void CheckValidRequestGroup(
++    const std::vector<permissions::PermissionRequest*>& requests) {
++  DCHECK_EQ(static_cast<size_t>(2u), requests.size());
++  DCHECK((IsValidMediaRequestGroup(requests)) ||
++         (IsValidARCameraAccessRequestGroup(requests)));
++}
++
++int PermissionPromptAndroid::GetIconId() const {
++  const std::vector<permissions::PermissionRequest*>& requests =
++      delegate_->Requests();
++  if (requests.size() == 1)
++    return permissions::GetIconId(requests[0]->request_type());
++  CheckValidRequestGroup(requests);
++  return IDR_ANDROID_INFOBAR_MEDIA_STREAM_CAMERA;
++}
++
++std::u16string PermissionPromptAndroid::GetMessageText() const {
++  const std::vector<permissions::PermissionRequest*>& requests =
++      delegate_->Requests();
++  if (requests.size() == 1) {
++    if (requests[0]->request_type() ==
++        permissions::RequestType::kStorageAccess) {
++      return l10n_util::GetStringFUTF16(
++          IDS_STORAGE_ACCESS_INFOBAR_TEXT,
++          url_formatter::FormatUrlForSecurityDisplay(
++              delegate_->GetRequestingOrigin(),
++              url_formatter::SchemeDisplay::OMIT_CRYPTOGRAPHIC),
++          url_formatter::FormatUrlForSecurityDisplay(
++              delegate_->GetEmbeddingOrigin(),
++              url_formatter::SchemeDisplay::OMIT_CRYPTOGRAPHIC));
++    } else {
++      return requests[0]->GetDialogMessageText();
++    }
++  }
++  CheckValidRequestGroup(requests);
++  if (IsValidARCameraAccessRequestGroup(requests)) {
++    return l10n_util::GetStringFUTF16(
++        IDS_AR_AND_MEDIA_CAPTURE_VIDEO_INFOBAR_TEXT,
++        url_formatter::FormatUrlForSecurityDisplay(
++            delegate_->GetRequestingOrigin(),
++            url_formatter::SchemeDisplay::OMIT_CRYPTOGRAPHIC));
++  } else {
++    return l10n_util::GetStringFUTF16(
++        IDS_MEDIA_CAPTURE_AUDIO_AND_VIDEO_INFOBAR_TEXT,
++        url_formatter::FormatUrlForSecurityDisplay(
++            delegate_->GetRequestingOrigin(),
++            url_formatter::SchemeDisplay::OMIT_CRYPTOGRAPHIC));
++  }
++}
++
++void PermissionPromptAndroid::OnInfoBarRemoved(infobars::InfoBar* infobar,
++                                               bool animate) {
++  if (infobar != permission_infobar_)
++    return;
++
++  permission_infobar_ = nullptr;
++  infobars::InfoBarManager* infobar_manager =
++      PermissionsClient::Get()->GetInfoBarManager(web_contents_);
++  if (infobar_manager)
++    infobar_manager->RemoveObserver(this);
++}
++
++void PermissionPromptAndroid::OnManagerShuttingDown(
++    infobars::InfoBarManager* manager) {
++  permission_infobar_ = nullptr;
++  manager->RemoveObserver(this);
++}
++
++// static
++std::unique_ptr<permissions::PermissionPrompt>
++permissions::PermissionPrompt::Create(content::WebContents* web_contents,
++                                      Delegate* delegate) {
++  return std::make_unique<PermissionPromptAndroid>(web_contents, delegate);
++}
++
++}  // namespace permissions
 diff --git a/components/permissions/android/permissions_android_strings.grd b/components/permissions/android/permissions_android_strings.grd
 --- a/components/permissions/android/permissions_android_strings.grd
 +++ b/components/permissions/android/permissions_android_strings.grd
