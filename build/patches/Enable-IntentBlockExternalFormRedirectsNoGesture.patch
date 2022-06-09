@@ -3,21 +3,33 @@ Date: Tue, 25 May 2021 19:33:41 +0200
 Subject: Enable IntentBlockExternalFormRedirectsNoGesture
 
 ---
- .../external_intents/android/external_intents_features.cc       | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .../browser/externalnav/ExternalNavigationDelegateImpl.java     | 2 +-
+ .../weblayer_private/ExternalNavigationDelegateImpl.java        | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/components/external_intents/android/external_intents_features.cc b/components/external_intents/android/external_intents_features.cc
---- a/components/external_intents/android/external_intents_features.cc
-+++ b/components/external_intents/android/external_intents_features.cc
-@@ -26,7 +26,7 @@ const base::Feature* kFeaturesExposedToJava[] = {
- // Alphabetical:
- const base::Feature kIntentBlockExternalFormRedirectsNoGesture{
-     "IntentBlockExternalFormRedirectsNoGesture",
--    base::FEATURE_DISABLED_BY_DEFAULT};
-+    base::FEATURE_ENABLED_BY_DEFAULT};
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/externalnav/ExternalNavigationDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/externalnav/ExternalNavigationDelegateImpl.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/externalnav/ExternalNavigationDelegateImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/externalnav/ExternalNavigationDelegateImpl.java
+@@ -120,7 +120,7 @@ public class ExternalNavigationDelegateImpl implements ExternalNavigationDelegat
  
- static jlong JNI_ExternalIntentsFeatures_GetFeature(JNIEnv* env, jint ordinal) {
-   return reinterpret_cast<jlong>(kFeaturesExposedToJava[ordinal]);
--- 
-2.36.1
-
+     @Override
+     public boolean shouldDisableExternalIntentRequestsForUrl(GURL url) {
+-        return false;
++        return true;
+     }
+ 
+     @Override
+diff --git a/weblayer/browser/java/org/chromium/weblayer_private/ExternalNavigationDelegateImpl.java b/weblayer/browser/java/org/chromium/weblayer_private/ExternalNavigationDelegateImpl.java
+--- a/weblayer/browser/java/org/chromium/weblayer_private/ExternalNavigationDelegateImpl.java
++++ b/weblayer/browser/java/org/chromium/weblayer_private/ExternalNavigationDelegateImpl.java
+@@ -51,7 +51,7 @@ public class ExternalNavigationDelegateImpl implements ExternalNavigationDelegat
+ 
+     @Override
+     public boolean shouldDisableExternalIntentRequestsForUrl(GURL url) {
+-        return false;
++        return true;
+     }
+ 
+     @Override
+--
+2.25.1
