@@ -7,28 +7,27 @@ support for the AttributionReporting provider. it also removes
 the handling of attributions via intents between apps.
 This patch enforces the deactivation by preventing the report from
 being sent and being saved to disk, although it is currently in uncalled code.
+
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../flags/android/chrome_feature_list.cc      |  2 +-
- .../origin_trials/features.cc                 |  3 +-
- .../render_view_context_menu_base.cc          |  3 -
- .../aggregatable_report_sender.cc             | 15 ++---
- .../attribution_reporting/attribution_host.cc |  1 +
- .../attribution_report_network_sender.cc      | 15 +++--
- .../attribution_storage_sql.cc                |  2 +-
- content/browser/storage_partition_impl.cc     |  7 +-
- .../public/browser/navigation_controller.cc   |  1 -
- third_party/blink/common/features.cc          |  2 +-
- .../frame/attribution_response_parsing.cc     | 54 +--------------
- .../core/frame/attribution_src_loader.cc      | 67 +------------------
- .../origin_trials/origin_trial_context.cc     |  2 -
- .../platform/network/http_names.json5         |  7 --
- .../platform/runtime_enabled_features.json5   | 11 ++-
- 15 files changed, 33 insertions(+), 159 deletions(-)
+ .../browser/flags/android/chrome_feature_list.cc  |  2 +-
+ .../embedder_support/origin_trials/features.cc    |  3 ++-
+ .../render_view_context_menu_base.cc              |  3 ---
+ .../aggregatable_report_sender.cc                 | 15 +++++++--------
+ .../attribution_reporting/attribution_host.cc     |  1 +
+ .../attribution_report_network_sender.cc          | 15 ++++++++-------
+ .../attribution_storage_sql.cc                    |  2 +-
+ content/browser/storage_partition_impl.cc         |  7 +------
+ content/public/browser/navigation_controller.cc   |  1 -
+ third_party/blink/common/features.cc              |  2 +-
+ .../platform/runtime_enabled_features.json5       |  7 +++++++
+ 11 files changed, 29 insertions(+), 29 deletions(-)
 
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -443,7 +443,7 @@ const base::Feature kAppMenuMobileSiteOption{"AppMenuMobileSiteOption",
+@@ -471,7 +471,7 @@ const base::Feature kAppMenuMobileSiteOption{"AppMenuMobileSiteOption",
                                               base::FEATURE_DISABLED_BY_DEFAULT};
  
  const base::Feature kAppToWebAttribution{"AppToWebAttribution",
@@ -97,18 +96,18 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -121,6 +121,7 @@ void AttributionHost::DidFinishNavigation(NavigationHandle* navigation_handle) {
+@@ -124,6 +124,7 @@ void AttributionHost::DidRedirectNavigation(
      return;
    }
  
 +  if ((true)) return;
    AttributionManager* attribution_manager =
-       attribution_manager_provider_->GetManager(web_contents());
-   if (!attribution_manager) {
+       AttributionManager::FromWebContents(web_contents());
+   if (!attribution_manager)
 diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
 --- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
 +++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
-@@ -118,13 +118,8 @@ void AttributionReportNetworkSender::SendReport(
+@@ -117,13 +117,8 @@ void AttributionReportNetworkSender::SendReport(
                     network::SimpleURLLoader::RETRY_ON_NAME_NOT_RESOLVED;
    simple_url_loader_ptr->SetRetryOptions(/*max_retries=*/1, retry_mode);
  
@@ -124,7 +123,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
  }
  
  void AttributionReportNetworkSender::SetURLLoaderFactoryForTesting(
-@@ -138,6 +133,12 @@ void AttributionReportNetworkSender::OnReportSent(
+@@ -137,6 +132,12 @@ void AttributionReportNetworkSender::OnReportSent(
      bool is_debug_report,
      ReportSentCallback sent_callback,
      scoped_refptr<net::HttpResponseHeaders> headers) {
@@ -140,7 +139,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -377,7 +377,7 @@ void AttributionStorageSql::RunInMemoryForTesting() {
+@@ -376,7 +376,7 @@ void AttributionStorageSql::RunInMemoryForTesting() {
  }
  
  // static
@@ -152,7 +151,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1305,12 +1305,7 @@ void StoragePartitionImpl::Initialize(
+@@ -1302,12 +1302,7 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(quota_manager_proxy);
  
@@ -165,7 +164,7 @@ diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage
 +  // The Conversion Measurement API is not available in Bromite.
  
    if (base::FeatureList::IsEnabled(blink::features::kInterestGroupStorage)) {
-     interest_group_manager_ = std::make_unique<InterestGroupManagerImpl>(
+     // Auction worklets on non-Android use dedicated processes; on Android due
 diff --git a/content/public/browser/navigation_controller.cc b/content/public/browser/navigation_controller.cc
 --- a/content/public/browser/navigation_controller.cc
 +++ b/content/public/browser/navigation_controller.cc
@@ -189,195 +188,6 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // Controls whether LCP calculations should exclude low-entropy images. If
  // enabled, then the associated parameter sets the cutoff, expressed as the
-diff --git a/third_party/blink/renderer/core/frame/attribution_response_parsing.cc b/third_party/blink/renderer/core/frame/attribution_response_parsing.cc
---- a/third_party/blink/renderer/core/frame/attribution_response_parsing.cc
-+++ b/third_party/blink/renderer/core/frame/attribution_response_parsing.cc
-@@ -482,59 +482,7 @@ bool ParseAttributionAggregatableValues(
- 
- mojom::blink::AttributionTriggerDataPtr ParseAttributionTriggerData(
-     const ResourceResponse& response) {
--  auto trigger_data = mojom::blink::AttributionTriggerData::New();
--
--  // Verify the current url is trustworthy and capable of registering triggers.
--  scoped_refptr<const SecurityOrigin> reporting_origin =
--      SecurityOrigin::Create(response.CurrentRequestUrl());
--  if (!reporting_origin->IsPotentiallyTrustworthy())
--    return nullptr;
--  trigger_data->reporting_origin = std::move(reporting_origin);
--
--  // Populate event triggers.
--  const AtomicString& event_triggers_json = response.HttpHeaderField(
--      http_names::kAttributionReportingRegisterEventTrigger);
--  if (!event_triggers_json.IsNull() &&
--      !attribution_response_parsing::ParseEventTriggerData(
--          event_triggers_json, trigger_data->event_triggers)) {
--    return nullptr;
--  }
--
--  trigger_data->filters = mojom::blink::AttributionFilterData::New();
--
--  const AtomicString& filter_json =
--      response.HttpHeaderField(http_names::kAttributionReportingFilters);
--  if (!filter_json.IsNull() && !attribution_response_parsing::ParseFilters(
--                                   filter_json, *trigger_data->filters)) {
--    return nullptr;
--  }
--
--  trigger_data->aggregatable_trigger =
--      mojom::blink::AttributionAggregatableTrigger::New();
--
--  const AtomicString& aggregatable_trigger_json = response.HttpHeaderField(
--      http_names::kAttributionReportingRegisterAggregatableTriggerData);
--  if (!aggregatable_trigger_json.IsNull() &&
--      !attribution_response_parsing::ParseAttributionAggregatableTriggerData(
--          aggregatable_trigger_json,
--          trigger_data->aggregatable_trigger->trigger_data)) {
--    return nullptr;
--  }
--
--  const AtomicString& aggregatable_values_json = response.HttpHeaderField(
--      http_names::kAttributionReportingRegisterAggregatableValues);
--  if (!aggregatable_values_json.IsNull() &&
--      !attribution_response_parsing::ParseAttributionAggregatableValues(
--          aggregatable_values_json,
--          trigger_data->aggregatable_trigger->values)) {
--    return nullptr;
--  }
--
--  trigger_data->debug_key =
--      attribution_response_parsing::ParseDebugKey(response.HttpHeaderField(
--          http_names::kAttributionReportingTriggerDebugKey));
--
--  return trigger_data;
-+  return nullptr;
- }
- 
- }  // namespace blink::attribution_response_parsing
-diff --git a/third_party/blink/renderer/core/frame/attribution_src_loader.cc b/third_party/blink/renderer/core/frame/attribution_src_loader.cc
---- a/third_party/blink/renderer/core/frame/attribution_src_loader.cc
-+++ b/third_party/blink/renderer/core/frame/attribution_src_loader.cc
-@@ -56,13 +56,7 @@ enum class AttributionSrcRequestStatus {
- };
- 
- bool ContainsTriggerHeaders(const HTTPHeaderMap& headers) {
--  return headers.Contains(
--             http_names::kAttributionReportingRegisterEventTrigger) ||
--         (headers.Contains(
--              http_names::
--                  kAttributionReportingRegisterAggregatableTriggerData) &&
--          headers.Contains(
--              http_names::kAttributionReportingRegisterAggregatableValues));
-+  return false;
- }
- 
- void RecordAttributionSrcRequestStatus(AttributionSrcRequestStatus status) {
-@@ -288,7 +282,7 @@ AttributionSrcLoader::CanRegisterAttribution(
-   LocalDOMWindow* window = local_frame_->DomWindow();
-   DCHECK(window);
- 
--  if (!RuntimeEnabledFeatures::AttributionReportingEnabled(window))
-+  if (!RuntimeEnabledFeatures::AttributionReportingEnabled(window)) //
-     return RegisterResult::kNotAllowed;
- 
-   const bool feature_policy_enabled = window->IsFeatureEnabled(
-@@ -419,68 +413,11 @@ void AttributionSrcLoader::ResourceClient::NotifyFinished(Resource* resource) {
- void AttributionSrcLoader::ResourceClient::HandleResponseHeaders(
-     const ResourceResponse& response,
-     uint64_t request_id) {
--  const auto& headers = response.HttpHeaderFields();
--
--  bool can_process_source =
--      type_ == SrcType::kUndetermined || type_ == SrcType::kSource;
--  if (can_process_source &&
--      headers.Contains(http_names::kAttributionReportingRegisterSource)) {
--    type_ = SrcType::kSource;
--    HandleSourceRegistration(response, request_id);
--    return;
--  }
--
--  // TODO(johnidel): Consider surfacing an error when source and trigger headers
--  // are present together.
--  bool can_process_trigger =
--      type_ == SrcType::kUndetermined || type_ == SrcType::kTrigger;
--  if (can_process_trigger && ContainsTriggerHeaders(headers)) {
--    type_ = SrcType::kTrigger;
--    HandleTriggerRegistration(response);
--  }
- }
- 
- void AttributionSrcLoader::ResourceClient::HandleSourceRegistration(
-     const ResourceResponse& response,
-     uint64_t request_id) {
--  DCHECK_EQ(type_, SrcType::kSource);
--
--  mojom::blink::AttributionSourceDataPtr source_data =
--      mojom::blink::AttributionSourceData::New();
--
--  // Verify the current url is trustworthy and capable of registering sources.
--  scoped_refptr<const SecurityOrigin> reporting_origin =
--      SecurityOrigin::Create(response.CurrentRequestUrl());
--  if (!reporting_origin->IsPotentiallyTrustworthy())
--    return;
--  source_data->reporting_origin = std::move(reporting_origin);
--
--  const AtomicString& source_json =
--      response.HttpHeaderField(http_names::kAttributionReportingRegisterSource);
--
--  if (!attribution_response_parsing::ParseSourceRegistrationHeader(
--          source_json, *source_data)) {
--    loader_->LogAuditIssue(AttributionReportingIssueType::kInvalidHeader,
--                           source_json,
--                           /*element=*/nullptr, request_id);
--    return;
--  }
--
--  source_data->aggregatable_source =
--      mojom::blink::AttributionAggregatableSource::New();
--
--  const AtomicString& aggregatable_source_json = response.HttpHeaderField(
--      http_names::kAttributionReportingRegisterAggregatableSource);
--  if (!aggregatable_source_json.IsNull() &&
--      !attribution_response_parsing::ParseAttributionAggregatableSource(
--          aggregatable_source_json, *source_data->aggregatable_source)) {
--    loader_->LogAuditIssue(AttributionReportingIssueType::kInvalidHeader,
--                           aggregatable_source_json,
--                           /*element=*/nullptr, request_id);
--    return;
--  }
--
--  data_host_->SourceDataAvailable(std::move(source_data));
- }
- 
- void AttributionSrcLoader::ResourceClient::HandleTriggerRegistration(
-diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc b/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
---- a/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
-+++ b/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
-@@ -522,8 +522,6 @@ Vector<OriginTrialFeature> OriginTrialContext::RestrictedFeaturesForTrial(
-       restricted.push_back(OriginTrialFeature::kFledge);
-     if (!base::FeatureList::IsEnabled(features::kBrowsingTopics))
-       restricted.push_back(OriginTrialFeature::kTopicsAPI);
--    if (!base::FeatureList::IsEnabled(features::kConversionMeasurement))
--      restricted.push_back(OriginTrialFeature::kAttributionReporting);
-     if (!base::FeatureList::IsEnabled(features::kFencedFrames))
-       restricted.push_back(OriginTrialFeature::kFencedFrames);
-     return restricted;
-diff --git a/third_party/blink/renderer/platform/network/http_names.json5 b/third_party/blink/renderer/platform/network/http_names.json5
---- a/third_party/blink/renderer/platform/network/http_names.json5
-+++ b/third_party/blink/renderer/platform/network/http_names.json5
-@@ -23,13 +23,6 @@
-     "Access-Control-Request-Headers",
-     "Access-Control-Request-Method",
-     "Allow-CSP-From",
--    "Attribution-Reporting-Filters",
--    "Attribution-Reporting-Register-Aggregatable-Source",
--    "Attribution-Reporting-Register-Aggregatable-Trigger-Data",
--    "Attribution-Reporting-Register-Aggregatable-Values",
--    "Attribution-Reporting-Register-Event-Trigger",
--    "Attribution-Reporting-Register-Source",
--    "Attribution-Reporting-Trigger-Debug-Key",
-     "Cache-Control",
-     "Content-DPR",
-     "Content-Disposition",
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
@@ -395,17 +205,5 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      {
        name: "AbortSignalThrowIfAborted",
        status: "stable",
-@@ -194,9 +201,7 @@
-     },
-     {
-       name: "AttributionReporting",
--      origin_trial_feature_name: "PrivacySandboxAdsAPIs",
--      origin_trial_allows_third_party: true,
--      status: "experimental",
-+      depends_on: ["DisabledForBromite"],
-     },
-     {
-       name: "AudioOutputDevices",
--- 
-2.37.0
-
+--
+2.25.1
