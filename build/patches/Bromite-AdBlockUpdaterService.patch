@@ -8,7 +8,10 @@ Do not use experiments to enable/disable presets
 Always enable ad filtering
 Download filters by checking Last-Modified header first
 Fix RestoreForeignSessionTab by recreating the tab (issue #681)
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
+ chrome/android/BUILD.gn                       |   1 +
  chrome/android/chrome_java_resources.gni      |   2 +
  chrome/android/chrome_java_sources.gni        |   2 +
  .../java/res/layout/adblock_editor.xml        |  67 +++++
@@ -20,7 +23,7 @@ Fix RestoreForeignSessionTab by recreating the tab (issue #681)
  .../browser/settings/AdBlockPreferences.java  |  61 ++++
  .../chrome/browser/tabmodel/TabModelImpl.java |   2 +-
  chrome/app/generated_resources.grd            |  10 +
- chrome/browser/after_startup_task_utils.cc    |   5 +
+ chrome/browser/after_startup_task_utils.cc    |   4 +
  chrome/browser/browser_process.h              |   6 +
  chrome/browser/browser_process_impl.cc        |  20 ++
  chrome/browser/browser_process_impl.h         |   2 +
@@ -43,10 +46,10 @@ Fix RestoreForeignSessionTab by recreating the tab (issue #681)
  .../content/browser/ruleset_service.h         |   7 +-
  .../content/browser/ruleset_version.h         |   4 +
  .../browser/verified_ruleset_dealer.cc        |   4 +
- .../browser/subresource_filter_features.cc    | 113 +-------
+ .../browser/subresource_filter_features.cc    | 116 +-------
  .../core/common/indexed_ruleset.cc            |   5 +-
  .../navigation_throttle_runner.cc             |   5 -
- 37 files changed, 1160 insertions(+), 126 deletions(-)
+ 38 files changed, 1160 insertions(+), 129 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -56,10 +59,21 @@ Fix RestoreForeignSessionTab by recreating the tab (issue #681)
  create mode 100644 components/component_updater/download_filters_task.cc
  create mode 100644 components/component_updater/download_filters_task.h
 
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -360,6 +360,7 @@ android_library("chrome_java") {
+     "//chrome/browser/download/android:java",
+     "//chrome/browser/download/android:java_resources",
+     "//chrome/browser/enterprise/util:java",
++    "//chrome/browser/endpoint_fetcher:java",
+     "//chrome/browser/feature_engagement:java",
+     "//chrome/browser/feature_guide/notifications:java",
+     "//chrome/browser/feed/android:java",
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -463,6 +463,7 @@ chrome_java_resources = [
+@@ -456,6 +456,7 @@ chrome_java_resources = [
    "java/res/layout/account_chooser_dialog_title.xml",
    "java/res/layout/account_divider_preference.xml",
    "java/res/layout/account_management_account_row.xml",
@@ -67,7 +81,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_unmask_prompt.xml",
-@@ -666,6 +667,7 @@ chrome_java_resources = [
+@@ -650,6 +651,7 @@ chrome_java_resources = [
    "java/res/values/values.xml",
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
@@ -78,7 +92,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -952,6 +952,8 @@ chrome_java_sources = [
+@@ -898,6 +898,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -89,7 +103,6 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/printing/TabPrinter.java",
 diff --git a/chrome/android/java/res/layout/adblock_editor.xml b/chrome/android/java/res/layout/adblock_editor.xml
 new file mode 100644
-index 0000000000000000000000000000000000000000..aced0dbca5a2be7e2dc03207a757a6c0c1e654e1
 --- /dev/null
 +++ b/chrome/android/java/res/layout/adblock_editor.xml
 @@ -0,0 +1,67 @@
@@ -197,12 +210,11 @@ diff --git a/chrome/android/java/res/values/values.xml b/chrome/android/java/res
  
 +    <string name="adblock_help_url">https://www.bromite.org/custom-filters</string>
 +
-     <!-- Download InfoBar animation. -->
-     <integer name="download_infobar_fill_in_delay">1200</integer>
-     <integer name="download_infobar_fill_out_delay">200</integer>
+     <string name="proxy_title">Proxy configuration</string>
+     <string name="proxy_url">chrome://proxy</string>
+ 
 diff --git a/chrome/android/java/res/xml/adblock_preferences.xml b/chrome/android/java/res/xml/adblock_preferences.xml
 new file mode 100644
-index 0000000000000000000000000000000000000000..36ea147ed26934ca5d502c3d20c7919027d00f19
 --- /dev/null
 +++ b/chrome/android/java/res/xml/adblock_preferences.xml
 @@ -0,0 +1,25 @@
@@ -248,7 +260,6 @@ diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/j
          android:order="12"
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bb70f2efdd399b6ebf001cd047e3c2d92f955cdd
 --- /dev/null
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
 @@ -0,0 +1,91 @@
@@ -345,7 +356,6 @@ index 0000000000000000000000000000000000000000..bb70f2efdd399b6ebf001cd047e3c2d9
 +}
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockPreferences.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockPreferences.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b24689ee7964b82d9394f769172960f4a835e0d0
 --- /dev/null
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockPreferences.java
 @@ -0,0 +1,61 @@
@@ -425,7 +435,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -11842,6 +11842,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -11916,6 +11916,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -445,8 +455,8 @@ diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources
 diff --git a/chrome/browser/after_startup_task_utils.cc b/chrome/browser/after_startup_task_utils.cc
 --- a/chrome/browser/after_startup_task_utils.cc
 +++ b/chrome/browser/after_startup_task_utils.cc
-@@ -33,6 +33,8 @@
- #include "chromeos/lacros/lacros_service.h"
+@@ -27,6 +27,8 @@
+ #include "chromeos/startup/browser_init_params.h"
  #endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
  
 +#include "chrome/browser/browser_process.h"
@@ -454,16 +464,15 @@ diff --git a/chrome/browser/after_startup_task_utils.cc b/chrome/browser/after_s
  using content::BrowserThread;
  
  namespace {
-@@ -128,6 +130,9 @@ void SetBrowserStartupIsComplete() {
+@@ -121,6 +123,8 @@ void SetBrowserStartupIsComplete() {
+     ScheduleTask(base::WrapUnique(queued_task));
    g_after_startup_tasks.Get().clear();
    g_after_startup_tasks.Get().shrink_to_fit();
- 
 +  // initialize AdBlock engine scheduled updates
 +  g_browser_process->adblock_updater()->Start();
-+
- // TODO(crbug.com/1052397): Revisit the macro expression once build flag switch
- // of lacros-chrome is complete.
- #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
+ }
+ 
+ // Observes the first visible page load and sets the startup complete
 diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 --- a/chrome/browser/browser_process.h
 +++ b/chrome/browser/browser_process.h
@@ -497,7 +506,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1064,6 +1064,26 @@ BrowserProcessImpl::component_updater() {
+@@ -1077,6 +1077,26 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -546,7 +555,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -1730,6 +1730,9 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
+@@ -1735,6 +1735,9 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
    // will be initialized when the app enters foreground mode.
    variations_service->set_policy_pref_service(profile->GetPrefs());
  
@@ -584,7 +593,7 @@ diff --git a/chrome/browser/flags/android/cached_feature_flags.cc b/chrome/brows
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
-@@ -273,6 +273,14 @@ public class CachedFeatureFlags {
+@@ -266,6 +266,14 @@ public class CachedFeatureFlags {
                  ChromeFeatureList.isEnabled(ChromeFeatureList.BACKGROUND_THREAD_POOL));
      }
  
@@ -599,7 +608,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      /**
       * Caches flags that must take effect on startup but are set via native code.
       */
-@@ -490,5 +498,7 @@ public class CachedFeatureFlags {
+@@ -507,5 +515,7 @@ public class CachedFeatureFlags {
      @NativeMethods
      interface Natives {
          boolean isNetworkServiceWarmUpEnabled();
@@ -610,7 +619,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -436,6 +436,8 @@ SystemNetworkContextManager::SystemNetworkContextManager(
+@@ -444,6 +444,8 @@ SystemNetworkContextManager::SystemNetworkContextManager(
        ssl_config_service_manager_(local_state_),
        proxy_config_monitor_(local_state_),
        stub_resolver_config_reader_(local_state_) {
@@ -619,7 +628,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
  #if !BUILDFLAG(IS_ANDROID)
    // QuicAllowed was not part of Android policy.
    const base::Value* value =
-@@ -516,6 +518,8 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
+@@ -524,6 +526,8 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
  void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    StubResolverConfigReader::RegisterPrefs(registry);
  
@@ -669,7 +678,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 --- a/chrome/common/pref_names.cc
 +++ b/chrome/common/pref_names.cc
-@@ -2325,6 +2325,9 @@ const char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2327,6 +2327,9 @@ const char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  // capture devices without prompt.
  const char kAudioCaptureAllowedUrls[] = "hardware.audio_capture_allowed_urls";
  
@@ -730,7 +739,6 @@ diff --git a/components/component_updater/BUILD.gn b/components/component_update
      "//url",
 diff --git a/components/component_updater/adblock_updater_service.cc b/components/component_updater/adblock_updater_service.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a5c91736b
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.cc
 @@ -0,0 +1,271 @@
@@ -1007,7 +1015,6 @@ index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a
 +}  // namespace adblock_updater
 diff --git a/components/component_updater/adblock_updater_service.h b/components/component_updater/adblock_updater_service.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..d5f9948ee3dfb285521b2c3dbf025719fac191c0
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.h
 @@ -0,0 +1,100 @@
@@ -1113,7 +1120,6 @@ index 0000000000000000000000000000000000000000..d5f9948ee3dfb285521b2c3dbf025719
 +#endif  // COMPONENTS_ADBLOCK_UPDATER_SERVICE_H
 diff --git a/components/component_updater/download_filters_task.cc b/components/component_updater/download_filters_task.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..21cab490eca514270477e185e5b8be34d4c2331c
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.cc
 @@ -0,0 +1,224 @@
@@ -1343,7 +1349,6 @@ index 0000000000000000000000000000000000000000..21cab490eca514270477e185e5b8be34
 +}  // namespace adblock_updater
 diff --git a/components/component_updater/download_filters_task.h b/components/component_updater/download_filters_task.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..c3c12de73ee63d077abe7125ea031fdcb4edf342
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.h
 @@ -0,0 +1,130 @@
@@ -1675,7 +1680,7 @@ diff --git a/components/subresource_filter/content/browser/verified_ruleset_deal
 diff --git a/components/subresource_filter/core/browser/subresource_filter_features.cc b/components/subresource_filter/core/browser/subresource_filter_features.cc
 --- a/components/subresource_filter/core/browser/subresource_filter_features.cc
 +++ b/components/subresource_filter/core/browser/subresource_filter_features.cc
-@@ -55,69 +55,7 @@ class CommaSeparatedStrings {
+@@ -55,72 +55,7 @@ class CommaSeparatedStrings {
    const std::vector<base::StringPiece> pieces_;
  };
  
@@ -1692,18 +1697,21 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 -
 -mojom::ActivationLevel ParseActivationLevel(
 -    const base::StringPiece activation_level) {
--  if (base::LowerCaseEqualsASCII(activation_level, kActivationLevelEnabled))
+-  if (base::EqualsCaseInsensitiveASCII(activation_level,
+-                                       kActivationLevelEnabled))
 -    return mojom::ActivationLevel::kEnabled;
--  else if (base::LowerCaseEqualsASCII(activation_level, kActivationLevelDryRun))
+-  else if (base::EqualsCaseInsensitiveASCII(activation_level,
+-                                            kActivationLevelDryRun))
 -    return mojom::ActivationLevel::kDryRun;
 -  return mojom::ActivationLevel::kDisabled;
 -}
 -
 -ActivationScope ParseActivationScope(const base::StringPiece activation_scope) {
--  if (base::LowerCaseEqualsASCII(activation_scope, kActivationScopeAllSites))
+-  if (base::EqualsCaseInsensitiveASCII(activation_scope,
+-                                       kActivationScopeAllSites))
 -    return ActivationScope::ALL_SITES;
--  else if (base::LowerCaseEqualsASCII(activation_scope,
--                                      kActivationScopeActivationList))
+-  else if (base::EqualsCaseInsensitiveASCII(activation_scope,
+-                                            kActivationScopeActivationList))
 -    return ActivationScope::ACTIVATION_LIST;
 -  return ActivationScope::NO_SITES;
 -}
@@ -1746,7 +1754,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
    // If ad tagging is enabled, turn on the dryrun automatically.
    bool ad_tagging_enabled = base::FeatureList::IsEnabled(kAdTagging);
    const struct {
-@@ -125,23 +63,16 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
+@@ -128,23 +63,16 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
      bool enabled_by_default;
      Configuration (*factory_method)();
    } kAvailablePresetConfigurations[] = {
@@ -1772,7 +1780,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
        enabled_configurations.push_back(available_preset.factory_method());
      }
    }
-@@ -149,46 +80,10 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
+@@ -152,46 +80,10 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
    return enabled_configurations;
  }
  
@@ -1858,6 +1866,5 @@ diff --git a/content/browser/renderer_host/navigation_throttle_runner.cc b/conte
  }
  
  NavigationThrottle* NavigationThrottleRunner::GetDeferringThrottle() const {
--- 
-2.37.0
-
+--
+2.25.1
