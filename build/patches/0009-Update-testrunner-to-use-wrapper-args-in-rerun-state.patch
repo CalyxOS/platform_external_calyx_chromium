@@ -1,0 +1,144 @@
+From 47b5c948fe54c3e1bddb5b5d7ffd1bfa159ae968 Mon Sep 17 00:00:00 2001
+From: Ben Joyce <bjoyce@google.com>
+Date: Thu, 23 Jun 2022 23:07:23 +0000
+Subject: [PATCH 09/12] Update testrunner to use wrapper args in rerun
+ statement.
+
+Can pass forward system args to rerun script. This will reduce the
+verbosity of the copy/pasteable.
+
+This makes the wrapper script pass the sys.argv to the test runner and
+then the test runner can use that to recreate the  call that developers
+most often use to run tests. This still supports using:
+./build/android/test_runner.py gtest --output-directory .... directly.
+
+This will reduce the rerun arg from a run of
+   ./out/emulator/bin/run_crypto_unittests -v --break-on-failure
+
+from:
+build/android/test_runner.py gtest --output-directory out/emulator --runtime-deps-path out/emulator/gen.runtime/crypto/crypto_unittests__test_runner_script.runtime_deps --suite crypto_unittests -v --break-on-failure
+
+to just:
+  ./out/emulator/bin/run_crypto_unittests -v --break-on-failure
+
+Bug: 917480
+Change-Id: Ic84bb42541ec75e31839f902e8301f2bbd4e3cd5
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/3704958
+Reviewed-by: Andrew Grieve <agrieve@chromium.org>
+Reviewed-by: Peter Wen <wnwen@chromium.org>
+Commit-Queue: Benjamin Joyce <bjoyce@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1017398}
+---
+ build/android/test_runner.py            | 18 ++++++++++++++----
+ build/config/android/internal_rules.gni |  1 +
+ build/util/generate_wrapper.py          |  9 +++++++++
+ 3 files changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/build/android/test_runner.py b/build/android/test_runner.py
+index e1b371809b9b3..e2a7f769ac2d9 100755
+--- a/build/android/test_runner.py
++++ b/build/android/test_runner.py
+@@ -180,6 +180,10 @@ def AddCommonOptions(parser):
+       action='store_true',
+       help='Whether to archive test output locally and generate '
+            'a local results detail page.')
++  parser.add_argument('--wrapper-script-args',
++                      help='A string of args that were passed to the wrapper '
++                      'script. This should probably not be edited by a '
++                      'user as it is passed by the wrapper itself.')
+ 
+   class FastLocalDevAction(argparse.Action):
+     def __call__(self, parser, namespace, values, option_string=None):
+@@ -1048,8 +1052,10 @@ def RunTestsInPlatformMode(args, result_sink_client=None):
+             annotation=getattr(args, 'annotations', None),
+             flakiness_server=getattr(args, 'flakiness_dashboard_server',
+                                      None))
++
+         if iteration_results.GetNotPass():
+-          _LogRerunStatement(iteration_results.GetNotPass())
++          _LogRerunStatement(iteration_results.GetNotPass(),
++                             args.wrapper_script_args)
+ 
+         if args.break_on_failure and not iteration_results.DidRunPass():
+           break
+@@ -1108,7 +1114,7 @@ def RunTestsInPlatformMode(args, result_sink_client=None):
+           else constants.ERROR_EXIT_CODE)
+ 
+ 
+-def _LogRerunStatement(failed_tests):
++def _LogRerunStatement(failed_tests, wrapper_arg_str):
+   """Logs a message that can rerun the failed tests.
+ 
+   Logs a copy/pasteable message that filters tests so just the failing tests
+@@ -1116,6 +1122,8 @@ def _LogRerunStatement(failed_tests):
+ 
+   Args:
+     failed_tests: A set of test results that did not pass.
++    wrapper_arg_str: A string of args that were passed to the called wrapper
++        script.
+   """
+   rerun_arg_list = []
+   try:
+@@ -1128,9 +1136,11 @@ def _LogRerunStatement(failed_tests):
+ 
+   test_filter_file = os.path.join(os.path.relpath(constants.GetOutDirectory()),
+                                   _RERUN_FAILED_TESTS_FILE)
++  arg_list = shlex.split(
++      wrapper_arg_str.strip('\'')) if wrapper_arg_str else sys.argv
+   index = 0
+-  while index < len(sys.argv):
+-    arg = sys.argv[index]
++  while index < len(arg_list):
++    arg = arg_list[index]
+     # Skip adding the filter=<file> and/or the filter arg as we're replacing
+     # it with the new filter arg.
+     # This covers --test-filter=, --test-launcher-filter-file=, --gtest-filter=,
+diff --git a/build/config/android/internal_rules.gni b/build/config/android/internal_rules.gni
+index d726e32eed08a..07f09858d4375 100644
+--- a/build/config/android/internal_rules.gni
++++ b/build/config/android/internal_rules.gni
+@@ -757,6 +757,7 @@ template("test_runner_script") {
+       _test_type,
+       "--output-directory",
+       "@WrappedPath(.)",
++      "--wrapper-script-args",
+     ]
+ 
+     if (_runtime_deps) {
+diff --git a/build/util/generate_wrapper.py b/build/util/generate_wrapper.py
+index ce264ef972266..cbdcd6bca9333 100755
+--- a/build/util/generate_wrapper.py
++++ b/build/util/generate_wrapper.py
+@@ -43,6 +43,7 @@ SCRIPT_TEMPLATES = {
+ PY_TEMPLATE = textwrap.dedent("""\
+     import os
+     import re
++    import shlex
+     import subprocess
+     import sys
+ 
+@@ -104,6 +105,13 @@ PY_TEMPLATE = textwrap.dedent("""\
+         outdir = os.environ['ISOLATED_OUTDIR']
+       return outdir, remaining_args
+ 
++    def InsertWrapperScriptArgs(args):
++      i = 0
++      while i < len(args):
++        if args[i] == '--wrapper-script-args':
++          args.insert(i + 1, "'%s'" % shlex.join(s for s in sys.argv))
++          break
++        i += 1
+ 
+     def FilterIsolatedOutdirBasedArgs(outdir, args):
+       rargs = []
+@@ -142,6 +150,7 @@ PY_TEMPLATE = textwrap.dedent("""\
+       executable_path = ExpandWrappedPath('{executable_path}')
+       outdir, remaining_args = FindIsolatedOutdir(raw_args)
+       args = {executable_args}
++      InsertWrapperScriptArgs(args)
+       args = FilterIsolatedOutdirBasedArgs(outdir, args)
+       executable_args = ExpandWrappedPaths(args)
+       cmd = [executable_path] + args + remaining_args
+-- 
+2.37.2
+

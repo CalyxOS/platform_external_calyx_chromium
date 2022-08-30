@@ -1,0 +1,2142 @@
+From 00aae7f598c9a3189bf2d371b8991ee97a03f9ea Mon Sep 17 00:00:00 2001
+From: Mohamed Heikal <mheikal@chromium.org>
+Date: Mon, 13 Jun 2022 23:20:59 +0000
+Subject: [PATCH 05/12] Android: Create robolectric_library template for on
+ host tests
+
+- robolectric_library allows deps on android_library targets.
+- Creates an robolectric test sdk target (that still has the @hide
+  methods and constants that were removed from the normal sdk).
+- robolectric_library and junit_binary now compile against the
+  new robolectric test sdk.
+- Robolectric targets now compile against the android 12 robolectric
+  test sdk (previously android 10).
+
+Bug: 1296632
+Change-Id: I0782443a12cf2d4a8bf5bc3b8424a47400a83120
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/3696549
+Auto-Submit: Mohamed Heikal <mheikal@chromium.org>
+Owners-Override: Andrew Grieve <agrieve@chromium.org>
+Reviewed-by: Andrew Grieve <agrieve@chromium.org>
+Commit-Queue: Mohamed Heikal <mheikal@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1013712}
+---
+ base/BUILD.gn                                 |  5 +-
+ .../src/org/chromium/base/FileUtilsTest.java  |  5 +-
+ build/android/gyp/compile_java.py             |  9 ++-
+ build/android/gyp/compile_resources.py        | 12 ++-
+ build/android/gyp/turbine.py                  |  2 +-
+ build/android/gyp/write_build_config.py       | 13 +++-
+ build/config/android/internal_rules.gni       | 40 ++++++----
+ build/config/android/rules.gni                | 75 +++++++++++++++++--
+ .../android/test/classpath_order/BUILD.gn     |  3 +-
+ .../features/android_library_factory/BUILD.gn |  3 +-
+ chrome/android/webapk/test/BUILD.gn           |  4 +-
+ .../android/browserservices/intents/BUILD.gn  |  4 +-
+ .../browserservices/verification/BUILD.gn     | 10 +--
+ .../android/webapps/launchpad/BUILD.gn        |  4 +-
+ chrome/browser/back_press/android/BUILD.gn    |  5 +-
+ chrome/browser/bluetooth/android/BUILD.gn     |  5 +-
+ .../browser/browser_controls/android/BUILD.gn |  4 +-
+ .../commerce/merchant_viewer/android/BUILD.gn |  6 +-
+ chrome/browser/continuous_search/BUILD.gn     |  3 +-
+ .../continuous_search/internal/BUILD.gn       |  3 +-
+ chrome/browser/device/BUILD.gn                |  4 +-
+ chrome/browser/download/android/BUILD.gn      |  4 +-
+ .../download/internal/android/BUILD.gn        |  4 +-
+ chrome/browser/enterprise/util/BUILD.gn       |  4 +-
+ chrome/browser/feed/android/BUILD.gn          |  5 +-
+ chrome/browser/flags/BUILD.gn                 |  4 +-
+ chrome/browser/incognito/BUILD.gn             |  5 +-
+ chrome/browser/loading_modal/android/BUILD.gn |  4 +-
+ chrome/browser/notifications/BUILD.gn         |  4 +-
+ .../page_annotations/test/android/BUILD.gn    |  5 +-
+ .../PageAnnotationUtilsUnitTest.java          |  9 +--
+ .../password_edit_dialog/android/BUILD.gn     |  4 +-
+ .../android/internal/BUILD.gn                 |  4 +-
+ chrome/browser/payments/android/BUILD.gn      |  8 +-
+ chrome/browser/policy/android/BUILD.gn        |  4 +-
+ chrome/browser/preferences/BUILD.gn           |  4 +-
+ chrome/browser/safety_check/android/BUILD.gn  |  4 +-
+ .../browser/signin/services/android/BUILD.gn  |  4 +-
+ chrome/browser/tab/BUILD.gn                   |  3 +-
+ chrome/browser/tab_group/BUILD.gn             |  4 +-
+ chrome/browser/tabmodel/BUILD.gn              |  4 +-
+ chrome/browser/tabpersistence/BUILD.gn        |  4 +-
+ .../ui/android/appmenu/internal/BUILD.gn      |  4 +-
+ .../ui/android/autofill/internal/BUILD.gn     |  4 +-
+ .../ui/android/default_browser_promo/BUILD.gn |  4 +-
+ chrome/browser/ui/android/layouts/BUILD.gn    |  4 +-
+ chrome/browser/ui/android/logo/BUILD.gn       |  4 +-
+ .../browser/ui/android/multiwindow/BUILD.gn   |  7 +-
+ .../MultiInstanceStateUnitTest.java           |  3 +-
+ .../browser/ui/android/native_page/BUILD.gn   |  4 +-
+ chrome/browser/ui/android/night_mode/BUILD.gn |  4 +-
+ chrome/browser/ui/android/omnibox/BUILD.gn    |  4 +-
+ chrome/browser/ui/android/signin/BUILD.gn     |  3 +-
+ chrome/browser/ui/android/toolbar/BUILD.gn    |  4 +-
+ .../ui/android/webid/internal/BUILD.gn        |  5 +-
+ chrome/browser/ui/messages/android/BUILD.gn   |  5 +-
+ chrome/browser/usb/android/BUILD.gn           |  5 +-
+ chrome/browser/util/BUILD.gn                  |  4 +-
+ .../browser/video_tutorials/internal/BUILD.gn |  4 +-
+ .../android_autofill/browser/junit/BUILD.gn   |  4 +-
+ components/background_task_scheduler/BUILD.gn |  6 +-
+ .../BackgroundTaskJobServiceTest.java         | 13 ++--
+ .../BroadcastReceiverRobolectricTest.java     |  5 --
+ .../browser_ui/accessibility/android/BUILD.gn |  3 +-
+ .../bottomsheet/android/internal/BUILD.gn     |  3 +-
+ .../client_certificate/android/BUILD.gn       |  4 +-
+ components/browser_ui/media/android/BUILD.gn  |  4 +-
+ .../browser_ui/photo_picker/android/BUILD.gn  |  4 +-
+ components/browser_ui/util/android/BUILD.gn   |  4 +-
+ .../browser_ui/webshare/android/BUILD.gn      |  4 +-
+ components/browser_ui/widget/android/BUILD.gn |  4 +-
+ .../content_capture/android/junit/BUILD.gn    |  4 +-
+ components/crash/android/BUILD.gn             |  4 +-
+ components/download/network/BUILD.gn          |  1 -
+ components/embedder_support/android/BUILD.gn  |  8 +-
+ components/externalauth/android/BUILD.gn      |  4 +-
+ components/gcm_driver/android/BUILD.gn        |  4 +-
+ components/image_fetcher/BUILD.gn             |  3 +-
+ components/installedapp/android/BUILD.gn      |  4 +-
+ components/language/android/BUILD.gn          |  4 +-
+ .../media_router/browser/android/BUILD.gn     |  4 +-
+ components/messages/android/BUILD.gn          |  4 +-
+ components/messages/android/internal/BUILD.gn |  4 +-
+ components/payments/content/android/BUILD.gn  |  8 +-
+ components/permissions/android/BUILD.gn       |  4 +-
+ components/policy/android/BUILD.gn            |  4 +-
+ components/prefs/android/BUILD.gn             |  4 +-
+ components/query_tiles/BUILD.gn               |  3 +-
+ components/signin/public/android/BUILD.gn     |  3 +-
+ .../subresource_filter/android/BUILD.gn       |  4 +-
+ components/variations/android/BUILD.gn        |  4 +-
+ .../webapk/android/libs/client/BUILD.gn       |  4 +-
+ components/webapps/browser/android/BUILD.gn   |  4 +-
+ content/public/android/BUILD.gn               |  4 +-
+ testing/android/junit/BUILD.gn                |  5 +-
+ third_party/android_deps/BUILD.gn             | 11 ++-
+ third_party/robolectric/3pp/fetch.py          | 19 +----
+ third_party/robolectric/BUILD.gn              | 10 ++-
+ ui/android/BUILD.gn                           |  4 +-
+ url/BUILD.gn                                  |  8 +-
+ weblayer/browser/java/BUILD.gn                |  6 +-
+ 101 files changed, 247 insertions(+), 354 deletions(-)
+
+diff --git a/base/BUILD.gn b/base/BUILD.gn
+index b1c63118353f0..ffe2a029209f1 100644
+--- a/base/BUILD.gn
++++ b/base/BUILD.gn
+@@ -4388,9 +4388,7 @@ if (is_android) {
+     sources = [ "test/android/javatests/src/org/chromium/base/process_launcher/TestChildProcessConnection.java" ]
+   }
+ 
+-  android_library("base_junit_test_support") {
+-    # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-    bypass_platform_checks = true
++  robolectric_library("base_junit_test_support") {
+     testonly = true
+     sources = [
+       "//third_party/robolectric/custom_asynctask/java/src/org/chromium/base/task/test/ShadowAsyncTask.java",
+@@ -4411,7 +4409,6 @@ if (is_android) {
+     deps = [
+       ":base_java",
+       "//testing/android/junit:junit_test_support",
+-      "//third_party/android_deps:robolectric_all_java",
+       "//third_party/android_support_test_runner:runner_java",
+       "//third_party/androidx:androidx_test_core_java",
+       "//third_party/hamcrest:hamcrest_java",
+diff --git a/base/android/junit/src/org/chromium/base/FileUtilsTest.java b/base/android/junit/src/org/chromium/base/FileUtilsTest.java
+index 6559205c464e2..9778a55bd5a08 100644
+--- a/base/android/junit/src/org/chromium/base/FileUtilsTest.java
++++ b/base/android/junit/src/org/chromium/base/FileUtilsTest.java
+@@ -9,8 +9,6 @@ import static org.junit.Assert.assertNotNull;
+ import static org.junit.Assert.assertNull;
+ import static org.junit.Assert.assertTrue;
+ 
+-import android.annotation.NonNull;
+-import android.annotation.Nullable;
+ import android.content.ContentProvider;
+ import android.content.ContentValues;
+ import android.content.Context;
+@@ -468,8 +466,7 @@ public class FileUtilsTest {
+         }
+ 
+         @Override
+-        public @Nullable ParcelFileDescriptor openFile(@NonNull Uri uri, @NonNull String mode)
+-                throws FileNotFoundException {
++        public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+             String uriString = uri.toString();
+             if (mUriToFilename.containsKey(uriString)) {
+                 String filename = mUriToFilename.get(uriString);
+diff --git a/build/android/gyp/compile_java.py b/build/android/gyp/compile_java.py
+index d3fca59058d40..37121a71635a1 100755
+--- a/build/android/gyp/compile_java.py
++++ b/build/android/gyp/compile_java.py
+@@ -755,7 +755,7 @@ def main(argv):
+         options.java_version,
+     ])
+   if options.java_version == '1.8':
+-    # Android's boot jar doesn't contain all java 8 classes.
++    # Android's boot jar doesn't contain all java classes.
+     options.bootclasspath.append(build_utils.RT_JAR_PATH)
+ 
+   # This effectively disables all annotation processors, even including
+@@ -765,7 +765,12 @@ def main(argv):
+   javac_args.extend(['-proc:none'])
+ 
+   if options.bootclasspath:
+-    javac_args.extend(['-bootclasspath', ':'.join(options.bootclasspath)])
++    # if we are targeting source code higher than java 8, we cannot use
++    # -bootclasspath anymore (deprecated). Instead just prepend the classpath.
++    if options.java_version != '1.8':
++      options.classpath = options.bootclasspath + options.classpath
++    else:
++      javac_args.extend(['-bootclasspath', ':'.join(options.bootclasspath)])
+ 
+   if options.processorpath:
+     javac_args.extend(['-processorpath', ':'.join(options.processorpath)])
+diff --git a/build/android/gyp/compile_resources.py b/build/android/gyp/compile_resources.py
+index a7907b4c90ddd..51491edc8741a 100755
+--- a/build/android/gyp/compile_resources.py
++++ b/build/android/gyp/compile_resources.py
+@@ -409,9 +409,15 @@ def _FixManifest(options, temp_dir, extra_manifest=None):
+     except build_utils.CalledProcessError:
+       return None
+ 
+-  android_sdk_jars = [j for j in options.include_resources
+-                      if os.path.basename(j) in ('android.jar',
+-                                                 'android_system.jar')]
++  def is_sdk_jar(jar_name):
++    if jar_name in ('android.jar', 'android_system.jar'):
++      return True
++    # Robolectric jar looks a bit different.
++    return 'android-all' in jar_name and 'robolectric' in jar_name
++
++  android_sdk_jars = [
++      j for j in options.include_resources if is_sdk_jar(os.path.basename(j))
++  ]
+   extract_all = [maybe_extract_version(j) for j in android_sdk_jars]
+   successful_extractions = [x for x in extract_all if x]
+   if len(successful_extractions) == 0:
+diff --git a/build/android/gyp/turbine.py b/build/android/gyp/turbine.py
+index 247924b678ba3..2d71b13ed3856 100755
+--- a/build/android/gyp/turbine.py
++++ b/build/android/gyp/turbine.py
+@@ -101,7 +101,7 @@ def main(argv):
+         options.java_version,
+     ])
+   if options.java_version == '1.8':
+-    # Android's boot jar doesn't contain all java 8 classes.
++    # Android's boot jar doesn't contain all java classes.
+     options.bootclasspath.append(build_utils.RT_JAR_PATH)
+ 
+   if options.bootclasspath:
+diff --git a/build/android/gyp/write_build_config.py b/build/android/gyp/write_build_config.py
+index 3eadc97b9a5be..71b1ca02c6947 100755
+--- a/build/android/gyp/write_build_config.py
++++ b/build/android/gyp/write_build_config.py
+@@ -1057,6 +1057,11 @@ def main(argv):
+       action='store_true',
+       help='True if a java library is not chromium code, used for lint.')
+ 
++  # robolectric_library options
++  parser.add_option('--is-robolectric',
++                    action='store_true',
++                    help='Whether this is a host side android test library.')
++
+   # android library options
+   parser.add_option('--dex-path', help='Path to target\'s dex output.')
+ 
+@@ -1442,7 +1447,10 @@ def main(argv):
+     deps_info['requires_android'] = bool(options.requires_android)
+     deps_info['supports_android'] = bool(options.supports_android)
+ 
+-    if not options.bypass_platform_checks:
++    # robolectric is special in that its an android target that runs on host.
++    # You are allowed to depend on both android |deps_require_android| and
++    # non-android |deps_not_support_android| targets.
++    if not options.bypass_platform_checks and not options.is_robolectric:
+       deps_require_android = (all_resources_deps +
+           [d['name'] for d in all_library_deps if d['requires_android']])
+       deps_not_support_android = (
+@@ -1517,7 +1525,8 @@ def main(argv):
+     if options.res_sources_path:
+       deps_info['res_sources_path'] = options.res_sources_path
+ 
+-  if options.requires_android and options.type == 'java_library':
++  if (options.requires_android
++      and options.type == 'java_library') or options.is_robolectric:
+     if options.package_name:
+       deps_info['package_name'] = options.package_name
+ 
+diff --git a/build/config/android/internal_rules.gni b/build/config/android/internal_rules.gni
+index 0b3fa44603503..b5eaa27b4fb57 100644
+--- a/build/config/android/internal_rules.gni
++++ b/build/config/android/internal_rules.gni
+@@ -85,6 +85,8 @@ _custom_d8_path = "//third_party/r8/custom_d8.jar"
+ _desugar_jdk_libs_json = "//third_party/r8/desugar_jdk_libs.json"
+ _desugar_jdk_libs_jar = "//third_party/android_deps/libs/com_android_tools_desugar_jdk_libs/desugar_jdk_libs-1.1.5.jar"
+ _desugar_jdk_libs_configuration_jar = "//third_party/android_deps/libs/com_android_tools_desugar_jdk_libs_configuration/desugar_jdk_libs_configuration-1.1.5.jar"
++_robolectric_jar_path =
++    "//third_party/robolectric/lib/android-all-12-robolectric-7732740.jar"
+ 
+ # Put the bug number in the target name so that false-positives have a hint in
+ # the error message about why non-existent dependencies are there.
+@@ -288,6 +290,9 @@ template("write_build_config") {
+         invoker.bypass_platform_checks) {
+       args += [ "--bypass-platform-checks" ]
+     }
++    if (defined(invoker.is_robolectric) && invoker.is_robolectric) {
++      args += [ "--is-robolectric" ]
++    }
+ 
+     if (defined(invoker.apk_under_test)) {
+       deps += [ "${invoker.apk_under_test}$build_config_target_suffix" ]
+@@ -1404,6 +1409,11 @@ if (enable_java_templates) {
+           invoker.tiered_stop_at_level_one) {
+         args += [ "--tiered-stop-at-level-one" ]
+       }
++      if (defined(invoker.extra_classpath_jars)) {
++        _rebased_extra_classpath_jars =
++            rebase_path(invoker.extra_classpath_jars, root_build_dir)
++        args += [ "--classpath=${_rebased_extra_classpath_jars}" ]
++      }
+       if (defined(invoker.wrapper_script_args)) {
+         args += [ "--" ] + invoker.wrapper_script_args
+       }
+@@ -1884,7 +1894,7 @@ if (enable_java_templates) {
+       if (android_static_analysis == "build_server") {
+         args += [ "--use-build-server" ]
+       }
+-      if (invoker.requires_android) {
++      if (invoker.include_android_sdk) {
+         args += [ "--sdk-classpath-jars=@FileArg($_rebased_build_config:android:sdk_jars)" ]
+       }
+       if (invoker.is_prebuilt) {
+@@ -3022,7 +3032,6 @@ if (enable_java_templates) {
+         ]
+       }
+ 
+-      # Currently turbine does not support JDK11.
+       if (invoker.supports_android || invoker.use_turbine) {
+         args += [ "--java-version=1.8" ]
+       }
+@@ -3038,7 +3047,7 @@ if (enable_java_templates) {
+       if (enable_kythe_annotations && !invoker.enable_errorprone) {
+         args += [ "--enable-kythe-annotations" ]
+       }
+-      if (invoker.requires_android) {
++      if (invoker.include_android_sdk) {
+         args += [ "--bootclasspath=@FileArg($_rebased_build_config:android:sdk_interface_jars)" ]
+       }
+       if (_chromium_code) {
+@@ -3219,11 +3228,8 @@ if (enable_java_templates) {
+   #    library via its built .jar rather than including its .java sources.
+   #  proguard_enabled: Optional. True to enable ProGuard obfuscation.
+   #  proguard_configs: Optional list of additional proguard config file paths.
+-  #  bypass_platform_checks: Optional. If True, platform checks will not
+-  #    be performed. They are used to verify that every target with
+-  #    requires_android only depends on targets that, at least supports_android.
+-  #    Similarly, if a target has !supports_android, then it cannot depend on
+-  #    any other target that has requires_android.
++  #  is_robolectric: Optional. If True, this is a host side android test binary
++  #    which is allowed to depend on other android targets.
+   #  include_java_resources: Optional. If True, include Java (not Android)
+   #    resources into final .jar file.
+   #  jar_excluded_patterns: Optional list of .class file patterns to exclude
+@@ -3294,6 +3300,7 @@ if (enable_java_templates) {
+         defined(invoker.requires_android) && invoker.requires_android
+     _bypass_platform_checks = defined(invoker.bypass_platform_checks) &&
+                               invoker.bypass_platform_checks
++    _is_robolectric = defined(invoker.is_robolectric) && invoker.is_robolectric
+ 
+     _invoker_deps = []
+     if (defined(invoker.deps)) {
+@@ -3595,6 +3602,7 @@ if (enable_java_templates) {
+ 
+       supports_android = _supports_android
+       requires_android = _requires_android
++      is_robolectric = _is_robolectric
+       bypass_platform_checks = _bypass_platform_checks
+ 
+       if (defined(invoker.resources_package)) {
+@@ -3649,10 +3657,12 @@ if (enable_java_templates) {
+       }
+ 
+       if (defined(invoker.resources_package) && _type == "java_library") {
+-        assert(_requires_android || _bypass_platform_checks,
++        # TODO(crbug.com/1296632): remove _bypass_platform_checks from the list
++        # once all robolectric targets have migrated to robolectric_library.
++        assert(_requires_android || _bypass_platform_checks || _is_robolectric,
+                "Setting resources_package applicable only for " +
+-                   "android_library(), or java_library() with " +
+-                   "bypass_platform_checks=true. Target=$target_name")
++                   "android_library(), or robolectric_library(). " +
++                   "Target=$target_name")
+ 
+         # has _resources at the end so it looks like a resources pattern, since
+         # it does act like one (and other resources patterns need to depend on
+@@ -3707,7 +3717,7 @@ if (enable_java_templates) {
+             }
+             chromium_code = _chromium_code
+             supports_android = _supports_android
+-            requires_android = _requires_android
++            include_android_sdk = _is_robolectric || _requires_android
+             if (!defined(deps)) {
+               deps = []
+             }
+@@ -3841,7 +3851,8 @@ if (enable_java_templates) {
+           forward_variables_from(invoker, [ "missing_classes_allowlist" ])
+           deps = _unprocessed_jar_deps + _full_classpath_deps +
+                  [ ":$_build_config_target_name" ]
+-          requires_android = _requires_android
++
++          include_android_sdk = _requires_android || _is_robolectric
+           target_label =
+               get_label_info(":${invoker.target_name}", "label_no_toolchain")
+           input_jar = _unprocessed_jar_path
+@@ -3952,6 +3963,9 @@ if (enable_java_templates) {
+           script_name = invoker.wrapper_script_name
+         }
+         deps = [ ":$_build_config_target_name" ]
++        if (_is_robolectric) {
++          extra_classpath_jars = [ _robolectric_jar_path ]
++        }
+       }
+       _public_deps += [ ":$_java_binary_script_target_name" ]
+     }
+diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
+index 4a1c255e85715..4fe206607d3eb 100644
+--- a/build/config/android/rules.gni
++++ b/build/config/android/rules.gni
+@@ -1456,12 +1456,6 @@ if (enable_java_templates) {
+       type = "junit_binary"
+       main_target_name = invoker.target_name
+ 
+-      # Include the android SDK jar(s) for resource processing.
+-      include_android_sdk = true
+-
+-      # Robolectric can handle deps that set !supports_android as well those
+-      # that set requires_android.
+-      bypass_platform_checks = true
+       deps = _invoker_deps
+       testonly = true
+       main_class = _main_class
+@@ -1472,6 +1466,11 @@ if (enable_java_templates) {
+       # 66%, which makes sharding more effective.
+       tiered_stop_at_level_one = true
+ 
++      is_robolectric = true
++      include_android_sdk = true
++      alternative_android_sdk_dep =
++          "//third_party/robolectric:robolectric_test_sdk_java"
++
+       if (!defined(srcjar_deps)) {
+         srcjar_deps = []
+       }
+@@ -1995,6 +1994,70 @@ if (enable_java_templates) {
+     }
+   }
+ 
++  # Declare an Android robolectric library target
++  #
++  # This target creates an Android library containing java code and Android
++  # resources.
++  #
++  # Supports all variables of java_library(), plus:
++  #   deps: In addition to defining java deps, this can also include
++  #     android_assets() and android_resources() targets.
++  #   alternative_android_sdk_ijar: if set, the given android_sdk_ijar file
++  #     replaces the default android_sdk_ijar.
++  #   alternative_android_sdk_ijar_dep: the target that generates
++  #      alternative_android_sdk_ijar, must be set if alternative_android_sdk_ijar
++  #      is used.
++  #   alternative_android_sdk_jar: actual jar corresponding to
++  #      alternative_android_sdk_ijar, must be set if alternative_android_sdk_ijar
++  #      is used.
++  #
++  # Example
++  #   robolectric_library("foo_junit") {
++  #     sources = [
++  #       "android/org/chromium/foo/FooTest.java",
++  #       "android/org/chromium/foo/FooTestUtils.java",
++  #       "android/org/chromium/foo/FooMock.java",
++  #     ]
++  #     deps = [
++  #       "//base:base_junit_test_support"
++  #     ]
++  #     srcjar_deps = [
++  #       ":foo_generated_enum"
++  #     ]
++  #     jar_excluded_patterns = [
++  #       "*/FooService.class", "org/chromium/FooService\$*.class"
++  #     ]
++  #   }
++  template("robolectric_library") {
++    java_library(target_name) {
++      forward_variables_from(invoker, "*", TESTONLY_AND_VISIBILITY)
++      forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
++
++      testonly = true
++
++      is_robolectric = true
++      include_android_sdk = true
++      alternative_android_sdk_dep =
++          "//third_party/robolectric:robolectric_test_sdk_java"
++
++      if (!defined(jar_excluded_patterns)) {
++        jar_excluded_patterns = []
++      }
++      jar_excluded_patterns += [
++        "*/R.class",
++        "*/R\$*.class",
++        "*/Manifest.class",
++        "*/Manifest\$*.class",
++        "*/GEN_JNI.class",
++      ]
++
++      if (!defined(deps)) {
++        deps = []
++      }
++      deps += [ "//third_party/android_deps:robolectric_all_java" ]
++    }
++  }
++
+   # Declare an Android library target for a prebuilt jar
+   #
+   # This target creates an Android library containing java code and Android
+diff --git a/build/config/android/test/classpath_order/BUILD.gn b/build/config/android/test/classpath_order/BUILD.gn
+index decd1a84d2433..af484167e5cbe 100644
+--- a/build/config/android/test/classpath_order/BUILD.gn
++++ b/build/config/android/test/classpath_order/BUILD.gn
+@@ -92,8 +92,7 @@ generate_dummy_android_library("a2_master_java") {
+   ]
+ }
+ 
+-java_library("junit_tests") {
+-  bypass_platform_checks = true
++robolectric_library("junit_tests") {
+   testonly = true
+   sources =
+       [ "java/src/org/chromium/build/classpath_order/ClassPathOrderTest.java" ]
+diff --git a/chrome/android/features/android_library_factory/BUILD.gn b/chrome/android/features/android_library_factory/BUILD.gn
+index cb40a2fe531b0..0044c3298d65a 100644
+--- a/chrome/android/features/android_library_factory/BUILD.gn
++++ b/chrome/android/features/android_library_factory/BUILD.gn
+@@ -69,8 +69,7 @@ android_library_factory("a_factory2_java") {
+   generator_deps = [ ":factory2" ]
+ }
+ 
+-java_library("junit_tests") {
+-  bypass_platform_checks = true
++robolectric_library("junit_tests") {
+   testonly = true
+   sources = [ "junit/src/org/chromium/chrome/browser/android_library_factory/AndroidLibraryFactoryTest.java" ]
+   deps = [
+diff --git a/chrome/android/webapk/test/BUILD.gn b/chrome/android/webapk/test/BUILD.gn
+index 90d04418c4b1f..015cc740cc8b7 100644
+--- a/chrome/android/webapk/test/BUILD.gn
++++ b/chrome/android/webapk/test/BUILD.gn
+@@ -4,9 +4,7 @@
+ 
+ import("//build/config/android/rules.gni")
+ 
+-java_library("junit_test_support") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit_test_support") {
+   testonly = true
+   sources = [ "src/org/chromium/webapk/test/WebApkTestHelper.java" ]
+   deps = [
+diff --git a/chrome/browser/android/browserservices/intents/BUILD.gn b/chrome/browser/android/browserservices/intents/BUILD.gn
+index 1aa65533fbb3b..67a9491176ba3 100644
+--- a/chrome/browser/android/browserservices/intents/BUILD.gn
++++ b/chrome/browser/android/browserservices/intents/BUILD.gn
+@@ -33,9 +33,7 @@ android_library("java") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/chrome/browser/browserservices/intents/WebApkInfoTest.java",
+diff --git a/chrome/browser/android/browserservices/verification/BUILD.gn b/chrome/browser/android/browserservices/verification/BUILD.gn
+index ef7ed038c65d0..d71824d9cd91d 100644
+--- a/chrome/browser/android/browserservices/verification/BUILD.gn
++++ b/chrome/browser/android/browserservices/verification/BUILD.gn
+@@ -40,8 +40,8 @@ generate_jni("jni_headers") {
+ android_library("javatests") {
+   testonly = true
+   sources = [
+-    "./java/src/org/chromium/chrome/browser/browserservices/verification/OriginVerifierTest.java",
+-    "./java/src/org/chromium/chrome/browser/browserservices/verification/PackageFingerprintCalculatorTest.java",
++    "java/src/org/chromium/chrome/browser/browserservices/verification/OriginVerifierTest.java",
++    "java/src/org/chromium/chrome/browser/browserservices/verification/PackageFingerprintCalculatorTest.java",
+   ]
+ 
+   deps = [
+@@ -60,11 +60,9 @@ android_library("javatests") {
+   ]
+ }
+ 
+-java_library("junit_test_support") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit_test_support") {
+   testonly = true
+-  sources = [ "./java/src/org/chromium/chrome/browser/browserservices/verification/OriginVerifierUnitTestSupport.java" ]
++  sources = [ "java/src/org/chromium/chrome/browser/browserservices/verification/OriginVerifierUnitTestSupport.java" ]
+   deps = [
+     ":java",
+     "//components/embedder_support/android:util_java",
+diff --git a/chrome/browser/android/webapps/launchpad/BUILD.gn b/chrome/browser/android/webapps/launchpad/BUILD.gn
+index b3dc6dd303043..233548aa3935a 100644
+--- a/chrome/browser/android/webapps/launchpad/BUILD.gn
++++ b/chrome/browser/android/webapps/launchpad/BUILD.gn
+@@ -69,9 +69,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-android_library("junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit_tests") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/back_press/android/BUILD.gn b/chrome/browser/back_press/android/BUILD.gn
+index d4aa06e6373c7..e79a1aa84798f 100644
+--- a/chrome/browser/back_press/android/BUILD.gn
++++ b/chrome/browser/back_press/android/BUILD.gn
+@@ -23,12 +23,9 @@ android_library("java") {
+   ]
+ }
+ 
+-java_library("junit") {
++robolectric_library("junit") {
+   testonly = true
+ 
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
+-
+   sources = [ "java/src/org/chromium/chrome/browser/back_press/BackPressManagerUnitTest.java" ]
+ 
+   deps = [
+diff --git a/chrome/browser/bluetooth/android/BUILD.gn b/chrome/browser/bluetooth/android/BUILD.gn
+index ead97648420b2..f3de830f33fe2 100644
+--- a/chrome/browser/bluetooth/android/BUILD.gn
++++ b/chrome/browser/bluetooth/android/BUILD.gn
+@@ -42,12 +42,9 @@ generate_jni("jni_headers") {
+       [ "java/src/org/chromium/chrome/browser/bluetooth/BluetoothBridge.java" ]
+ }
+ 
+-android_library("junit") {
++robolectric_library("junit") {
+   testonly = true
+ 
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
+-
+   sources = [ "junit/src/org/chromium/chrome/browser/bluetooth/BluetoothNotificationManagerTest.java" ]
+ 
+   deps = [
+diff --git a/chrome/browser/browser_controls/android/BUILD.gn b/chrome/browser/browser_controls/android/BUILD.gn
+index a5be4910d4702..3e7b0cd159ccb 100644
+--- a/chrome/browser/browser_controls/android/BUILD.gn
++++ b/chrome/browser/browser_controls/android/BUILD.gn
+@@ -25,9 +25,7 @@ android_library("java") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/chrome/browser/browser_controls/BrowserStateBrowserControlsVisibilityDelegateTest.java" ]
+   deps = [
+diff --git a/chrome/browser/commerce/merchant_viewer/android/BUILD.gn b/chrome/browser/commerce/merchant_viewer/android/BUILD.gn
+index da2841ef7f350..7ee0e5b6c26fa 100644
+--- a/chrome/browser/commerce/merchant_viewer/android/BUILD.gn
++++ b/chrome/browser/commerce/merchant_viewer/android/BUILD.gn
+@@ -81,10 +81,7 @@ android_library("java") {
+   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
+-
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+@@ -134,7 +131,6 @@ java_library("junit") {
+     "//content/public/android:content_java",
+     "//content/public/test/android:content_java_test_support",
+     "//third_party/android_deps:protobuf_lite_runtime_java",
+-    "//third_party/android_deps:robolectric_all_java",
+     "//third_party/androidx:androidx_test_runner_java",
+     "//third_party/hamcrest:hamcrest_core_java",
+     "//third_party/junit",
+diff --git a/chrome/browser/continuous_search/BUILD.gn b/chrome/browser/continuous_search/BUILD.gn
+index e18f16512153b..c024d120b27c2 100644
+--- a/chrome/browser/continuous_search/BUILD.gn
++++ b/chrome/browser/continuous_search/BUILD.gn
+@@ -156,8 +156,7 @@ if (is_android) {
+     ]
+   }
+ 
+-  android_library("junit") {
+-    bypass_platform_checks = true
++  robolectric_library("junit") {
+     testonly = true
+ 
+     sources = [
+diff --git a/chrome/browser/continuous_search/internal/BUILD.gn b/chrome/browser/continuous_search/internal/BUILD.gn
+index 7f18a8fdcf935..2a0d646b89393 100644
+--- a/chrome/browser/continuous_search/internal/BUILD.gn
++++ b/chrome/browser/continuous_search/internal/BUILD.gn
+@@ -46,8 +46,7 @@ android_library("java") {
+   resources_package = "org.chromium.chrome.browser.continuous_search"
+ }
+ 
+-android_library("junit") {
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/device/BUILD.gn b/chrome/browser/device/BUILD.gn
+index 72aed64f14cf7..8867948301fde 100644
+--- a/chrome/browser/device/BUILD.gn
++++ b/chrome/browser/device/BUILD.gn
+@@ -20,9 +20,7 @@ android_library("java") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "android/java/src/org/chromium/chrome/browser/device/DeviceConditionsTest.java",
+diff --git a/chrome/browser/download/android/BUILD.gn b/chrome/browser/download/android/BUILD.gn
+index 9e0757c6b1801..858ce33cc5c3c 100644
+--- a/chrome/browser/download/android/BUILD.gn
++++ b/chrome/browser/download/android/BUILD.gn
+@@ -189,9 +189,7 @@ android_library("download_java_tests") {
+   ]
+ }
+ 
+-android_library("junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit_tests") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/download/internal/android/BUILD.gn b/chrome/browser/download/internal/android/BUILD.gn
+index 32a1b9d9cb235..78ecf83580c96 100644
+--- a/chrome/browser/download/internal/android/BUILD.gn
++++ b/chrome/browser/download/internal/android/BUILD.gn
+@@ -267,9 +267,7 @@ android_library("javatests") {
+   resources_package = "org.chromium.chrome.browser.download.internal"
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/chrome/browser/download/home/filter/DeleteUndoOfflineItemFilterTest.java",
+diff --git a/chrome/browser/enterprise/util/BUILD.gn b/chrome/browser/enterprise/util/BUILD.gn
+index 489a22e90bb23..55b0d2d113198 100644
+--- a/chrome/browser/enterprise/util/BUILD.gn
++++ b/chrome/browser/enterprise/util/BUILD.gn
+@@ -28,9 +28,7 @@ generate_jni("jni_headers") {
+   sources = _jni_sources
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [ "android/java/src/org/chromium/chrome/browser/enterprise/util/EnterpriseInfoImplTest.java" ]
+diff --git a/chrome/browser/feed/android/BUILD.gn b/chrome/browser/feed/android/BUILD.gn
+index 86cfe4249adb2..23669d16e3f2d 100644
+--- a/chrome/browser/feed/android/BUILD.gn
++++ b/chrome/browser/feed/android/BUILD.gn
+@@ -274,12 +274,9 @@ android_library("javatests") {
+   ]
+ }
+ 
+-android_library("junit") {
++robolectric_library("junit") {
+   testonly = true
+ 
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
+-
+   sources = [
+     "java/src/org/chromium/chrome/browser/feed/FakeLinearLayoutManager.java",
+     "java/src/org/chromium/chrome/browser/feed/FeedFeaturesTest.java",
+diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
+index 36beca7087dc0..e1ea39b5787fa 100644
+--- a/chrome/browser/flags/BUILD.gn
++++ b/chrome/browser/flags/BUILD.gn
+@@ -70,9 +70,7 @@ java_cpp_enum("chrome_browser_flags_enums_srcjar") {
+   sources = [ "android/chrome_session_state.h" ]
+ }
+ 
+-java_library("flags_junit_tests") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("flags_junit_tests") {
+   testonly = true
+   sources = [
+     "android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlagsAnnotationUnitTest.java",
+diff --git a/chrome/browser/incognito/BUILD.gn b/chrome/browser/incognito/BUILD.gn
+index d31184bf5bab4..faf7a12249917 100644
+--- a/chrome/browser/incognito/BUILD.gn
++++ b/chrome/browser/incognito/BUILD.gn
+@@ -106,12 +106,9 @@ android_library("incognito_java_tests") {
+   ]
+ }
+ 
+-android_library("incognito_junit_tests") {
++robolectric_library("incognito_junit_tests") {
+   testonly = true
+ 
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
+-
+   sources = [
+     "android/java/src/org/chromium/chrome/browser/incognito/reauth/IncognitoReauthControllerTest.java",
+     "android/java/src/org/chromium/chrome/browser/incognito/reauth/IncognitoReauthManagerTest.java",
+diff --git a/chrome/browser/loading_modal/android/BUILD.gn b/chrome/browser/loading_modal/android/BUILD.gn
+index 5bc8a91848b76..912778597e99f 100644
+--- a/chrome/browser/loading_modal/android/BUILD.gn
++++ b/chrome/browser/loading_modal/android/BUILD.gn
+@@ -31,9 +31,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [ "junit/src/org/chromium/chrome/browser/loading_modal/LoadingModalDialogMediatorTest.java" ]
+diff --git a/chrome/browser/notifications/BUILD.gn b/chrome/browser/notifications/BUILD.gn
+index 16dcc5d217ed6..8ff4a3fee84af 100644
+--- a/chrome/browser/notifications/BUILD.gn
++++ b/chrome/browser/notifications/BUILD.gn
+@@ -99,9 +99,7 @@ if (is_android) {
+     ]
+   }
+ 
+-  android_library("junit_tests") {
+-    # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-    bypass_platform_checks = true
++  robolectric_library("junit_tests") {
+     testonly = true
+ 
+     sources = [
+diff --git a/chrome/browser/page_annotations/test/android/BUILD.gn b/chrome/browser/page_annotations/test/android/BUILD.gn
+index bafc7ed50f0d3..5360de8f10d20 100644
+--- a/chrome/browser/page_annotations/test/android/BUILD.gn
++++ b/chrome/browser/page_annotations/test/android/BUILD.gn
+@@ -5,10 +5,7 @@
+ import("//build/config/android/config.gni")
+ import("//build/config/android/rules.gni")
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
+-
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/page_annotations/test/android/java/src/org/chromium/chrome/browser/page_annotations/PageAnnotationUtilsUnitTest.java b/chrome/browser/page_annotations/test/android/java/src/org/chromium/chrome/browser/page_annotations/PageAnnotationUtilsUnitTest.java
+index 22e27eb233ec7..b9429b1ad5077 100644
+--- a/chrome/browser/page_annotations/test/android/java/src/org/chromium/chrome/browser/page_annotations/PageAnnotationUtilsUnitTest.java
++++ b/chrome/browser/page_annotations/test/android/java/src/org/chromium/chrome/browser/page_annotations/PageAnnotationUtilsUnitTest.java
+@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config;
+ import org.chromium.base.test.BaseRobolectricTestRunner;
+ import org.chromium.chrome.browser.page_annotations.PageAnnotation.PageAnnotationType;
+ 
+-import java.util.LinkedList;
++import java.util.Arrays;
+ import java.util.List;
+ 
+ /**
+@@ -22,9 +22,8 @@ import java.util.List;
+ @RunWith(BaseRobolectricTestRunner.class)
+ @Config(manifest = Config.NONE)
+ public class PageAnnotationUtilsUnitTest {
+-    private static final List<PageAnnotation> DUMMY_ANNOTATIONS_LIST = new LinkedList<>() {
+-        { add(new BuyableProductPageAnnotation(100L, "USD", "200")); }
+-    };
++    private static final List<PageAnnotation> DUMMY_ANNOTATIONS_LIST = Arrays.asList(
++            new PageAnnotation[] {new BuyableProductPageAnnotation(100L, "USD", "200")});
+ 
+     private static class DummyPageAnnotation extends PageAnnotation {
+         DummyPageAnnotation() {
+@@ -67,4 +66,4 @@ public class PageAnnotationUtilsUnitTest {
+                 DUMMY_ANNOTATIONS_LIST, DummyPageAnnotation.class);
+         Assert.assertNull(annotation);
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/chrome/browser/password_edit_dialog/android/BUILD.gn b/chrome/browser/password_edit_dialog/android/BUILD.gn
+index fd514c824bd51..119562acaa7da 100644
+--- a/chrome/browser/password_edit_dialog/android/BUILD.gn
++++ b/chrome/browser/password_edit_dialog/android/BUILD.gn
+@@ -68,9 +68,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/chrome/browser/password_edit_dialog/PasswordEditDialogTest.java" ]
+ 
+diff --git a/chrome/browser/password_entry_edit/android/internal/BUILD.gn b/chrome/browser/password_entry_edit/android/internal/BUILD.gn
+index 4f485b64b71e3..e5406c81e1521 100644
+--- a/chrome/browser/password_entry_edit/android/internal/BUILD.gn
++++ b/chrome/browser/password_entry_edit/android/internal/BUILD.gn
+@@ -38,9 +38,7 @@ android_library("java") {
+   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/chrome/browser/password_entry_edit/CredentialEditControllerTest.java" ]
+ 
+diff --git a/chrome/browser/payments/android/BUILD.gn b/chrome/browser/payments/android/BUILD.gn
+index ede0a7c7e8705..2f17496d97871 100644
+--- a/chrome/browser/payments/android/BUILD.gn
++++ b/chrome/browser/payments/android/BUILD.gn
+@@ -13,9 +13,7 @@ generate_jni("jni_headers") {
+ }
+ 
+ # TODO(crbug.com/1164979): remove the dependency on chrome_java.
+-android_library("junit_test_support") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit_test_support") {
+   testonly = true
+   deps = [
+     "//chrome/android:chrome_java",
+@@ -46,9 +44,7 @@ android_library("junit_test_support") {
+ }
+ 
+ # TODO(crbug.com/1164979): remove the dependency on chrome_java.
+-java_library("junit") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   deps = [
+     ":junit_test_support",
+diff --git a/chrome/browser/policy/android/BUILD.gn b/chrome/browser/policy/android/BUILD.gn
+index cfc46fd828f40..31836cab26d5c 100644
+--- a/chrome/browser/policy/android/BUILD.gn
++++ b/chrome/browser/policy/android/BUILD.gn
+@@ -67,9 +67,7 @@ generate_jni("jni_headers") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/preferences/BUILD.gn b/chrome/browser/preferences/BUILD.gn
+index ce9bedd8b4527..5657e49ba258f 100644
+--- a/chrome/browser/preferences/BUILD.gn
++++ b/chrome/browser/preferences/BUILD.gn
+@@ -53,9 +53,7 @@ generate_jni("jni_headers") {
+   sources = [ "android/java/src/org/chromium/chrome/browser/preferences/PrefChangeRegistrar.java" ]
+ }
+ 
+-java_library("preferences_junit_tests") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("preferences_junit_tests") {
+   testonly = true
+   sources = [
+     "android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeyCheckerTest.java",
+diff --git a/chrome/browser/safety_check/android/BUILD.gn b/chrome/browser/safety_check/android/BUILD.gn
+index d25fdfbe580eb..9d02efe9444de 100644
+--- a/chrome/browser/safety_check/android/BUILD.gn
++++ b/chrome/browser/safety_check/android/BUILD.gn
+@@ -93,9 +93,7 @@ android_library("javatests") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "javatests/src/org/chromium/chrome/browser/safety_check/SafetyCheckMediatorTest.java" ]
+   deps = [
+diff --git a/chrome/browser/signin/services/android/BUILD.gn b/chrome/browser/signin/services/android/BUILD.gn
+index 667cf7760faa9..b72e963f0dfd9 100644
+--- a/chrome/browser/signin/services/android/BUILD.gn
++++ b/chrome/browser/signin/services/android/BUILD.gn
+@@ -81,9 +81,7 @@ android_library("javatests") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/chrome/browser/signin/services/ProfileDataCacheUnitTest.java",
+diff --git a/chrome/browser/tab/BUILD.gn b/chrome/browser/tab/BUILD.gn
+index 7209e7df46ab0..0766f17f5a65b 100644
+--- a/chrome/browser/tab/BUILD.gn
++++ b/chrome/browser/tab/BUILD.gn
+@@ -145,8 +145,7 @@ flatbuffer_java_library("critical_persisted_tab_data_flatbuffer_java") {
+   sources = [ "$root_dir/critical_persisted_tab_data.fbs" ]
+ }
+ 
+-android_library("junit") {
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/chrome/browser/tab/CurrentTabObserverTest.java",
+diff --git a/chrome/browser/tab_group/BUILD.gn b/chrome/browser/tab_group/BUILD.gn
+index 53cc4bf6fc4cc..140b7f93a15b7 100644
+--- a/chrome/browser/tab_group/BUILD.gn
++++ b/chrome/browser/tab_group/BUILD.gn
+@@ -21,9 +21,7 @@ android_library("java") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/tabmodel/BUILD.gn b/chrome/browser/tabmodel/BUILD.gn
+index a85efe1ee6b8d..df83b437c4998 100644
+--- a/chrome/browser/tabmodel/BUILD.gn
++++ b/chrome/browser/tabmodel/BUILD.gn
+@@ -66,9 +66,7 @@ android_library_factory("factory_java") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [ "android/java/src/org/chromium/chrome/browser/tabmodel/TabWindowManagerTest.java" ]
+diff --git a/chrome/browser/tabpersistence/BUILD.gn b/chrome/browser/tabpersistence/BUILD.gn
+index 8a8d1bc1ca574..064b2c5ce5aa8 100644
+--- a/chrome/browser/tabpersistence/BUILD.gn
++++ b/chrome/browser/tabpersistence/BUILD.gn
+@@ -20,9 +20,7 @@ android_library("java") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "android/java/src/org/chromium/chrome/browser/tabpersistence/TabStateFileManagerUnitTest.java" ]
+   deps = [
+diff --git a/chrome/browser/ui/android/appmenu/internal/BUILD.gn b/chrome/browser/ui/android/appmenu/internal/BUILD.gn
+index 7a8f3befd9633..3731f7bb34aee 100644
+--- a/chrome/browser/ui/android/appmenu/internal/BUILD.gn
++++ b/chrome/browser/ui/android/appmenu/internal/BUILD.gn
+@@ -114,9 +114,7 @@ android_resources("test_java_resources") {
+   deps = [ ":java_resources" ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/chrome/browser/ui/appmenu/AppMenuPopupPositionTest.java" ]
+   deps = [
+diff --git a/chrome/browser/ui/android/autofill/internal/BUILD.gn b/chrome/browser/ui/android/autofill/internal/BUILD.gn
+index 8223699ec21a7..09d374f8fff99 100644
+--- a/chrome/browser/ui/android/autofill/internal/BUILD.gn
++++ b/chrome/browser/ui/android/autofill/internal/BUILD.gn
+@@ -53,9 +53,7 @@ generate_jni("jni_headers") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/chrome/browser/ui/autofill/AuthenticatorSelectionDialogBridgeTest.java",
+diff --git a/chrome/browser/ui/android/default_browser_promo/BUILD.gn b/chrome/browser/ui/android/default_browser_promo/BUILD.gn
+index 6f28d07724ec2..b36002584f450 100644
+--- a/chrome/browser/ui/android/default_browser_promo/BUILD.gn
++++ b/chrome/browser/ui/android/default_browser_promo/BUILD.gn
+@@ -22,9 +22,7 @@ android_library("java") {
+   resources_package = "org.chromium.chrome.browser.ui.default_browser_promo"
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/chrome/browser/ui/default_browser_promo/DefaultBrowserPromoUtilsTest.java" ]
+   deps = [
+diff --git a/chrome/browser/ui/android/layouts/BUILD.gn b/chrome/browser/ui/android/layouts/BUILD.gn
+index 76ea86beb3d83..9d0e4b7cf5217 100644
+--- a/chrome/browser/ui/android/layouts/BUILD.gn
++++ b/chrome/browser/ui/android/layouts/BUILD.gn
+@@ -52,9 +52,7 @@ generate_jni("layouts_jni_headers") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/ui/android/logo/BUILD.gn b/chrome/browser/ui/android/logo/BUILD.gn
+index baac91089cd4f..ae43b10093f2a 100644
+--- a/chrome/browser/ui/android/logo/BUILD.gn
++++ b/chrome/browser/ui/android/logo/BUILD.gn
+@@ -74,9 +74,7 @@ android_library("javatests") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/ui/android/multiwindow/BUILD.gn b/chrome/browser/ui/android/multiwindow/BUILD.gn
+index 00f5edf5f71a5..d1c7542442ab8 100644
+--- a/chrome/browser/ui/android/multiwindow/BUILD.gn
++++ b/chrome/browser/ui/android/multiwindow/BUILD.gn
+@@ -67,11 +67,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
+-  testonly = true
+-
++robolectric_library("junit") {
+   sources = [
+     "java/src/org/chromium/chrome/browser/multiwindow/MultiInstanceStateUnitTest.java",
+     "java/src/org/chromium/chrome/browser/multiwindow/UiUtilsUnitTest.java",
+@@ -85,7 +81,6 @@ java_library("junit") {
+     "//chrome/browser/profiles/android:java",
+     "//chrome/browser/util:java",
+     "//components/favicon/android:java",
+-    "//third_party/android_deps:robolectric_all_java",
+     "//third_party/android_support_test_runner:runner_java",
+     "//third_party/androidx:androidx_test_core_java",
+     "//third_party/androidx:androidx_test_runner_java",
+diff --git a/chrome/browser/ui/android/multiwindow/java/src/org/chromium/chrome/browser/multiwindow/MultiInstanceStateUnitTest.java b/chrome/browser/ui/android/multiwindow/java/src/org/chromium/chrome/browser/multiwindow/MultiInstanceStateUnitTest.java
+index a96e1517c786f..864699ad57028 100644
+--- a/chrome/browser/ui/android/multiwindow/java/src/org/chromium/chrome/browser/multiwindow/MultiInstanceStateUnitTest.java
++++ b/chrome/browser/ui/android/multiwindow/java/src/org/chromium/chrome/browser/multiwindow/MultiInstanceStateUnitTest.java
+@@ -66,6 +66,7 @@ public class MultiInstanceStateUnitTest {
+             ApplicationStatus.onStateChangeForTesting(this, ActivityState.STOPPED);
+         }
+ 
++        @Override
+         public void destroy() {
+             AppTask appTask = null;
+             for (AppTask task : sTasks.keySet()) {
+@@ -125,7 +126,7 @@ public class MultiInstanceStateUnitTest {
+         RecentTaskInfo taskInfo = new RecentTaskInfo();
+         taskInfo.id = taskId;
+         taskInfo.baseActivity = new ComponentName(
+-                activity.getClass().getPackageName(), activity.getClass().getName());
++                activity.getClass().getPackage().getName(), activity.getClass().getName());
+         sTasks.put(new AppTask(null), taskInfo);
+         ApplicationStatus.onStateChangeForTesting(activity, ActivityState.CREATED);
+         ApplicationStatus.onStateChangeForTesting(activity, ActivityState.RESUMED);
+diff --git a/chrome/browser/ui/android/native_page/BUILD.gn b/chrome/browser/ui/android/native_page/BUILD.gn
+index f553099198585..dd53c11b8f392 100644
+--- a/chrome/browser/ui/android/native_page/BUILD.gn
++++ b/chrome/browser/ui/android/native_page/BUILD.gn
+@@ -21,9 +21,7 @@ android_library("java") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/ui/android/night_mode/BUILD.gn b/chrome/browser/ui/android/night_mode/BUILD.gn
+index 4091efc418509..27826da278745 100644
+--- a/chrome/browser/ui/android/night_mode/BUILD.gn
++++ b/chrome/browser/ui/android/night_mode/BUILD.gn
+@@ -104,9 +104,7 @@ android_library("javatests") {
+   resources_package = "org.chromium.chrome.browser.night_mode"
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/chrome/browser/night_mode/AutoDarkFeedbackSourceUnitTest.java",
+diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/android/omnibox/BUILD.gn
+index 2a89ef303963c..f2bff9740363c 100644
+--- a/chrome/browser/ui/android/omnibox/BUILD.gn
++++ b/chrome/browser/ui/android/omnibox/BUILD.gn
+@@ -339,9 +339,7 @@ proto_java_library("partner_location_descriptor_proto_java") {
+   sources = [ "$proto_path/partner_location_descriptor.proto" ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/ui/android/signin/BUILD.gn b/chrome/browser/ui/android/signin/BUILD.gn
+index 8d5cb30a1dd2f..92abd095381a3 100644
+--- a/chrome/browser/ui/android/signin/BUILD.gn
++++ b/chrome/browser/ui/android/signin/BUILD.gn
+@@ -135,8 +135,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/chrome/browser/ui/signin/ConfirmSyncDataStateMachineDelegateTest.java",
+diff --git a/chrome/browser/ui/android/toolbar/BUILD.gn b/chrome/browser/ui/android/toolbar/BUILD.gn
+index c7293ed364fec..fe55d9c6a44bd 100644
+--- a/chrome/browser/ui/android/toolbar/BUILD.gn
++++ b/chrome/browser/ui/android/toolbar/BUILD.gn
+@@ -269,9 +269,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [
+diff --git a/chrome/browser/ui/android/webid/internal/BUILD.gn b/chrome/browser/ui/android/webid/internal/BUILD.gn
+index 8747b28633abc..6c62c07a1b7ab 100644
+--- a/chrome/browser/ui/android/webid/internal/BUILD.gn
++++ b/chrome/browser/ui/android/webid/internal/BUILD.gn
+@@ -65,10 +65,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
+-
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [ "java/src/org/chromium/chrome/browser/ui/android/webid/AccountSelectionControllerTest.java" ]
+diff --git a/chrome/browser/ui/messages/android/BUILD.gn b/chrome/browser/ui/messages/android/BUILD.gn
+index bf262af39aa13..8a90f27000e12 100644
+--- a/chrome/browser/ui/messages/android/BUILD.gn
++++ b/chrome/browser/ui/messages/android/BUILD.gn
+@@ -60,10 +60,7 @@ generate_jni("jni_headers") {
+   sources = [ "java/src/org/chromium/chrome/browser/ui/messages/infobar/SimpleConfirmInfoBarBuilder.java" ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
+-
++robolectric_library("junit") {
+   testonly = true
+ 
+   sources = [ "java/src/org/chromium/chrome/browser/ui/messages/snackbar/SnackbarCollectionUnitTest.java" ]
+diff --git a/chrome/browser/usb/android/BUILD.gn b/chrome/browser/usb/android/BUILD.gn
+index c2c3458bca831..826affbb61932 100644
+--- a/chrome/browser/usb/android/BUILD.gn
++++ b/chrome/browser/usb/android/BUILD.gn
+@@ -41,12 +41,9 @@ generate_jni("jni_headers") {
+   sources = [ "java/src/org/chromium/chrome/browser/usb/UsbBridge.java" ]
+ }
+ 
+-android_library("junit") {
++robolectric_library("junit") {
+   testonly = true
+ 
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
+-
+   sources = [
+     "junit/src/org/chromium/chrome/browser/usb/UsbNotificationManagerTest.java",
+   ]
+diff --git a/chrome/browser/util/BUILD.gn b/chrome/browser/util/BUILD.gn
+index 160beb219c1dd..c24f1caa1409a 100644
+--- a/chrome/browser/util/BUILD.gn
++++ b/chrome/browser/util/BUILD.gn
+@@ -36,9 +36,7 @@ generate_jni("jni_headers") {
+   ]
+ }
+ 
+-java_library("junit_tests") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit_tests") {
+   testonly = true
+   sources = [
+     "android/java/src/org/chromium/chrome/browser/util/ChromeFileProviderTest.java",
+diff --git a/chrome/browser/video_tutorials/internal/BUILD.gn b/chrome/browser/video_tutorials/internal/BUILD.gn
+index 0370c82e148fc..dd30121ae9aed 100644
+--- a/chrome/browser/video_tutorials/internal/BUILD.gn
++++ b/chrome/browser/video_tutorials/internal/BUILD.gn
+@@ -144,9 +144,7 @@ if (is_android) {
+     ]
+   }
+ 
+-  java_library("junit") {
+-    # Skip platform checks since Robolectric depends on requires_android targets.
+-    bypass_platform_checks = true
++  robolectric_library("junit") {
+     testonly = true
+     sources = [
+       "android/java/src/org/chromium/chrome/browser/video_tutorials/PlaybackStateObserverUnitTest.java",
+diff --git a/components/android_autofill/browser/junit/BUILD.gn b/components/android_autofill/browser/junit/BUILD.gn
+index a063958ff89ee..62608cce8a61c 100644
+--- a/components/android_autofill/browser/junit/BUILD.gn
++++ b/components/android_autofill/browser/junit/BUILD.gn
+@@ -5,9 +5,7 @@
+ import("//build/config/android/config.gni")
+ import("//build/config/android/rules.gni")
+ 
+-java_library("components_autofill_junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("components_autofill_junit_tests") {
+   testonly = true
+   sources = [ "src/org/chromium/components/autofill/AutofillProviderTest.java" ]
+   deps = [
+diff --git a/components/background_task_scheduler/BUILD.gn b/components/background_task_scheduler/BUILD.gn
+index 4417a697fdb97..0d73ea8ef2746 100644
+--- a/components/background_task_scheduler/BUILD.gn
++++ b/components/background_task_scheduler/BUILD.gn
+@@ -99,9 +99,8 @@ if (is_android) {
+     ]
+   }
+ 
+-  java_library("components_background_task_scheduler_junit_tests") {
+-    # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-    bypass_platform_checks = true
++  robolectric_library("components_background_task_scheduler_junit_tests") {
++    include_android_sdk = false
+     testonly = true
+     sources = [
+       "internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskGcmTaskServiceTest.java",
+@@ -136,6 +135,7 @@ if (is_android) {
+       "//third_party/android_deps:robolectric_all_java",
+       "//third_party/junit",
+       "//third_party/mockito:mockito_java",
++      "//third_party/robolectric:robolectric_test_sdk_java",
+     ]
+   }
+ }
+diff --git a/components/background_task_scheduler/internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskJobServiceTest.java b/components/background_task_scheduler/internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskJobServiceTest.java
+index 90c0fd29ccac2..f308e92b06e52 100644
+--- a/components/background_task_scheduler/internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskJobServiceTest.java
++++ b/components/background_task_scheduler/internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskJobServiceTest.java
+@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
+ import static org.mockito.Mockito.verify;
+ 
+ import android.app.job.JobParameters;
++import android.os.Build;
+ import android.os.PersistableBundle;
+ 
+ import org.junit.Before;
+@@ -29,7 +30,7 @@ import java.util.concurrent.TimeUnit;
+ 
+ /** Unit tests for {@link BackgroundTaskJobService}. */
+ @RunWith(BaseRobolectricTestRunner.class)
+-@Config(manifest = Config.NONE)
++@Config(manifest = Config.NONE, sdk = Build.VERSION_CODES.S)
+ public class BackgroundTaskJobServiceTest {
+     private static BackgroundTaskSchedulerJobService.Clock sClock = () -> 1415926535000L;
+     private static BackgroundTaskSchedulerJobService.Clock sZeroClock = () -> 0L;
+@@ -196,8 +197,8 @@ public class BackgroundTaskJobServiceTest {
+ 
+         return new JobParameters(null /* callback */, taskId, extras, null /* transientExtras */,
+                 null /* clipData */, 0 /* clipGrantFlags */, false /* overrideDeadlineExpired */,
+-                null /* triggeredContentUris */, null /* triggeredContentAuthorities */,
+-                null /* network */);
++                false /* isExpedited */, null /* triggeredContentUris */,
++                null /* triggeredContentAuthorities */, null /* network */);
+     }
+ 
+     private static JobParameters buildPeriodicJobParameters(
+@@ -221,7 +222,7 @@ public class BackgroundTaskJobServiceTest {
+ 
+         return new JobParameters(null /* callback */, taskId, extras, null /* transientExtras */,
+                 null /* clipData */, 0 /* clipGrantFlags */, false /* overrideDeadlineExpired */,
+-                null /* triggeredContentUris */, null /* triggeredContentAuthorities */,
+-                null /* network */);
++                false /* isExpedited */, null /* triggeredContentUris */,
++                null /* triggeredContentAuthorities */, null /* network */);
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/components/background_task_scheduler/internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BroadcastReceiverRobolectricTest.java b/components/background_task_scheduler/internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BroadcastReceiverRobolectricTest.java
+index ca8b4e04bdb25..89d969f01a487 100644
+--- a/components/background_task_scheduler/internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BroadcastReceiverRobolectricTest.java
++++ b/components/background_task_scheduler/internal/android/junit/src/org/chromium/components/background_task_scheduler/internal/BroadcastReceiverRobolectricTest.java
+@@ -11,7 +11,6 @@ import android.content.Context;
+ import android.content.Intent;
+ import android.net.ConnectivityManager;
+ import android.os.BatteryManager;
+-import android.os.Build;
+ 
+ import org.junit.Assert;
+ import org.junit.Before;
+@@ -26,7 +25,6 @@ import org.chromium.base.ContextUtils;
+ import org.chromium.base.ThreadUtils;
+ import org.chromium.base.test.BaseRobolectricTestRunner;
+ import org.chromium.base.test.util.Feature;
+-import org.chromium.base.test.util.MinAndroidSdkLevel;
+ import org.chromium.components.background_task_scheduler.BackgroundTask;
+ import org.chromium.components.background_task_scheduler.BackgroundTaskFactory;
+ import org.chromium.components.background_task_scheduler.TaskIds;
+@@ -150,7 +148,6 @@ public final class BroadcastReceiverRobolectricTest {
+     }
+ 
+     @Test
+-    @MinAndroidSdkLevel(Build.VERSION_CODES.M)
+     @Feature({"BackgroundTaskScheduler"})
+     public void withChargingRequired() throws InterruptedException {
+         // Set device in charging mode
+@@ -200,7 +197,6 @@ public final class BroadcastReceiverRobolectricTest {
+     }
+ 
+     @Test
+-    @MinAndroidSdkLevel(Build.VERSION_CODES.L)
+     @Feature({"BackgroundTaskScheduler"})
+     public void withAnyNetworkRequired() throws InterruptedException {
+         mShadowConnectivityManager.setDefaultNetworkActive(true);
+@@ -225,7 +221,6 @@ public final class BroadcastReceiverRobolectricTest {
+     }
+ 
+     @Test
+-    @MinAndroidSdkLevel(Build.VERSION_CODES.M)
+     @Feature({"BackgroundTaskScheduler"})
+     public void withAnyNetworkRequiredButNoConnectivity() throws InterruptedException {
+         mShadowConnectivityManager.setDefaultNetworkActive(false);
+diff --git a/components/browser_ui/accessibility/android/BUILD.gn b/components/browser_ui/accessibility/android/BUILD.gn
+index 855fc968913da..8049c4650c0f6 100644
+--- a/components/browser_ui/accessibility/android/BUILD.gn
++++ b/components/browser_ui/accessibility/android/BUILD.gn
+@@ -76,8 +76,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/components/browser_ui/accessibility/PageZoomMediatorUnitTest.java" ]
+ 
+diff --git a/components/browser_ui/bottomsheet/android/internal/BUILD.gn b/components/browser_ui/bottomsheet/android/internal/BUILD.gn
+index 0998eb09c855e..d4b5746a2c0c0 100644
+--- a/components/browser_ui/bottomsheet/android/internal/BUILD.gn
++++ b/components/browser_ui/bottomsheet/android/internal/BUILD.gn
+@@ -33,8 +33,7 @@ android_library("java") {
+   resources_package = "org.chromium.components.browser_ui.bottomsheet.internal"
+ }
+ 
+-android_library("junit_tests") {
+-  bypass_platform_checks = true
++robolectric_library("junit_tests") {
+   testonly = true
+   sources = [ "java/src/org/chromium/components/browser_ui/bottomsheet/BottomSheetSwipeDetectorTest.java" ]
+   deps = [
+diff --git a/components/browser_ui/client_certificate/android/BUILD.gn b/components/browser_ui/client_certificate/android/BUILD.gn
+index d5f6bfedef262..7cbfdc24fdd5b 100644
+--- a/components/browser_ui/client_certificate/android/BUILD.gn
++++ b/components/browser_ui/client_certificate/android/BUILD.gn
+@@ -46,9 +46,7 @@ source_set("android") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/components/browser_ui/client_certificate/SSLClientCertificateRequestTest.java" ]
+   deps = [
+diff --git a/components/browser_ui/media/android/BUILD.gn b/components/browser_ui/media/android/BUILD.gn
+index 1092df314f5d4..84a52ddb64f46 100644
+--- a/components/browser_ui/media/android/BUILD.gn
++++ b/components/browser_ui/media/android/BUILD.gn
+@@ -75,9 +75,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/components/browser_ui/media/MediaImageManagerTest.java",
+diff --git a/components/browser_ui/photo_picker/android/BUILD.gn b/components/browser_ui/photo_picker/android/BUILD.gn
+index ab722e11594e0..9979c8ac25886 100644
+--- a/components/browser_ui/photo_picker/android/BUILD.gn
++++ b/components/browser_ui/photo_picker/android/BUILD.gn
+@@ -106,9 +106,7 @@ android_resources("java_resources") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/components/browser_ui/photo_picker/FileEnumWorkerTaskTest.java",
+diff --git a/components/browser_ui/util/android/BUILD.gn b/components/browser_ui/util/android/BUILD.gn
+index 971e6c9e83804..72cc3286d3002 100644
+--- a/components/browser_ui/util/android/BUILD.gn
++++ b/components/browser_ui/util/android/BUILD.gn
+@@ -47,9 +47,7 @@ static_library("android") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/components/browser_ui/util/BitmapCacheTest.java",
+diff --git a/components/browser_ui/webshare/android/BUILD.gn b/components/browser_ui/webshare/android/BUILD.gn
+index 018c72ad873c0..e6f351026bfd3 100644
+--- a/components/browser_ui/webshare/android/BUILD.gn
++++ b/components/browser_ui/webshare/android/BUILD.gn
+@@ -24,9 +24,7 @@ android_library("java") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/components/browser_ui/webshare/ShareServiceImplTest.java",
+diff --git a/components/browser_ui/widget/android/BUILD.gn b/components/browser_ui/widget/android/BUILD.gn
+index 0c28f6f860c67..6cb4638c3573f 100644
+--- a/components/browser_ui/widget/android/BUILD.gn
++++ b/components/browser_ui/widget/android/BUILD.gn
+@@ -378,9 +378,7 @@ android_resources("java_test_resources") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/components/browser_ui/widget/CompositeTouchDelegateUnitTest.java",
+diff --git a/components/content_capture/android/junit/BUILD.gn b/components/content_capture/android/junit/BUILD.gn
+index 17337b0ea0955..f740b50e51351 100644
+--- a/components/content_capture/android/junit/BUILD.gn
++++ b/components/content_capture/android/junit/BUILD.gn
+@@ -5,9 +5,7 @@
+ import("//build/config/android/config.gni")
+ import("//build/config/android/rules.gni")
+ 
+-java_library("components_content_capture_junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("components_content_capture_junit_tests") {
+   testonly = true
+   sources = [
+     "src/org/chromium/components/content_capture/PlatformAPIWrapperTest.java",
+diff --git a/components/crash/android/BUILD.gn b/components/crash/android/BUILD.gn
+index 63a0d916db9d1..b7ef049ac1427 100644
+--- a/components/crash/android/BUILD.gn
++++ b/components/crash/android/BUILD.gn
+@@ -52,9 +52,7 @@ android_library("javatests") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/crash/LogcatCrashExtractorTest.java",
+diff --git a/components/download/network/BUILD.gn b/components/download/network/BUILD.gn
+index 59904ad6daf84..81df40f64b30e 100644
+--- a/components/download/network/BUILD.gn
++++ b/components/download/network/BUILD.gn
+@@ -67,7 +67,6 @@ if (is_android) {
+   }
+ 
+   android_library("javatests") {
+-    bypass_platform_checks = true
+     testonly = true
+ 
+     sources = [ "android/java/src/org/chromium/components/download/NetworkStatusListenerAndroidTest.java" ]
+diff --git a/components/embedder_support/android/BUILD.gn b/components/embedder_support/android/BUILD.gn
+index 7aa380ab68e10..ab9e8ea831947 100644
+--- a/components/embedder_support/android/BUILD.gn
++++ b/components/embedder_support/android/BUILD.gn
+@@ -290,9 +290,7 @@ generate_jni("native_j_unittests_jni_headers") {
+   sources = [ "native_java_unittests/src/org/chromium/components/embedder_support/util/InputStreamUnittest.java" ]
+ }
+ 
+-android_library("junit_test_support") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit_test_support") {
+   testonly = true
+   sources = [ "junit/src/org/chromium/components/embedder_support/util/ShadowUrlUtilities.java" ]
+   deps = [
+@@ -301,9 +299,7 @@ android_library("junit_test_support") {
+   ]
+ }
+ 
+-java_library("components_embedder_support_junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("components_embedder_support_junit_tests") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/embedder_support/util/OriginTest.java",
+diff --git a/components/externalauth/android/BUILD.gn b/components/externalauth/android/BUILD.gn
+index b1239f692741f..6c65f498fdadd 100644
+--- a/components/externalauth/android/BUILD.gn
++++ b/components/externalauth/android/BUILD.gn
+@@ -42,9 +42,7 @@ android_library("java") {
+   ]
+ }
+ 
+-android_library("junit") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+ 
+   deps = [
+diff --git a/components/gcm_driver/android/BUILD.gn b/components/gcm_driver/android/BUILD.gn
+index 4a409b91df178..d6d2e63a31b1d 100644
+--- a/components/gcm_driver/android/BUILD.gn
++++ b/components/gcm_driver/android/BUILD.gn
+@@ -28,9 +28,7 @@ android_library("gcm_driver_java") {
+   ]
+ }
+ 
+-java_library("components_gcm_driver_junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("components_gcm_driver_junit_tests") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/gcm_driver/GCMMessageTest.java",
+diff --git a/components/image_fetcher/BUILD.gn b/components/image_fetcher/BUILD.gn
+index a2aadfb5069c0..0a8282fec0b12 100644
+--- a/components/image_fetcher/BUILD.gn
++++ b/components/image_fetcher/BUILD.gn
+@@ -50,9 +50,8 @@ source_set("android") {
+   ]
+ }
+ 
+-java_library("junit") {
++robolectric_library("junit") {
+   testonly = true
+-  bypass_platform_checks = true
+   sources = [
+     "android/junit/src/org/chromium/components/image_fetcher/CachedImageFetcherTest.java",
+     "android/junit/src/org/chromium/components/image_fetcher/ImageFetcherBridgeTest.java",
+diff --git a/components/installedapp/android/BUILD.gn b/components/installedapp/android/BUILD.gn
+index 4203160b51f63..ebe98f553cb28 100644
+--- a/components/installedapp/android/BUILD.gn
++++ b/components/installedapp/android/BUILD.gn
+@@ -63,9 +63,7 @@ android_library("javatests") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources =
+       [ "java/src/org/chromium/components/installedapp/PackageHashTest.java" ]
+diff --git a/components/language/android/BUILD.gn b/components/language/android/BUILD.gn
+index ee3d7ed87b22d..fd8dc93b35b2d 100644
+--- a/components/language/android/BUILD.gn
++++ b/components/language/android/BUILD.gn
+@@ -67,9 +67,7 @@ android_library("ulp_delegate_public_java") {
+   deps = [ ":ulp_delegate_java" ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/components/language/LanguageProfileControllerUnitTest.java" ]
+   deps = [
+diff --git a/components/media_router/browser/android/BUILD.gn b/components/media_router/browser/android/BUILD.gn
+index 55593264b6e30..aa502cf7b294f 100644
+--- a/components/media_router/browser/android/BUILD.gn
++++ b/components/media_router/browser/android/BUILD.gn
+@@ -119,9 +119,7 @@ generate_jni("test_jni_headers") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/media_router/BrowserMediaRouterRouteTest.java",
+diff --git a/components/messages/android/BUILD.gn b/components/messages/android/BUILD.gn
+index 2617e56d54fb8..092ef31beb7fe 100644
+--- a/components/messages/android/BUILD.gn
++++ b/components/messages/android/BUILD.gn
+@@ -128,9 +128,7 @@ static_library("feature_flags") {
+   deps = [ "//base" ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources =
+       [ "java/src/org/chromium/components/messages/MessageWrapperTest.java" ]
+diff --git a/components/messages/android/internal/BUILD.gn b/components/messages/android/internal/BUILD.gn
+index 9a7600f0febc2..d91f9f42e98c1 100644
+--- a/components/messages/android/internal/BUILD.gn
++++ b/components/messages/android/internal/BUILD.gn
+@@ -40,9 +40,7 @@ android_library("java") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/components/messages/MessageAutoDismissTimerTest.java",
+diff --git a/components/payments/content/android/BUILD.gn b/components/payments/content/android/BUILD.gn
+index b6bb4f8c5648a..fd27a5233ecf0 100644
+--- a/components/payments/content/android/BUILD.gn
++++ b/components/payments/content/android/BUILD.gn
+@@ -309,9 +309,7 @@ java_cpp_enum("payments_journey_logger_enum_javagen") {
+   sources = [ "//components/payments/core/journey_logger.h" ]
+ }
+ 
+-java_library("junit_test_support") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit_test_support") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/payments/test_support/PaymentRequestServiceBuilder.java",
+@@ -335,9 +333,7 @@ java_library("junit_test_support") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/payments/PaymentRequestServiceTest.java",
+diff --git a/components/permissions/android/BUILD.gn b/components/permissions/android/BUILD.gn
+index a0711ec39bf56..f8e877a71489e 100644
+--- a/components/permissions/android/BUILD.gn
++++ b/components/permissions/android/BUILD.gn
+@@ -152,9 +152,7 @@ android_library("core_java") {
+   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
+ }
+ 
+-android_library("components_permissions_junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("components_permissions_junit_tests") {
+   testonly = true
+   sources = [ "junit/src/org/chromium/components/permissions/nfc/NfcSystemLevelPromptTest.java" ]
+   deps = [
+diff --git a/components/policy/android/BUILD.gn b/components/policy/android/BUILD.gn
+index 8447a8bec367f..c2f1b8c2da8fe 100644
+--- a/components/policy/android/BUILD.gn
++++ b/components/policy/android/BUILD.gn
+@@ -59,9 +59,7 @@ generate_jni("jni_headers") {
+   sources = _jni_sources
+ }
+ 
+-java_library("components_policy_junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("components_policy_junit_tests") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/policy/AbstractAppRestrictionsProviderTest.java",
+diff --git a/components/prefs/android/BUILD.gn b/components/prefs/android/BUILD.gn
+index e2157481e8b20..8be793ba98109 100644
+--- a/components/prefs/android/BUILD.gn
++++ b/components/prefs/android/BUILD.gn
+@@ -18,9 +18,7 @@ android_library("java") {
+   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/components/prefs/PrefServiceTest.java" ]
+   deps = [
+diff --git a/components/query_tiles/BUILD.gn b/components/query_tiles/BUILD.gn
+index 866d35794a92e..cf02ffac920bb 100644
+--- a/components/query_tiles/BUILD.gn
++++ b/components/query_tiles/BUILD.gn
+@@ -133,8 +133,7 @@ if (is_android) {
+     ]
+   }
+ 
+-  android_library("query_tiles_junit_tests") {
+-    bypass_platform_checks = true
++  robolectric_library("query_tiles_junit_tests") {
+     testonly = true
+     sources = [ "android/java/src/org/chromium/components/query_tiles/TileUmaLoggerTest.java" ]
+ 
+diff --git a/components/signin/public/android/BUILD.gn b/components/signin/public/android/BUILD.gn
+index 17bfae087753c..464c819dc6b8f 100644
+--- a/components/signin/public/android/BUILD.gn
++++ b/components/signin/public/android/BUILD.gn
+@@ -148,8 +148,7 @@ android_library("javatests") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/signin/AccountManagerFacadeImplTest.java",
+diff --git a/components/subresource_filter/android/BUILD.gn b/components/subresource_filter/android/BUILD.gn
+index 1f44b7c28cca9..b532eadb5593b 100644
+--- a/components/subresource_filter/android/BUILD.gn
++++ b/components/subresource_filter/android/BUILD.gn
+@@ -34,9 +34,7 @@ android_library("java") {
+   resources_package = "org.chromium.components.subresource_filter"
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [ "java/src/org/chromium/components/subresource_filter/AdsBlockedDialogTest.java" ]
+ 
+diff --git a/components/variations/android/BUILD.gn b/components/variations/android/BUILD.gn
+index fb1996dc0948d..08335bfca73c4 100644
+--- a/components/variations/android/BUILD.gn
++++ b/components/variations/android/BUILD.gn
+@@ -24,9 +24,7 @@ android_library("variations_java") {
+   ]
+ }
+ 
+-java_library("components_variations_junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("components_variations_junit_tests") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/components/variations/VariationsCompressionUtilsTest.java",
+diff --git a/components/webapk/android/libs/client/BUILD.gn b/components/webapk/android/libs/client/BUILD.gn
+index cee049d67f132..894ea0787459a 100644
+--- a/components/webapk/android/libs/client/BUILD.gn
++++ b/components/webapk/android/libs/client/BUILD.gn
+@@ -17,9 +17,7 @@ android_library("java") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "src/org/chromium/components/webapk/lib/client/WebApkValidatorTest.java",
+diff --git a/components/webapps/browser/android/BUILD.gn b/components/webapps/browser/android/BUILD.gn
+index 9a5de41c367ef..6c325d814d326 100644
+--- a/components/webapps/browser/android/BUILD.gn
++++ b/components/webapps/browser/android/BUILD.gn
+@@ -161,9 +161,7 @@ source_set("unit_tests") {
+   ]
+ }
+ 
+-java_library("junit") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("junit") {
+   testonly = true
+   sources = [
+     "java/src/org/chromium/components/webapps/AddToHomescreenDialogViewTest.java",
+diff --git a/content/public/android/BUILD.gn b/content/public/android/BUILD.gn
+index fb7e6f51117b4..ca8e62ee12e74 100644
+--- a/content/public/android/BUILD.gn
++++ b/content/public/android/BUILD.gn
+@@ -640,6 +640,7 @@ junit_binary("content_junit_tests") {
+     "junit/src/org/chromium/content/browser/sms/SmsProviderGmsTest.java",
+     "junit/src/org/chromium/content_public/browser/MessagePayloadTest.java",
+   ]
++
+   deps = [
+     ":content_java",
+     "//base:base_java",
+@@ -656,9 +657,10 @@ junit_binary("content_junit_tests") {
+     "//third_party/androidx:androidx_test_runner_java",
+     "//third_party/blink/public/mojom:android_mojo_bindings_java",
+     "//third_party/hamcrest:hamcrest_java",
++    "//third_party/junit",
++    "//third_party/mockito:mockito_java",
+     "//ui/android:ui_java",
+     "//ui/gfx/geometry/mojom:mojom_java",
+   ]
+-
+   data_deps = [ "//testing/buildbot/filters:content_junit_tests_filters" ]
+ }
+diff --git a/testing/android/junit/BUILD.gn b/testing/android/junit/BUILD.gn
+index de9a7b4344c92..e8065ca7d2a43 100644
+--- a/testing/android/junit/BUILD.gn
++++ b/testing/android/junit/BUILD.gn
+@@ -6,10 +6,7 @@ assert(is_android)
+ 
+ import("//build/config/android/rules.gni")
+ 
+-java_library("junit_test_support") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
+-  testonly = true
++robolectric_library("junit_test_support") {
+   sources = [
+     "java/src/org/chromium/testing/local/CustomShadowApplicationPackageManager.java",
+     "java/src/org/chromium/testing/local/GtestComputer.java",
+diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.gn
+index b0ca38b36df77..d398bccfc4bbb 100644
+--- a/third_party/android_deps/BUILD.gn
++++ b/third_party/android_deps/BUILD.gn
+@@ -30,10 +30,6 @@ if (!limit_android_deps) {
+   java_group("robolectric_all_java") {
+     testonly = true
+ 
+-    # Prevent 'gn format' from sorting deps. In order for the classpath to be
+-    # correct, newer robolectric android-all versions should be listed below older
+-    # versions.
+-    # NOSORT
+     deps = [
+       ":org_robolectric_annotations_java",
+       ":org_robolectric_junit_java",
+@@ -48,9 +44,12 @@ if (!limit_android_deps) {
+       ":org_robolectric_shadows_playservices_java",
+       ":org_robolectric_utils_java",
+       ":org_robolectric_utils_reflector_java",
++    ]
+ 
+-      "//third_party/robolectric:robolectric_runtime_jars",
+-      "//third_party/robolectric:android-all-10-robolectric-5803371_java",
++    # Temporarily keep compiling against robolectric until every target is
++    # migarated to robolectric_library. See https://crbug.com/1296632
++    input_jars_paths = [
++      "//third_party/robolectric/lib/android-all-12-robolectric-7732740.jar",
+     ]
+   }
+ 
+diff --git a/third_party/robolectric/3pp/fetch.py b/third_party/robolectric/3pp/fetch.py
+index 3f547eb81f8b8..eb203ce8f2957 100755
+--- a/third_party/robolectric/3pp/fetch.py
++++ b/third_party/robolectric/3pp/fetch.py
+@@ -9,6 +9,7 @@ import os
+ 
+ _PATCH = 'cr2'
+ _LATEST_VERSION = '12-robolectric-7732740.' + _PATCH
++# All instrumented jars + latest non-instrumented one.
+ _ROBO_URL_FILES = {
+     'android-all-instrumented-12-robolectric-7732740-i3.jar':
+         'https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/12-robolectric-7732740-i3/android-all-instrumented-12-robolectric-7732740-i3.jar',
+@@ -32,24 +33,6 @@ _ROBO_URL_FILES = {
+         'https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/4.4_r1-robolectric-r2-i3/android-all-instrumented-4.4_r1-robolectric-r2-i3.jar',
+     'android-all-12-robolectric-7732740.jar':
+         'https://repo1.maven.org/maven2/org/robolectric/android-all/12-robolectric-7732740/android-all-12-robolectric-7732740.jar',
+-    'android-all-11-robolectric-6757853.jar':
+-        'https://repo.maven.apache.org/maven2/org/robolectric/android-all/11-robolectric-6757853/android-all-11-robolectric-6757853.jar',
+-    'android-all-10-robolectric-5803371.jar':
+-        'https://repo1.maven.org/maven2/org/robolectric/android-all/10-robolectric-5803371/android-all-10-robolectric-5803371.jar',
+-    'android-all-9-robolectric-4913185-2.jar':
+-        'https://repo1.maven.org/maven2/org/robolectric/android-all/9-robolectric-4913185-2/android-all-9-robolectric-4913185-2.jar',
+-    'android-all-8.1.0-robolectric-4611349.jar':
+-        'https://repo1.maven.org/maven2/org/robolectric/android-all/8.1.0-robolectric-4611349/android-all-8.1.0-robolectric-4611349.jar',
+-    'android-all-8.0.0_r4-robolectric-r1.jar':
+-        'https://repo1.maven.org/maven2/org/robolectric/android-all/8.0.0_r4-robolectric-r1/android-all-8.0.0_r4-robolectric-r1.jar',
+-    'android-all-7.1.0_r7-robolectric-r1.jar':
+-        'https://repo1.maven.org/maven2/org/robolectric/android-all/7.1.0_r7-robolectric-r1/android-all-7.1.0_r7-robolectric-r1.jar',
+-    'android-all-6.0.1_r3-robolectric-r1.jar':
+-        'https://repo1.maven.org/maven2/org/robolectric/android-all/6.0.1_r3-robolectric-r1/android-all-6.0.1_r3-robolectric-r1.jar',
+-    'android-all-5.0.2_r3-robolectric-r0.jar':
+-        'https://repo1.maven.org/maven2/org/robolectric/android-all/5.0.2_r3-robolectric-r0/android-all-5.0.2_r3-robolectric-r0.jar',
+-    'android-all-4.4_r1-robolectric-r2.jar':
+-        'https://repo1.maven.org/maven2/org/robolectric/android-all/4.4_r1-robolectric-r2/android-all-4.4_r1-robolectric-r2.jar',
+ }
+ 
+ def do_latest():
+diff --git a/third_party/robolectric/BUILD.gn b/third_party/robolectric/BUILD.gn
+index 1d5f6257953fe..5b3b91cc1c73c 100644
+--- a/third_party/robolectric/BUILD.gn
++++ b/third_party/robolectric/BUILD.gn
+@@ -16,11 +16,13 @@ group("robolectric_runtime_jars") {
+     "//third_party/robolectric/lib/android-all-instrumented-9-robolectric-4913185-2-i3.jar",
+     "//third_party/robolectric/lib/android-all-instrumented-10-robolectric-5803371-i3.jar",
+     "//third_party/robolectric/lib/android-all-instrumented-11-robolectric-6757853-i3.jar",
++    "//third_party/robolectric/lib/android-all-instrumented-12-robolectric-7732740-i3.jar",
+   ]
+ }
+ 
+-java_prebuilt("android-all-10-robolectric-5803371_java") {
+-  enable_bytecode_checks = false
+-  testonly = true
+-  jar_path = "lib/android-all-10-robolectric-5803371.jar"
++# Robolectric tests compile against the robolectric sdk. This should be kept in
++# sync with the latest version in //third_party/android_sdk.
++android_system_java_prebuilt("robolectric_test_sdk_java") {
++  jar_path =
++      "//third_party/robolectric/lib/android-all-12-robolectric-7732740.jar"
+ }
+diff --git a/ui/android/BUILD.gn b/ui/android/BUILD.gn
+index dea86b172c65f..e5354e5c90368 100644
+--- a/ui/android/BUILD.gn
++++ b/ui/android/BUILD.gn
+@@ -407,9 +407,7 @@ java_group("ui_full_java") {
+   ]
+ }
+ 
+-android_library("ui_junit_test_support") {
+-  # Skip platform checks since Robolectric depends on requires_android targets.
+-  bypass_platform_checks = true
++robolectric_library("ui_junit_test_support") {
+   testonly = true
+   sources = [
+     "junit/src/org/chromium/ui/shadows/ShadowAnimatedStateListDrawable.java",
+diff --git a/url/BUILD.gn b/url/BUILD.gn
+index 28e2f65b9cb75..ead2fa91a73df 100644
+--- a/url/BUILD.gn
++++ b/url/BUILD.gn
+@@ -309,9 +309,7 @@ if (is_android) {
+ 
+   # Unlike gurl_junit_test_support targets depending on gurl_junit_shadows must
+   # bypass platform checks.
+-  android_library("gurl_junit_shadows") {
+-    # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-    bypass_platform_checks = true
++  robolectric_library("gurl_junit_shadows") {
+     testonly = true
+     sources = [ "android/test/java/src/org/chromium/url/ShadowGURL.java" ]
+     deps = [
+@@ -353,9 +351,7 @@ if (is_android) {
+         [ "android/javatests/src/org/chromium/url/GURLJavaTestHelper.java" ]
+   }
+ 
+-  android_library("gurl_junit_tests") {
+-    # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-    bypass_platform_checks = true
++  robolectric_library("gurl_junit_tests") {
+     testonly = true
+     sources = [ "android/junit/src/org/chromium/url/ShadowGURLTest.java" ]
+     deps = [
+diff --git a/weblayer/browser/java/BUILD.gn b/weblayer/browser/java/BUILD.gn
+index 17da288a5aa7d..9c761d1011fab 100644
+--- a/weblayer/browser/java/BUILD.gn
++++ b/weblayer/browser/java/BUILD.gn
+@@ -407,9 +407,7 @@ android_library("test_java") {
+   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
+ }
+ 
+-android_library("junit_test_support") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
++robolectric_library("junit_test_support") {
+   testonly = true
+   deps = [
+     ":java",
+@@ -433,8 +431,6 @@ android_library("junit_test_support") {
+ }
+ 
+ junit_binary("weblayer_junit_tests") {
+-  # Platform checks are broken for Robolectric. See https://crbug.com/1071638.
+-  bypass_platform_checks = true
+   testonly = true
+   sources = [ "org/chromium/weblayer_private/payments/WebLayerPaymentRequestServiceTest.java" ]
+   resources_package = "org.chromium.weblayer_private.test"
+-- 
+2.37.2
+

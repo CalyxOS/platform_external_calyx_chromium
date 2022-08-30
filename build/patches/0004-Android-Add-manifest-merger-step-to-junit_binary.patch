@@ -1,0 +1,848 @@
+From 35f764b9f207b0ef6f003721f4a6568e54e3d5ba Mon Sep 17 00:00:00 2001
+From: Andrew Grieve <agrieve@chromium.org>
+Date: Mon, 13 Jun 2022 15:06:20 +0000
+Subject: [PATCH 04/12] Android: Add manifest merger step to junit_binary()
+
+This will make the AndroidManifest.xml used by robolectric tests include
+entries from libraries that use mergeable_android_manifests.
+
+Also:
+* Changes default package_name from "org.chromium.test" to
+  "no.manifest.configured"
+* Adds test to build_junit_tests for checking manifest and resources.
+* Trims deps of compile_resources() targets to use __assetres
+  rather than all deps.
+* Fixes resources_package being ignored when set on junit_binary.
+
+Bug: 1035234
+Change-Id: I9bdda303082d1e93ff29ff98b7119021871ddb0c
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/3699073
+Reviewed-by: Peter Wen <wnwen@chromium.org>
+Owners-Override: Andrew Grieve <agrieve@chromium.org>
+Commit-Queue: Andrew Grieve <agrieve@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1013472}
+---
+ android_webview/system_webview_apk_tmpl.gni   |   2 +-
+ build/android/AndroidManifest.xml             |   8 +-
+ build/android/BUILD.gn                        |  13 +-
+ build/android/gyp/util/manifest_utils.py      |   3 +-
+ build/android/gyp/write_build_config.py       |  35 ++--
+ .../junit/AndroidManifest_mergetest.xml       |  12 ++
+ build/android/junit/res/values/strings.xml    |   8 +
+ .../org/chromium/build/AndroidAssetsTest.java |  25 ++-
+ build/config/android/internal_rules.gni       |  35 ++--
+ build/config/android/rules.gni                | 153 +++++++++++-------
+ build/util/generate_wrapper.gni               |   2 +
+ chrome/android/chrome_public_apk_tmpl.gni     |   6 +-
+ chrome/android/trichrome.gni                  |  14 +-
+ chrome/android/webapk/libs/client/BUILD.gn    |   1 +
+ chrome/android/webapk/shell_apk/BUILD.gn      |   2 +
+ 15 files changed, 197 insertions(+), 122 deletions(-)
+ create mode 100644 build/android/junit/AndroidManifest_mergetest.xml
+ create mode 100644 build/android/junit/res/values/strings.xml
+
+diff --git a/android_webview/system_webview_apk_tmpl.gni b/android_webview/system_webview_apk_tmpl.gni
+index 86f850401a49d..5865e59c7bac6 100644
+--- a/android_webview/system_webview_apk_tmpl.gni
++++ b/android_webview/system_webview_apk_tmpl.gni
+@@ -65,7 +65,7 @@ template("system_webview_apk_or_module_tmpl") {
+           _bundle_target_gen_dir =
+               get_label_info(invoker.bundle_target, "target_gen_dir")
+           _bundle_name = get_label_info(invoker.bundle_target, "name")
+-          extra_verification_manifest = "${_bundle_target_gen_dir}/${_bundle_name}__weblayer_bundle_module_manifest/AndroidManifest.xml"
++          extra_verification_manifest = "${_bundle_target_gen_dir}/${_bundle_name}__weblayer_bundle_module/AndroidManifest.merged.xml"
+           extra_verification_manifest_dep = "${invoker.bundle_target}__weblayer_bundle_module__merge_manifests"
+         }
+       } else {
+diff --git a/build/android/AndroidManifest.xml b/build/android/AndroidManifest.xml
+index 3c4ed292e282b..821108f8a1770 100644
+--- a/build/android/AndroidManifest.xml
++++ b/build/android/AndroidManifest.xml
+@@ -5,14 +5,8 @@
+   LICENSE file.
+ -->
+ 
+-<!--
+-  This is a dummy manifest which is required by:
+-  1. aapt when generating R.java in java.gypi:
+-     Nothing in the manifest is used, but it is still required by aapt.
+--->
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+-    package="org.dummy"
++    package="no.manifest.configured"
+     android:versionCode="1"
+     android:versionName="1.0">
+-
+ </manifest>
+diff --git a/build/android/BUILD.gn b/build/android/BUILD.gn
+index 99fdd16ae014f..4648c12556427 100644
+--- a/build/android/BUILD.gn
++++ b/build/android/BUILD.gn
+@@ -57,20 +57,27 @@ if (enable_java_templates) {
+   # Not all //build embedders pull in junit_binary deps that live in //third_party.
+   if (build_with_chromium) {
+     android_assets("junit_test_assets") {
++      testonly = true
++
+       # We just need any file here, so use the test itself.
+       sources = [ "junit/src/org/chromium/build/AndroidAssetsTest.java" ]
+     }
+-
++    android_resources("junit_test_resources") {
++      testonly = true
++      sources = [ "junit/res/values/strings.xml" ]
++      mergeable_android_manifests = [ "junit/AndroidManifest_mergetest.xml" ]
++    }
+     junit_binary("build_junit_tests") {
+-      # No JNI is required, and including JNI Generator reference causes trouble
+-      # for projects such as Angle, which don't pull in //base.
++      # Test has no JNI, so skip JNI Generator step.
+       generate_final_jni = false
++      resources_package = "org.chromium.build"
+       sources = [
+         "junit/src/org/chromium/build/AndroidAssetsTest.java",
+         "junit/src/org/chromium/build/IncrementalJavacTest.java",
+       ]
+       deps = [
+         ":junit_test_assets",
++        ":junit_test_resources",
+         "//build/android/test/incremental_javac_gn:no_signature_change_prebuilt_java",
+         "//third_party/junit",
+       ]
+diff --git a/build/android/gyp/util/manifest_utils.py b/build/android/gyp/util/manifest_utils.py
+index c927e893ba674..bd584e597162a 100644
+--- a/build/android/gyp/util/manifest_utils.py
++++ b/build/android/gyp/util/manifest_utils.py
+@@ -131,7 +131,8 @@ def AssertPackage(manifest_node, package):
+   manifest.
+   """
+   package_value = GetPackage(manifest_node)
+-  if package_value is None or package is None:
++  if package_value is None or package is None or (
++      package_value == 'no.manifest.configured'):
+     return
+   assert package_value == package, (
+       'Package in Android manifest is %s but we expect %s' % (package_value,
+diff --git a/build/android/gyp/write_build_config.py b/build/android/gyp/write_build_config.py
+index 5cbf812a0df56..3eadc97b9a5be 100755
+--- a/build/android/gyp/write_build_config.py
++++ b/build/android/gyp/write_build_config.py
+@@ -1316,18 +1316,6 @@ def main(argv):
+     # for these libraries will get pulled in along with the resources.
+     android_resources_library_deps = _DepsFromPathsWithFilters(
+         deps_configs_paths, allowlist=['java_library']).All('java_library')
+-  if is_apk_or_module_target:
+-    # android_resources deps which had recursive_resource_deps set should not
+-    # have the manifests from the recursively collected deps added to this
+-    # module. This keeps the manifest declarations in the child DFMs, since they
+-    # will have the Java implementations.
+-    def ExcludeRecursiveResourcesDeps(config):
+-      return not config.get('includes_recursive_resources', False)
+-
+-    extra_manifest_deps = [
+-        GetDepConfig(p) for p in GetAllDepsConfigsInOrder(
+-            deps_configs_paths, filter_func=ExcludeRecursiveResourcesDeps)
+-    ]
+ 
+   base_module_build_config = None
+   if options.base_module_build_config:
+@@ -1551,6 +1539,8 @@ def main(argv):
+       extra_package_names = [
+           c['package_name'] for c in all_resources_deps if 'package_name' in c
+       ]
++      if options.package_name:
++        extra_package_names += [options.package_name]
+ 
+       # android_resources targets which specified recursive_resource_deps may
+       # have extra_package_names.
+@@ -2072,11 +2062,6 @@ def main(argv):
+         secondary_abi_loadable_modules,
+     }
+ 
+-    config['extra_android_manifests'] = []
+-    for c in extra_manifest_deps:
+-      config['extra_android_manifests'].extend(
+-          c.get('mergeable_android_manifests', []))
+-
+     # Collect java resources
+     java_resources_jars = [d['java_resources_jar'] for d in all_library_deps
+                           if 'java_resources_jar' in d]
+@@ -2090,6 +2075,22 @@ def main(argv):
+     config['java_resources_jars'] = java_resources_jars
+ 
+   if is_apk_or_module_target or options.type == 'junit_binary':
++    # android_resources deps which had recursive_resource_deps set should not
++    # have the manifests from the recursively collected deps added to this
++    # module. This keeps the manifest declarations in the child DFMs, since they
++    # will have the Java implementations.
++    def ExcludeRecursiveResourcesDeps(config):
++      return not config.get('includes_recursive_resources', False)
++
++    extra_manifest_deps = [
++        GetDepConfig(p) for p in GetAllDepsConfigsInOrder(
++            deps_configs_paths, filter_func=ExcludeRecursiveResourcesDeps)
++    ]
++    config['extra_android_manifests'] = []
++    for c in extra_manifest_deps:
++      config['extra_android_manifests'].extend(
++          c.get('mergeable_android_manifests', []))
++
+     config['assets'], config['uncompressed_assets'], locale_paks = (
+         _MergeAssets(deps.All('android_assets')))
+     deps_info['locales_java_list'] = _CreateJavaLocaleListFromAssets(
+diff --git a/build/android/junit/AndroidManifest_mergetest.xml b/build/android/junit/AndroidManifest_mergetest.xml
+new file mode 100644
+index 0000000000000..e8ce342caabe6
+--- /dev/null
++++ b/build/android/junit/AndroidManifest_mergetest.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright 2022 The Chromium Authors. All rights reserved.
++     Use of this source code is governed by a BSD-style license that can be
++     found in the LICENSE file.
++-->
++
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++          package="test.merged.manifest">
++    <application>
++        <meta-data android:name="test-metadata" android:value="Hello World" />
++    </application>
++</manifest>
+diff --git a/build/android/junit/res/values/strings.xml b/build/android/junit/res/values/strings.xml
+new file mode 100644
+index 0000000000000..9091664fb2707
+--- /dev/null
++++ b/build/android/junit/res/values/strings.xml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!-- Copyright 2022 The Chromium Authors. All rights reserved.
++     Use of this source code is governed by a BSD-style license that can be
++     found in the LICENSE file.
++-->
++<resources>
++    <string name="test_string">Hello World</string>
++</resources>
+diff --git a/build/android/junit/src/org/chromium/build/AndroidAssetsTest.java b/build/android/junit/src/org/chromium/build/AndroidAssetsTest.java
+index 374e5eae43ecc..80d917a703332 100644
+--- a/build/android/junit/src/org/chromium/build/AndroidAssetsTest.java
++++ b/build/android/junit/src/org/chromium/build/AndroidAssetsTest.java
+@@ -4,6 +4,11 @@
+ 
+ package org.chromium.build;
+ 
++import android.content.Context;
++import android.content.pm.ApplicationInfo;
++import android.content.pm.PackageManager;
++import android.content.pm.PackageManager.NameNotFoundException;
++
+ import org.junit.Assert;
+ import org.junit.Test;
+ import org.junit.runner.RunWith;
+@@ -29,10 +34,26 @@ public class AndroidAssetsTest {
+             return new String(buffer);
+         }
+     }
++
+     @Test
+-    public void testTestStarted() throws IOException {
++    public void testAssetsExist() throws IOException {
+         String myselfAsAssetData = readTestAsset();
+         Assert.assertTrue("asset not correct. It had length=" + myselfAsAssetData.length(),
+-                myselfAsAssetData.contains("testTestStarted()"));
++                myselfAsAssetData.contains("String myselfAsAssetData = "));
++    }
++
++    @Test
++    public void testResourcesExist() {
++        String actual = RuntimeEnvironment.getApplication().getString(R.string.test_string);
++        Assert.assertEquals("Hello World", actual);
++    }
++
++    @Test
++    public void testManifestMerged() throws NameNotFoundException {
++        Context context = RuntimeEnvironment.getApplication();
++        ApplicationInfo info = context.getPackageManager().getApplicationInfo(
++                context.getPackageName(), PackageManager.GET_META_DATA);
++        String actual = info.metaData.getString("test-metadata");
++        Assert.assertEquals("Hello World", actual);
+     }
+ }
+diff --git a/build/config/android/internal_rules.gni b/build/config/android/internal_rules.gni
+index af18866bc8622..0b3fa44603503 100644
+--- a/build/config/android/internal_rules.gni
++++ b/build/config/android/internal_rules.gni
+@@ -708,6 +708,12 @@ template("test_runner_script") {
+   }
+ 
+   generate_android_wrapper(target_name) {
++    forward_variables_from(invoker,
++                           [
++                             "assert_no_deps",
++                             "public_deps",
++                             "visibility",
++                           ])
+     wrapper_script = "$root_build_dir/bin/run_${_test_name}"
+ 
+     executable = "//testing/test_env.py"
+@@ -1975,6 +1981,7 @@ if (enable_java_templates) {
+       forward_variables_from(invoker,
+                              TESTONLY_AND_VISIBILITY + [
+                                    "deps",
++                                   "public_deps",
+                                    "sources",
+                                  ])
+       script = "//build/android/gyp/prepare_resources.py"
+@@ -2120,21 +2127,13 @@ if (enable_java_templates) {
+   template("compile_resources") {
+     forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
+ 
+-    _deps = [
+-      invoker.android_sdk_dep,
+-      invoker.build_config_dep,
+-    ]
++    _deps = invoker.deps + [
++              invoker.android_sdk_dep,
++              invoker.build_config_dep,
++            ]
+     if (defined(invoker.android_manifest_dep)) {
+       _deps += [ invoker.android_manifest_dep ]
+     }
+-    _lib_deps =
+-        filter_exclude(filter_include(invoker.deps, java_library_patterns),
+-                       java_resource_patterns)
+-    _deps += filter_exclude(invoker.deps, _lib_deps)
+-    foreach(_lib_dep, _lib_deps) {
+-      # Depend on the java libraries' transitive __assetres target instead.
+-      _deps += [ "${_lib_dep}__assetres" ]
+-    }
+ 
+     if (defined(invoker.arsc_output)) {
+       _arsc_output = invoker.arsc_output
+@@ -3309,10 +3308,6 @@ if (enable_java_templates) {
+       _main_target_name = invoker.main_target_name
+     }
+ 
+-    if (defined(invoker.resources_package)) {
+-      _resources_package = invoker.resources_package
+-    }
+-
+     _java_files = []
+     if (defined(invoker.sources)) {
+       _java_files = invoker.sources
+@@ -3602,8 +3597,8 @@ if (enable_java_templates) {
+       requires_android = _requires_android
+       bypass_platform_checks = _bypass_platform_checks
+ 
+-      if (defined(_resources_package)) {
+-        custom_package = _resources_package
++      if (defined(invoker.resources_package)) {
++        custom_package = invoker.resources_package
+       }
+       if (_is_prebuilt || _has_sources) {
+         ijar_path = _final_ijar_path
+@@ -3653,7 +3648,7 @@ if (enable_java_templates) {
+             _java_files != [] && _chromium_code && use_errorprone_java_compiler
+       }
+ 
+-      if (defined(_resources_package) && _type == "java_library") {
++      if (defined(invoker.resources_package) && _type == "java_library") {
+         assert(_requires_android || _bypass_platform_checks,
+                "Setting resources_package applicable only for " +
+                    "android_library(), or java_library() with " +
+@@ -3671,7 +3666,7 @@ if (enable_java_templates) {
+           # Filepath has to be exactly this because compile_java looks for the
+           # srcjar of srcjar_deps at this location $gen_dir/$target_name.srcjar
+           srcjar_path = "$target_gen_dir/$target_name.srcjar"
+-          package = _resources_package
++          package = invoker.resources_package
+         }
+         _srcjar_deps += [ ":$_fake_rjava_target" ]
+       }
+diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
+index 555cf5c3f1b90..4a1c255e85715 100644
+--- a/build/config/android/rules.gni
++++ b/build/config/android/rules.gni
+@@ -1085,12 +1085,22 @@ if (enable_java_templates) {
+     prepare_resources(target_name) {
+       forward_variables_from(invoker,
+                              [
+-                               "strip_drawables",
+                                "allow_missing_resources",
++                               "public_deps",
++                               "strip_drawables",
+                                "visibility",
+                              ])
+       _lib_deps = filter_exclude(filter_include(_deps, java_library_patterns),
+                                  java_resource_patterns)
++      if (defined(public_deps)) {
++        # Since java library targets depend directly on sub-targets rather than
++        # top-level targets, public_deps are not properly propagated, at least
++        # in terms of the "did you depend on the target that generates your
++        # inputs" GN check.
++        assert(filter_include(public_deps, java_target_patterns) == [],
++               "Java targets should use deps, not public_deps. " +
++                   "target=${target_name}, public_deps=${public_deps}")
++      }
+ 
+       # Depend on non-library deps and on __assetres subtargets of library deps.
+       deps = filter_exclude(_deps, _lib_deps)
+@@ -1330,61 +1340,94 @@ if (enable_java_templates) {
+   template("junit_binary") {
+     testonly = true
+ 
+-    _java_binary_target_name = "${target_name}__java_binary"
+-    _test_runner_target_name = "${target_name}__test_runner_script"
+     _main_class = "org.chromium.testing.local.JunitTestMain"
+-
+     _build_config = "$target_gen_dir/$target_name.build_config.json"
+     _build_config_target_name = "$target_name$build_config_target_suffix"
+-    _deps = [
++    _java_binary_target_name = "${target_name}__java_binary"
++
++    _invoker_deps = [
+       "//testing/android/junit:junit_test_support",
+       "//third_party/android_deps:robolectric_all_java",
+       "//third_party/junit",
+       "//third_party/mockito:mockito_java",
+     ]
+     if (defined(invoker.deps)) {
+-      _deps += invoker.deps
++      _invoker_deps += invoker.deps
+     }
++    _non_java_deps = filter_exclude(_invoker_deps, java_target_patterns)
++    _java_assetres_deps = [ ":${_java_binary_target_name}__assetres" ]
++
+     if (defined(invoker.alternative_android_sdk_dep)) {
+       _android_sdk_dep = invoker.alternative_android_sdk_dep
+     } else {
+       _android_sdk_dep = "//third_party/android_sdk:android_sdk_java"
+     }
+ 
+-    # a package name or a manifest is required to have resources. This is
++    # A package name or a manifest is required to have resources. This is
+     # added so that junit tests that do not care about the package name can
+     # still use resources without having to explicitly set one.
+     if (defined(invoker.package_name)) {
+       _package_name = invoker.package_name
+     } else if (!defined(invoker.android_manifest)) {
+-      _package_name = "org.chromium.test"
++      _package_name = "no.manifest.configured"
++    }
++
++    _merge_manifest_target_name = "${target_name}__merge_manifests"
++    _android_manifest =
++        "$target_gen_dir/$target_name.AndroidManifest.merged.xml"
++
++    # TODO(crbug.com/1335599): Fix this test suite.
++    if (target_name == "clank_junit_tests") {
++      group(_merge_manifest_target_name) {
++      }
++      _android_manifest = "//build/android/AndroidManifest.xml"
++    } else {
++      merge_manifests(_merge_manifest_target_name) {
++        if (defined(invoker.android_manifest)) {
++          input_manifest = invoker.android_manifest
++        } else {
++          input_manifest = "//build/android/AndroidManifest.xml"
++        }
++
++        if (defined(_package_name)) {
++          manifest_package = _package_name
++        }
++        output_manifest = _android_manifest
++        build_config = _build_config
++        min_sdk_version = default_min_sdk_version
++        target_sdk_version = android_sdk_version
++        deps = _non_java_deps + _java_assetres_deps +
++               [ ":$_build_config_target_name" ]
++        if (defined(invoker.android_manifest_dep)) {
++          deps += [ invoker.android_manifest_dep ]
++        }
++      }
+     }
+ 
+     _resource_arsc_output = "${target_out_dir}/${target_name}.ap_"
+     _compile_resources_target_name = "${target_name}__compile_resources"
+     compile_resources(_compile_resources_target_name) {
+-      forward_variables_from(invoker, [ "android_manifest" ])
+-      deps = _deps
++      deps = _non_java_deps + _java_assetres_deps +
++             [ ":$_merge_manifest_target_name" ]
+       android_sdk_dep = _android_sdk_dep
+       build_config_dep = ":$_build_config_target_name"
+       build_config = _build_config
+       if (defined(_package_name)) {
+         rename_manifest_package = _package_name
+       }
+-      if (!defined(android_manifest)) {
+-        android_manifest = "//build/android/AndroidManifest.xml"
+-      }
++      android_manifest = _android_manifest
+       arsc_output = _resource_arsc_output
+       min_sdk_version = default_min_sdk_version
+       target_sdk_version = android_sdk_version
+     }
+ 
++    # apkbuilder step needed only to add android assets to the .ap_ file.
+     _apkbuilder_output = "${target_out_dir}/${target_name}.robo.ap_"
+     _apkbuilder_target_name = "${target_name}__apkbuilder"
+     package_apk("$_apkbuilder_target_name") {
+       build_config = _build_config
+       min_sdk_version = default_min_sdk_version
+-      deps = _deps + [
++      deps = _java_assetres_deps + [
+                ":$_compile_resources_target_name",
+                ":$_build_config_target_name",
+              ]
+@@ -1419,7 +1462,7 @@ if (enable_java_templates) {
+       # Robolectric can handle deps that set !supports_android as well those
+       # that set requires_android.
+       bypass_platform_checks = true
+-      deps = _deps
++      deps = _invoker_deps
+       testonly = true
+       main_class = _main_class
+       wrapper_script_name = "helper/$main_target_name"
+@@ -1441,25 +1484,21 @@ if (enable_java_templates) {
+       }
+     }
+ 
+-    test_runner_script(_test_runner_target_name) {
+-      test_name = invoker.target_name
+-      test_suite = invoker.target_name
+-      test_type = "junit"
+-      ignore_all_data_deps = true
+-      resource_apk = _apkbuilder_output
+-      deps = [ ":$_apkbuilder_target_name" ]
+-    }
+-
+-    group(target_name) {
++    test_runner_script(target_name) {
+       forward_variables_from(invoker,
+                              [
+                                "assert_no_deps",
+                                "visibility",
+                              ])
+-      public_deps = [
++      test_name = invoker.target_name
++      test_suite = invoker.target_name
++      test_type = "junit"
++      ignore_all_data_deps = true
++      resource_apk = _apkbuilder_output
++      deps = [
++        ":$_apkbuilder_target_name",
+         ":$_build_config_target_name",
+         ":$_java_binary_target_name",
+-        ":$_test_runner_target_name",
+       ]
+     }
+   }
+@@ -2299,27 +2338,23 @@ if (enable_java_templates) {
+       _version_name = android_override_version_name
+     }
+ 
+-    _deps = []
+     if (defined(invoker.deps)) {
+-      _deps = invoker.deps
++      _invoker_deps = invoker.deps
++    } else {
++      _invoker_deps = []
+     }
++    _non_java_deps = filter_exclude(_invoker_deps, java_target_patterns)
++    _java_assetres_deps = [ ":${_java_target_name}__assetres" ]
+ 
+     _srcjar_deps = []
+     if (defined(invoker.srcjar_deps)) {
+       _srcjar_deps = invoker.srcjar_deps
+     }
+ 
+-    _android_root_manifest_deps = []
+-    if (defined(invoker.android_manifest_dep)) {
+-      _android_root_manifest_deps = [ invoker.android_manifest_dep ]
+-    }
+-    _android_root_manifest = invoker.android_manifest
+-
+     _use_chromium_linker =
+         defined(invoker.use_chromium_linker) && invoker.use_chromium_linker
+     _use_modern_linker =
+         defined(invoker.use_modern_linker) && invoker.use_modern_linker
+-
+     _load_library_from_apk =
+         defined(invoker.load_library_from_apk) && invoker.load_library_from_apk
+ 
+@@ -2470,7 +2505,7 @@ if (enable_java_templates) {
+     }
+ 
+     _android_manifest =
+-        "$target_gen_dir/${_template_name}_manifest/AndroidManifest.xml"
++        "$target_gen_dir/${_template_name}/AndroidManifest.merged.xml"
+     _merge_manifest_target = "${_template_name}__merge_manifests"
+     merge_manifests(_merge_manifest_target) {
+       forward_variables_from(invoker,
+@@ -2478,18 +2513,18 @@ if (enable_java_templates) {
+                                "manifest_package",
+                                "max_sdk_version",
+                              ])
+-      input_manifest = _android_root_manifest
++      input_manifest = invoker.android_manifest
+       output_manifest = _android_manifest
+       build_config = _build_config
+       min_sdk_version = _min_sdk_version
+       target_sdk_version = _target_sdk_version
+-      deps = _android_root_manifest_deps + [
+-               ":$_build_config_target",
+ 
+-               # Depend on android_resources() targets that use generated files
+-               # in mergeable_android_manifests (such as android_aar_prebuilt).
+-               ":${_java_target_name}__assetres",
+-             ]
++      # Depend on android_resources() targets that use generated files
++      # in mergeable_android_manifests (such as android_aar_prebuilt).
++      deps = _java_assetres_deps + [ ":$_build_config_target" ]
++      if (defined(invoker.android_manifest_dep)) {
++        deps += [ invoker.android_manifest_dep ]
++      }
+     }
+ 
+     _final_deps = []
+@@ -2501,12 +2536,6 @@ if (enable_java_templates) {
+     }
+     _generated_proguard_config = "$_base_path.resources.proguard.txt"
+ 
+-    if (_generate_buildconfig_java &&
+-        defined(invoker.product_version_resources_dep)) {
+-      # Needs to be added as a .build_config.json dep to pick up resources.
+-      _deps += [ invoker.product_version_resources_dep ]
+-    }
+-
+     if (defined(invoker.alternative_android_sdk_dep)) {
+       _android_sdk_dep = invoker.alternative_android_sdk_dep
+     } else {
+@@ -2583,7 +2612,7 @@ if (enable_java_templates) {
+       build_config = _build_config
+       build_config_dep = ":$_build_config_target"
+       android_sdk_dep = _android_sdk_dep
+-      deps = _deps
++      deps = _java_assetres_deps + _non_java_deps
+ 
+       # The static library uses the R.txt files generated by the
+       # static_library_dependent_targets when generating the final R.java file.
+@@ -2661,7 +2690,7 @@ if (enable_java_templates) {
+       }
+       _optimize_resources_target = "${_template_name}__optimize_resources"
+       optimize_resources(_optimize_resources_target) {
+-        deps = _deps + [ ":$_compile_resources_target" ]
++        deps = _non_java_deps + [ ":$_compile_resources_target" ]
+         short_resource_paths = _short_resource_paths
+         strip_resource_names = _strip_resource_names
+         if (_short_resource_paths) {
+@@ -2769,7 +2798,8 @@ if (enable_java_templates) {
+         use_final_fields = true
+         enable_multidex = _enable_multidex
+         is_incremental_install = _incremental_apk
+-        if (defined(invoker.product_version_resources_dep)) {
++        if (defined(invoker.build_config_include_product_version_resource) &&
++            invoker.build_config_include_product_version_resource) {
+           resources_version_variable =
+               "org.chromium.base.R.string.product_version"
+         }
+@@ -2844,6 +2874,7 @@ if (enable_java_templates) {
+                                "apk_under_test",
+                                "base_module_target",
+                                "chromium_code",
++                               "deps",
+                                "jacoco_never_instrument",
+                                "jar_excluded_patterns",
+                                "javac_args",
+@@ -2856,7 +2887,6 @@ if (enable_java_templates) {
+                                "library_always_compress",
+                                "library_renames",
+                              ])
+-      deps = _deps
+       if (_uses_static_library_synchronized_proguard) {
+         if (!defined(jar_excluded_patterns)) {
+           jar_excluded_patterns = []
+@@ -2987,7 +3017,7 @@ if (enable_java_templates) {
+           ":$_java_target_name",
+         ]
+         if (_proguard_enabled) {
+-          deps += _deps + [ ":$_compile_resources_target" ]
++          deps += _invoker_deps + [ ":$_compile_resources_target" ]
+           proguard_mapping_path = _proguard_mapping_path
+           proguard_sourcefile_suffix = "$android_channel-$_version_code"
+           has_apk_under_test = defined(invoker.apk_under_test)
+@@ -3161,7 +3191,7 @@ if (enable_java_templates) {
+             name = "${invoker.name}.apk"
+             build_config = _build_config
+             res_size_info_path = _res_size_info_path
+-            deps = _deps + [
++            deps = _invoker_deps + [
+                      ":$_build_config_target",
+                      ":$_compile_resources_target",
+                      ":$_java_target_name",
+@@ -3236,7 +3266,9 @@ if (enable_java_templates) {
+         min_sdk_version = _min_sdk_version
+         uncompress_shared_libraries = _uncompress_shared_libraries
+ 
+-        deps = _deps + [ ":$_build_config_target" ]
++        # Need full deps rather than _non_java_deps, because loadable_modules
++        # may include .so files extracted by __unpack_aar targets.
++        deps = _invoker_deps + [ ":$_build_config_target" ]
+ 
+         if ((!_proguard_enabled || _incremental_apk) &&
+             enable_jdk_library_desugaring) {
+@@ -3500,6 +3532,7 @@ if (enable_java_templates) {
+                                "apk_under_test",
+                                "app_as_shared_lib",
+                                "assert_no_deps",
++                               "build_config_include_product_version_resource",
+                                "bundles_supported",
+                                "chromium_code",
+                                "command_line_flags_file",
+@@ -3546,7 +3579,6 @@ if (enable_java_templates) {
+                                "png_to_webp",
+                                "post_process_package_resources_script",
+                                "processor_args_javac",
+-                               "product_version_resources_dep",
+                                "proguard_configs",
+                                "proguard_enabled",
+                                "proguard_enable_obfuscation",
+@@ -3642,6 +3674,7 @@ if (enable_java_templates) {
+                                "app_as_shared_lib",
+                                "assert_no_deps",
+                                "base_module_target",
++                               "build_config_include_product_version_resource",
+                                "bundle_target",
+                                "chromium_code",
+                                "data",
+@@ -3675,7 +3708,6 @@ if (enable_java_templates) {
+                                "package_name",
+                                "png_to_webp",
+                                "processor_args_javac",
+-                               "product_version_resources_dep",
+                                "proguard_configs",
+                                "proguard_enabled",
+                                "proguard_enable_obfuscation",
+@@ -3766,7 +3798,6 @@ if (enable_java_templates) {
+                                "ignore_all_data_deps",
+                                "modules",
+                                "proguard_mapping_path",
+-                               "public_deps",
+                                "use_webview_provider",
+                              ])
+       test_name = invoker.target_name
+@@ -4425,7 +4456,7 @@ if (enable_java_templates) {
+                                  "testonly",
+                                  "strip_drawables",
+                                ])
+-        deps = [ ":$_unpack_target_name" ]
++        public_deps = [ ":$_unpack_target_name" ]
+         if (_should_process_manifest) {
+           android_manifest_dep = ":$_unpack_target_name"
+           android_manifest = "${_output_path}/AndroidManifest.xml"
+diff --git a/build/util/generate_wrapper.gni b/build/util/generate_wrapper.gni
+index 316d6b97008b7..42cede004911d 100644
+--- a/build/util/generate_wrapper.gni
++++ b/build/util/generate_wrapper.gni
+@@ -59,9 +59,11 @@ template("generate_wrapper") {
+   action(target_name) {
+     forward_variables_from(invoker,
+                            TESTONLY_AND_VISIBILITY + [
++                                 "assert_no_deps",
+                                  "data",
+                                  "data_deps",
+                                  "deps",
++                                 "public_deps",
+                                  "sources",
+                                ])
+     script = _generator_script
+diff --git a/chrome/android/chrome_public_apk_tmpl.gni b/chrome/android/chrome_public_apk_tmpl.gni
+index 6fb71709dd398..e4cd77c4bf027 100644
+--- a/chrome/android/chrome_public_apk_tmpl.gni
++++ b/chrome/android/chrome_public_apk_tmpl.gni
+@@ -319,8 +319,8 @@ template("chrome_public_common_apk_or_module_tmpl") {
+       command_line_flags_file = "chrome-command-line"
+     }
+     if (!_is_trichrome) {
+-      product_version_resources_dep =
+-          "//chrome/android:product_version_resources"
++      build_config_include_product_version_resource = true
++      deps += [ "//chrome/android:product_version_resources" ]
+     }
+ 
+     if (defined(_unwind_asset_target)) {
+@@ -458,7 +458,7 @@ template("monochrome_public_common_apk_or_module_tmpl") {
+           _bundle_target_gen_dir =
+               get_label_info(invoker.bundle_target, "target_gen_dir")
+           _bundle_name = get_label_info(invoker.bundle_target, "name")
+-          extra_verification_manifest = "${_bundle_target_gen_dir}/${_bundle_name}__chrome_bundle_module_manifest/AndroidManifest.xml"
++          extra_verification_manifest = "${_bundle_target_gen_dir}/${_bundle_name}__chrome_bundle_module/AndroidManifest.merged.xml"
+           extra_verification_manifest_dep =
+               "${invoker.bundle_target}__chrome_bundle_module__merge_manifests"
+         }
+diff --git a/chrome/android/trichrome.gni b/chrome/android/trichrome.gni
+index c509e883e2787..e7ed0a680b06a 100644
+--- a/chrome/android/trichrome.gni
++++ b/chrome/android/trichrome.gni
+@@ -111,19 +111,19 @@ template("trichrome_library_apk_tmpl") {
+ 
+     min_sdk_version = 29
+ 
+-    if (trichrome_synchronized_proguard) {
+-      product_version_resources_dep =
+-          "//chrome/android:product_version_resources"
+-    } else {
+-      generate_buildconfig_java = false
+-    }
+-
+     # TODO(torne): using icon_resources just to get a temporary icon
+     deps = [
+       "//android_webview/nonembedded:icon_resources",
+       "//third_party/icu:icu_assets",
+     ]
+ 
++    if (trichrome_synchronized_proguard) {
++      build_config_include_product_version_resource = true
++      deps += [ "//chrome/android:product_version_resources" ]
++    } else {
++      generate_buildconfig_java = false
++    }
++
+     # Flag whether additional deps and libs should be included for each ABI.
+     _include_primary_support = false
+     _include_secondary_support = false
+diff --git a/chrome/android/webapk/libs/client/BUILD.gn b/chrome/android/webapk/libs/client/BUILD.gn
+index b05131b4bcf17..7cf63c6ec889c 100644
+--- a/chrome/android/webapk/libs/client/BUILD.gn
++++ b/chrome/android/webapk/libs/client/BUILD.gn
+@@ -21,6 +21,7 @@ android_library("client_java") {
+ }
+ 
+ junit_binary("webapk_client_junit_tests") {
++  package_name = "org.chromium.test"
+   sources = [
+     "junit/src/org/chromium/webapk/lib/client/WebApkIdentityServiceClientTest.java",
+     "junit/src/org/chromium/webapk/lib/client/WebApkServiceConnectionManagerTest.java",
+diff --git a/chrome/android/webapk/shell_apk/BUILD.gn b/chrome/android/webapk/shell_apk/BUILD.gn
+index 520668078230c..2f7d9fbdc4267 100644
+--- a/chrome/android/webapk/shell_apk/BUILD.gn
++++ b/chrome/android/webapk/shell_apk/BUILD.gn
+@@ -384,6 +384,7 @@ android_library("shell_apk_javatests") {
+ }
+ 
+ junit_binary("webapk_shell_apk_junit_tests") {
++  package_name = "org.chromium.test"
+   sources = [
+     "junit/src/org/chromium/webapk/shell_apk/HostBrowserClassLoaderTest.java",
+     "junit/src/org/chromium/webapk/shell_apk/HostBrowserLauncherParamsTest.java",
+@@ -406,6 +407,7 @@ junit_binary("webapk_shell_apk_junit_tests") {
+ }
+ 
+ junit_binary("webapk_shell_apk_h2o_junit_tests") {
++  package_name = "org.chromium.test"
+   sources = [
+     "junit/src/org/chromium/webapk/shell_apk/CustomAndroidOsShadowAsyncTask.java",
+     "junit/src/org/chromium/webapk/shell_apk/TestBrowserInstaller.java",
+-- 
+2.37.2
+

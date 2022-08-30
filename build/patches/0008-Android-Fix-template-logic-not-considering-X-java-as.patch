@@ -1,0 +1,117 @@
+From 18e696e02ad95fdb9c5bd779a56d094096654f2a Mon Sep 17 00:00:00 2001
+From: Andrew Grieve <agrieve@chromium.org>
+Date: Wed, 22 Jun 2022 17:21:31 +0000
+Subject: [PATCH 08/12] Android: Fix template logic not considering //X/java as
+ a java dep
+
+This broke recently with the move to using filter_exclude() on lists of
+supplied deps (e.g. faf927155523dc12a51b9d3f702fa07ae601ad60).
+
+Bug: 1334449
+Change-Id: I6d044974a3586c38f95a54c5e68af269125ba890
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/3714814
+Commit-Queue: Peter Wen <wnwen@chromium.org>
+Auto-Submit: Andrew Grieve <agrieve@chromium.org>
+Reviewed-by: Peter Wen <wnwen@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1016774}
+---
+ build/config/android/internal_rules.gni | 33 ++++++++++++++++---------
+ build/config/android/rules.gni          |  4 +++
+ 2 files changed, 25 insertions(+), 12 deletions(-)
+
+diff --git a/build/config/android/internal_rules.gni b/build/config/android/internal_rules.gni
+index 3c51a800de41f..d726e32eed08a 100644
+--- a/build/config/android/internal_rules.gni
++++ b/build/config/android/internal_rules.gni
+@@ -48,31 +48,35 @@ _java_leaf_types = [
+ 
+ # All _java_resource_types targets must conform to these patterns.
+ java_resource_patterns = [
+-  "*:*_assets",
++  "*_assets",
++  "*_grd",
++  "*_java_strings",
++  "*locale_paks",
++  "*_resources",
++  "*strings_java",
+   "*android*:assets",
+   "*:*_apk_*resources",
+   "*android*:resources",
+-  "*:*_resources",
+-  "*:*_grd",
+-  "*:*locale_paks",
+-  "*:*_java_strings",
+-  "*:*strings_java",
+ ]
+ 
+ # All _java_library_types targets must conform to these patterns. This includes
+ # all non-leaf targets that use java_library_impl.
+ java_library_patterns = [
+-  "*:*_java",
+-  "*:*_javalib",
+-  "*:*_java_*",  # e.g. chrome_java_test_support
++  "*_java",
++  "*_javalib",
++  "*javatests",
++  "*_bundle_module",
++  "*:*_java_*",  # E.g. chrome_java_test_support
+   "*:java",
++  "*/java",  # to allow filtering without expanding labels //a/java ->
++             # //a/java:java
+   "*:junit",
++  "*/junit",
+   "*:junit_*",
+   "*:*_junit_*",
+-  "*:*javatests",
+-  "*:*_bundle_module",
+ 
+-  # TODO(agrieve): Rename targets below to match above patterns.
++  # TODO(agrieve): Rename to glue_java
++  "//android_webview/glue",
+   "//android_webview/glue:glue",
+ ]
+ 
+@@ -1004,6 +1008,8 @@ if (enable_java_templates) {
+             filter_exclude(filter_include(invoker.deps, java_library_patterns),
+                            java_resource_patterns)
+         foreach(_lib_dep, _lib_deps) {
++          # Expand //foo/java -> //foo/java:java
++          _lib_dep = get_label_info(_lib_dep, "label_no_toolchain")
+           deps += [
+             "${_lib_dep}__assetres",
+             "${_lib_dep}__header",
+@@ -3461,6 +3467,9 @@ if (enable_java_templates) {
+       _java_header_deps = []
+       _java_impl_deps = []
+       foreach(_lib_dep, _lib_deps) {
++        # Expand //foo/java -> //foo/java:java
++        _lib_dep = get_label_info(_lib_dep, "label_no_toolchain")
++
+         # This is a java library dep, so it has header and impl targets.
+         _java_header_deps += [ "${_lib_dep}__header" ]
+         _java_impl_deps += [ "${_lib_dep}__impl" ]
+diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
+index 4fe206607d3eb..af274341d79b7 100644
+--- a/build/config/android/rules.gni
++++ b/build/config/android/rules.gni
+@@ -1105,6 +1105,8 @@ if (enable_java_templates) {
+       # Depend on non-library deps and on __assetres subtargets of library deps.
+       deps = filter_exclude(_deps, _lib_deps)
+       foreach(_lib_dep, _lib_deps) {
++        # Expand //foo/java -> //foo/java:java
++        _lib_dep = get_label_info(_lib_dep, "label_no_toolchain")
+         deps += [ "${_lib_dep}__assetres" ]
+       }
+ 
+@@ -1671,6 +1673,8 @@ if (enable_java_templates) {
+                            java_resource_patterns)
+         _other_deps = filter_exclude(invoker.deps, _lib_deps)
+         foreach(_lib_dep, _lib_deps) {
++          # Expand //foo/java -> //foo/java:java
++          _lib_dep = get_label_info(_lib_dep, "label_no_toolchain")
+           deps += [ "${_lib_dep}__header" ]
+         }
+         deps += _other_deps
+-- 
+2.37.2
+

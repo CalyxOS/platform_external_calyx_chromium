@@ -1,0 +1,106 @@
+From 327c23fea4aae4d648b81bec2975287c471528bc Mon Sep 17 00:00:00 2001
+From: Andrew Grieve <agrieve@chromium.org>
+Date: Wed, 22 Jun 2022 17:20:13 +0000
+Subject: [PATCH 07/12] Remove apk tools from data_deps of junit_binary
+
+Speeds up builds by not building these native tools, which are not used
+by robolectric tests.
+
+Clean build of build_junit_tests:
+
+Before:
+    71.1 s weighted time (3929.0 s elapsed time sum, 55.3x parallelism)
+    5779 build steps completed, average of 81.32/s
+
+After:
+    34.6 s weighted time (233.3 s elapsed time sum, 6.7x parallelism)
+    932 build steps completed, average of 26.92/s
+
+Bug: 1336476
+Change-Id: I40ee4683c259625f6e39e9eac42fbb2d8d910608
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/3715378
+Reviewed-by: Peter Wen <wnwen@chromium.org>
+Commit-Queue: Peter Wen <wnwen@chromium.org>
+Auto-Submit: Andrew Grieve <agrieve@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1016772}
+---
+ build/android/BUILD.gn                  | 22 ++++++++++++++++++----
+ build/config/android/internal_rules.gni |  5 ++++-
+ 2 files changed, 22 insertions(+), 5 deletions(-)
+
+diff --git a/build/android/BUILD.gn b/build/android/BUILD.gn
+index 4648c12556427..2b4f065681236 100644
+--- a/build/android/BUILD.gn
++++ b/build/android/BUILD.gn
+@@ -116,24 +116,38 @@ python_library("apk_operations_py") {
+   deps = [ ":apk_installer_data" ]
+ }
+ 
+-python_library("test_runner_py") {
++group("test_runner_py") {
++  testonly = true
++  deps = [
++    ":test_runner_core_py",
++    ":test_runner_device_support",
++  ]
++}
++
++python_library("test_runner_core_py") {
+   testonly = true
+   pydeps_file = "test_runner.pydeps"
+   data = [
+     "pylib/gtest/filter/",
+     "pylib/instrumentation/render_test.html.jinja",
+     "test_wrapper/logdog_wrapper.py",
++    "//third_party/requests/",
++  ]
++  data_deps = [ ":logdog_wrapper_py" ]
++}
++
++group("test_runner_device_support") {
++  testonly = true
++  data = [
+     "${android_sdk_build_tools}/aapt",
+     "${android_sdk_build_tools}/dexdump",
+     "${android_sdk_build_tools}/lib64/libc++.so",
+     "${android_sdk_build_tools}/split-select",
+     "${android_sdk_root}/platform-tools/adb",
+-    "//third_party/requests/",
+   ]
+   data_deps = [
+     ":apk_installer_data",
+     ":devil_chromium_py",
+-    ":logdog_wrapper_py",
+     ":stack_tools",
+   ]
+ 
+@@ -148,7 +162,7 @@ python_library("test_runner_py") {
+ 
+   # Proguard is needed only when using apks (rather than native executables).
+   if (enable_java_templates) {
+-    deps = [ "//build/android/stacktrace:java_deobfuscate" ]
++    data_deps += [ "//build/android/stacktrace:java_deobfuscate" ]
+   }
+ }
+ 
+diff --git a/build/config/android/internal_rules.gni b/build/config/android/internal_rules.gni
+index f05a02c5379e8..3c51a800de41f 100644
+--- a/build/config/android/internal_rules.gni
++++ b/build/config/android/internal_rules.gni
+@@ -734,9 +734,12 @@ template("test_runner_script") {
+       deps = invoker.deps
+     }
+     data_deps = [
+-      "//build/android:test_runner_py",
++      "//build/android:test_runner_core_py",
+       "//testing:test_scripts_shared",
+     ]
++    if (_test_type != "junit") {
++      data_deps += [ "//build/android:test_runner_device_support" ]
++    }
+     if (defined(invoker.data_deps)) {
+       data_deps += invoker.data_deps
+     }
+-- 
+2.37.2
+

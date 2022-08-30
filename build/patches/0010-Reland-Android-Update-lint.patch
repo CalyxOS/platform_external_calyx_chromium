@@ -1,0 +1,1079 @@
+From 2406668335bf46547a9c77b8b71db1916de678ec Mon Sep 17 00:00:00 2001
+From: Peter Wen <wnwen@chromium.org>
+Date: Fri, 24 Jun 2022 05:47:27 +0000
+Subject: [PATCH 10/12] Reland "Android: Update lint"
+
+This is a reland of commit a7565386964b915c10019a474cac72ee5094e76c
+
+Original change's description:
+> Android: Update lint
+>
+> Update lint from version 7.1.0 to 7.4.0-alpha05.
+>
+> Added No-Try due to ios-simulator flakiness.
+>
+> Bug: 1273512, 1336778
+> Fixed: 1273512, 1336778
+> No-Try: true
+> Change-Id: I4850cc7418c5626d4fbfdfbac5eeb3bba2a395c4
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/3714568
+> Auto-Submit: Peter Wen <wnwen@chromium.org>
+> Owners-Override: Peter Wen <wnwen@chromium.org>
+> Commit-Queue: Peter Wen <wnwen@chromium.org>
+> Reviewed-by: Andrew Grieve <agrieve@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1017381}
+
+Bug: 1273512, 1336778
+Change-Id: Ide0984ad5fc0a4e1481b2fed0aa1e9275c20ba9f
+
+No-Presubmit: true
+No-Try: true
+No-Tree-Checks: true
+Change-Id: Ide0984ad5fc0a4e1481b2fed0aa1e9275c20ba9f
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/3723350
+Auto-Submit: Luciano Pacheco <lucmult@chromium.org>
+Owners-Override: Luciano Pacheco <lucmult@chromium.org>
+Bot-Commit: Rubber Stamper <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Rubber Stamper <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/heads/main@{#1017508}
+---
+ DEPS                                          |  11 +
+ build/android/gyp/lint.py                     |  42 +-
+ build/config/android/config.gni               |   2 +-
+ build/config/android/internal_rules.gni       |   8 +-
+ chrome/android/expectations/lint-baseline.xml | 551 ++++++++----------
+ chromecast/android/lint-baseline.xml          |   2 +-
+ components/cronet/android/BUILD.gn            |   1 +
+ components/cronet/android/lint-baseline.xml   |  16 +
+ remoting/android/lint-baseline.xml            |   6 +-
+ 9 files changed, 312 insertions(+), 327 deletions(-)
+ create mode 100644 components/cronet/android/lint-baseline.xml
+
+diff --git a/DEPS b/DEPS
+index c7b05d83faf57..e06bc972d7d19 100644
+--- a/DEPS
++++ b/DEPS
+@@ -971,6 +971,17 @@ deps = {
+       'dep_type': 'cipd',
+   },
+ 
++  'src/third_party/android_lint': {
++      'packages': [
++          {
++               'package': 'chromium/third_party/android_lint',
++               'version': 'f5g1G8eyExIUPHk4lH3xx_xV4pza9WSBaITgmLPgF2cC',
++          },
++      ],
++      'condition': 'checkout_android',
++      'dep_type': 'cipd',
++  },
++
+   'src/third_party/android_sdk/androidx_browser/src': {
+       'url': Var('chromium_git') + '/external/gob/android/platform/frameworks/support/browser.git' + '@' + '65086eb5e52c16778fa7b4f157156d17b176fcb3',
+       'condition': 'checkout_android',
+diff --git a/build/android/gyp/lint.py b/build/android/gyp/lint.py
+index 203877d43d9cc..0d61c5bfe1ad0 100755
+--- a/build/android/gyp/lint.py
++++ b/build/android/gyp/lint.py
+@@ -219,7 +219,7 @@ def _SimplifyBaselineFile(baseline):
+ 
+ 
+ def _RunLint(create_cache,
+-             lint_binary_path,
++             lint_jar_path,
+              backported_methods_path,
+              config_path,
+              manifest_path,
+@@ -247,8 +247,25 @@ def _RunLint(create_cache,
+     shutil.rmtree(cache_dir, ignore_errors=True)
+     os.makedirs(cache_dir)
+ 
+-  cmd = [
+-      lint_binary_path,
++  if baseline and not os.path.exists(baseline):
++    # Generating new baselines is only done locally, and requires more memory to
++    # avoid OOMs.
++    lint_xmx = '4G'
++    generating_new_baseline = True
++  else:
++    lint_xmx = '2G'
++    generating_new_baseline = False
++  cmd = build_utils.JavaCmd(xmx=lint_xmx) + [
++      '-cp',
++      lint_jar_path,
++      'com.android.tools.lint.Main',
++      '--sdk-home',
++      android_sdk_root,
++      # Uncomment to update baseline files during lint upgrades. Avoid using
++      # for now since it seems to downgrade baseline format from 6 to 5. Until
++      # that is fixed, remove the baseline and re-run lint instead (remember
++      # to remove the LintError entry before committing).
++      #'--update-baseline',
+       # Uncomment to easily remove fixed lint errors. This is not turned on by
+       # default due to: https://crbug.com/1256477#c5
+       #'--remove-fixed',
+@@ -340,21 +357,8 @@ def _RunLint(create_cache,
+ 
+   logging.info('Preparing environment variables')
+   env = os.environ.copy()
+-  # It is important that lint uses the checked-in JDK11 as it is almost 50%
+-  # faster than JDK8.
+-  env['JAVA_HOME'] = build_utils.JAVA_HOME
+   # This is necessary so that lint errors print stack traces in stdout.
+   env['LINT_PRINT_STACKTRACE'] = 'true'
+-  if baseline and not os.path.exists(baseline):
+-    # Generating new baselines is only done locally, and requires more memory to
+-    # avoid OOMs.
+-    env['LINT_OPTS'] = '-Xmx4g'
+-    generating_new_baseline = True
+-  else:
+-    # The default set in the wrapper script is 1g, but it seems not enough :(
+-    env['LINT_OPTS'] = '-Xmx2g'
+-    generating_new_baseline = False
+-
+   # This filter is necessary for JDK11.
+   stderr_filter = build_utils.FilterReflectiveAccessJavaWarnings
+   stdout_filter = lambda x: build_utils.FilterLines(x, 'No issues found')
+@@ -406,9 +410,9 @@ def _ParseArgs(argv):
+   parser.add_argument('--use-build-server',
+                       action='store_true',
+                       help='Always use the build server.')
+-  parser.add_argument('--lint-binary-path',
++  parser.add_argument('--lint-jar-path',
+                       required=True,
+-                      help='Path to lint executable.')
++                      help='Path to the lint jar.')
+   parser.add_argument('--backported-methods',
+                       help='Path to backported methods file created by R8.')
+   parser.add_argument('--cache-dir',
+@@ -507,7 +511,7 @@ def main():
+   depfile_deps = [p for p in possible_depfile_deps if p]
+ 
+   _RunLint(args.create_cache,
+-           args.lint_binary_path,
++           args.lint_jar_path,
+            args.backported_methods,
+            args.config_path,
+            args.manifest_path,
+diff --git a/build/config/android/config.gni b/build/config/android/config.gni
+index b4f937d27b176..a23521f828b30 100644
+--- a/build/config/android/config.gni
++++ b/build/config/android/config.gni
+@@ -124,7 +124,7 @@ if (is_android || is_chromeos) {
+     # Purposefully repeated so that downstream can change
+     # default_android_sdk_root without changing lint version.
+     default_lint_android_sdk_root = public_android_sdk_root
+-    default_lint_android_sdk_version = 31
++    default_lint_android_sdk_version = 32
+   }
+ 
+   if (!defined(default_extras_android_sdk_root)) {
+diff --git a/build/config/android/internal_rules.gni b/build/config/android/internal_rules.gni
+index 07f09858d4375..895066f4eea33 100644
+--- a/build/config/android/internal_rules.gni
++++ b/build/config/android/internal_rules.gni
+@@ -91,6 +91,7 @@ _desugar_jdk_libs_jar = "//third_party/android_deps/libs/com_android_tools_desug
+ _desugar_jdk_libs_configuration_jar = "//third_party/android_deps/libs/com_android_tools_desugar_jdk_libs_configuration/desugar_jdk_libs_configuration-1.1.5.jar"
+ _robolectric_jar_path =
+     "//third_party/robolectric/lib/android-all-12-robolectric-7732740.jar"
++_lint_jar_path = "//third_party/android_lint/lint.jar"
+ 
+ # Put the bug number in the target name so that false-positives have a hint in
+ # the error message about why non-existent dependencies are there.
+@@ -1028,7 +1029,6 @@ if (enable_java_templates) {
+         _min_sdk_version = default_min_sdk_version
+       }
+ 
+-      _lint_binary_path = "$lint_android_sdk_root/cmdline-tools/latest/bin/lint"
+       _cache_dir = "$root_build_dir/android_lint_cache"
+ 
+       # Save generated xml files in a consistent location for debugging.
+@@ -1038,7 +1038,7 @@ if (enable_java_templates) {
+       script = "//build/android/gyp/lint.py"
+       depfile = "$target_gen_dir/$target_name.d"
+       inputs = [
+-        _lint_binary_path,
++        _lint_jar_path,
+         _backported_methods,
+       ]
+ 
+@@ -1047,8 +1047,8 @@ if (enable_java_templates) {
+         get_label_info(":${target_name}", "label_no_toolchain"),
+         "--depfile",
+         rebase_path(depfile, root_build_dir),
+-        "--lint-binary-path",
+-        rebase_path(_lint_binary_path, root_build_dir),
++        "--lint-jar-path",
++        rebase_path(_lint_jar_path, root_build_dir),
+         "--cache-dir",
+         rebase_path(_cache_dir, root_build_dir),
+         "--lint-gen-dir",
+diff --git a/chrome/android/expectations/lint-baseline.xml b/chrome/android/expectations/lint-baseline.xml
+index f168afd78510a..8b74f785e95aa 100644
+--- a/chrome/android/expectations/lint-baseline.xml
++++ b/chrome/android/expectations/lint-baseline.xml
+@@ -1,15 +1,23 @@
+ <?xml version='1.0' encoding='utf-8'?>
+-<issues format="6" by="lint 7.1.0" type="baseline" client="" dependencies="true" name="" variant="all" version="7.1.0">
++<issues format="6" by="lint 7.4.0-alpha05" type="baseline" client="" dependencies="true" name="" variant="all" version="7.4.0-alpha05">
+ 
+-    <issue id="ReferenceType" message="Unexpected resource reference type; expected value of type `@macro/`" errorLine1="    &lt;macro name=&quot;default_text_color_link&quot;&gt;@color/default_text_color_link_baseline&lt;/macro&gt;" errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="ResourceType" message="Expected resource of type styleable" errorLine1="        TypedArray attrs = mContext.getTheme().obtainStyledAttributes(popupLayoutAttrs);" errorLine2="                                                                      ~~~~~~~~~~~~~~~~">
++        <location file="content/public/android/java/src/org/chromium/content/browser/selection/LegacyPastePopupMenu.java" />
++    </issue>
++
++    <issue id="ResourceType" message="Expected resource of type styleable" errorLine1="                R.style.SelectPopupDialog, SELECT_DIALOG_ATTRS);" errorLine2="                                           ~~~~~~~~~~~~~~~~~~~">
++        <location file="content/public/android/java/src/org/chromium/content/browser/input/SelectPopupDialog.java" />
+     </issue>
+ 
+     <issue id="ResourceType" message="Expected resource of type color" errorLine1="        StatusIconResource statusIcon = icon == 0 ? null : new StatusIconResource(icon, tint);" errorLine2="                                                                                        ~~~~">
+         <location file="chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/status/StatusMediator.java" />
+     </issue>
+ 
+-    <issue id="BlockedPrivateApi" message="Reflective access to getViolationClass is forbidden when targeting API 31 and above" errorLine1="                        violationInfoClass.getDeclaredMethod(&quot;getViolationClass&quot;);" errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++    <issue id="ResourceType" message="Expected resource of type styleable" errorLine1="        TypedArray ta = context.obtainStyledAttributes(getThemeOverlayStyleResourceId(), attrs);" errorLine2="                                                                                         ~~~~~">
++        <location file="chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabUiThemeProvider.java" />
++    </issue>
++
++    <issue id="BlockedPrivateApi" message="Reflective access to getViolationClass is forbidden when targeting API 32 and above" errorLine1="                        violationInfoClass.getDeclaredMethod(&quot;getViolationClass&quot;);" errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="components/strictmode/android/java/src/org/chromium/components/strictmode/ReflectiveThreadStrictModeInterceptor.java" />
+     </issue>
+ 
+@@ -25,6 +33,22 @@
+         <location file="weblayer/browser/java/org/chromium/weblayer_private/interfaces/StrictModeWorkaround.java" />
+     </issue>
+ 
++    <issue id="InternalInsetResource" message="Using internal inset dimension resource `status_bar_height` is not supported" errorLine1="                resources.getIdentifier(&quot;status_bar_height&quot;, &quot;dimen&quot;, &quot;android&quot;);" errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/password_manager/AccountChooserDialog.java" />
++    </issue>
++
++    <issue id="InternalInsetResource" message="Using internal inset dimension resource `status_bar_height` is not supported" errorLine1="                mContext.getResources().getIdentifier(&quot;status_bar_height&quot;, &quot;dimen&quot;, &quot;android&quot;);" errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="content/public/android/java/src/org/chromium/content/browser/selection/LegacyPastePopupMenu.java" />
++    </issue>
++
++    <issue id="InternalInsetResource" message="Using internal inset dimension resource `status_bar_height` is not supported" errorLine1="                mActivity.getResources().getIdentifier(&quot;status_bar_height&quot;, &quot;dimen&quot;, &quot;android&quot;);" errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/customtabs/PartialCustomTabHeightStrategy.java" />
++    </issue>
++
++    <issue id="InternalInsetResource" message="Using internal inset dimension resource `status_bar_height` is not supported" errorLine1="        int statusBarId = resources.getIdentifier(&quot;status_bar_height&quot;, &quot;dimen&quot;, &quot;android&quot;);" errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/tab/TabUtils.java" />
++    </issue>
++
+     <issue id="NewApi" message="Call requires API level 24 (current min is 23): `isCleartextTrafficPermitted`" errorLine1="            return NetworkSecurityPolicyProxy.getInstance().isCleartextTrafficPermitted(host);" errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="net/android/java/src/org/chromium/net/AndroidNetworkLibrary.java" />
+     </issue>
+@@ -53,26 +77,14 @@
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(ACTION_NAME, Type.STRING, /* required= */ false)" errorLine2="                                                ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(EXPERIMENT_IDS, Type.STRING, /* required= */ false)" errorLine2="                     ~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(EXPERIMENT_IDS, Type.STRING, /* required= */ false)" errorLine2="                                                   ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withResult`" errorLine1="                    .withResult(AA_ACTION_RESULT, Type.BOOLEAN);" errorLine2="                     ~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withResult`" errorLine1="                    .withResult(AA_ACTION_RESULT, Type.BOOLEAN);" errorLine2="                                                  ~~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `addDirectAction`" errorLine1="            reporter.addDirectAction(ONBOARDING_AND_START_ACTION)" errorLine2="                     ~~~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+@@ -81,42 +93,22 @@
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(ACTION_NAME, Type.STRING, /* required= */ true)" errorLine2="                                                ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(USER_NAME, Type.STRING, /* required= */ false)" errorLine2="                     ~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(USER_NAME, Type.STRING, /* required= */ false)" errorLine2="                                              ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(EXPERIMENT_IDS, Type.STRING, /* required= */ false)" errorLine2="                     ~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(EXPERIMENT_IDS, Type.STRING, /* required= */ false)" errorLine2="                                                   ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(SHOW_ERROR_ON_FAILURE, Type.BOOLEAN, /* required= */ false)" errorLine2="                     ~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(SHOW_ERROR_ON_FAILURE, Type.BOOLEAN, /* required= */ false)" errorLine2="                                                          ~~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withResult`" errorLine1="                    .withResult(AA_ACTION_RESULT, Type.BOOLEAN);" errorLine2="                     ~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withResult`" errorLine1="                    .withResult(AA_ACTION_RESULT, Type.BOOLEAN);" errorLine2="                                                  ~~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `addDirectAction`" errorLine1="            reporter.addDirectAction(FETCH_WEBSITE_ACTIONS)" errorLine2="                     ~~~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+@@ -125,26 +117,14 @@
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(USER_NAME, Type.STRING, /* required= */ false)" errorLine2="                                              ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(EXPERIMENT_IDS, Type.STRING, /* required= */ false)" errorLine2="                     ~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    .withParameter(EXPERIMENT_IDS, Type.STRING, /* required= */ false)" errorLine2="                                                   ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withResult`" errorLine1="                    .withResult(FETCH_WEBSITE_ACTIONS_RESULT, Type.BOOLEAN);" errorLine2="                     ~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withResult`" errorLine1="                    .withResult(FETCH_WEBSITE_ACTIONS_RESULT, Type.BOOLEAN);" errorLine2="                                                              ~~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `addDirectAction`" errorLine1="                    Definition definition = reporter.addDirectAction(name)" errorLine2="                                                     ~~~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+@@ -153,34 +133,18 @@
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                                                    .withParameter(EXPERIMENT_IDS, Type.STRING," errorLine2="                                                                                   ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withResult`" errorLine1="                                                    .withResult(AA_ACTION_RESULT, Type.BOOLEAN);" errorLine2="                                                     ~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withResult`" errorLine1="                                                    .withResult(AA_ACTION_RESULT, Type.BOOLEAN);" errorLine2="                                                                                  ~~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                        definition.withParameter(required, Type.STRING, /* required= */ true);" errorLine2="                                   ~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                        definition.withParameter(required, Type.STRING, /* required= */ true);" errorLine2="                                                           ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                        definition.withParameter(optional, Type.STRING, /* required= */ false);" errorLine2="                                   ~~~~~~~~~~~~~">
+         <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                        definition.withParameter(optional, Type.STRING, /* required= */ false);" errorLine2="                                                           ~~~~~~~~~~~">
+-        <location file="chrome/android/features/autofill_assistant/public/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 24 (current min is 23): `hasScreenLockConfigured`" errorLine1="                    if (mMode == Mode.SERVER_LINK || hasScreenLockConfigured(getContext())) {" errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="chrome/android/features/cablev2_authenticator/java/src/org/chromium/chrome/browser/webauth/authenticator/CableAuthenticatorUI.java" />
+     </issue>
+@@ -225,90 +189,6 @@
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.BROWSER," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.DOWNLOADS," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.INCOGNITO," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.MEDIA_PLAYBACK," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.WEBRTC_CAM_AND_MIC," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.SCREEN_CAPTURE," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.SHARING," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.SITES, R.string.notification_category_sites," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.CONTENT_SUGGESTIONS," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.WEBAPP_ACTIONS," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.VR, R.string.notification_category_vr," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.UPDATES," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `createBadged`" errorLine1="                    PredefinedChannel.createBadged(ChannelId.COMPLETED_DOWNLOADS," errorLine2="                                      ~~~~~~~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `createBadged`" errorLine1="                    PredefinedChannel.createBadged(ChannelId.ANNOUNCEMENT," errorLine2="                                      ~~~~~~~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `createSilenced`" errorLine1="                    PredefinedChannel.createSilenced(ChannelId.WEBAPPS," errorLine2="                                      ~~~~~~~~~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.WEBAPPS_QUIET," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.PRICE_DROP," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.SECURITY_KEY," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.CHROME_TIPS," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.BLUETOOTH," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.USB, R.string.notification_category_usb," errorLine2="                                      ~~~~~~">
+-        <location file="chrome/browser/notifications/android/java/src/org/chromium/chrome/browser/notifications/channels/ChromeChannelDefinitions.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 26 (current min is 23): `getChannelIdForOrigin`" errorLine1="        return SiteChannelsManager.getInstance().getChannelIdForOrigin(origin);" errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~">
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java" />
+     </issue>
+@@ -505,10 +385,6 @@
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/directactions/FindInPageDirectActionHandler.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `withParameter`" errorLine1="                    ARGUMENT_NAME, Type.STRING, /* required = */ true);" errorLine2="                                   ~~~~~~~~~~~">
+-        <location file="chrome/android/java/src/org/chromium/chrome/browser/directactions/FindInPageDirectActionHandler.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 26 (current min is 23): `setPasteAsPlainTextMenuItemTitle`" errorLine1="            SelectionPopupControllerImpl.setPasteAsPlainTextMenuItemTitle(menu);" errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="content/public/android/java/src/org/chromium/content/browser/selection/FloatingPastePopupMenu.java" />
+     </issue>
+@@ -801,10 +677,6 @@
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 29 (current min is 23): `DirectActionInitializer`" errorLine1="        mDirectActionInitializer = new DirectActionInitializer(mActivity, mActivityType," errorLine2="                                                                          ~~~~~~~~~~~~~">
+-        <location file="chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 28 (current min is 23): `onSelectionModified`" errorLine1="                        mSmartSelectionEventProcessor.onSelectionModified(" errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~">
+         <location file="content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java" />
+     </issue>
+@@ -1057,22 +929,6 @@
+         <location file="weblayer/browser/java/org/chromium/weblayer_private/WebLayerImpl.java" />
+     </issue>
+ 
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.ACTIVE_DOWNLOADS," errorLine2="                                      ~~~~~~">
+-        <location file="weblayer/browser/java/org/chromium/weblayer_private/WebLayerNotificationChannels.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.COMPLETED_DOWNLOADS," errorLine2="                                      ~~~~~~">
+-        <location file="weblayer/browser/java/org/chromium/weblayer_private/WebLayerNotificationChannels.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.MEDIA_PLAYBACK," errorLine2="                                      ~~~~~~">
+-        <location file="weblayer/browser/java/org/chromium/weblayer_private/WebLayerNotificationChannels.java" />
+-    </issue>
+-
+-    <issue id="NewApi" message="Call requires API level 26 (current min is 24): `create`" errorLine1="                    PredefinedChannel.create(ChannelId.WEBRTC_CAM_AND_MIC," errorLine2="                                      ~~~~~~">
+-        <location file="weblayer/browser/java/org/chromium/weblayer_private/WebLayerNotificationChannels.java" />
+-    </issue>
+-
+     <issue id="NewApi" message="Call requires API level 26 (current min is 23): `ChannelsInitializer`" errorLine1="                new ChannelsInitializer(new NotificationManagerProxyImpl(appContext)," errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="weblayer/browser/java/org/chromium/weblayer_private/WebLayerNotificationWrapperBuilder.java" />
+     </issue>
+@@ -1085,6 +941,11 @@
+         <location file="components/webapps/browser/android/java/src/org/chromium/components/webapps/WebappsUtils.java" />
+     </issue>
+ 
++    <issue id="SuspiciousIndentation" message="Suspicious indentation: This is indented but is not nested under the previous expression (`if (!LibraryLoader.g`...)" errorLine1="            RecordHistogram.recordEnumeratedHistogram(" errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/download/DownloadNotificationUmaHelper.java" />
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/download/DownloadNotificationUmaHelper.java" message="Previous statement here" />
++    </issue>
++
+     <issue id="WrongConstant" message="Must be one of: AdaptiveToolbarButtonVariant.UNKNOWN, AdaptiveToolbarButtonVariant.NONE, AdaptiveToolbarButtonVariant.NEW_TAB, AdaptiveToolbarButtonVariant.SHARE, AdaptiveToolbarButtonVariant.VOICE, AdaptiveToolbarButtonVariant.AUTO, AdaptiveToolbarButtonVariant.PRICE_TRACKING" errorLine1="                &amp;&amp; variant &lt; AdaptiveToolbarButtonVariant.NUM_ENTRIES" errorLine2="                                                          ~~~~~~~~~~~">
+         <location file="chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/adaptive/AdaptiveToolbarButtonController.java" />
+     </issue>
+@@ -1681,6 +1542,10 @@
+         <location file="components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java" />
+     </issue>
+ 
++    <issue id="WrongConstant" message="Must be one of: StreamTabId.DEFAULT, StreamTabId.FOR_YOU, StreamTabId.FOLLOWING" errorLine1="        if (mTabToStreamMap.size() &lt;= tabId) tabId = 0;" errorLine2="                                                     ~">
++        <location file="chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java" />
++    </issue>
++
+     <issue id="WrongConstant" message="Must be one of: StreamTabId.DEFAULT, StreamTabId.FOR_YOU, StreamTabId.FOLLOWING" errorLine1="        mSectionHeaderModel.set(SectionHeaderListProperties.CURRENT_TAB_INDEX_KEY, tabId);" errorLine2="                                                                                   ~~~~~">
+         <location file="chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java" />
+     </issue>
+@@ -2677,10 +2542,6 @@
+         <location file="android_webview/glue/java/src/com/android/webview/chromium/WebViewChromium.java" />
+     </issue>
+ 
+-    <issue id="WrongConstant" message="Must be one of: WebViewInitType.SYNC, WebViewInitType.ASYNC, WebViewInitType.BOTH" errorLine1="                    &quot;Android.WebView.Startup.InitType&quot;, type, WebViewInitType.COUNT);" errorLine2="                                                                              ~~~~~">
+-        <location file="android_webview/glue/java/src/com/android/webview/chromium/WebViewChromiumAwInit.java" />
+-    </issue>
+-
+     <issue id="WrongConstant" message="Must be one of: SafeModeExecutionResult.SUCCESS, SafeModeExecutionResult.UNKNOWN_ERROR, SafeModeExecutionResult.ACTION_FAILED" errorLine1="                &quot;Android.WebView.SafeMode.ExecutionResult&quot;, result, SafeModeExecutionResult.COUNT);" errorLine2="                                                                                            ~~~~~">
+         <location file="android_webview/glue/java/src/com/android/webview/chromium/WebViewChromiumFactoryProvider.java" />
+     </issue>
+@@ -2701,10 +2562,26 @@
+         <location file="chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/sections/SectionHeaderView.java" />
+     </issue>
+ 
++    <issue id="UnsafeOptInUsageError" message="This declaration is opt-in and its usage should be marked with `@com.google.android.material.badge.ExperimentalBadgeUtils` or `@OptIn(markerClass = com.google.android.material.badge.ExperimentalBadgeUtils.class)`" errorLine1="            BadgeUtils.detachBadgeDrawable(mBadge, mAnchor);" errorLine2="                                           ~~~~~~">
++        <location file="chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/sections/SectionHeaderView.java" />
++    </issue>
++
++    <issue id="UnsafeOptInUsageError" message="This declaration is opt-in and its usage should be marked with `@com.google.android.material.badge.ExperimentalBadgeUtils` or `@OptIn(markerClass = com.google.android.material.badge.ExperimentalBadgeUtils.class)`" errorLine1="            BadgeUtils.detachBadgeDrawable(mBadge, mAnchor);" errorLine2="                                                   ~~~~~~~">
++        <location file="chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/sections/SectionHeaderView.java" />
++    </issue>
++
+     <issue id="UnsafeOptInUsageError" message="This declaration is opt-in and its usage should be marked with `@com.google.android.material.badge.ExperimentalBadgeUtils` or `@OptIn(markerClass = com.google.android.material.badge.ExperimentalBadgeUtils.class)`" errorLine1="                BadgeUtils.attachBadgeDrawable(mBadge, mAnchor);" errorLine2="                           ~~~~~~~~~~~~~~~~~~~">
+         <location file="chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/sections/SectionHeaderView.java" />
+     </issue>
+ 
++    <issue id="UnsafeOptInUsageError" message="This declaration is opt-in and its usage should be marked with `@com.google.android.material.badge.ExperimentalBadgeUtils` or `@OptIn(markerClass = com.google.android.material.badge.ExperimentalBadgeUtils.class)`" errorLine1="                BadgeUtils.attachBadgeDrawable(mBadge, mAnchor);" errorLine2="                                               ~~~~~~">
++        <location file="chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/sections/SectionHeaderView.java" />
++    </issue>
++
++    <issue id="UnsafeOptInUsageError" message="This declaration is opt-in and its usage should be marked with `@com.google.android.material.badge.ExperimentalBadgeUtils` or `@OptIn(markerClass = com.google.android.material.badge.ExperimentalBadgeUtils.class)`" errorLine1="                BadgeUtils.attachBadgeDrawable(mBadge, mAnchor);" errorLine2="                                                       ~~~~~~~">
++        <location file="chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/sections/SectionHeaderView.java" />
++    </issue>
++
+     <issue id="UnsupportedChromeOsCameraSystemFeature" message="You should look for any camera available on the device, not just the rear" errorLine1="        return pm.hasSystemFeature(PackageManager.FEATURE_CAMERA)" errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="base/android/java/src/org/chromium/base/SysUtils.java" />
+     </issue>
+@@ -2713,10 +2590,6 @@
+         <location file="chrome/android/features/keyboard_accessory/internal/java/src/org/chromium/chrome/browser/keyboard_accessory/sheet_tabs/AddressAccessorySheetCoordinator.java" />
+     </issue>
+ 
+-    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                IconProvider.getIcon(context, R.drawable.gm_filled_location_on_24)," errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/android/features/keyboard_accessory/internal/java/src/org/chromium/chrome/browser/keyboard_accessory/sheet_tabs/AddressAccessorySheetCoordinator.java" />
+-    </issue>
+-
+     <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="            if (mBypassIsReadyToPayServiceInTest) app.bypassIsReadyToPayServiceInTest();" errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="components/payments/content/android/java/src/org/chromium/components/payments/AndroidPaymentAppFinder.java" />
+     </issue>
+@@ -2777,6 +2650,22 @@
+         <location file="android_webview/java/src/org/chromium/android_webview/AwWebContentsObserver.java" />
+     </issue>
+ 
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        int playerState = mediaStatus.getPlayerState();" errorLine2="                                      ~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/BaseNotificationController.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        if (playerState == MediaStatus.PLAYER_STATE_PAUSED" errorLine2="                                       ~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/BaseNotificationController.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                || playerState == MediaStatus.PLAYER_STATE_PLAYING) {" errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/BaseNotificationController.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="            mNotificationBuilder.setPaused(playerState != MediaStatus.PLAYER_STATE_PLAYING);" errorLine2="                                                                      ~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/BaseNotificationController.java" />
++    </issue>
++
+     <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                &amp;&amp; mOverlayPanelManager.get().getActivePanel() != null) {" errorLine2="                                              ~~~~~~~~~~~~~~">
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/ui/BottomSheetManager.java" />
+     </issue>
+@@ -2793,6 +2682,46 @@
+         <location file="weblayer/browser/java/org/chromium/weblayer_private/BrowserImpl.java" />
+     </issue>
+ 
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return new CastOptions.Builder()" errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .setCastMediaOptions(null)" errorLine2="                 ~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .setEnableReconnectionService(false)" errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .setLaunchOptions(new LaunchOptions.Builder().setRelaunchIfRunning(true).build())" errorLine2="                 ~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .setLaunchOptions(new LaunchOptions.Builder().setRelaunchIfRunning(true).build())" errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .setLaunchOptions(new LaunchOptions.Builder().setRelaunchIfRunning(true).build())" errorLine2="                                                              ~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .setLaunchOptions(new LaunchOptions.Builder().setRelaunchIfRunning(true).build())" errorLine2="                                                                                         ~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .setResumeSavedSession(false)" errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .setStopReceiverApplicationWhenEndingSession(true)" errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                .build();" errorLine2="                 ~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/CastOptionsProvider.java" />
++    </issue>
++
+     <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        IntentHandler.setTestIntentsEnabled(" errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~">
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java" />
+     </issue>
+@@ -2809,10 +2738,6 @@
+         <location file="chrome/android/features/keyboard_accessory/internal/java/src/org/chromium/chrome/browser/keyboard_accessory/sheet_tabs/CreditCardAccessorySheetCoordinator.java" />
+     </issue>
+ 
+-    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                IconProvider.getIcon(context, R.drawable.infobar_autofill_cc)," errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/android/features/keyboard_accessory/internal/java/src/org/chromium/chrome/browser/keyboard_accessory/sheet_tabs/CreditCardAccessorySheetCoordinator.java" />
+-    </issue>
+-
+     <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        mConnection.cleanUpSession(sessionToken);" errorLine2="                    ~~~~~~~~~~~~~~">
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnectionServiceImpl.java" />
+     </issue>
+@@ -2829,6 +2754,54 @@
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/download/DownloadSharedPreferenceHelper.java" />
+     </issue>
+ 
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="    private static final Api.ClientKey&lt;FidoClient&gt; APP_CLIENT_KEY = new Api.ClientKey&lt;&gt;();" errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/webauthn/android/java/src/org/chromium/components/webauthn/Fido2ApiCall.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="    private static final Api.ClientKey&lt;FidoClient&gt; BROWSER_CLIENT_KEY = new Api.ClientKey&lt;&gt;();" errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/webauthn/android/java/src/org/chromium/components/webauthn/Fido2ApiCall.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                extends Api.AbstractClientBuilder&lt;FidoClient, ApiOptions.NoOptions&gt; {" errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/webauthn/android/java/src/org/chromium/components/webauthn/Fido2ApiCall.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        MediaInfo mediaInfo = new MediaInfo.Builder(mMediaUrl)" errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                                      .setContentType(&quot;*/*&quot;)" errorLine2="                                       ~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                                      .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)" errorLine2="                                       ~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                                      .build();" errorLine2="                                       ~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="            if (mediaStatus.getPlayerState() == MediaStatus.PLAYER_STATE_IDLE" errorLine2="                            ~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="            if (mediaStatus.getPlayerState() == MediaStatus.PLAYER_STATE_IDLE" errorLine2="                                                            ~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                    &amp;&amp; mediaStatus.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {" errorLine2="                                   ~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                    &amp;&amp; mediaStatus.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {" errorLine2="                                                                  ~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                        remoteMediaClient.isPlaying(), mediaStatus.getPlaybackRate());" errorLine2="                                                                   ~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java" />
++    </issue>
++
+     <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                            ImageFetcher.resizeImage(bitmap, params.width, params.height));" errorLine2="                                         ~~~~~~~~~~~">
+         <location file="components/image_fetcher/android/java/src/org/chromium/components/image_fetcher/ImageFetcherBridge.java" />
+     </issue>
+@@ -2861,6 +2834,66 @@
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChromePhone.java" />
+     </issue>
+ 
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.getPlayerState();" errorLine2="                       ~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.getIdleReason();" errorLine2="                       ~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        MediaInfo info = mStatus.getMediaInfo();" errorLine2="                                 ~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMediaCommandSupported(MediaStatus.COMMAND_PAUSE);" errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMediaCommandSupported(MediaStatus.COMMAND_PAUSE);" errorLine2="                                                           ~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMediaCommandSupported(MediaStatus.COMMAND_TOGGLE_MUTE);" errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMediaCommandSupported(MediaStatus.COMMAND_TOGGLE_MUTE);" errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMediaCommandSupported(MediaStatus.COMMAND_SET_VOLUME);" errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMediaCommandSupported(MediaStatus.COMMAND_SET_VOLUME);" errorLine2="                                                           ~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMediaCommandSupported(MediaStatus.COMMAND_SEEK);" errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMediaCommandSupported(MediaStatus.COMMAND_SEEK);" errorLine2="                                                           ~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.isMute();" errorLine2="                       ~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.getStreamVolume();" errorLine2="                       ~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        MediaInfo info = mStatus.getMediaInfo();" errorLine2="                                 ~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
++    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        return mStatus.getStreamPosition();" errorLine2="                       ~~~~~~~~~~~~~~~~~">
++        <location file="components/media_router/browser/android/java/src/org/chromium/components/media_router/MediaStatusBridge.java" />
++    </issue>
++
+     <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                    ((ChromeTabbedActivity) activity).saveState();" errorLine2="                                                      ~~~~~~~~~">
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/multiwindow/MultiInstanceManager.java" />
+     </issue>
+@@ -2893,18 +2926,10 @@
+         <location file="chrome/android/features/keyboard_accessory/internal/java/src/org/chromium/chrome/browser/keyboard_accessory/sheet_tabs/PasswordAccessorySheetCoordinator.java" />
+     </issue>
+ 
+-    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                IconProvider.getIcon(context, R.drawable.ic_vpn_key_grey)," errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/android/features/keyboard_accessory/internal/java/src/org/chromium/chrome/browser/keyboard_accessory/sheet_tabs/PasswordAccessorySheetCoordinator.java" />
+-    </issue>
+-
+     <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        getTab().setIcon(IconProvider.getIcon(" errorLine2="                                      ~~~~~~~">
+         <location file="chrome/android/features/keyboard_accessory/internal/java/src/org/chromium/chrome/browser/keyboard_accessory/sheet_tabs/PasswordAccessorySheetCoordinator.java" />
+     </issue>
+ 
+-    <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="                mContext, enabled ? R.drawable.ic_vpn_key_grey : R.drawable.ic_vpn_key_off));" errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/android/features/keyboard_accessory/internal/java/src/org/chromium/chrome/browser/keyboard_accessory/sheet_tabs/PasswordAccessorySheetCoordinator.java" />
+-    </issue>
+-
+     <issue id="VisibleForTests" message="This method should only be accessed from tests or within private scope" errorLine1="        String distillerUrl = DomDistillerUrlUtils.getDistillerViewUrlFromUrl(" errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="chrome/android/java/src/org/chromium/chrome/browser/dom_distiller/ReaderModeManager.java" />
+     </issue>
+@@ -3249,147 +3274,71 @@
+         <location file="chrome/browser/share/android/java/res/layout/qrcode_camera_error_layout.xml" />
+     </issue>
+ 
+-    <issue id="MergeRootFrame" message="This `&lt;FrameLayout&gt;` can be replaced with a `&lt;merge&gt;` tag" errorLine1="&lt;FrameLayout" errorLine2="^">
+-        <location file="chrome/android/java/res/layout/signin_activity.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: f.setAccessible(true)" errorLine1="                    assert reachesWindowCallback(activity.getWindow().getCallback());" errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="base/android/java/src/org/chromium/base/ApplicationStatus.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.suggestion_url_color` appears to be unused" errorLine1="    &lt;macro name=&quot;suggestion_url_color&quot;&gt;@macro/default_text_color_link&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/browser/ui/android/omnibox/java/res/values/colors.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: nativeMatches[index] = mSuggestions.get(index).getNativeObjectRef()" errorLine1="            assert verifyCoherency(" errorLine2="                   ^">
++        <location file="components/omnibox/browser/android/java/src/org/chromium/components/omnibox/AutocompleteResult.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.signin_head_background` appears to be unused" errorLine1="    &lt;macro name=&quot;signin_head_background&quot;&gt;@macro/default_bg_color&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/android/java/res/values/colors.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sRemotingNotificationId = WebLayerImpl.getRemotePlaybackApiNotificationId()" errorLine1="            assert mNotificationId == getRemotingNotificationIdFromClient();" errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="weblayer/browser/java/org/chromium/weblayer_private/media/MediaRouterClientImpl.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.signin_body_background` appears to be unused" errorLine1="    &lt;macro name=&quot;signin_body_background&quot;&gt;@macro/default_bg_color&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/android/java/res/values/colors.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sNotificationId = WebLayerImpl.getMediaSessionNotificationId()" errorLine1="                assert notificationInfo.id == getNotificationId();" errorLine2="                                              ~~~~~~~~~~~~~~~~~~~">
++        <location file="weblayer/browser/java/org/chromium/weblayer_private/media/MediaSessionManager.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.bottom_system_nav_divider_color` appears to be unused" errorLine1="    &lt;macro name=&quot;bottom_system_nav_divider_color&quot;&gt;@macro/divider_line_bg_color&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/colors.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sSyncService = SyncServiceImpl.create()" errorLine1="        assert SyncService.get() != null;" errorLine2="               ~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/sync/ui/PassphraseActivity.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.progress_bar_foreground` appears to be unused" errorLine1="    &lt;macro name=&quot;progress_bar_foreground&quot;&gt;@macro/default_control_color_active&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/colors.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sSyncService = SyncServiceImpl.create()" errorLine1="        assert SyncService.get() != null;" errorLine2="               ~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/sync/ui/PassphraseDialogFragment.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.overlay_panel_bar_background_color` appears to be unused" errorLine1="    &lt;macro name=&quot;overlay_panel_bar_background_color&quot;&gt;@macro/default_bg_color&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/android/java/res/values/colors.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sSyncService = SyncServiceImpl.create()" errorLine1="        assert SyncService.get() != null;" errorLine2="               ~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/password_manager/settings/PasswordSettings.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.tab_layout_selected_tab_color` appears to be unused" errorLine1="    &lt;macro name=&quot;tab_layout_selected_tab_color&quot;&gt;@macro/default_text_color_accent1&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="chrome/android/java/res/values/colors.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sValuesReturned.boolValues.put(preferenceName, flag)" errorLine1="            assert CachedFeatureFlags.isEnabled(ChromeFeatureList.INSTANT_START);" errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/pseudotab/PseudoTab.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.default_bg_color` appears to be unused" errorLine1="    &lt;macro name=&quot;default_bg_color&quot;&gt;?attr/colorSurface&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sValuesReturned.boolValues.put(preferenceName, flag)" errorLine1="        assert CachedFeatureFlags.isEnabled(ChromeFeatureList.INSTANT_START)" errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/pseudotab/PseudoTab.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.default_bg_color_elev_0` appears to be unused" errorLine1="    &lt;macro name=&quot;default_bg_color_elev_0&quot;&gt;?attr/colorSurface&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.default_control_color_active` appears to be unused" errorLine1="    &lt;macro name=&quot;default_control_color_active&quot;&gt;?attr/colorPrimary&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sHaveAccessNetworkState =&#10;                    ApiCompatibilityUtils.checkPermission(ContextUtils.getApplicationContext(),&#10;                            Manifest.permission.ACCESS_NETWORK_STATE, Process.myPid(),&#10;                            Process.myUid())&#10;                    == PackageManager.PERMISSION_GRANTED" errorLine1="        assert isSupported();" errorLine2="               ~~~~~~~~~~~~~">
++        <location file="base/android/java/src/org/chromium/base/RadioUtils.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.default_control_color_normal` appears to be unused" errorLine1="    &lt;macro name=&quot;default_control_color_normal&quot;&gt;?attr/colorOnSurfaceVariant&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sHaveAccessNetworkState =&#10;                    ApiCompatibilityUtils.checkPermission(ContextUtils.getApplicationContext(),&#10;                            Manifest.permission.ACCESS_NETWORK_STATE, Process.myPid(),&#10;                            Process.myUid())&#10;                    == PackageManager.PERMISSION_GRANTED" errorLine1="        assert isSupported();" errorLine2="               ~~~~~~~~~~~~~">
++        <location file="base/android/java/src/org/chromium/base/RadioUtils.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.default_icon_color` appears to be unused" errorLine1="    &lt;macro name=&quot;default_icon_color&quot;&gt;?attr/colorOnSurface&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sHaveAccessNetworkState =&#10;                    ApiCompatibilityUtils.checkPermission(ContextUtils.getApplicationContext(),&#10;                            Manifest.permission.ACCESS_NETWORK_STATE, Process.myPid(),&#10;                            Process.myUid())&#10;                    == PackageManager.PERMISSION_GRANTED" errorLine1="        assert isSupported();" errorLine2="               ~~~~~~~~~~~~~">
++        <location file="base/android/java/src/org/chromium/base/RadioUtils.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.default_icon_color_accent1` appears to be unused" errorLine1="    &lt;macro name=&quot;default_icon_color_accent1&quot;&gt;?attr/colorPrimary&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sSyncService = SyncServiceImpl.create()" errorLine1="        assert SyncService.get() != null;" errorLine2="               ~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/java/src/org/chromium/chrome/browser/signin/SyncPromoView.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.default_icon_color_inverse` appears to be unused" errorLine1="    &lt;macro name=&quot;default_icon_color_inverse&quot;&gt;?attr/colorOnSurfaceInverse&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.default_icon_color_on_accent1` appears to be unused" errorLine1="    &lt;macro name=&quot;default_icon_color_on_accent1&quot;&gt;?attr/colorOnPrimary&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.default_icon_color_secondary` appears to be unused" errorLine1="    &lt;macro name=&quot;default_icon_color_secondary&quot;&gt;?attr/colorOnSurfaceVariant&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.default_text_color` appears to be unused" errorLine1="    &lt;macro name=&quot;default_text_color&quot;&gt;?attr/colorOnSurface&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.default_text_color_accent1` appears to be unused" errorLine1="    &lt;macro name=&quot;default_text_color_accent1&quot;&gt;?attr/colorPrimary&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.default_text_color_on_accent1` appears to be unused" errorLine1="    &lt;macro name=&quot;default_text_color_on_accent1&quot;&gt;?attr/colorOnPrimary&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.default_text_color_on_accent2_container` appears to be unused" errorLine1="    &lt;macro name=&quot;default_text_color_on_accent2_container&quot;&gt;?attr/colorOnSecondaryContainer&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.switch_enabled_unchecked_color_dark` appears to be unused" errorLine1="    &lt;macro name=&quot;switch_enabled_unchecked_color_dark&quot;&gt;?attr/colorOutline&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: sValuesReturned.boolValues.put(preferenceName, value)" errorLine1="        assert TabUiFeatureUtilities.ENABLE_SEARCH_CHIP.getValue();" errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListMediator.java" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.switch_enabled_unchecked_color_light` appears to be unused" errorLine1="    &lt;macro name=&quot;switch_enabled_unchecked_color_light&quot;&gt;?attr/colorOnSurface&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.switch_track_disabled_color` appears to be unused" errorLine1="    &lt;macro name=&quot;switch_track_disabled_color&quot;&gt;?attr/colorOnSurface&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.switch_thumb_disabled_color` appears to be unused" errorLine1="    &lt;macro name=&quot;switch_thumb_disabled_color&quot;&gt;?attr/colorOnSurfaceInverse&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.hairline_stroke_color` appears to be unused" errorLine1="    &lt;macro name=&quot;hairline_stroke_color&quot;&gt;?attr/colorOutline&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.divider_line_bg_color` appears to be unused" errorLine1="    &lt;macro name=&quot;divider_line_bg_color&quot;&gt;?attr/colorSurfaceVariant&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.chip_bg_color` appears to be unused" errorLine1="    &lt;macro name=&quot;chip_bg_color&quot;&gt;@macro/default_bg_color&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.chip_bg_selected_color` appears to be unused" errorLine1="    &lt;macro name=&quot;chip_bg_selected_color&quot;&gt;?attr/colorSecondaryContainer&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.chip_outline_color` appears to be unused" errorLine1="    &lt;macro name=&quot;chip_outline_color&quot;&gt;?attr/colorOutline&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.chip_outline_focused_color` appears to be unused" errorLine1="    &lt;macro name=&quot;chip_outline_focused_color&quot;&gt;?attr/colorOnSurface&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.chip_state_layer_color` appears to be unused" errorLine1="    &lt;macro name=&quot;chip_state_layer_color&quot;&gt;?attr/colorOnSurfaceVariant&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.chip_state_layer_selected_color` appears to be unused" errorLine1="    &lt;macro name=&quot;chip_state_layer_selected_color&quot;&gt;?attr/colorOnSecondaryContainer&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+-    </issue>
+-
+-    <issue id="UnusedResources" message="The resource `R.macro.circular_progress_icon_color_small_large` appears to be unused" errorLine1="    &lt;macro name=&quot;circular_progress_icon_color_small_large&quot;&gt;?attr/colorPrimary&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="MergeRootFrame" message="This `&lt;FrameLayout&gt;` can be replaced with a `&lt;merge&gt;` tag" errorLine1="&lt;FrameLayout" errorLine2="^">
++        <location file="chrome/android/java/res/layout/signin_activity.xml" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.circular_progress_outer_circle_progress_color_small` appears to be unused" errorLine1="    &lt;macro name=&quot;circular_progress_outer_circle_progress_color_small&quot;&gt;?attr/colorPrimary&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+-        <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
++    <issue id="UnusedResources" message="The resource `R.macro.suggestion_url_color` appears to be unused" errorLine1="    &lt;macro name=&quot;suggestion_url_color&quot;&gt;@macro/default_text_color_link&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="chrome/browser/ui/android/omnibox/java/res/values/colors.xml" />
+     </issue>
+ 
+-    <issue id="UnusedResources" message="The resource `R.macro.default_text_color_link` appears to be unused" errorLine1="    &lt;macro name=&quot;default_text_color_link&quot;&gt;@color/default_text_color_link_baseline&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++    <issue id="UnusedResources" message="The resource `R.macro.default_bg_color_elev_0` appears to be unused" errorLine1="    &lt;macro name=&quot;default_bg_color_elev_0&quot;&gt;?attr/colorSurface&lt;/macro&gt;" errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+         <location file="components/browser_ui/styles/android/java/res/values/semantic_colors_dynamic.xml" />
+     </issue>
+ 
+diff --git a/chromecast/android/lint-baseline.xml b/chromecast/android/lint-baseline.xml
+index f8366467739e2..254407610c2ee 100644
+--- a/chromecast/android/lint-baseline.xml
++++ b/chromecast/android/lint-baseline.xml
+@@ -1,5 +1,5 @@
+ <?xml version='1.0' encoding='utf-8'?>
+-<issues format="6" by="lint 7.1.0" type="baseline" client="" dependencies="true" name="" variant="all" version="7.1.0">
++<issues format="6" by="lint 7.4.0-alpha05" type="baseline" client="" dependencies="true" name="" variant="all" version="7.4.0-alpha05">
+ 
+     <issue id="MissingVersion" message="Should set `android:versionCode` to specify the application version" errorLine1="&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot; package=&quot;org.chromium.chromecast.shell&quot;&gt;" errorLine2=" ~~~~~~~~">
+         <location file="gen/chromecast/cast_shell_apk__lint/gen/cast_shell_manifest/AndroidManifest.xml" />
+diff --git a/components/cronet/android/BUILD.gn b/components/cronet/android/BUILD.gn
+index 31de1a5155e00..2bbc3f0c4780a 100644
+--- a/components/cronet/android/BUILD.gn
++++ b/components/cronet/android/BUILD.gn
+@@ -1049,6 +1049,7 @@ if (!is_component_build) {
+     # This is the only Cronet APK with lint enabled. This one was chosen because
+     # it depends on basically all source files.
+     enable_lint = true
++    lint_baseline_file = "lint-baseline.xml"
+     lint_suppressions_file = "lint-suppressions.xml"
+ 
+     # Still needs to support KitKat. See crbug.com/1042122.
+diff --git a/components/cronet/android/lint-baseline.xml b/components/cronet/android/lint-baseline.xml
+new file mode 100644
+index 0000000000000..b83d4941786fb
+--- /dev/null
++++ b/components/cronet/android/lint-baseline.xml
+@@ -0,0 +1,16 @@
++<?xml version='1.0' encoding='utf-8'?>
++<issues format="6" by="lint 7.4.0-alpha05" type="baseline" client="" dependencies="true" name="" variant="all" version="7.4.0-alpha05">
++
++    <issue id="ObsoleteSdkInt" message="Unnecessary; SDK_INT is always &gt;= 14" errorLine1="@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH) // TrafficStats only available on ICS" errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/cronet/android/java/src/org/chromium/net/impl/JavaUrlRequest.java" />
++    </issue>
++
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: mThreadId = Thread.currentThread().getId()" errorLine1="        assert calledOnValidThread();" errorLine2="               ~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/cronet/android/java/src/org/chromium/net/urlconnection/MessageLoop.java" />
++    </issue>
++
++    <issue id="AssertionSideEffect" message="Assertion condition has a side effect: mThreadId = Thread.currentThread().getId()" errorLine1="        assert calledOnValidThread();" errorLine2="               ~~~~~~~~~~~~~~~~~~~~~">
++        <location file="components/cronet/android/java/src/org/chromium/net/urlconnection/MessageLoop.java" />
++    </issue>
++
++</issues>
+\ No newline at end of file
+diff --git a/remoting/android/lint-baseline.xml b/remoting/android/lint-baseline.xml
+index ab7684454e7bf..b81990f6b5ddd 100644
+--- a/remoting/android/lint-baseline.xml
++++ b/remoting/android/lint-baseline.xml
+@@ -1,5 +1,5 @@
+ <?xml version='1.0' encoding='utf-8'?>
+-<issues format="6" by="lint 7.1.0" type="baseline" client="" dependencies="true" name="" variant="all" version="7.1.0">
++<issues format="6" by="lint 7.4.0-alpha05" type="baseline" client="" dependencies="true" name="" variant="all" version="7.4.0-alpha05">
+ 
+     <issue id="WrongConstant" message="Must be one or more of: Gravity.LEFT, Gravity.RIGHT, GravityCompat.START, GravityCompat.END, Gravity.NO_GRAVITY" errorLine1="        if (mDrawerLayout.isDrawerOpen(Gravity.START)) {" errorLine2="                                       ~~~~~~~~~~~~~">
+         <location file="remoting/android/java/src/org/chromium/chromoting/Chromoting.java" />
+@@ -73,6 +73,10 @@
+         <location file="remoting/android/java/src/org/chromium/chromoting/Desktop.java" />
+     </issue>
+ 
++    <issue id="MonochromeLauncherIcon" message="The application adaptive icon is missing a monochrome tag" errorLine1="&lt;adaptive-icon xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;&gt;" errorLine2="^">
++        <location file="remoting/android/java/res/mipmap-anydpi-v26/ic_launcher.xml" />
++    </issue>
++
+     <issue id="ClickableViewAccessibility" message="Custom view `DesktopView` overrides `onTouchEvent` but not `performClick`" errorLine1="    public final boolean onTouchEvent(MotionEvent event) {" errorLine2="                         ~~~~~~~~~~~~">
+         <location file="remoting/android/java/src/org/chromium/chromoting/DesktopView.java" />
+     </issue>
+-- 
+2.37.2
+

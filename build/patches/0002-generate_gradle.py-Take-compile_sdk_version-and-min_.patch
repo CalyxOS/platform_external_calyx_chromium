@@ -1,0 +1,143 @@
+From 5113703a50cacfb77e4a131c57f16dc20a34ef9f Mon Sep 17 00:00:00 2001
+From: Andrew Grieve <agrieve@chromium.org>
+Date: Mon, 20 Jun 2022 20:55:26 +0000
+Subject: [PATCH 02/12] generate_gradle.py: Take compile_sdk_version and
+ min_sdk_version from GN
+
+* Always use public compileSdkVersion to avoid issues with pre-release
+SDKs.
+* Use default minSdkVersion since we don't currently care about
+  per-target minSdkVersion
+
+Bug: 1335494
+Change-Id: I951dd64d156cc9d1729b749fddf5a192b56f8e98
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/3715252
+Auto-Submit: Andrew Grieve <agrieve@chromium.org>
+Reviewed-by: Peter Wen <wnwen@chromium.org>
+Commit-Queue: Peter Wen <wnwen@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1015989}
+---
+ build/android/gradle/android.jinja      |  2 +-
+ build/android/gradle/generate_gradle.py | 17 +++++------------
+ build/config/android/build_vars.gni     |  2 ++
+ build/config/android/config.gni         |  3 ++-
+ docs/android_studio.md                  | 15 ---------------
+ 5 files changed, 10 insertions(+), 29 deletions(-)
+
+diff --git a/build/android/gradle/android.jinja b/build/android/gradle/android.jinja
+index 40d4506306a25..df2edb9ee3143 100644
+--- a/build/android/gradle/android.jinja
++++ b/build/android/gradle/android.jinja
+@@ -51,7 +51,7 @@ android {
+ 
+     defaultConfig {
+         vectorDrawables.useSupportLibrary = true
+-        minSdkVersion 21
++        minSdkVersion {{ min_sdk_version }}
+         targetSdkVersion {{ target_sdk_version }}
+     }
+ 
+diff --git a/build/android/gradle/generate_gradle.py b/build/android/gradle/generate_gradle.py
+index b63145893aef1..1169092541dba 100755
+--- a/build/android/gradle/generate_gradle.py
++++ b/build/android/gradle/generate_gradle.py
+@@ -511,12 +511,14 @@ def _GenerateGradleProperties():
+ 
+ def _GenerateBaseVars(generator, build_vars):
+   variables = {}
+-  variables['compile_sdk_version'] = (
+-      'android-%s' % build_vars['compile_sdk_version'])
+-  target_sdk_version = build_vars['android_sdk_version']
++  # Avoid pre-release SDKs since Studio might not know how to download them.
++  variables['compile_sdk_version'] = ('android-%s' %
++                                      build_vars['public_android_sdk_version'])
++  target_sdk_version = build_vars['public_android_sdk_version']
+   if str(target_sdk_version).isalpha():
+     target_sdk_version = '"{}"'.format(target_sdk_version)
+   variables['target_sdk_version'] = target_sdk_version
++  variables['min_sdk_version'] = build_vars['default_min_sdk_version']
+   variables['use_gradle_process_resources'] = (
+       generator.use_gradle_process_resources)
+   variables['channel'] = generator.channel
+@@ -757,12 +759,6 @@ def main():
+                       action='append',
+                       help='GN native targets to generate for. May be '
+                            'repeated.')
+-  parser.add_argument('--compile-sdk-version',
+-                      type=int,
+-                      default=32,
+-                      help='Override compileSdkVersion for android sdk docs. '
+-                           'Useful when sources for android_sdk_version is '
+-                           'not available in Android Studio.')
+   parser.add_argument(
+       '--sdk-path',
+       default=os.path.expanduser('~/Android/Sdk'),
+@@ -832,9 +828,6 @@ def main():
+     channel = 'canary'
+   else:
+     channel = 'stable'
+-  # Don't take compile_sdk_version from build_vars since pre-release SDKs can
+-  # cause Android Studio to have issues.
+-  build_vars['compile_sdk_version'] = args.compile_sdk_version
+   generator = _ProjectContextGenerator(_gradle_output_dir, build_vars,
+       args.use_gradle_process_resources, jinja_processor, args.split_projects,
+       channel)
+diff --git a/build/config/android/build_vars.gni b/build/config/android/build_vars.gni
+index a47607dc7c4d2..8e60dea500aa5 100644
+--- a/build/config/android/build_vars.gni
++++ b/build/config/android/build_vars.gni
+@@ -17,7 +17,9 @@ android_build_vars_json = {
+     android_sdk_root = rebase_path(android_sdk_root, root_build_dir)
+     android_sdk_version = android_sdk_version
+     android_tool_prefix = rebase_path(android_tool_prefix, root_build_dir)
++    default_min_sdk_version = default_min_sdk_version
+     final_android_sdk = final_android_sdk
++    public_android_sdk_version = public_android_sdk_version
+ 
+     if (defined(android_secondary_abi_cpu)) {
+       android_secondary_abi_toolchain =
+diff --git a/build/config/android/config.gni b/build/config/android/config.gni
+index 0c19c020290c9..b4f937d27b176 100644
+--- a/build/config/android/config.gni
++++ b/build/config/android/config.gni
+@@ -107,9 +107,10 @@ if (is_android || is_chromeos) {
+   public_android_sdk_root = "//third_party/android_sdk/public"
+   public_android_sdk_build_tools =
+       "${public_android_sdk_root}/build-tools/31.0.0"
++  public_android_sdk_version = "31"
+   if (android_sdk_release == "s") {
+     default_android_sdk_root = public_android_sdk_root
+-    default_android_sdk_version = "31"
++    default_android_sdk_version = public_android_sdk_version
+     default_android_sdk_build_tools_version = "31.0.0"
+     public_android_sdk = true
+   }
+diff --git a/docs/android_studio.md b/docs/android_studio.md
+index 7a3f036ba9cae..d457e2e5e78cc 100644
+--- a/docs/android_studio.md
++++ b/docs/android_studio.md
+@@ -38,21 +38,6 @@ available" notification.
+     * After `gn clean` you may need to restart Android Studio.
+     * File -&gt; "Invalidate Caches / Restart..."
+ 
+-## Troubleshooting
+-
+-If building the Gradle files in Android Studio prints an error like this:
+-
+-```
+-Failed to find Platform SDK with path: platforms;android-31
+-```
+-
+-Then it means the SDK is being updated to the new release. A workaround is to
+-ask for an older SDK version in `args.gn`:
+-
+-```
+-android_sdk_version = 30
+-```
+-
+ ## How It Works
+ 
+ By default, only an `_all` module containing all java apk targets is generated.
+-- 
+2.37.2
+
