@@ -6,15 +6,17 @@ Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../browser/ui/android/strings/android_chrome_strings.grd   | 6 ++++++
+ components/BUILD.gn                                         | 6 +++---
  .../android/java/res/xml/accessibility_preferences.xml      | 5 +++++
  .../browser_ui/accessibility/AccessibilitySettings.java     | 3 +++
  .../browser/accessibility/WebContentsAccessibilityImpl.java | 5 +++++
- 4 files changed, 19 insertions(+)
+ ui/android/BUILD.gn                                         | 1 +
+ 6 files changed, 23 insertions(+), 3 deletions(-)
 
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1453,6 +1453,12 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1379,6 +1379,12 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_SAFETY_CHECK_BUTTON" desc="Text for the button to start Safety check.">
          Check now
        </message>
@@ -27,6 +29,36 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        <message name="IDS_SAFETY_CHECK_ERROR" desc="A generic error state.">
          An error occurred.
        </message>
+diff --git a/components/BUILD.gn b/components/BUILD.gn
+--- a/components/BUILD.gn
++++ b/components/BUILD.gn
+@@ -45,7 +45,7 @@ if (is_ios) {
+ 
+ # Omit Lacros because it allows //components to depend on //chrome, which in
+ # turn depends on //extensions.
+-if (!is_chromeos_lacros) {
++if (!is_chromeos_lacros && !is_android) {
+   disallowed_extension_deps_ = [
+     # Components should largely not depend on //extensions. Since // extensions
+     # is not a component target and is linked with //chrome, depending on most
+@@ -663,7 +663,7 @@ test("components_unittests") {
+   # On other platforms, no components should depend on Chrome.
+   # Since //chrome depends on //extensions, we also only assert_no_deps on
+   # extensions targets for non-lacros builds.
+-  if (!is_chromeos_lacros) {
++  if (!is_chromeos_lacros && !is_android) {
+     assert_no_deps = [ "//chrome/*" ]
+     assert_no_deps += disallowed_extension_deps_
+   }
+@@ -950,7 +950,7 @@ if (!is_ios) {
+     # dependency. On other platforms, no components should depend on Chrome.
+     # Since //chrome depends on //extensions, we also only assert_no_deps on
+     # extensions targets for non-lacros builds.
+-    if (!is_chromeos_lacros) {
++    if (!is_chromeos_lacros && !is_android) {
+       assert_no_deps = [ "//chrome/*" ]
+       assert_no_deps += disallowed_extension_deps_
+     }
 diff --git a/components/browser_ui/accessibility/android/java/res/xml/accessibility_preferences.xml b/components/browser_ui/accessibility/android/java/res/xml/accessibility_preferences.xml
 --- a/components/browser_ui/accessibility/android/java/res/xml/accessibility_preferences.xml
 +++ b/components/browser_ui/accessibility/android/java/res/xml/accessibility_preferences.xml
@@ -70,5 +102,17 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/access
          structure.setChildCount(1);
          final ViewStructure viewRoot = structure.asyncNewChild(0);
          viewRoot.setClassName("");
---
-2.25.1
+diff --git a/ui/android/BUILD.gn b/ui/android/BUILD.gn
+--- a/ui/android/BUILD.gn
++++ b/ui/android/BUILD.gn
+@@ -217,6 +217,7 @@ android_library("ui_utils_java") {
+   ]
+   deps = [
+     "//base:base_java",
++    "//chrome/browser/preferences:java",
+     "//third_party/androidx:androidx_annotation_annotation_java",
+     "//third_party/androidx:androidx_appcompat_appcompat_resources_java",
+     "//third_party/androidx:androidx_core_core_java",
+-- 
+2.37.3
+
