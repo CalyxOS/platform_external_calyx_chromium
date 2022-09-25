@@ -1,98 +1,103 @@
-From: uazo <uazo@users.noreply.github.com>
-Date: Tue, 25 Jan 2022 12:22:52 +0000
-Subject: Disable all predictors code
+From: Chirayu Desai <chirayudesai1@gmail.com>
+Date: Mon, 26 Sep 2022 02:09:57 +0530
+Subject: Revert "Disable all predictors code"
 
-Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
-License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+This reverts commit 6d4e9320854e5ea4dbb7ceb2981a55e7a7894e52.
+
+ERROR Unresolved dependencies.
+//components/segmentation_platform/embedder:embedder(//build/toolchain/android:android_clang_arm)
+  needs //components/segmentation_platform/internal:optimization_guide_segmentation_handler(//build/toolchain/android:android_clang_arm)
+//components/segmentation_platform/embedder:embedder(//build/toolchain/android:android_clang_arm64)
+  needs //components/segmentation_platform/internal:optimization_guide_segmentation_handler(//build/toolchain/android:android_clang_arm64)
 ---
- .../chrome_hints_manager.cc                   |  1 +
- .../optimization_guide_keyed_service.cc       |  1 -
+ .../chrome_hints_manager.cc                   |  1 -
+ .../optimization_guide_keyed_service.cc       |  1 +
  chrome/common/chrome_features.cc              |  6 ++---
- .../optimization_guide/core/hints_fetcher.cc  |  1 +
- .../optimization_guide/core/hints_manager.cc  |  4 ++++
+ .../optimization_guide/core/hints_fetcher.cc  |  1 -
+ .../optimization_guide/core/hints_manager.cc  |  4 ----
  .../core/optimization_guide_features.cc       | 24 +++++++++----------
- .../core/prediction_model_download_manager.cc |  6 +++--
- .../core/prediction_model_fetcher_impl.cc     |  1 +
- components/optimization_guide/features.gni    |  4 +---
+ .../core/prediction_model_download_manager.cc |  6 ++---
+ .../core/prediction_model_fetcher_impl.cc     |  1 -
+ components/optimization_guide/features.gni    |  4 +++-
  components/permissions/features.cc            |  2 +-
  .../segmentation_platform/public/features.cc  |  2 +-
  third_party/blink/common/features.cc          |  2 +-
- 12 files changed, 30 insertions(+), 24 deletions(-)
+ 12 files changed, 24 insertions(+), 30 deletions(-)
 
 diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/browser/optimization_guide/chrome_hints_manager.cc
 --- a/chrome/browser/optimization_guide/chrome_hints_manager.cc
 +++ b/chrome/browser/optimization_guide/chrome_hints_manager.cc
-@@ -26,6 +26,7 @@ bool IsAllowedToFetchForNavigationPrediction(
+@@ -26,7 +26,6 @@ bool IsAllowedToFetchForNavigationPrediction(
      const absl::optional<NavigationPredictorKeyedService::Prediction>
          prediction) {
    DCHECK(prediction);
-+  if ((true)) return false;
+-  if ((true)) return false;
  
    if (prediction->prediction_source() !=
        NavigationPredictorKeyedService::PredictionSource::
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -361,7 +361,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -361,6 +361,7 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
--  hints_manager_->RegisterOptimizationTypes(optimization_types);
++  hints_manager_->RegisterOptimizationTypes(optimization_types);
  }
  
  optimization_guide::OptimizationGuideDecision
 diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 --- a/chrome/common/chrome_features.cc
 +++ b/chrome/common/chrome_features.cc
-@@ -728,8 +728,8 @@ const base::Feature kPermissionAuditing{"PermissionAuditing",
+@@ -724,8 +724,8 @@ const base::Feature kPermissionAuditing{"PermissionAuditing",
  
  // Enables using the prediction service for permission prompts. We will keep
  // this feature in order to allow us to update the holdback chance via finch.
--const base::Feature kPermissionPredictions{"PermissionPredictions",
--                                           base::FEATURE_ENABLED_BY_DEFAULT};
-+const base::Feature kPermissionPredictions{"PermissionPredictions",               // always disabled
-+                                           base::FEATURE_DISABLED_BY_DEFAULT};    // in Bromite
+-const base::Feature kPermissionPredictions{"PermissionPredictions",               // always disabled
+-                                           base::FEATURE_DISABLED_BY_DEFAULT};    // in Bromite
++const base::Feature kPermissionPredictions{"PermissionPredictions",
++                                           base::FEATURE_ENABLED_BY_DEFAULT};
  
  // The holdback chance is 30% but it can also be configured/updated
  // through finch if needed.
-@@ -740,7 +740,7 @@ const base::FeatureParam<double> kPermissionPredictionsHoldbackChance(
+@@ -736,7 +736,7 @@ const base::FeatureParam<double> kPermissionPredictionsHoldbackChance(
  
  // Enables using the prediction service for geolocation permission prompts.
  const base::Feature kPermissionGeolocationPredictions{
--    "PermissionGeolocationPredictions", base::FEATURE_ENABLED_BY_DEFAULT};
-+    "PermissionGeolocationPredictions", base::FEATURE_DISABLED_BY_DEFAULT}; // always disabled in Bromite
+-    "PermissionGeolocationPredictions", base::FEATURE_DISABLED_BY_DEFAULT}; // always disabled in Bromite
++    "PermissionGeolocationPredictions", base::FEATURE_ENABLED_BY_DEFAULT};
  
  const base::FeatureParam<double>
      kPermissionGeolocationPredictionsHoldbackChance(
 diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/optimization_guide/core/hints_fetcher.cc
 --- a/components/optimization_guide/core/hints_fetcher.cc
 +++ b/components/optimization_guide/core/hints_fetcher.cc
-@@ -176,6 +176,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
+@@ -176,7 +176,6 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
      optimization_guide::proto::RequestContext request_context,
      const std::string& locale,
      HintsFetchedCallback hints_fetched_callback) {
-+  if ((true)) return false;
+-  if ((true)) return false;
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
    DCHECK_GT(optimization_types.size(), 0u);
    request_context_ = request_context;
 diff --git a/components/optimization_guide/core/hints_manager.cc b/components/optimization_guide/core/hints_manager.cc
 --- a/components/optimization_guide/core/hints_manager.cc
 +++ b/components/optimization_guide/core/hints_manager.cc
-@@ -361,6 +361,7 @@ void HintsManager::Shutdown() {
+@@ -361,7 +361,6 @@ void HintsManager::Shutdown() {
  OptimizationGuideDecision
  HintsManager::GetOptimizationGuideDecisionFromOptimizationTypeDecision(
      OptimizationTypeDecision optimization_type_decision) {
-+  if ((true)) return OptimizationGuideDecision::kFalse;
+-  if ((true)) return OptimizationGuideDecision::kFalse;
    switch (optimization_type_decision) {
      case OptimizationTypeDecision::kAllowedByOptimizationFilter:
      case OptimizationTypeDecision::kAllowedByHint:
-@@ -1272,6 +1273,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
+@@ -1273,9 +1272,6 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
      proto::OptimizationType optimization_type,
      OptimizationMetadata* optimization_metadata) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-+  if ((true)) {
-+    return OptimizationTypeDecision::kNoHintAvailable;
-+  }
+-  if ((true)) {
+-    return OptimizationTypeDecision::kNoHintAvailable;
+-  }
  
    ScopedCanApplyOptimizationLogger scoped_logger(
        optimization_type, navigation_url, optimization_guide_logger_);
@@ -103,21 +108,21 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  // Enables the syncing of the Optimization Hints component, which provides
  // hints for what optimizations can be applied on a page load.
--const base::Feature kOptimizationHints{"OptimizationHints",
--                                       base::FEATURE_ENABLED_BY_DEFAULT};
-+const base::Feature kOptimizationHints{"OptimizationHints",                   // disabled by default
-+                                       base::FEATURE_DISABLED_BY_DEFAULT};    // in Bromite
+-const base::Feature kOptimizationHints{"OptimizationHints",                   // disabled by default
+-                                       base::FEATURE_DISABLED_BY_DEFAULT};    // in Bromite
++const base::Feature kOptimizationHints{"OptimizationHints",
++                                       base::FEATURE_ENABLED_BY_DEFAULT};
  
  // Enables fetching from a remote Optimization Guide Service.
  const base::Feature kRemoteOptimizationGuideFetching{
--    "OptimizationHintsFetching", base::FEATURE_ENABLED_BY_DEFAULT};
-+    "OptimizationHintsFetching", base::FEATURE_DISABLED_BY_DEFAULT};          // disabled by default in Bromite
+-    "OptimizationHintsFetching", base::FEATURE_DISABLED_BY_DEFAULT};          // disabled by default in Bromite
++    "OptimizationHintsFetching", base::FEATURE_ENABLED_BY_DEFAULT};
  
  const base::Feature kRemoteOptimizationGuideFetchingAnonymousDataConsent{
--    "OptimizationHintsFetchingAnonymousDataConsent",
--    base::FEATURE_ENABLED_BY_DEFAULT};
-+    "OptimizationHintsFetchingAnonymousDataConsent",                          // disabled by default
-+    base::FEATURE_DISABLED_BY_DEFAULT};                                       // in Bromite
+-    "OptimizationHintsFetchingAnonymousDataConsent",                          // disabled by default
+-    base::FEATURE_DISABLED_BY_DEFAULT};                                       // in Bromite
++    "OptimizationHintsFetchingAnonymousDataConsent",
++    base::FEATURE_ENABLED_BY_DEFAULT};
  
  // Enables performance info in the context menu and fetching from a remote
  // Optimization Guide Service.
@@ -125,18 +130,18 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  // Enables the prediction of optimization targets.
  const base::Feature kOptimizationTargetPrediction{
--    "OptimizationTargetPrediction", base::FEATURE_ENABLED_BY_DEFAULT};
-+    "OptimizationTargetPrediction", base::FEATURE_DISABLED_BY_DEFAULT};        // disabled by default in Bromite
+-    "OptimizationTargetPrediction", base::FEATURE_DISABLED_BY_DEFAULT};        // disabled by default in Bromite
++    "OptimizationTargetPrediction", base::FEATURE_ENABLED_BY_DEFAULT};
  
  // Enables the downloading of models.
  const base::Feature kOptimizationGuideModelDownloading {
    "OptimizationGuideModelDownloading",
  #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
--      base::FEATURE_ENABLED_BY_DEFAULT
--#else   // BUILD_WITH_TFLITE_LIB
-       base::FEATURE_DISABLED_BY_DEFAULT
-+#else   // BUILD_WITH_TFLITE_LIB
-+      base::FEATURE_DISABLED_BY_DEFAULT // guard this
+-      base::FEATURE_DISABLED_BY_DEFAULT
++      base::FEATURE_ENABLED_BY_DEFAULT
+ #else   // BUILD_WITH_TFLITE_LIB
+-      base::FEATURE_DISABLED_BY_DEFAULT // guard this
++      base::FEATURE_DISABLED_BY_DEFAULT
  #endif  // !BUILD_WITH_TFLITE_LIB
  };
  
@@ -144,8 +149,8 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  // Enables push notification of hints.
  const base::Feature kPushNotifications{"OptimizationGuidePushNotifications",
--                                       base::FEATURE_DISABLED_BY_DEFAULT};
-+                                       base::FEATURE_DISABLED_BY_DEFAULT}; // guard this
+-                                       base::FEATURE_DISABLED_BY_DEFAULT}; // guard this
++                                       base::FEATURE_DISABLED_BY_DEFAULT};
  
  // This feature flag does not turn off any behavior, it is only used for
  // experiment parameters.
@@ -153,14 +158,14 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
      "OptimizationGuideMetadataValidation", base::FEATURE_DISABLED_BY_DEFAULT};
  
  const base::Feature kPageTopicsBatchAnnotations{
--    "PageTopicsBatchAnnotations", base::FEATURE_ENABLED_BY_DEFAULT};
-+    "PageTopicsBatchAnnotations", base::FEATURE_DISABLED_BY_DEFAULT};
+-    "PageTopicsBatchAnnotations", base::FEATURE_DISABLED_BY_DEFAULT};
++    "PageTopicsBatchAnnotations", base::FEATURE_ENABLED_BY_DEFAULT};
  const base::Feature kPageVisibilityBatchAnnotations{
      "PageVisibilityBatchAnnotations", base::FEATURE_ENABLED_BY_DEFAULT};
  
  const base::Feature kUseLocalPageEntitiesMetadataProvider{
--    "UseLocalPageEntitiesMetadataProvider", base::FEATURE_DISABLED_BY_DEFAULT};
-+    "UseLocalPageEntitiesMetadataProvider", base::FEATURE_DISABLED_BY_DEFAULT}; // guard this
+-    "UseLocalPageEntitiesMetadataProvider", base::FEATURE_DISABLED_BY_DEFAULT}; // guard this
++    "UseLocalPageEntitiesMetadataProvider", base::FEATURE_DISABLED_BY_DEFAULT};
  
  const base::Feature kPageContentAnnotationsValidation{
      "PageContentAnnotationsValidation", base::FEATURE_DISABLED_BY_DEFAULT};
@@ -168,8 +173,8 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  bool ShouldPersistHintsToDisk() {
    return GetFieldTrialParamByFeatureAsBool(kOptimizationHints,
--                                           "persist_hints_to_disk", true);
-+                                           "persist_hints_to_disk", false);
+-                                           "persist_hints_to_disk", false);
++                                           "persist_hints_to_disk", true);
  }
  
  bool ShouldOverrideOptimizationTargetDecisionForMetricsPurposes(
@@ -180,8 +185,8 @@ diff --git a/components/optimization_guide/core/prediction_model_download_manage
  // we require models to come from.
  constexpr uint8_t kPublisherKeyHash[] = {
      0x66, 0xa1, 0xd9, 0x3e, 0x4e, 0x5a, 0x66, 0x8a, 0x0f, 0xd3, 0xfa,
--    0xa3, 0x70, 0x71, 0x42, 0x16, 0x0d, 0x2d, 0x68, 0xb0, 0x53, 0x02,
-+    0x01, 0x02, 0x03, 0x04, 0x16, 0x0d, 0x2d, 0x68, 0xb0, 0x53, 0x02,
+-    0x01, 0x02, 0x03, 0x04, 0x16, 0x0d, 0x2d, 0x68, 0xb0, 0x53, 0x02,
++    0xa3, 0x70, 0x71, 0x42, 0x16, 0x0d, 0x2d, 0x68, 0xb0, 0x53, 0x02,
      0x5c, 0x7f, 0xd0, 0x0c, 0xa1, 0x6e, 0xef, 0xdd, 0x63, 0x7a};
  const net::NetworkTrafficAnnotationTag
      kOptimizationGuidePredictionModelsTrafficAnnotation =
@@ -189,49 +194,49 @@ diff --git a/components/optimization_guide/core/prediction_model_download_manage
      const base::FilePath& models_dir_path,
      scoped_refptr<base::SequencedTaskRunner> background_task_runner)
      : download_service_(download_service),
--      is_available_for_downloads_(true),
-+      is_available_for_downloads_(false),
+-      is_available_for_downloads_(false),
++      is_available_for_downloads_(true),
        api_key_(features::GetOptimizationGuideServiceAPIKey()),
        models_dir_path_(models_dir_path),
        background_task_runner_(background_task_runner) {}
-@@ -114,6 +114,7 @@ base::FilePath::StringType PredictionModelDownloadManager::ModelInfoFileName() {
+@@ -114,7 +114,6 @@ base::FilePath::StringType PredictionModelDownloadManager::ModelInfoFileName() {
  void PredictionModelDownloadManager::StartDownload(
      const GURL& download_url,
      proto::OptimizationTarget optimization_target) {
-+  if ((true)) return;
+-  if ((true)) return;
    download::DownloadParams download_params;
    download_params.client =
        download::DownloadClient::OPTIMIZATION_GUIDE_PREDICTION_MODELS;
-@@ -250,6 +251,7 @@ void PredictionModelDownloadManager::OnDownloadFailed(
+@@ -251,7 +250,6 @@ void PredictionModelDownloadManager::OnDownloadFailed(
  absl::optional<std::pair<base::FilePath, base::FilePath>>
  PredictionModelDownloadManager::VerifyDownload(const base::FilePath& file_path,
                                                 bool delete_file_on_error) {
-+  if ((true)) return absl::nullopt;
+-  if ((true)) return absl::nullopt;
    if (!switches::ShouldSkipModelDownloadVerificationForTesting()) {
      // Verify that the |file_path| contains a valid CRX file.
      std::string public_key;
 diff --git a/components/optimization_guide/core/prediction_model_fetcher_impl.cc b/components/optimization_guide/core/prediction_model_fetcher_impl.cc
 --- a/components/optimization_guide/core/prediction_model_fetcher_impl.cc
 +++ b/components/optimization_guide/core/prediction_model_fetcher_impl.cc
-@@ -50,6 +50,7 @@ bool PredictionModelFetcherImpl::FetchOptimizationGuideServiceModels(
+@@ -50,7 +50,6 @@ bool PredictionModelFetcherImpl::FetchOptimizationGuideServiceModels(
      proto::RequestContext request_context,
      const std::string& locale,
      ModelsFetchedCallback models_fetched_callback) {
-+  if ((true)) return false;
+-  if ((true)) return false;
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
  
    if (url_loader_)
 diff --git a/components/optimization_guide/features.gni b/components/optimization_guide/features.gni
 --- a/components/optimization_guide/features.gni
 +++ b/components/optimization_guide/features.gni
-@@ -10,9 +10,7 @@ if (is_android) {
+@@ -10,7 +10,9 @@ if (is_android) {
  declare_args() {
    # This enables build with TFLite library.
    # Currently only available for Desktop and Android.
--  build_with_tflite_lib =
--      is_android || (is_win && target_cpu != "arm64") || is_linux || is_mac ||
--      is_chromeos || is_fuchsia || is_ios
-+  build_with_tflite_lib = false
+-  build_with_tflite_lib = false
++  build_with_tflite_lib =
++      is_android || (is_win && target_cpu != "arm64") || is_linux || is_mac ||
++      is_chromeos || is_fuchsia || is_ios
  
    # You can set the variable 'build_with_internal_optimization_guide' to true
    # even in a developer build in args.gn.  Setting this variable explicitly to true will
@@ -242,8 +247,8 @@ diff --git a/components/permissions/features.cc b/components/permissions/feature
  
  const base::Feature kPermissionOnDeviceNotificationPredictions{
      "PermissionOnDeviceNotificationPredictions",
--    base::FEATURE_ENABLED_BY_DEFAULT};
-+    base::FEATURE_DISABLED_BY_DEFAULT}; // guard this
+-    base::FEATURE_DISABLED_BY_DEFAULT}; // guard this
++    base::FEATURE_ENABLED_BY_DEFAULT};
  
  #if BUILDFLAG(IS_ANDROID)
  
@@ -254,8 +259,8 @@ diff --git a/components/segmentation_platform/public/features.cc b/components/se
  const base::Feature kSegmentationPlatformFeedSegmentFeature{
    "SegmentationPlatformFeedSegmentFeature",
  #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
--      base::FEATURE_ENABLED_BY_DEFAULT
-+      base::FEATURE_DISABLED_BY_DEFAULT
+-      base::FEATURE_DISABLED_BY_DEFAULT
++      base::FEATURE_ENABLED_BY_DEFAULT
  };
  #else
        base::FEATURE_DISABLED_BY_DEFAULT
@@ -266,8 +271,8 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  const base::Feature kNavigationPredictor {
    "NavigationPredictor",
  #if BUILDFLAG(IS_ANDROID)
--      base::FEATURE_ENABLED_BY_DEFAULT
-+      base::FEATURE_DISABLED_BY_DEFAULT
+-      base::FEATURE_DISABLED_BY_DEFAULT
++      base::FEATURE_ENABLED_BY_DEFAULT
  #else
        base::FEATURE_DISABLED_BY_DEFAULT
  #endif
