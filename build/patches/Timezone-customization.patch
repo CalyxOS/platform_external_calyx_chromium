@@ -63,11 +63,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
  /**
   * A SiteSettingsDelegate instance that contains Chrome-specific Site Settings logic.
   */
-@@ -222,4 +226,16 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
-         new SettingsLauncherImpl().launchSettingsActivity(
-                 currentActivity, ClearBrowsingDataTabsFragment.class);
+@@ -212,6 +216,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
+         }
      }
-+
+ 
 +    // open wiki page for documentation about the timezone override feature
 +    @Override
 +    public void launchTimeZoneOverrideHelpAndFeedbackActivity(Activity currentActivity) {
@@ -79,7 +78,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
 +        intent.setPackage(currentActivity.getPackageName());
 +        currentActivity.startActivity(intent);
 +    }
- }
++
+     @Override
+     public boolean canLaunchClearBrowsingDataDialog() {
+         return true;
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
@@ -616,13 +618,15 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
-@@ -140,4 +140,6 @@ public interface SiteSettingsDelegate {
-      * Called when the view this delegate is assigned to gets destroyed.
+@@ -125,6 +125,8 @@ public interface SiteSettingsDelegate {
       */
-     void onDestroyView();
-+
+     void dismissPrivacySandboxSnackbar();
+ 
 +    void launchTimeZoneOverrideHelpAndFeedbackActivity(Activity currentActivity);
- }
++
+     /**
+      * Returns whether the current implementation of the delegate is able to launch the Clear
+      * Browsing Data dialog in Settings.
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
 new file mode 100755
 index 0000000000000000000000000000000000000000..f43c133c736a96e7d1dbe93d4096a5dd8027063d
@@ -837,7 +841,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +            if (exception == null) {
 +                exception = new ContentSettingException(
 +                        ContentSettingsType.TIMEZONE_OVERRIDE, getAddress().getHost(), value, "",
-+                         /*isEmbargoed=*/false);
++                        /*isEmbargoed=*/false);
 +                setContentSettingException(type, exception);
 +            }
          }
@@ -1353,14 +1357,16 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
 diff --git a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java b/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
 --- a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
 +++ b/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
-@@ -148,4 +148,7 @@ public class WebLayerSiteSettingsDelegate
- 
+@@ -138,6 +138,9 @@ public class WebLayerSiteSettingsDelegate
      @Override
-     public void onDestroyView() {}
-+
+     public void dismissPrivacySandboxSnackbar() {}
+ 
 +    @Override
 +    public void launchTimeZoneOverrideHelpAndFeedbackActivity(Activity currentActivity) {}
- }
++
+     @Override
+     public boolean canLaunchClearBrowsingDataDialog() {
+         return false;
 -- 
 2.37.3
 
