@@ -88,9 +88,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/permissions/permission_prompt.h    |  3 +-
  components/permissions/permission_request.cc  | 34 +++++++-
  components/permissions/permission_request.h   | 17 +++-
- .../permissions/permission_request_manager.cc | 38 ++++++---
+ .../permissions/permission_request_manager.cc | 37 ++++++---
  .../permissions/permission_request_manager.h  | 11 ++-
- 38 files changed, 481 insertions(+), 62 deletions(-)
+ 38 files changed, 480 insertions(+), 62 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -1369,7 +1369,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    }
    FinalizeCurrentRequests(PermissionAction::DENIED);
  }
-@@ -892,25 +903,26 @@ PermissionRequest* PermissionRequestManager::GetExistingRequest(
+@@ -892,25 +903,25 @@ PermissionRequest* PermissionRequestManager::GetExistingRequest(
  
  void PermissionRequestManager::PermissionGrantedIncludingDuplicates(
      PermissionRequest* request,
@@ -1388,8 +1388,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
  
  void PermissionRequestManager::PermissionDeniedIncludingDuplicates(
 -    PermissionRequest* request) {
-+    PermissionRequest* request, bool is_one_time,
-+    content_settings::LifetimeMode lifetime_option) {
++    PermissionRequest* request, bool is_one_time, content_settings::LifetimeMode lifetime_option) {
    DCHECK_EQ(1ul, base::STLCount(requests_, request) +
                       pending_permission_requests_.Count(request))
        << "Only requests in [pending_permission_]requests_ can have duplicates";
@@ -1402,7 +1401,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
  }
  
  void PermissionRequestManager::CancelledIncludingDuplicates(
-@@ -1090,7 +1102,7 @@ void PermissionRequestManager::LogWarningToConsole(const char* message) {
+@@ -1090,7 +1101,7 @@ void PermissionRequestManager::LogWarningToConsole(const char* message) {
  void PermissionRequestManager::DoAutoResponseForTesting() {
    switch (auto_response_for_test_) {
      case ACCEPT_ONCE:

@@ -10,30 +10,30 @@ Also added the disabling of blink features through the DisabledForBromite tag
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../java/res/xml/privacy_preferences.xml      |  4 --
- .../privacy/settings/PrivacySettings.java     | 22 -----------
+ .../java/res/xml/privacy_preferences.xml      |  4 ---
+ .../privacy/settings/PrivacySettings.java     | 22 ------------
  .../browser/chrome_content_browser_client.cc  |  3 ++
  .../history/core/browser/history_backend.cc   | 13 +------
  .../history/core/browser/history_service.cc   |  2 +-
  .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
- .../privacy_sandbox_settings.cc               | 37 +++++++++++--------
+ .../privacy_sandbox_settings.cc               | 35 +++++++++++--------
  .../privacy_sandbox_settings.h                |  1 -
- 8 files changed, 28 insertions(+), 56 deletions(-)
+ 8 files changed, 26 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -50,10 +50,6 @@
-           android:summary="@string/autocomplete_searches_and_urls_summary"
-           android:persistent="false"/>
-     </PreferenceCategory>
+@@ -41,10 +41,6 @@
+         android:fragment="org.chromium.chrome.browser.privacy.settings.DoNotTrackSettings"
+         android:key="do_not_track"
+         android:title="@string/do_not_track_title"/>
 -    <Preference
 -        android:key="privacy_sandbox"
 -        android:title="@string/prefs_privacy_sandbox"
 -        android:fragment="org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsFragment"/>
-     <Preference
-         android:key="phone_as_a_security_key"
-         android:title="@string/cablev2_paask_title"
+     <PreferenceCategory
+         android:key="services_category"
+         android:title="@string/services_category_title">
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
@@ -173,18 +173,19 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings.cc b/components
    auto* blocked_topics =
        pref_service_->GetList(prefs::kPrivacySandboxBlockedTopics);
  
-@@ -181,7 +182,9 @@ base::Time PrivacySandboxSettings::TopicsDataAccessibleSince() const {
+@@ -181,9 +182,8 @@ base::Time PrivacySandboxSettings::TopicsDataAccessibleSince() const {
  
  bool PrivacySandboxSettings::IsConversionMeasurementAllowed(
      const url::Origin& top_frame_origin,
 -    const url::Origin& reporting_origin) const {
+-  return IsPrivacySandboxEnabledForContext(reporting_origin.GetURL(),
+-                                           top_frame_origin);
 +    const url::Origin& reporting_origin) const { // disabled in Bromite
-+  if ((true)) return false;
-+
-   return IsPrivacySandboxEnabledForContext(reporting_origin.GetURL(),
-                                            top_frame_origin);
++  return false;
  }
-@@ -277,7 +280,8 @@ void PrivacySandboxSettings::ClearFledgeJoiningAllowedSettings(
+ 
+ bool PrivacySandboxSettings::ShouldSendConversionReport(
+@@ -277,7 +277,8 @@ void PrivacySandboxSettings::ClearFledgeJoiningAllowedSettings(
  }
  
  bool PrivacySandboxSettings::IsFledgeJoiningAllowed(
@@ -194,17 +195,18 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings.cc b/components
    DictionaryPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
    auto* pref_data = scoped_pref_update.Get();
-@@ -328,7 +332,8 @@ bool PrivacySandboxSettings::IsSharedStorageAllowed(
+@@ -328,7 +329,9 @@ bool PrivacySandboxSettings::IsSharedStorageAllowed(
                                             top_frame_origin);
  }
  
 -bool PrivacySandboxSettings::IsPrivacySandboxEnabled() const {
 +bool PrivacySandboxSettings::IsPrivacySandboxEnabled() const { // disabled in Bromite
-+  if ((true)) return false;
++  if ((true))
++    return false;
    // If the delegate is restricting access the Privacy Sandbox is disabled.
    if (delegate_->IsPrivacySandboxRestricted())
      return false;
-@@ -343,7 +348,7 @@ bool PrivacySandboxSettings::IsPrivacySandboxEnabled() const {
+@@ -343,7 +346,7 @@ bool PrivacySandboxSettings::IsPrivacySandboxEnabled() const {
    // settings is available.
    if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings3)) {
      // For Privacy Sandbox Settings 3, APIs are disabled in incognito.
@@ -213,7 +215,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings.cc b/components
        return false;
  
      if (should_override_setting_for_local_testing) {
-@@ -361,7 +366,8 @@ bool PrivacySandboxSettings::IsPrivacySandboxEnabled() const {
+@@ -361,7 +364,8 @@ bool PrivacySandboxSettings::IsPrivacySandboxEnabled() const {
    return pref_service_->GetBoolean(prefs::kPrivacySandboxApisEnabled);
  }
  
@@ -223,7 +225,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings.cc b/components
    // Only apply the decision to the appropriate preference.
    if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings3)) {
      pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
-@@ -370,7 +376,8 @@ void PrivacySandboxSettings::SetPrivacySandboxEnabled(bool enabled) {
+@@ -370,7 +374,8 @@ void PrivacySandboxSettings::SetPrivacySandboxEnabled(bool enabled) {
    }
  }
  
@@ -233,18 +235,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings.cc b/components
    // The PrivacySandboxSettings is only involved in Trust Token access
    // decisions when the Release 3 flag is enabled.
    if (!base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings3))
-@@ -414,8 +421,8 @@ PrivacySandboxSettings::PrivacySandboxSettings() = default;
- 
- bool PrivacySandboxSettings::IsPrivacySandboxEnabledForContext(
-     const GURL& url,
--    const absl::optional<url::Origin>& top_frame_origin) const {
--  if (!IsPrivacySandboxEnabled())
-+    const absl::optional<url::Origin>& top_frame_origin) const { // always disable this in Bromite
-+  if ((true))
-     return false;
- 
-   // Third party cookies must also be available for this context. An empty site
-@@ -424,9 +431,9 @@ bool PrivacySandboxSettings::IsPrivacySandboxEnabledForContext(
+@@ -424,9 +429,9 @@ bool PrivacySandboxSettings::IsPrivacySandboxEnabledForContext(
                                                       top_frame_origin);
  }
  
