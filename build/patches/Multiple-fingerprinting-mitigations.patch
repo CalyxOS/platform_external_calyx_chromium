@@ -195,11 +195,10 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #include "base/notreached.h"
  #include "base/time/time.h"
  #include "cc/animation/animation_host.h"
-@@ -2231,6 +2232,23 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
- #if DCHECK_IS_ON()
-   AssertLayoutTreeUpdated(*this, true /* allow_dirty_container_subtrees */);
- #endif
-+
+@@ -806,6 +807,15 @@ Document::Document(const DocumentInit& initializer,
+               ? MakeGarbageCollected<RenderBlockingResourceManager>(*this)
+               : nullptr),
+       data_(MakeGarbageCollected<DocumentData>(GetExecutionContext())) {
 +  if (RuntimeEnabledFeatures::FingerprintingClientRectsNoiseEnabled()) {
 +    // Precompute -0.0003% to 0.0003% noise factor for get*ClientRect*() fingerprinting
 +    noise_factor_x_ = 1 + (base::RandDouble() - 0.5) * 0.000003;
@@ -208,17 +207,25 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 +    noise_factor_x_ = 1;
 +    noise_factor_y_ = 1;
 +  }
-+}
 +
+   if (base::FeatureList::IsEnabled(features::kDelayAsyncScriptExecution))
+     script_runner_delayer_->Activate();
+ 
+@@ -2233,6 +2243,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
+ #endif
+ }
+ 
 +double Document::GetNoiseFactorX() {
 +  return noise_factor_x_;
 +}
 +
 +double Document::GetNoiseFactorY() {
 +  return noise_factor_y_;
- }
- 
++}
++
  void Document::InvalidateStyleAndLayoutForFontUpdates() {
+   DCHECK(IsActive());
+   DCHECK(IsMainThread());
 diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/renderer/core/dom/document.h
 --- a/third_party/blink/renderer/core/dom/document.h
 +++ b/third_party/blink/renderer/core/dom/document.h
@@ -246,7 +253,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/
 diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
 --- a/third_party/blink/renderer/core/dom/element.cc
 +++ b/third_party/blink/renderer/core/dom/element.cc
-@@ -2110,6 +2110,7 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
+@@ -2111,6 +2111,7 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
        quads.push_back(element_layout_object->LocalToAbsoluteQuad(
            gfx::QuadF(element_layout_object->ObjectBoundingBox())));
      }
@@ -254,7 +261,7 @@ diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/
      return;
    }
  
-@@ -2117,6 +2118,11 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
+@@ -2118,6 +2119,11 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
    if (element_layout_object->IsBoxModelObject() ||
        element_layout_object->IsBR())
      element_layout_object->AbsoluteQuads(quads);
@@ -266,7 +273,7 @@ diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/
  }
  
  DOMRectList* Element::getClientRects() {
-@@ -2148,6 +2154,9 @@ gfx::RectF Element::GetBoundingClientRectNoLifecycleUpdate() const {
+@@ -2149,6 +2155,9 @@ gfx::RectF Element::GetBoundingClientRectNoLifecycleUpdate() const {
    DCHECK(element_layout_object);
    GetDocument().AdjustRectForScrollAndAbsoluteZoom(result,
                                                     *element_layout_object);
@@ -465,7 +472,7 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_c
  #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
  #include "third_party/blink/renderer/platform/graphics/stroke_data.h"
  #include "third_party/blink/renderer/platform/graphics/video_frame_image_util.h"
-@@ -2094,6 +2095,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
+@@ -2072,6 +2073,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
            snapshot->PaintImageForCurrentFrame().GetSkImageInfo().bounds();
        DCHECK(!bounds.intersect(SkIRect::MakeXYWH(sx, sy, sw, sh)));
      }
@@ -835,5 +842,5 @@ index 0000000000000000000000000000000000000000..28d542c0e999bb5b740cc5f92e5f3c77
 +
 +#endif  // THIRD_PARTY_UNGOOGLED_FINGERPRINTING_SWITCHES_H_
 -- 
-2.37.3
+2.38.1
 
