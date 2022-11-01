@@ -47,13 +47,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../lookalike_url_controller_client.cc        |  4 -
  .../metrics/chrome_metrics_service_client.cc  |  3 -
  ...ial_comparison_cert_verifier_controller.cc |  3 -
- .../chrome_password_manager_client.cc         | 28 ++-----
+ .../chrome_password_manager_client.cc         | 27 +------
  .../permissions/chrome_permissions_client.cc  | 14 ----
  .../permissions/chrome_permissions_client.h   |  3 -
  .../permission_revocation_request.cc          |  6 ++
  ...quiet_notification_permission_ui_config.cc |  4 +-
  chrome/browser/prefs/browser_prefs.cc         |  3 +
- ...hrome_browser_main_extra_parts_profiles.cc |  3 +-
+ ...hrome_browser_main_extra_parts_profiles.cc |  4 +-
  chrome/browser/profiles/profile_impl.cc       |  4 +-
  chrome/browser/safe_browsing/BUILD.gn         |  4 +-
  chrome/browser/safe_browsing/android/BUILD.gn |  4 -
@@ -91,7 +91,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../file_system_access_permission_context.h   |  6 --
  weblayer/BUILD.gn                             |  4 -
  weblayer/test/BUILD.gn                        |  1 -
- 82 files changed, 210 insertions(+), 694 deletions(-)
+ 82 files changed, 209 insertions(+), 695 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/google_services_preferences.xml b/chrome/android/java/res/xml/google_services_preferences.xml
 --- a/chrome/android/java/res/xml/google_services_preferences.xml
@@ -1742,22 +1742,22 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  
  void ChromeFileSystemAccessPermissionContext::
      DidConfirmSensitiveDirectoryAccess(
-@@ -1233,6 +1241,7 @@ void ChromeFileSystemAccessPermissionContext::
+@@ -1232,6 +1240,7 @@ void ChromeFileSystemAccessPermissionContext::
+         base::OnceCallback<void(SensitiveEntryResult)> callback,
          bool should_block) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-   if (!should_block) {
 +#if defined(FULL_SAFE_BROWSING)
+   if (!should_block) {
      // If attempting to save a file with a dangerous extension, prompt the user
      // to make them confirm they actually want to save the file.
-     if (dialog_type == ui::SelectFileDialog::SELECT_SAVEAS_FILE) {
-@@ -1254,6 +1263,7 @@ void ChromeFileSystemAccessPermissionContext::
-         return;
-       }
-     }
-+#endif
+@@ -1257,6 +1266,7 @@ void ChromeFileSystemAccessPermissionContext::
      std::move(callback).Run(SensitiveEntryResult::kAllowed);
      return;
    }
++#endif
+ 
+   auto result_callback =
+       BindResultCallbackToCurrentSequence(std::move(callback));
 diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permission_context.h b/chrome/browser/file_system_access/chrome_file_system_access_permission_context.h
 --- a/chrome/browser/file_system_access/chrome_file_system_access_permission_context.h
 +++ b/chrome/browser/file_system_access/chrome_file_system_access_permission_context.h
@@ -1829,12 +1829,11 @@ diff --git a/chrome/browser/net/trial_comparison_cert_verifier_controller.cc b/c
 diff --git a/chrome/browser/password_manager/chrome_password_manager_client.cc b/chrome/browser/password_manager/chrome_password_manager_client.cc
 --- a/chrome/browser/password_manager/chrome_password_manager_client.cc
 +++ b/chrome/browser/password_manager/chrome_password_manager_client.cc
-@@ -117,10 +117,11 @@
+@@ -117,10 +117,10 @@
  #include "ui/base/data_transfer_policy/data_transfer_endpoint.h"
  #include "url/url_constants.h"
  
 +#include "third_party/blink/public/mojom/clipboard/clipboard.mojom.h"
-+#include "ui/base/clipboard/clipboard.h"
  #if BUILDFLAG(SAFE_BROWSING_AVAILABLE)
  #include "chrome/browser/safe_browsing/advanced_protection_status_manager.h"
  #include "chrome/browser/safe_browsing/advanced_protection_status_manager_factory.h"
@@ -1842,7 +1841,7 @@ diff --git a/chrome/browser/password_manager/chrome_password_manager_client.cc b
  #endif
  
  #if BUILDFLAG(IS_ANDROID)
-@@ -887,21 +888,13 @@ autofill::LanguageCode ChromePasswordManagerClient::GetPageLanguage() const {
+@@ -887,21 +887,13 @@ autofill::LanguageCode ChromePasswordManagerClient::GetPageLanguage() const {
  
  safe_browsing::PasswordProtectionService*
  ChromePasswordManagerClient::GetPasswordProtectionService() const {
@@ -1865,7 +1864,7 @@ diff --git a/chrome/browser/password_manager/chrome_password_manager_client.cc b
  }
  #endif  // defined(ON_FOCUS_PING_ENABLED)
  
-@@ -911,22 +904,9 @@ void ChromePasswordManagerClient::CheckProtectedPasswordEntry(
+@@ -911,22 +903,9 @@ void ChromePasswordManagerClient::CheckProtectedPasswordEntry(
      const std::vector<password_manager::MatchingReusedCredential>&
          matching_reused_credentials,
      bool password_field_exists) {
@@ -1888,7 +1887,7 @@ diff --git a/chrome/browser/password_manager/chrome_password_manager_client.cc b
  }
  
  #if !BUILDFLAG(IS_ANDROID)
-@@ -1547,6 +1527,7 @@ bool ChromePasswordManagerClient::IsPasswordManagementEnabledForCurrentPage(
+@@ -1547,6 +1526,7 @@ bool ChromePasswordManagerClient::IsPasswordManagementEnabledForCurrentPage(
      is_enabled = false;
    }
  
@@ -1896,7 +1895,7 @@ diff --git a/chrome/browser/password_manager/chrome_password_manager_client.cc b
    // SafeBrowsing Delayed Warnings experiment can delay some SafeBrowsing
    // warnings until user interaction. If the current page has a delayed warning,
    // it'll have a user interaction observer attached. Disable password
-@@ -1557,6 +1538,7 @@ bool ChromePasswordManagerClient::IsPasswordManagementEnabledForCurrentPage(
+@@ -1557,6 +1537,7 @@ bool ChromePasswordManagerClient::IsPasswordManagementEnabledForCurrentPage(
      observer->OnPasswordSaveOrAutofillDenied();
      is_enabled = false;
    }
@@ -2031,7 +2030,15 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #include "chrome/browser/safe_browsing/tailored_security/tailored_security_service_factory.h"
  #include "chrome/browser/search_engines/template_url_fetcher_factory.h"
  #include "chrome/browser/search_engines/template_url_service_factory.h"
-@@ -582,7 +581,9 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -354,7 +353,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+   CertDbInitializerFactory::GetInstance();
+ #endif
+ #if BUILDFLAG(SAFE_BROWSING_AVAILABLE)
+-  CertificateReportingServiceFactory::GetInstance();
+ #endif
+ #if !BUILDFLAG(IS_ANDROID)
+   ChromeBrowsingDataLifetimeManagerFactory::GetInstance();
+@@ -582,7 +580,9 @@ void ChromeBrowserMainExtraPartsProfiles::
    }
  #endif
    TabRestoreServiceFactory::GetInstance();
@@ -3058,5 +3065,5 @@ diff --git a/weblayer/test/BUILD.gn b/weblayer/test/BUILD.gn
        "//components/safe_browsing/content/common:interfaces",
        "//components/safe_browsing/core/browser:token_fetcher",
 -- 
-2.37.3
+2.38.1
 

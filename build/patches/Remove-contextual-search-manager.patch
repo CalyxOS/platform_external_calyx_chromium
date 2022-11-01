@@ -31,16 +31,17 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../privacy/settings/PrivacySettings.java     |  9 --
  .../chrome/browser/tab/TabHelpers.java        |  2 -
  .../tabbed_mode/TabbedRootUiCoordinator.java  |  5 +-
- .../chrome/browser/ui/RootUiCoordinator.java  | 27 +-----
+ .../chrome/browser/ui/RootUiCoordinator.java  | 37 +-------
  chrome/browser/BUILD.gn                       | 17 ----
  chrome/browser/about_flags.cc                 | 25 ------
- .../flags/android/chrome_feature_list.cc      |  1 -
+ .../flags/android/chrome_feature_list.cc      | 36 --------
+ .../flags/android/chrome_feature_list.h       |  8 --
  ...nfiguration_policy_handler_list_factory.cc |  6 +-
  .../strings/android_chrome_strings.grd        | 59 -------------
  content/browser/browser_interface_binders.cc  |  1 -
  third_party/blink/public/mojom/BUILD.gn       |  2 +-
  third_party/blink/public/public_features.gni  |  2 +-
- 36 files changed, 17 insertions(+), 535 deletions(-)
+ 37 files changed, 17 insertions(+), 588 deletions(-)
  delete mode 100644 chrome/android/java/res/layout/contextual_search_caption_view.xml
  delete mode 100644 chrome/android/java/res/layout/contextual_search_card_icon_view.xml
  delete mode 100644 chrome/android/java/res/layout/contextual_search_context_view.xml
@@ -926,7 +927,23 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
  import org.chromium.chrome.browser.crash.ChromePureJavaExceptionReporter;
  import org.chromium.chrome.browser.directactions.DirectActionInitializer;
  import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
-@@ -254,7 +253,6 @@ public class RootUiCoordinator
+@@ -96,7 +95,6 @@ import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
+ import org.chromium.chrome.browser.price_tracking.PriceTrackingButtonController;
+ import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
+-import org.chromium.chrome.browser.segmentation_platform.ContextualPageActionController;
+ import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
+ import org.chromium.chrome.browser.share.ShareButtonController;
+ import org.chromium.chrome.browser.share.ShareDelegate;
+@@ -241,7 +239,6 @@ public class RootUiCoordinator
+     private List<ButtonDataProvider> mButtonDataProviders;
+     @Nullable
+     private AdaptiveToolbarButtonController mAdaptiveToolbarButtonController;
+-    private ContextualPageActionController mContextualPageActionController;
+     private IdentityDiscController mIdentityDiscController;
+     private ChromeActionModeHandler mChromeActionModeHandler;
+     private final ToolbarActionModeCallback mActionModeControllerCallback;
+@@ -254,7 +251,6 @@ public class RootUiCoordinator
      private final ObservableSupplier<TabBookmarker> mTabBookmarkerSupplier;
      private final OneshotSupplierImpl<AppMenuCoordinator> mAppMenuSupplier;
      private BottomSheetObserver mBottomSheetObserver;
@@ -934,7 +951,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
      protected final CallbackController mCallbackController;
      protected final BrowserControlsManager mBrowserControlsManager;
      private BrowserControlsStateProvider.Observer mBrowserControlsObserver;
-@@ -359,7 +357,7 @@ public class RootUiCoordinator
+@@ -359,7 +355,7 @@ public class RootUiCoordinator
              @NonNull ObservableSupplier<Profile> profileSupplier,
              @NonNull ObservableSupplier<BookmarkBridge> bookmarkBridgeSupplier,
              @NonNull ObservableSupplier<TabBookmarker> tabBookmarkerSupplier,
@@ -943,7 +960,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
              @NonNull ObservableSupplier<TabModelSelector> tabModelSelectorSupplier,
              @NonNull OneshotSupplier<StartSurface> startSurfaceSupplier,
              @NonNull OneshotSupplier<TabSwitcher> tabSwitcherSupplier,
-@@ -452,7 +450,6 @@ public class RootUiCoordinator
+@@ -452,7 +448,6 @@ public class RootUiCoordinator
          mBookmarkBridgeSupplier = bookmarkBridgeSupplier;
          mTabBookmarkerSupplier = tabBookmarkerSupplier;
          mAppMenuSupplier = new OneshotSupplierImpl<>();
@@ -951,7 +968,19 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
          mActionModeControllerCallback = new ToolbarActionModeCallback();
  
          mTabModelSelectorSupplier = tabModelSelectorSupplier;
-@@ -997,15 +994,6 @@ public class RootUiCoordinator
+@@ -556,11 +551,6 @@ public class RootUiCoordinator
+             mToolbarManager = null;
+         }
+ 
+-        if (mContextualPageActionController != null) {
+-            mContextualPageActionController.destroy();
+-            mContextualPageActionController = null;
+-        }
+-
+         if (mAdaptiveToolbarButtonController != null) {
+             mAdaptiveToolbarButtonController.destroy();
+             mAdaptiveToolbarButtonController = null;
+@@ -997,15 +987,6 @@ public class RootUiCoordinator
  
      @Override
      public boolean canShowAppMenu() {
@@ -967,7 +996,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
          // Do not show the menu if we are in find in page view.
          if (mFindToolbarManager != null && mFindToolbarManager.isShowing()
                  && !DeviceFormFactor.isNonMultiDisplayContextOnTablet(mActivity)) {
-@@ -1222,10 +1210,6 @@ public class RootUiCoordinator
+@@ -1150,9 +1131,6 @@ public class RootUiCoordinator
+                     AdaptiveToolbarButtonVariant.VOICE, voiceToolbarButtonController);
+             adaptiveToolbarButtonController.addButtonVariant(
+                     AdaptiveToolbarButtonVariant.PRICE_TRACKING, priceTrackingButtonController);
+-            mContextualPageActionController = new ContextualPageActionController(mProfileSupplier,
+-                    mActivityTabProvider, mActivityLifecycleDispatcher, mActivity.getResources(),
+-                    adaptiveToolbarButtonController);
+             mButtonDataProviders =
+                     Arrays.asList(mIdentityDiscController, adaptiveToolbarButtonController);
+ 
+@@ -1222,10 +1200,6 @@ public class RootUiCoordinator
              public void onStartedShowing(int layoutType, boolean showToolbar) {
                  if (layoutType != LayoutType.BROWSING
                          && layoutType != LayoutType.SIMPLE_ANIMATION) {
@@ -978,7 +1017,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                  }
  
                  if (layoutType == LayoutType.TAB_SWITCHER) {
-@@ -1351,10 +1335,6 @@ public class RootUiCoordinator
+@@ -1351,10 +1325,6 @@ public class RootUiCoordinator
       * cross-feature interaction, e.g. hide other features when this feature is shown.
       */
      protected void onFindToolbarShown() {
@@ -989,7 +1028,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
      }
  
      /**
-@@ -1499,9 +1479,6 @@ public class RootUiCoordinator
+@@ -1499,9 +1469,6 @@ public class RootUiCoordinator
                      case SheetState.FULL:
                          if (!mOpened) {
                              mOpened = true;
@@ -999,7 +1038,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                          }
  
                          // On visible bottom sheet, hide page zoom dialog
-@@ -1509,8 +1486,6 @@ public class RootUiCoordinator
+@@ -1509,8 +1476,6 @@ public class RootUiCoordinator
                          break;
                      case SheetState.HIDDEN:
                          mOpened = false;
@@ -1101,14 +1140,81 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -220,7 +220,6 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -35,7 +35,6 @@
+ #include "components/content_creation/notes/core/note_features.h"
+ #include "components/content_creation/reactions/core/reactions_features.h"
+ #include "components/content_settings/core/common/features.h"
+-#include "components/contextual_search/core/browser/contextual_search_field_trial.h"
+ #include "components/download/public/common/download_features.h"
+ #include "components/embedder_support/android/util/cdn_utils.h"
+ #include "components/feature_engagement/public/feature_list.h"
+@@ -221,15 +220,6 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kContextMenuSearchAndShopWithGoogleLens,
      &kContextMenuTranslateWithGoogleLens,
      &kContextMenuPopupStyle,
 -    &kContextualSearchDebug,
-     &kContextualSearchDelayedIntelligence,
-     &kContextualSearchDisableOnlineDetection,
-     &kContextualSearchForceCaption,
+-    &kContextualSearchDelayedIntelligence,
+-    &kContextualSearchDisableOnlineDetection,
+-    &kContextualSearchForceCaption,
+-    &kContextualSearchSuppressShortView,
+-    &kContextualSearchThinWebViewImplementation,
+-    &kContextualTriggersSelectionHandles,
+-    &kContextualTriggersSelectionMenu,
+-    &kContextualTriggersSelectionSize,
+     &kDelayToolbarUpdateOnLoadStarted,
+     &kDirectActions,
+     &kDisableCompositedProgressBar,
+@@ -630,32 +620,6 @@ const base::Feature kLensCameraAssistedSearch{"LensCameraAssistedSearch",
+ const base::Feature kLensOnQuickActionSearchWidget{
+     "LensOnQuickActionSearchWidget", base::FEATURE_ENABLED_BY_DEFAULT};
+ 
+-const base::Feature kContextualSearchDelayedIntelligence{
+-    "ContextualSearchDelayedIntelligence", base::FEATURE_DISABLED_BY_DEFAULT};
+-
+-const base::Feature kContextualSearchDisableOnlineDetection{
+-    "ContextualSearchDisableOnlineDetection",
+-    base::FEATURE_DISABLED_BY_DEFAULT};
+-
+-const base::Feature kContextualSearchForceCaption{
+-    "ContextualSearchForceCaption", base::FEATURE_DISABLED_BY_DEFAULT};
+-
+-const base::Feature kContextualSearchSuppressShortView{
+-    "ContextualSearchSuppressShortView", base::FEATURE_DISABLED_BY_DEFAULT};
+-
+-const base::Feature kContextualSearchThinWebViewImplementation{
+-    "ContextualSearchThinWebViewImplementation",
+-    base::FEATURE_DISABLED_BY_DEFAULT};
+-
+-const base::Feature kContextualTriggersSelectionHandles{
+-    "ContextualTriggersSelectionHandles", base::FEATURE_DISABLED_BY_DEFAULT};
+-
+-const base::Feature kContextualTriggersSelectionMenu{
+-    "ContextualTriggersSelectionMenu", base::FEATURE_DISABLED_BY_DEFAULT};
+-
+-const base::Feature kContextualTriggersSelectionSize{
+-    "ContextualTriggersSelectionSize", base::FEATURE_DISABLED_BY_DEFAULT};
+-
+ const base::Feature kDelayToolbarUpdateOnLoadStarted{
+     "DelayToolbarUpdateOnLoadStarted", base::FEATURE_DISABLED_BY_DEFAULT};
+ 
+diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
+--- a/chrome/browser/flags/android/chrome_feature_list.h
++++ b/chrome/browser/flags/android/chrome_feature_list.h
+@@ -74,14 +74,6 @@ extern const base::Feature kContextMenuSearchWithGoogleLens;
+ extern const base::Feature kContextMenuShopWithGoogleLens;
+ extern const base::Feature kContextMenuSearchAndShopWithGoogleLens;
+ extern const base::Feature kContextMenuTranslateWithGoogleLens;
+-extern const base::Feature kContextualSearchDelayedIntelligence;
+-extern const base::Feature kContextualSearchDisableOnlineDetection;
+-extern const base::Feature kContextualSearchForceCaption;
+-extern const base::Feature kContextualSearchSuppressShortView;
+-extern const base::Feature kContextualSearchThinWebViewImplementation;
+-extern const base::Feature kContextualTriggersSelectionHandles;
+-extern const base::Feature kContextualTriggersSelectionMenu;
+-extern const base::Feature kContextualTriggersSelectionSize;
+ extern const base::Feature kDelayToolbarUpdateOnLoadStarted;
+ extern const base::Feature kDirectActions;
+ extern const base::Feature kDisableCompositedProgressBar;
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
@@ -1245,5 +1351,5 @@ diff --git a/third_party/blink/public/public_features.gni b/third_party/blink/pu
  # Use Minikin hyphenation engine.
  use_minikin_hyphenation = !is_mac
 -- 
-2.37.3
+2.38.1
 
