@@ -17,13 +17,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chrome/browser/ui/RootUiCoordinator.java  |  23 +---
  chrome/browser/ui/android/omnibox/BUILD.gn    |   6 -
  .../chrome/browser/omnibox/LocationBar.java   |   6 -
- .../omnibox/LocationBarCoordinator.java       |  13 --
- .../browser/omnibox/LocationBarMediator.java  | 111 +-----------------
+ .../omnibox/LocationBarCoordinator.java       |  13 ---
+ .../browser/omnibox/LocationBarMediator.java  | 110 +-----------------
  .../chrome/browser/omnibox/OmniboxStub.java   |   8 --
  .../suggestions/AutocompleteController.java   |  21 ----
  .../suggestions/AutocompleteCoordinator.java  |   8 --
  .../suggestions/AutocompleteMediator.java     |   9 --
- 19 files changed, 12 insertions(+), 357 deletions(-)
+ 19 files changed, 12 insertions(+), 356 deletions(-)
 
 diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
 --- a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
@@ -81,7 +81,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessIni
  import org.chromium.chrome.browser.optimization_guide.OptimizationGuideBridgeFactory;
  import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
  import org.chromium.chrome.browser.photo_picker.DecoderService;
-@@ -432,10 +431,6 @@ public class ProcessInitializationHandler {
+@@ -431,10 +430,6 @@ public class ProcessInitializationHandler {
          deferredStartupHandler.addDeferredTask(
                  () -> OfflineMeasurementsBackgroundTask.clearPersistedDataFromPrefs());
          deferredStartupHandler.addDeferredTask(() -> QueryTileUtils.isQueryTilesEnabledOnNTP());
@@ -481,8 +481,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
 -import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler;
  import org.chromium.chrome.browser.page_info.ChromePageInfo;
  import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
- import org.chromium.chrome.browser.price_tracking.PriceTrackingFeatures;
-@@ -2068,11 +2067,6 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+ import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManagerImpl;
+@@ -2051,11 +2050,6 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
          return mLocationBar.getOmniboxStub();
      }
  
@@ -497,7 +497,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
-@@ -88,8 +88,6 @@ import org.chromium.chrome.browser.messages.MessagesResourceMapperInitializer;
+@@ -87,8 +87,6 @@ import org.chromium.chrome.browser.messages.MessagesResourceMapperInitializer;
  import org.chromium.chrome.browser.omnibox.OmniboxFocusReason;
  import org.chromium.chrome.browser.omnibox.geo.GeolocationHeader;
  import org.chromium.chrome.browser.omnibox.suggestions.OmniboxPedalDelegate;
@@ -505,8 +505,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
 -import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler.VoiceInteractionSource;
  import org.chromium.chrome.browser.paint_preview.DemoPaintPreview;
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
- import org.chromium.chrome.browser.price_tracking.PriceTrackingButtonController;
-@@ -271,7 +269,6 @@ public class RootUiCoordinator
+ import org.chromium.chrome.browser.profiles.Profile;
+@@ -266,7 +264,6 @@ public class RootUiCoordinator
      protected OneshotSupplierImpl<Boolean> mPromoShownOneshotSupplier = new OneshotSupplierImpl<>();
      protected Supplier<Tab> mStartSurfaceParentTabSupplier;
      @Nullable
@@ -514,7 +514,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
      private MediaCaptureOverlayController mCaptureController;
      private @Nullable ScrollCaptureManager mScrollCaptureManager;
      protected final ActivityLifecycleDispatcher mActivityLifecycleDispatcher;
-@@ -546,9 +543,6 @@ public class RootUiCoordinator
+@@ -541,9 +538,6 @@ public class RootUiCoordinator
          }
  
          if (mToolbarManager != null) {
@@ -524,7 +524,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
              mToolbarManager.destroy();
              mToolbarManager = null;
          }
-@@ -1101,19 +1095,11 @@ public class RootUiCoordinator
+@@ -1077,19 +1071,11 @@ public class RootUiCoordinator
                      new VoiceToolbarButtonController.VoiceSearchDelegate() {
                          @Override
                          public boolean isVoiceSearchEnabled() {
@@ -545,7 +545,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                          }
                      };
              VoiceToolbarButtonController voiceToolbarButtonController =
-@@ -1166,13 +1152,6 @@ public class RootUiCoordinator
+@@ -1137,13 +1123,6 @@ public class RootUiCoordinator
              if (!mSupportsAppMenuSupplier.getAsBoolean()) {
                  mToolbarManager.getToolbar().disableMenuButton();
              }
@@ -780,18 +780,17 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      /**
       * Update visuals to use a correct color scheme depending on the primary color.
       */
-@@ -1046,9 +984,7 @@ class LocationBarMediator
-     }
+@@ -1047,8 +985,7 @@ class LocationBarMediator
  
      private boolean shouldShowMicButton() {
--        if (shouldShowDeleteButton()) return false;
+         if (shouldShowDeleteButton()) return false;
 -        if (!mNativeInitialized || mVoiceRecognitionHandler == null
 -                || !mVoiceRecognitionHandler.isVoiceSearchEnabled()) {
 +        if ((true)) {
              return false;
          }
          boolean isToolbarMicEnabled = mIsToolbarMicEnabledSupplier.getAsBoolean();
-@@ -1211,9 +1147,6 @@ class LocationBarMediator
+@@ -1211,9 +1148,6 @@ class LocationBarMediator
      public void onPrimaryColorChanged() {
          // This method needs to be called first as it computes |mBrandedColorScheme|.
          updateBrandedColorScheme();
@@ -801,7 +800,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      }
  
      @Override
-@@ -1285,16 +1218,6 @@ class LocationBarMediator
+@@ -1285,16 +1219,6 @@ class LocationBarMediator
          }
      }
  
@@ -818,7 +817,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      @Override
      public void addUrlFocusChangeListener(UrlFocusChangeListener listener) {
          mUrlFocusChangeListeners.addObserver(listener);
-@@ -1310,37 +1233,10 @@ class LocationBarMediator
+@@ -1310,37 +1234,10 @@ class LocationBarMediator
          return mUrlHasFocus;
      }
  
@@ -856,7 +855,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      public void setSearchQuery(String query) {
          if (TextUtils.isEmpty(query)) return;
  
-@@ -1359,17 +1255,14 @@ class LocationBarMediator
+@@ -1359,17 +1256,14 @@ class LocationBarMediator
          mUrlCoordinator.setKeyboardVisibility(true, false);
      }
  
@@ -995,6 +994,5 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      /**
       * @return The current native pointer to the autocomplete results.
       * TODO(crbug.com/1138587): Figure out how to remove this.
--- 
-2.37.3
-
+--
+2.25.1
