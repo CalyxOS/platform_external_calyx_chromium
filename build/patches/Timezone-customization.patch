@@ -16,7 +16,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../res/xml/site_settings_preferences.xml     |   4 +
  .../java/res/xml/website_preferences.xml      |   9 +
  .../ContentSettingsResources.java             |  35 +++-
- .../site_settings/SingleCategorySettings.java |  77 ++++++-
+ .../site_settings/SingleCategorySettings.java |  78 ++++++-
  .../site_settings/SingleWebsiteSettings.java  |   8 +-
  .../site_settings/SiteSettings.java           |   2 +-
  .../site_settings/SiteSettingsCategory.java   |   9 +-
@@ -44,7 +44,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/content_settings_agent_impl.cc   |  83 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 35 files changed, 701 insertions(+), 15 deletions(-)
+ 35 files changed, 702 insertions(+), 15 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -104,7 +104,6 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    deps = [
 diff --git a/components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml b/components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
 new file mode 100755
-index 0000000000000000000000000000000000000000..05ac75a4cb5cdaff4573775c7da3f641bff87cce
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
 @@ -0,0 +1,36 @@
@@ -147,7 +146,6 @@ index 0000000000000000000000000000000000000000..05ac75a4cb5cdaff4573775c7da3f641
 \ No newline at end of file
 diff --git a/components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml b/components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
 new file mode 100755
-index 0000000000000000000000000000000000000000..e7570d55a1f5e8d77b9670d6754755f410e5783f
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
 @@ -0,0 +1,68 @@
@@ -355,29 +353,30 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  
      // Keys for Allowed/Blocked preference groups/headers.
      private static final String ALLOWED_GROUP = "allowed_group";
-@@ -231,7 +237,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -231,7 +237,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          Integer contentSetting = website.site().getContentSetting(
                  browserContextHandle, mCategory.getContentSettingsType());
          if (contentSetting != null) {
 -            return ContentSettingValues.BLOCK == contentSetting;
-+            if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE)
++            if (mCategory.getContentSettingsType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
 +                return ContentSettingValues.ALLOW != contentSetting;
-+            else
++            } else {
 +                return ContentSettingValues.BLOCK == contentSetting;
++            }
          }
          return false;
      }
-@@ -401,7 +410,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -401,7 +411,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              if (queryHasChanged) getInfoForOrigins();
          });
  
 -        if (getSiteSettingsDelegate().isHelpAndFeedbackEnabled()) {
 +        if (getSiteSettingsDelegate().isHelpAndFeedbackEnabled() ||
-+            mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
++                mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
              MenuItem help = menu.add(
                      Menu.NONE, R.id.menu_id_site_settings_help, Menu.NONE, R.string.menu_help);
              help.setIcon(VectorDrawableCompat.create(
-@@ -412,7 +422,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -412,7 +423,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
      @Override
      public boolean onOptionsItemSelected(MenuItem item) {
          if (item.getItemId() == R.id.menu_id_site_settings_help) {
@@ -389,7 +388,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  getSiteSettingsDelegate().launchProtectedContentHelpAndFeedbackActivity(
                          getActivity());
              } else {
-@@ -507,6 +520,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -507,6 +521,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              WebsitePreferenceBridge.setDefaultContentSetting(
                      browserContextHandle, mCategory.getContentSettingsType(), setting);
              getInfoForOrigins();
@@ -402,7 +401,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          } else if (FOUR_STATE_COOKIE_TOGGLE_KEY.equals(preference.getKey())) {
              setCookieSettingsPreference((CookieSettingsState) newValue);
              getInfoForOrigins();
-@@ -613,6 +632,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -613,6 +633,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
                                 browserContextHandle, ContentSettingsType.FEDERATED_IDENTITY_API)
                      ? R.string.website_settings_add_site_description_federated_identity_block
                      : R.string.website_settings_add_site_description_federated_identity_allow;
@@ -411,7 +410,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          }
          assert resource > 0;
          return getString(resource);
-@@ -653,6 +674,13 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -653,6 +675,13 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          if (mCategory.getType() == SiteSettingsCategory.Type.COOKIES && mRequiresFourStateSetting) {
              setting = cookieSettingsExceptionShouldBlock() ? ContentSettingValues.BLOCK
                                                             : ContentSettingValues.ALLOW;
@@ -425,7 +424,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          } else {
              setting = (WebsitePreferenceBridge.isCategoryEnabled(
                                browserContextHandle, mCategory.getContentSettingsType()))
-@@ -711,6 +739,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -711,6 +740,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              allowSpecifyingExceptions = true;
          } else if (mCategory.getType() == SiteSettingsCategory.Type.FEDERATED_IDENTITY_API) {
              allowSpecifyingExceptions = true;
@@ -434,7 +433,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          }
          if (allowSpecifyingExceptions) {
              getPreferenceScreen().addPreference(new AddExceptionPreference(getStyledContext(),
-@@ -882,7 +912,14 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -882,7 +913,14 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              TriStateSiteSettingsPreference triStateToggle =
                      (TriStateSiteSettingsPreference) getPreferenceScreen().findPreference(
                              TRI_STATE_TOGGLE_KEY);
@@ -450,7 +449,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          } else if (mRequiresFourStateSetting) {
              FourStateCookieSettingsPreference fourStateCookieToggle =
                      (FourStateCookieSettingsPreference) getPreferenceScreen().findPreference(
-@@ -911,6 +948,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -911,6 +949,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
                  (FourStateCookieSettingsPreference) screen.findPreference(
                          FOUR_STATE_COOKIE_TOGGLE_KEY);
          // TODO(crbug.com/1104836): Remove the old third-party cookie blocking UI
@@ -460,7 +459,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          Preference notificationsVibrate = screen.findPreference(NOTIFICATIONS_VIBRATE_TOGGLE_KEY);
          mNotificationsQuietUiPref = screen.findPreference(NOTIFICATIONS_QUIET_UI_TOGGLE_KEY);
          mDesktopSitePeripheralPref = screen.findPreference(DESKTOP_SITE_PERIPHERAL_TOGGLE_KEY);
-@@ -924,20 +964,32 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -924,20 +965,32 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          if (mRequiresTriStateSetting) {
              screen.removePreference(binaryToggle);
              screen.removePreference(fourStateCookieToggle);
@@ -488,13 +487,13 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          if (mCategory.getType() != SiteSettingsCategory.Type.COOKIES) {
              screen.removePreference(screen.findPreference(COOKIE_INFO_TEXT_KEY));
          }
-+        if (!(mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE)) {
++        if (mCategory.getType() != SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
 +            screen.removePreference(screen.findPreference(TIMEOVERRIDE_INFO_TEXT));
 +        }
  
          if (permissionBlockedByOs) {
              maybeShowOsWarning(screen);
-@@ -1067,6 +1119,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1067,6 +1120,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          triStateToggle.initialize(setting, descriptionIds);
      }
  
@@ -510,7 +509,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      private void configureBinaryToggle(ChromeSwitchPreference binaryToggle, int contentType) {
          binaryToggle.setOnPreferenceChangeListener(this);
          binaryToggle.setTitle(ContentSettingsResources.getTitle(contentType));
-@@ -1168,9 +1229,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1168,9 +1230,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
  
          CharSequence[] descriptions = new String[2];
          descriptions[0] =
@@ -629,7 +628,6 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
       * Browsing Data dialog in Settings.
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
 new file mode 100755
-index 0000000000000000000000000000000000000000..f43c133c736a96e7d1dbe93d4096a5dd8027063d
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
 @@ -0,0 +1,193 @@
@@ -989,7 +987,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
    // Obsolete prefs ----------------------------------------------------------
  
    // These prefs have been removed, but need to be registered so they can
-@@ -177,6 +179,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
+@@ -181,6 +183,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
      event_args->set_number_of_exceptions(
          num_exceptions);  // PrefProvider::PrefProvider.
    });
@@ -1000,7 +998,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
  }
  
  PrefProvider::~PrefProvider() {
-@@ -311,4 +317,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
+@@ -315,4 +321,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
    clock_ = clock;
  }
  
@@ -1018,7 +1016,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_pref_provider.h b/components/content_settings/core/browser/content_settings_pref_provider.h
 --- a/components/content_settings/core/browser/content_settings_pref_provider.h
 +++ b/components/content_settings/core/browser/content_settings_pref_provider.h
-@@ -66,6 +66,9 @@ class PrefProvider : public UserModifiableProvider {
+@@ -67,6 +67,9 @@ class PrefProvider : public UserModifiableProvider {
  
    ContentSettingsPref* GetPref(ContentSettingsType type) const;
  
@@ -1028,7 +1026,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
   private:
    friend class DeadlockCheckerObserver;  // For testing.
  
-@@ -97,6 +100,7 @@ class PrefProvider : public UserModifiableProvider {
+@@ -99,6 +102,7 @@ class PrefProvider : public UserModifiableProvider {
    base::ThreadChecker thread_checker_;
  
    raw_ptr<base::Clock> clock_;
@@ -1049,7 +1047,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 +           ValidSettings(CONTENT_SETTING_ALLOW,   // use system time
 +                         CONTENT_SETTING_ASK,     // custom timezone, default UTC
 +                         CONTENT_SETTING_BLOCK),  // random
-+           WebsiteSettingsInfo::TOP_ORIGIN_WITH_RESOURCE_EXCEPTIONS_SCOPE,
++           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
 +           WebsiteSettingsRegistry::PLATFORM_ANDROID,
 +           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
 +           ContentSettingsInfo::PERSISTENT,
@@ -1078,7 +1076,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/browser/host_content_settings_map.cc b/components/content_settings/core/browser/host_content_settings_map.cc
 --- a/components/content_settings/core/browser/host_content_settings_map.cc
 +++ b/components/content_settings/core/browser/host_content_settings_map.cc
-@@ -601,6 +601,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
+@@ -603,6 +603,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
      provider->SetClockForTesting(clock);
  }
  
@@ -1096,7 +1094,7 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/browser/host_content_settings_map.h b/components/content_settings/core/browser/host_content_settings_map.h
 --- a/components/content_settings/core/browser/host_content_settings_map.h
 +++ b/components/content_settings/core/browser/host_content_settings_map.h
-@@ -340,6 +340,9 @@ class HostContentSettingsMap : public content_settings::Observer,
+@@ -341,6 +341,9 @@ class HostContentSettingsMap : public content_settings::Observer,
                                       GURL& secondary_url,
                                       ContentSettingsType content_type);
  
@@ -1367,6 +1365,5 @@ diff --git a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLay
      @Override
      public boolean canLaunchClearBrowsingDataDialog() {
          return false;
--- 
-2.37.3
-
+--
+2.25.1
