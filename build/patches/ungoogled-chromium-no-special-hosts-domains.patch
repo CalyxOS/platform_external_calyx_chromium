@@ -14,13 +14,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../domain_reliability/google_configs.cc      |  10 +-
  .../domain_reliability/google_configs.h       |   8 +-
  components/domain_reliability/uploader.cc     |   2 +-
- components/google/core/common/google_util.cc  | 199 ++----------------
+ components/google/core/common/google_util.cc  | 197 +-----------------
  .../browser/page_load_metrics_util.cc         |   4 +-
  .../common/page_load_metrics_util.cc          |  33 +--
  components/search_engines/template_url.cc     |   6 +-
  net/base/url_util.cc                          |  21 --
  services/network/network_context.cc           |   2 +-
- 13 files changed, 45 insertions(+), 330 deletions(-)
+ 13 files changed, 44 insertions(+), 329 deletions(-)
 
 diff --git a/chrome/browser/domain_reliability/service_factory.cc b/chrome/browser/domain_reliability/service_factory.cc
 --- a/chrome/browser/domain_reliability/service_factory.cc
@@ -401,7 +401,14 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  }
  
  GURL GetGoogleSearchURL(const GURL& google_homepage_url) {
-@@ -222,65 +82,30 @@ bool StartsWithCommandLineGoogleBaseURL(const GURL& url) {
+@@ -223,64 +83,29 @@ bool StartsWithCommandLineGoogleBaseURL(const GURL& url) {
+ bool IsGoogleDomainUrl(const GURL& url,
+                        SubdomainPermission subdomain_permission,
+                        PortPermission port_permission) {
+-  return IsValidURL(url, port_permission) &&
+-         IsCanonicalHostGoogleHostname(url.host_piece(), subdomain_permission);
++  return false;
+ }
  
  bool IsGoogleHostname(base::StringPiece host,
                        SubdomainPermission subdomain_permission) {
@@ -411,15 +418,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 +  return false;
  }
  
- bool IsGoogleDomainUrl(const GURL& url,
-                        SubdomainPermission subdomain_permission,
-                        PortPermission port_permission) {
--  return IsValidURL(url, port_permission) &&
--         IsCanonicalHostGoogleHostname(url.host_piece(), subdomain_permission);
-+  return false;
- }
- 
--bool IsGoogleHomePageUrl(const GURL& url) {
+ bool IsGoogleHomePageUrl(const GURL& url) {
 -  // First check to see if this has a Google domain.
 -  if (!IsGoogleDomainUrl(url, DISALLOW_SUBDOMAIN,
 -                         DISALLOW_NON_STANDARD_PORTS) &&
@@ -431,7 +430,6 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -  base::StringPiece path(url.path_piece());
 -  return IsPathHomePageBase(path) ||
 -         base::StartsWith(path, "/ig", base::CompareCase::INSENSITIVE_ASCII);
-+bool IsGoogleHomePageUrl(const GURL& url) { // disabled in Bromite
 +  return false;
  }
  
@@ -481,7 +479,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 diff --git a/components/page_load_metrics/browser/page_load_metrics_util.cc b/components/page_load_metrics/browser/page_load_metrics_util.cc
 --- a/components/page_load_metrics/browser/page_load_metrics_util.cc
 +++ b/components/page_load_metrics/browser/page_load_metrics_util.cc
-@@ -266,9 +266,7 @@ bool DidObserveLoadingBehaviorInAnyFrame(
+@@ -280,9 +280,7 @@ bool DidObserveLoadingBehaviorInAnyFrame(
  }
  
  bool IsGoogleSearchHostname(const GURL& url) {
@@ -538,15 +536,15 @@ diff --git a/components/page_load_metrics/common/page_load_metrics_util.cc b/com
 diff --git a/components/search_engines/template_url.cc b/components/search_engines/template_url.cc
 --- a/components/search_engines/template_url.cc
 +++ b/components/search_engines/template_url.cc
-@@ -534,11 +534,7 @@ std::u16string TemplateURLRef::SearchTermToString16(
+@@ -535,11 +535,7 @@ std::u16string TemplateURLRef::SearchTermToString16(
  bool TemplateURLRef::HasGoogleBaseURLs(
      const SearchTermsData& search_terms_data) const {
    ParseIfNecessary(search_terms_data);
--  return std::any_of(replacements_.begin(), replacements_.end(),
--                     [](const Replacement& replacement) {
--                       return replacement.type == GOOGLE_BASE_URL ||
--                              replacement.type == GOOGLE_BASE_SUGGEST_URL;
--                     });
+-  return base::ranges::any_of(
+-      replacements_, [](const Replacement& replacement) {
+-        return replacement.type == GOOGLE_BASE_URL ||
+-               replacement.type == GOOGLE_BASE_SUGGEST_URL;
+-      });
 +  return false;
  }
  
@@ -585,7 +583,7 @@ diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -2714,7 +2714,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
+@@ -2718,7 +2718,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
    }
  #endif  // BUILDFLAG(IS_CT_SUPPORTED)
  
