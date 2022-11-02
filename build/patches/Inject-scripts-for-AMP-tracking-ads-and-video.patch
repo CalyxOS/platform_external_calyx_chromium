@@ -9,21 +9,21 @@ Send a random key press to circumvent idle status detection
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- third_party/blink/renderer/core/dom/build.gni |  2 +
- .../blink/renderer/core/dom/document.cc       | 65 +++++++++++++++++++
- .../blink/renderer/core/dom/document.h        |  3 +
- .../core/dom/extensions/anti_amp_cure.h       |  6 ++
- .../core/dom/extensions/video_bg_play.h       |  6 ++
- .../renderer/core/html/html_script_element.cc |  5 ++
- .../renderer/core/html/html_script_element.h  |  1 +
- 7 files changed, 88 insertions(+)
+ third_party/blink/renderer/core/dom/build.gni              | 2 ++
+ third_party/blink/renderer/core/dom/document.cc            | 7 +++++++
+ third_party/blink/renderer/core/dom/document.h             | 3 +++
+ .../blink/renderer/core/dom/extensions/anti_amp_cure.h     | 6 ++++++
+ .../blink/renderer/core/dom/extensions/video_bg_play.h     | 6 ++++++
+ .../blink/renderer/core/html/html_script_element.cc        | 5 +++++
+ third_party/blink/renderer/core/html/html_script_element.h | 1 +
+ 7 files changed, 30 insertions(+)
  create mode 100644 third_party/blink/renderer/core/dom/extensions/anti_amp_cure.h
  create mode 100644 third_party/blink/renderer/core/dom/extensions/video_bg_play.h
 
 diff --git a/third_party/blink/renderer/core/dom/build.gni b/third_party/blink/renderer/core/dom/build.gni
 --- a/third_party/blink/renderer/core/dom/build.gni
 +++ b/third_party/blink/renderer/core/dom/build.gni
-@@ -157,6 +157,8 @@ blink_core_sources_dom = [
+@@ -159,6 +159,8 @@ blink_core_sources_dom = [
    "has_invalidation_flags.h",
    "icon_url.cc",
    "icon_url.h",
@@ -35,7 +35,7 @@ diff --git a/third_party/blink/renderer/core/dom/build.gni b/third_party/blink/r
 diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
 --- a/third_party/blink/renderer/core/dom/document.cc
 +++ b/third_party/blink/renderer/core/dom/document.cc
-@@ -282,6 +282,7 @@
+@@ -283,6 +283,7 @@
  #include "third_party/blink/renderer/core/page/scrolling/root_scroller_controller.h"
  #include "third_party/blink/renderer/core/page/scrolling/scroll_state_callback.h"
  #include "third_party/blink/renderer/core/page/scrolling/scrolling_coordinator.h"
@@ -43,7 +43,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #include "third_party/blink/renderer/core/page/scrolling/snap_coordinator.h"
  #include "third_party/blink/renderer/core/page/scrolling/top_document_root_scroller_controller.h"
  #include "third_party/blink/renderer/core/page/spatial_navigation_controller.h"
-@@ -352,6 +353,8 @@
+@@ -355,6 +356,8 @@
  #include "third_party/blink/renderer/platform/wtf/text/string_buffer.h"
  #include "third_party/blink/renderer/platform/wtf/text/text_encoding_registry.h"
  
@@ -52,74 +52,9 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #ifndef NDEBUG
  using WeakDocumentSet = blink::HeapHashSet<blink::WeakMember<blink::Document>>;
  static WeakDocumentSet& LiveDocumentSet();
-@@ -6790,6 +6793,64 @@ void Document::MarkFirstPaint() {
-   MaybeExecuteDelayedAsyncScripts(MilestoneForDelayedAsyncScript::kFirstPaint);
- }
- 
-+void Document::injectScripts() {
-+  // determine whether this is a search results page
-+  const WTF::String& host = url_.Host();
-+  if ((host == nullptr) || host.IsEmpty())
-+    return;
-+
-+  auto* bodyElement = body();
-+  if (!bodyElement)
-+    return;
-+  int selected = 0;
-+  size_t pos1 = host.Find("www.google."), pos2 = host.Find("news.google."), pos3 = url_.GetPath().Find("/search"), pos4 = host.Find("images.google.");
-+  if (((pos1 == 0) && (pos3 == 0)) || (pos2 == 0) || (pos4 == 0)) {
-+    LOG(INFO) << "injecting AMP removal Javascript payload";
-+    selected = 1;
-+    // check for eligibility of the video bg fix
-+  } else if (
-+              ((WTF::kNotFound != host.Find("youtube.com")) && (WTF::kNotFound == host.Find("accounts.youtube.com"))) ||
-+              (WTF::kNotFound != host.Find("vimeo.com"))
-+            ) {
-+    LOG(INFO) << "injecting video-bg-play Javascript payload";
-+    selected = 2;
-+  } else
-+    return;
-+
-+  // find out which nonce to use
-+  const AtomicString& nonce = findFirstScriptNonce();
-+
-+  HTMLScriptElement* e = MakeGarbageCollected<HTMLScriptElement>(*this, CreateElementFlags());
-+  if (selected == 1)
-+    e->setTextContent(ANTI_AMP_CURE_JS);
-+  else if (selected == 2)
-+    e->setTextContent(VIDEO_BG_PLAY_JS);
-+  else
-+    NOTREACHED();
-+
-+  if (nonce != g_null_atom) {
-+    e->setNonce(nonce);
-+  } else
-+    LOG(WARNING) << "could not find script nonce to use";
-+
-+  bodyElement->AppendChild(e);
-+}
-+
-+const AtomicString& Document::findFirstScriptNonce() {
-+  HTMLCollection* s = scripts();
-+  unsigned source_length = (unsigned)s->length();
-+  // all scripts are likely to have the nonce, thus scan only first 10
-+  if (source_length > 10)
-+    source_length = 10;
-+  for (unsigned i = 0; i < source_length; ++i) {
-+    Element* element = s->item(i);
-+    const AtomicString& nonce = element->nonce();
-+    if ((nonce != g_null_atom) && !nonce.IsEmpty())
-+      return nonce;
-+  }
-+  return g_null_atom;
-+}
-+
- void Document::FinishedParsing() {
-   DCHECK(!GetScriptableDocumentParser() || !parser_->IsParsing());
-   DCHECK(!GetScriptableDocumentParser() || ready_state_ != kLoading);
-@@ -6855,6 +6916,10 @@ void Document::FinishedParsing() {
-     if (frame->GetFrameScheduler())
-       frame->GetFrameScheduler()->OnDomContentLoaded();
+@@ -7124,6 +7127,10 @@ void Document::FinishedParsing() {
+       }
+     }
  
 +    if (!IsPrefetchOnly()) {
 +       injectScripts();
@@ -131,9 +66,9 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/renderer/core/dom/document.h
 --- a/third_party/blink/renderer/core/dom/document.h
 +++ b/third_party/blink/renderer/core/dom/document.h
-@@ -1953,6 +1953,9 @@ class CORE_EXPORT Document : public ContainerNode,
-   void AddAXContext(AXContext*);
-   void RemoveAXContext(AXContext*);
+@@ -1975,6 +1975,9 @@ class CORE_EXPORT Document : public ContainerNode,
+   // Called when the AXMode of an existing AXContext changes.
+   void AXContextModeChanged();
  
 +  void injectScripts();
 +  const AtomicString& findFirstScriptNonce();
