@@ -41,12 +41,11 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chrome/browser/app/ChromeActivity.java    |  76 ------
  .../AutofillAssistantPreferenceFragment.java  |  17 +-
  .../bookmarks/BookmarkItemsAdapter.java       |  56 +----
- .../bookmarks/BookmarkPromoHeader.java        | 229 +-----------------
+ .../bookmarks/BookmarkPromoHeader.java        | 227 +-----------------
  .../ClearBrowsingDataFragment.java            |  77 +-----
  .../ClearBrowsingDataFragmentBasic.java       |  27 +--
- .../contacts_picker/ChromePickerAdapter.java  |  67 +----
+ .../contacts_picker/ChromePickerAdapter.java  |  67 +-----
  .../browser/customtabs/CustomTabActivity.java |   3 -
- .../browser/firstrun/FirstRunActivity.java    |   7 -
  .../firstrun/FirstRunActivityBase.java        |   1 -
  .../firstrun/LightweightFirstRunActivity.java |   4 +-
  ...FirstRunFragmentWithEnterpriseSupport.java |   6 -
@@ -72,8 +71,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/tasks/ReturnToChromeUtil.java     |   9 +-
  chrome/browser/BUILD.gn                       |  11 -
  ...mobile_identity_consistency_field_trial.cc |  15 +-
- .../common_dependencies_chrome.cc             |   5 +-
- chrome/browser/commerce/android/BUILD.gn      |   1 -
+ chrome/browser/commerce/android/BUILD.gn      |   2 -
+ .../PriceNotificationPreferenceFragment.java  |   8 +-
  .../browser/commerce/ShoppingFeatures.java    |  27 +--
  .../price_tracking/PriceTrackingFeatures.java |   9 +-
  .../commerce/subscriptions/android/BUILD.gn   |   1 -
@@ -89,12 +88,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../router/discovery/access_code/BUILD.gn     |   1 -
  .../browser/password_manager/android/BUILD.gn |   4 -
  ...sswordManagerErrorMessageHelperBridge.java |  38 +--
- .../PasswordManagerHelper.java                | 121 +--------
+ .../PasswordManagerHelper.java                | 121 +---------
  ...swordSyncControllerDelegateBridgeImpl.java |   7 -
  chrome/browser/privacy/BUILD.gn               |   1 -
- chrome/browser/privacy_guide/android/BUILD.gn |   1 -
+ chrome/browser/privacy_guide/android/BUILD.gn |   2 -
  .../res/layout/privacy_guide_msbb_step.xml    |   8 -
- .../browser/privacy_guide/MSBBFragment.java   |  13 -
+ .../browser/privacy_guide/MSBBFragment.java   |   9 -
  chrome/browser/search_resumption/BUILD.gn     |   4 -
  .../SearchResumptionModuleMediator.java       |  37 +--
  .../SearchResumptionModuleUtils.java          |  12 -
@@ -115,7 +114,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ui/signin/SyncConsentFragmentBase.java    |  53 +---
  .../ui/signin/SyncPromoController.java        |  15 +-
  .../WebSigninAccountPickerDelegate.java       |  23 --
- .../ui/signin/fre/SigninFirstRunMediator.java |  64 +----
+ .../ui/signin/fre/SigninFirstRunMediator.java |  62 +----
  .../strings/android_chrome_strings.grd        |  18 --
  .../core/browser/leak_detection_delegate.cc   |   2 +-
  .../core/browser/password_form_manager.cc     |  34 +--
@@ -128,7 +127,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ProfileOAuth2TokenServiceDelegate.java    |  52 ----
  .../net/HttpNegotiateAuthenticator.java       |  88 +------
  .../chromoting/base/OAuthTokenFetcher.java    |   2 -
- 109 files changed, 103 insertions(+), 2675 deletions(-)
+ 108 files changed, 102 insertions(+), 2666 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -1380,7 +1379,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkPromoHeader.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkPromoHeader.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkPromoHeader.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkPromoHeader.java
-@@ -14,249 +14,22 @@ import androidx.annotation.VisibleForTesting;
+@@ -14,249 +14,24 @@ import androidx.annotation.VisibleForTesting;
  import androidx.recyclerview.widget.RecyclerView;
  import androidx.recyclerview.widget.RecyclerView.ViewHolder;
  
@@ -1411,9 +1410,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -public class BookmarkPromoHeader implements SyncService.SyncStateChangedListener,
 -                                            SignInStateObserver, ProfileDataCache.Observer,
 -                                            AccountsChangeObserver {
--    // TODO(kkimlabs): Figure out the optimal number based on UMA data.
--    private static final int MAX_SIGNIN_AND_SYNC_PROMO_SHOW_COUNT = 10;
--
++public class BookmarkPromoHeader {
+     // TODO(kkimlabs): Figure out the optimal number based on UMA data.
+     private static final int MAX_SIGNIN_AND_SYNC_PROMO_SHOW_COUNT = 10;
+ 
 -    private static @Nullable @SyncPromoState Integer sPromoStateForTests;
 -
 -    private final Context mContext;
@@ -1425,8 +1425,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -    private final @Nullable SyncPromoController mSyncPromoController;
 -    private @SyncPromoState int mPromoState = SyncPromoState.NO_PROMO;
 -    private final @Nullable SyncService mSyncService;
-+public class BookmarkPromoHeader {
- 
+-
      /**
       * Initializes the class. Note that this will start listening to signin related events and
       * update itself if needed.
@@ -1960,23 +1959,6 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Cust
          mConnection.showSignInToastIfNecessary(mSession, getIntent());
  
          new CustomTabTrustedCdnPublisherUrlVisibility(
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-@@ -186,13 +186,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
- 
-         if (ChromeFeatureList.isEnabled(
-                     ChromeFeatureList.CREATE_SIGNIN_CHECKER_BEFORE_SYNC_CONSENT_FRAGMENT)) {
--            // Initialize SigninChecker, to kick off sign-in for child accounts as early as
--            // possible.
--            //
--            // TODO(b/245912657): explicitly sign in supervised users in {@link
--            // SigninFirstRunMediator#handleContinueWithNative} rather than relying on
--            // SigninChecker.
--            SigninCheckerProvider.get();
-         }
- 
-         mFirstRunFlowSequencer.updateFirstRunProperties(mFreProperties);
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
@@ -3242,7 +3224,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
  import org.chromium.chrome.browser.ui.tablet.emptybackground.EmptyBackgroundViewWrapper;
  import org.chromium.chrome.browser.vr.VrModuleProvider;
 @@ -914,23 +912,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
-             return false;
+         }
      }
  
 -    private boolean maybeShowPromo() {
@@ -3302,7 +3284,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tasks/ReturnToC
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -2004,7 +2004,6 @@ static_library("browser") {
+@@ -2006,7 +2006,6 @@ static_library("browser") {
      "//chrome/browser/share",
      "//chrome/browser/sharing:buildflags",
      "//chrome/browser/sharing/proto",
@@ -3310,7 +3292,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/storage_access_api:permissions",
      "//chrome/browser/thumbnail",
      "//chrome/browser/touch_to_fill",
-@@ -2825,8 +2824,6 @@ static_library("browser") {
+@@ -2827,8 +2826,6 @@ static_library("browser") {
        "android/signin/fre_mobile_identity_consistency_field_trial.h",
        "android/signin/signin_bridge.cc",
        "android/signin/signin_bridge.h",
@@ -3319,7 +3301,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "android/signin/signin_metrics_utils.cc",
        "android/signin/unified_consent_service_bridge.cc",
        "android/signin/web_signin_bridge.cc",
-@@ -3242,8 +3239,6 @@ static_library("browser") {
+@@ -3244,8 +3241,6 @@ static_library("browser") {
        "sharing/sms/sms_fetch_request_handler.h",
        "shell_integration_android.cc",
        "signin/identity_services_provider_android.cc",
@@ -3328,7 +3310,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "ssl/chrome_security_state_client.cc",
        "ssl/chrome_security_state_client.h",
        "ssl/chrome_security_state_model_delegate.cc",
-@@ -3260,8 +3255,6 @@ static_library("browser") {
+@@ -3262,8 +3257,6 @@ static_library("browser") {
        "sync/glue/synced_window_delegate_android.h",
        "sync/glue/synced_window_delegates_getter_android.cc",
        "sync/glue/synced_window_delegates_getter_android.h",
@@ -3337,7 +3319,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "sync/trusted_vault_client_android.cc",
        "sync/trusted_vault_client_android.h",
        "tab/web_contents_state.cc",
-@@ -4596,10 +4589,6 @@ static_library("browser") {
+@@ -4598,10 +4591,6 @@ static_library("browser") {
          "profiles/profile_statistics_factory.h",
          "signin/force_signin_verifier.cc",
          "signin/force_signin_verifier.h",
@@ -3383,35 +3365,50 @@ diff --git a/chrome/browser/android/signin/fre_mobile_identity_consistency_field
  }
  
  }  // namespace fre_mobile_identity_consistency_field_trial
-diff --git a/chrome/browser/autofill_assistant/common_dependencies_chrome.cc b/chrome/browser/autofill_assistant/common_dependencies_chrome.cc
---- a/chrome/browser/autofill_assistant/common_dependencies_chrome.cc
-+++ b/chrome/browser/autofill_assistant/common_dependencies_chrome.cc
-@@ -132,12 +132,11 @@ version_info::Channel CommonDependenciesChrome::GetChannel() const {
- }
- 
- bool CommonDependenciesChrome::GetMakeSearchesAndBrowsingBetterEnabled() const {
--  return GetPrefs()->GetBoolean(
--      unified_consent::prefs::kUrlKeyedAnonymizedDataCollectionEnabled);
-+  return false;
- }
- 
- bool CommonDependenciesChrome::GetMetricsReportingEnabled() const {
--  return ChromeMetricsServiceAccessor::IsMetricsAndCrashReportingEnabled();
-+  return false;
- }
- 
- Profile* CommonDependenciesChrome::GetProfile() const {
 diff --git a/chrome/browser/commerce/android/BUILD.gn b/chrome/browser/commerce/android/BUILD.gn
 --- a/chrome/browser/commerce/android/BUILD.gn
 +++ b/chrome/browser/commerce/android/BUILD.gn
-@@ -23,7 +23,6 @@ android_library("java") {
+@@ -22,8 +22,6 @@ android_library("java") {
+     "//chrome/browser/notifications:java",
      "//chrome/browser/preferences:java",
      "//chrome/browser/profiles/android:java",
-     "//chrome/browser/signin/services/android:java",
+-    "//chrome/browser/signin/services/android:java",
 -    "//chrome/browser/sync/android:java",
      "//components/browser_ui/notifications/android:java",
      "//components/browser_ui/settings/android:java",
      "//components/commerce/core/android:core_java",
+diff --git a/chrome/browser/commerce/android/java/src/org/chromium/chrome/browser/commerce/PriceNotificationPreferenceFragment.java b/chrome/browser/commerce/android/java/src/org/chromium/chrome/browser/commerce/PriceNotificationPreferenceFragment.java
+--- a/chrome/browser/commerce/android/java/src/org/chromium/chrome/browser/commerce/PriceNotificationPreferenceFragment.java
++++ b/chrome/browser/commerce/android/java/src/org/chromium/chrome/browser/commerce/PriceNotificationPreferenceFragment.java
+@@ -20,14 +20,12 @@ import org.chromium.chrome.browser.notifications.channels.ChromeChannelDefinitio
+ import org.chromium.chrome.browser.preferences.Pref;
+ import org.chromium.chrome.browser.preferences.PrefChangeRegistrar;
+ import org.chromium.chrome.browser.profiles.Profile;
+-import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
+ import org.chromium.components.browser_ui.notifications.NotificationManagerProxy;
+ import org.chromium.components.browser_ui.notifications.NotificationManagerProxyImpl;
+ import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
+ import org.chromium.components.browser_ui.settings.SettingsUtils;
+ import org.chromium.components.browser_ui.settings.TextMessagePreference;
+ import org.chromium.components.prefs.PrefService;
+-import org.chromium.components.signin.identitymanager.ConsentLevel;
+ import org.chromium.components.user_prefs.UserPrefs;
+ import org.chromium.ui.text.NoUnderlineClickableSpan;
+ import org.chromium.ui.text.SpanApplier;
+@@ -64,12 +62,8 @@ public class PriceNotificationPreferenceFragment extends PreferenceFragmentCompa
+         mEmailNotificationsSwitch =
+                 (ChromeSwitchPreference) findPreference(PREF_EMAIL_NOTIFICATIONS);
+         mEmailNotificationsSwitch.setOnPreferenceChangeListener(this::onPreferenceChange);
+-        String email = IdentityServicesProvider.get()
+-                               .getIdentityManager(Profile.getLastUsedRegularProfile())
+-                               .getPrimaryAccountInfo(ConsentLevel.SYNC)
+-                               .getEmail();
+         mEmailNotificationsSwitch.setSummary(
+-                getString(R.string.price_notifications_settings_email_description, email));
++                getString(R.string.price_notifications_settings_email_description, "nobody@example.com"));
+         mPrefChangeRegistrar.addObserver(
+                 Pref.PRICE_EMAIL_NOTIFICATIONS_ENABLED, this::updateEmailNotificationSwitch);
+         updateEmailNotificationSwitch();
 diff --git a/chrome/browser/commerce/android/java/src/org/chromium/chrome/browser/commerce/ShoppingFeatures.java b/chrome/browser/commerce/android/java/src/org/chromium/chrome/browser/commerce/ShoppingFeatures.java
 --- a/chrome/browser/commerce/android/java/src/org/chromium/chrome/browser/commerce/ShoppingFeatures.java
 +++ b/chrome/browser/commerce/android/java/src/org/chromium/chrome/browser/commerce/ShoppingFeatures.java
@@ -3986,8 +3983,16 @@ diff --git a/chrome/browser/privacy/BUILD.gn b/chrome/browser/privacy/BUILD.gn
 diff --git a/chrome/browser/privacy_guide/android/BUILD.gn b/chrome/browser/privacy_guide/android/BUILD.gn
 --- a/chrome/browser/privacy_guide/android/BUILD.gn
 +++ b/chrome/browser/privacy_guide/android/BUILD.gn
-@@ -22,7 +22,6 @@ android_library("java") {
+@@ -21,7 +21,6 @@ android_library("java") {
      ":java_resources",
+     "//chrome/browser/profiles/android:java",
+     "//chrome/browser/safe_browsing/android:java",
+-    "//chrome/browser/signin/services/android:java",
+     "//components/browser_ui/bottomsheet/android:java",
+     "//components/browser_ui/site_settings/android:java",
+     "//components/browser_ui/widget/android:java",
+@@ -51,7 +50,6 @@ robolectric_library("junit") {
+     "//base:base_junit_test_support",
      "//chrome/browser/profiles/android:java",
      "//chrome/browser/safe_browsing/android:java",
 -    "//chrome/browser/signin/services/android:java",
@@ -4023,13 +4028,10 @@ diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/b
  
  /**
   * Controls the behaviour of the MSBB privacy guide page.
-@@ -24,16 +23,4 @@ public class MSBBFragment extends Fragment {
-             LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-         return inflater.inflate(R.layout.privacy_guide_msbb_step, container, false);
-     }
--
--    @Override
--    public void onViewCreated(View view, Bundle savedInstanceState) {
+@@ -27,13 +26,5 @@ public class MSBBFragment extends Fragment {
+ 
+     @Override
+     public void onViewCreated(View view, Bundle savedInstanceState) {
 -        SwitchCompat msbbSwitch = view.findViewById(R.id.msbb_switch);
 -        msbbSwitch.setChecked(UnifiedConsentServiceBridge.isUrlKeyedAnonymizedDataCollectionEnabled(
 -                Profile.getLastUsedRegularProfile()));
@@ -4038,7 +4040,7 @@ diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/b
 -                (button, isChecked)
 -                        -> UnifiedConsentServiceBridge.setUrlKeyedAnonymizedDataCollectionEnabled(
 -                                Profile.getLastUsedRegularProfile(), isChecked));
--    }
+     }
  }
 diff --git a/chrome/browser/search_resumption/BUILD.gn b/chrome/browser/search_resumption/BUILD.gn
 --- a/chrome/browser/search_resumption/BUILD.gn
@@ -4909,16 +4911,14 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
 diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
 --- a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
 +++ b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
-@@ -199,11 +199,9 @@ public class SigninFirstRunMediator
-             frePolicy.metricsReportingDisabledByPolicy = isMetricsReportingDisabledByPolicy;
+@@ -200,10 +200,8 @@ public class SigninFirstRunMediator
              mModel.set(SigninFirstRunProperties.FRE_POLICY, frePolicy);
          }
--
+ 
 -        mModel.set(SigninFirstRunProperties.IS_SIGNIN_SUPPORTED,
 -                ExternalAuthUtils.getInstance().canUseGooglePlayServices()
 -                        && !isSigninDisabledByPolicy);
 -        mAllowMetricsAndCrashUploading = !isMetricsReportingDisabledByPolicy;
-+        
 +        mModel.set(SigninFirstRunProperties.IS_SIGNIN_SUPPORTED, false);
 +        mAllowMetricsAndCrashUploading = false;
  
@@ -4966,7 +4966,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
      }
  
      /**
-@@ -370,26 +333,7 @@ public class SigninFirstRunMediator
+@@ -370,26 +333,9 @@ public class SigninFirstRunMediator
  
          mDelegate.recordFreProgressHistogram(MobileFreProgress.WELCOME_DISMISS);
          mDelegate.acceptTermsOfService(mAllowMetricsAndCrashUploading);
@@ -4980,7 +4980,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
 -                    // FirstRunActivity was destroyed while we were waiting for the sign-out.
 -                    return;
 -                }
--
+ 
 -                mDelegate.advanceToNextPage();
 -            };
 -            IdentityServicesProvider.get()
@@ -4990,6 +4990,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
 -        } else {
 -            mDelegate.advanceToNextPage();
 -        }
++        // Bromite: there is no identity provider, always advance to next page
 +        mDelegate.advanceToNextPage();
      }
  
