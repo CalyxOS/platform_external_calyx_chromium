@@ -3,6 +3,8 @@ Date: Fri, 10 Jun 2022 14:20:02 +0200
 Subject: Enable Certificate Transparency
 
 Reporting/auditing functionalities are disabled; a flag is exposed.
+Add guard to make sure that certificate transparency stays enabled
+by default.
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
@@ -13,16 +15,16 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/net/system_network_context_manager.cc  | 4 ----
  chrome/browser/ssl/sct_reporting_service.cc           | 5 +++++
  chrome/common/chrome_features.cc                      | 6 +++---
- net/http/transport_security_state.cc                  | 5 +++--
+ net/http/transport_security_state.cc                  | 9 +++++----
  net/url_request/report_sender.cc                      | 3 ++-
  services/network/network_context.cc                   | 2 +-
  services/network/sct_auditing/sct_auditing_handler.cc | 2 ++
- 11 files changed, 29 insertions(+), 12 deletions(-)
+ 11 files changed, 31 insertions(+), 14 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -8764,6 +8764,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -8763,6 +8763,11 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kWebMidiDescription, kOsAll,
       FEATURE_VALUE_TYPE(features::kWebMidi)},
  #if BUILDFLAG(IS_ANDROID)
@@ -136,17 +138,20 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
    if (g_hsts_source == nullptr)
      return false;
  #endif
-@@ -383,11 +384,11 @@ bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
+@@ -382,12 +383,12 @@ bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
+ }  // namespace
  
  // static
- const base::Feature TransportSecurityState::kDynamicExpectCTFeature{
+-const base::Feature TransportSecurityState::kDynamicExpectCTFeature{
 -    "DynamicExpectCT", base::FEATURE_DISABLED_BY_DEFAULT};
-+    "DynamicExpectCT", base::FEATURE_DISABLED_BY_DEFAULT};                         // disabled in Bromite
++const base::Feature TransportSecurityState::kDynamicExpectCTFeature{   // must stay disabled
++    "DynamicExpectCT", base::FEATURE_DISABLED_BY_DEFAULT};             // in Bromite
  
  // static
- const base::Feature TransportSecurityState::kCertificateTransparencyEnforcement{
+-const base::Feature TransportSecurityState::kCertificateTransparencyEnforcement{
 -    "CertificateTransparencyEnforcement", base::FEATURE_ENABLED_BY_DEFAULT};
-+    "CertificateTransparencyEnforcement", base::FEATURE_ENABLED_BY_DEFAULT};       // always enabled in Bromite
++const base::Feature TransportSecurityState::kCertificateTransparencyEnforcement{   // must stay enabled
++    "CertificateTransparencyEnforcement", base::FEATURE_ENABLED_BY_DEFAULT};       // in Bromite
  
  void SetTransportSecurityStateSourceForTesting(
      const TransportSecurityStateSource* source) {

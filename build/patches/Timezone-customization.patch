@@ -15,7 +15,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  ...ezoneoverride_site_settings_preference.xml |  68 ++++++
  .../res/xml/site_settings_preferences.xml     |   4 +
  .../java/res/xml/website_preferences.xml      |   9 +
- .../ContentSettingsResources.java             |  32 +++
+ .../ContentSettingsResources.java             |  33 +++
  .../site_settings/SingleCategorySettings.java |  72 ++++++-
  .../site_settings/SingleWebsiteSettings.java  |   8 +-
  .../site_settings/SiteSettings.java           |   2 +-
@@ -44,7 +44,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/content_settings_agent_impl.cc   |  83 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 35 files changed, 696 insertions(+), 12 deletions(-)
+ 35 files changed, 697 insertions(+), 12 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -63,8 +63,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
  /**
   * A SiteSettingsDelegate instance that contains Chrome-specific Site Settings logic.
   */
-@@ -217,6 +221,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
-         }
+@@ -232,6 +236,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
+         PrivacySandboxBridge.setFirstPartySetsDataAccessEnabled(enabled);
      }
  
 +    // open wiki page for documentation about the timezone override feature
@@ -80,8 +80,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
 +    }
 +
      @Override
-     public boolean isFirstPartySetsDataAccessEnabled() {
-         return PrivacySandboxBridge.isFirstPartySetsDataAccessEnabled();
+     public boolean canLaunchClearBrowsingDataDialog() {
+         return true;
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
@@ -299,16 +299,17 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      /**
       * Returns the string resource id for a content type to show with a permission category.
       * @param enabled Whether the content type is enabled.
-@@ -438,6 +461,8 @@ public class ContentSettingsResources {
+@@ -438,6 +461,9 @@ public class ContentSettingsResources {
       */
      public static int getSiteSummary(@ContentSettingValues @Nullable Integer value,
              @ContentSettingsType int contentSettingsType) {
 +        if (contentSettingsType == ContentSettingsType.TIMEZONE_OVERRIDE)
 +            return getCategorySummary(contentSettingsType, value);
++
          switch (value) {
              case ContentSettingValues.ALLOW:
                  return contentSettingsType == ContentSettingsType.REQUEST_DESKTOP_SITE
-@@ -547,6 +572,13 @@ public class ContentSettingsResources {
+@@ -547,6 +573,13 @@ public class ContentSettingsResources {
                  return descriptionIDs;
              }
          }
@@ -520,7 +521,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.AR:
                  return "ar_permission_list";
              case ContentSettingsType.MEDIASTREAM_CAMERA:
-@@ -891,11 +893,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -897,11 +899,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          if (value == null) return;
          setUpPreferenceCommon(preference, value);
  
@@ -813,7 +814,7 @@ index 0000000000000000000000000000000000000000..f43c133c736a96e7d1dbe93d4096a5dd
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -231,6 +231,17 @@ public final class Website implements Serializable {
+@@ -226,6 +226,17 @@ public final class Website implements Serializable {
              } else {
                  RecordUserAction.record("SoundContentSetting.UnmuteBy.SiteSettings");
              }
@@ -1341,15 +1342,15 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
 diff --git a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java b/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
 --- a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
 +++ b/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
-@@ -156,6 +156,9 @@ public class WebLayerSiteSettingsDelegate
+@@ -143,6 +143,9 @@ public class WebLayerSiteSettingsDelegate
      @Override
-     public void setFirstPartySetsDataAccessEnabled(boolean enabled) {}
+     public void dismissPrivacySandboxSnackbar() {}
  
 +    @Override
 +    public void launchTimeZoneOverrideHelpAndFeedbackActivity(Activity currentActivity) {}
 +
      @Override
-     public boolean canLaunchClearBrowsingDataDialog() {
+     public boolean isFirstPartySetsDataAccessEnabled() {
          return false;
 -- 
 2.38.1
