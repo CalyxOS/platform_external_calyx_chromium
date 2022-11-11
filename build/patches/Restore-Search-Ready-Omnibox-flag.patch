@@ -1,0 +1,165 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Thu, 10 Oct 2019 23:30:16 +0200
+Subject: Restore Search Ready Omnibox flag
+
+Revert "Cleanup Search Ready Omnibox flag since it has launched"
+This reverts commit ae458edcc8422d0815d0e82261e71fe10d7d6fc2.
+
+Disable search-ready omnibox by default
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ chrome/browser/about_flags.cc                         |  3 +++
+ chrome/browser/flag-metadata.json                     |  5 +++++
+ chrome/browser/flag_descriptions.cc                   |  5 +++++
+ chrome/browser/flag_descriptions.h                    |  3 +++
+ chrome/browser/flags/android/chrome_feature_list.cc   |  4 ++++
+ chrome/browser/flags/android/chrome_feature_list.h    |  1 +
+ .../chrome/browser/flags/ChromeFeatureList.java       |  1 +
+ .../suggestions/DropdownItemViewInfoListBuilder.java  | 11 +++++++++--
+ 8 files changed, 31 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -8844,6 +8844,9 @@ const FeatureEntry kFeatureEntries[] = {
+      flag_descriptions::kPervasiveSystemAccentColorDescription, kOsWin,
+      SINGLE_VALUE_TYPE(switches::kPervasiveSystemAccentColor)},
+ #endif
++    {"enable-search-ready-omnibox", flag_descriptions::kSearchReadyOmniboxName,
++     flag_descriptions::kSearchReadyOmniboxDescription, kOsAndroid,
++     FEATURE_VALUE_TYPE(chrome::android::kSearchReadyOmniboxFeature)},
+ 
+ #if BUILDFLAG(IS_CHROMEOS_ASH)
+     {"use-multiple-overlays", flag_descriptions::kUseMultipleOverlaysName,
+diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
+--- a/chrome/browser/flag-metadata.json
++++ b/chrome/browser/flag-metadata.json
+@@ -2673,6 +2673,11 @@
+     //  with neural net palm detection.
+     "expiry_milestone": 90
+   },
++  {
++    "name": "enable-search-ready-omnibox",
++    "owners": [ "mdjones" ],
++    "expiry_milestone": -1
++  },
+   {
+     "name": "enable-parallel-downloading",
+     "owners": [ "qinmin", "xingliu", "dtrainor" ],
+diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
+--- a/chrome/browser/flag_descriptions.cc
++++ b/chrome/browser/flag_descriptions.cc
+@@ -3959,6 +3959,11 @@ const char kSendTabToSelfV2Description[] =
+     "Enables new received tab "
+     "UI shown next to the profile icon instead of using system notifications.";
+ 
++const char kSearchReadyOmniboxName[] = "Search Ready Omnibox";
++const char kSearchReadyOmniboxDescription[] =
++    "Clears the omnibox and adds a suggestion item to share, copy, or edit the "
++    "URL.";
++
+ const char kSetMarketUrlForTestingName[] = "Set market URL for testing";
+ const char kSetMarketUrlForTestingDescription[] =
+     "When enabled, sets the market URL for use in testing the update menu "
+diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
+--- a/chrome/browser/flag_descriptions.h
++++ b/chrome/browser/flag_descriptions.h
+@@ -2255,6 +2255,9 @@ extern const char kShowScrollableMVTOnNTPAndroidDescription[];
+ extern const char kSendTabToSelfV2Name[];
+ extern const char kSendTabToSelfV2Description[];
+ 
++extern const char kSearchReadyOmniboxName[];
++extern const char kSearchReadyOmniboxDescription[];
++
+ extern const char kSetMarketUrlForTestingName[];
+ extern const char kSetMarketUrlForTestingDescription[];
+ 
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -264,6 +264,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kReachedCodeProfiler,
+     &kReaderModeInCCT,
+     &kReengagementNotification,
++    &kSearchReadyOmniboxFeature,
+     &kRelatedSearches,
+     &kRelatedSearchesAlternateUx,
+     &kRelatedSearchesInBar,
+@@ -805,6 +806,9 @@ const base::Feature kRequestDesktopSiteDefaultsDowngrade{
+ const base::Feature kSafeModeForCachedFlags{"SafeModeForCachedFlags",
+                                             base::FEATURE_DISABLED_BY_DEFAULT};
+ 
++const base::Feature kSearchReadyOmniboxFeature{
++    "SearchReadyOmnibox", base::FEATURE_DISABLED_BY_DEFAULT};
++
+ const base::Feature kShareButtonInTopToolbar{"ShareButtonInTopToolbar",
+                                              base::FEATURE_DISABLED_BY_DEFAULT};
+ 
+diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
+--- a/chrome/browser/flags/android/chrome_feature_list.h
++++ b/chrome/browser/flags/android/chrome_feature_list.h
+@@ -136,6 +136,7 @@ extern const base::Feature kRequestDesktopSiteDefaultsDowngrade;
+ extern const base::Feature kSearchEnginePromoExistingDevice;
+ extern const base::Feature kSearchEnginePromoExistingDeviceV2;
+ extern const base::Feature kSearchEnginePromoNewDevice;
++extern const base::Feature kSearchReadyOmniboxFeature;
+ extern const base::Feature kSearchEnginePromoNewDeviceV2;
+ extern const base::Feature kShareButtonInTopToolbar;
+ extern const base::Feature kSharingHubLinkToggle;
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
+@@ -418,6 +418,7 @@ public abstract class ChromeFeatureList {
+     public static final String MESSAGES_FOR_ANDROID_STACKING_ANIMATION =
+             "MessagesForAndroidStackingAnimation";
+     public static final String MESSAGES_FOR_ANDROID_SYNC_ERROR = "MessagesForAndroidSyncError";
++    public static final String SEARCH_READY_OMNIBOX = "SearchReadyOmnibox";
+     public static final String MODAL_PERMISSION_DIALOG_VIEW = "ModalPermissionDialogView";
+     public static final String METRICS_SETTINGS_ANDROID = "MetricsSettingsAndroid";
+     public static final String MOST_RECENT_TAB_ON_BACKGROUND_CLOSE_TAB =
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListBuilder.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListBuilder.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListBuilder.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListBuilder.java
+@@ -13,6 +13,7 @@ import androidx.annotation.Px;
+ import androidx.annotation.VisibleForTesting;
+ 
+ import org.chromium.base.supplier.Supplier;
++import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.chrome.browser.omnibox.UrlBarEditingTextStateProvider;
+ import org.chromium.chrome.browser.omnibox.suggestions.answer.AnswerSuggestionProcessor;
+ import org.chromium.chrome.browser.omnibox.suggestions.basic.BasicSuggestionProcessor;
+@@ -61,6 +62,7 @@ class DropdownItemViewInfoListBuilder {
+     @Px
+     private int mDropdownHeight;
+     private boolean mBuiltListHasFullyConcealedElements;
++    private EditUrlSuggestionProcessor mEditUrlSuggestionProcessor;
+ 
+     DropdownItemViewInfoListBuilder(@NonNull Supplier<Tab> tabSupplier, BookmarkState bookmarkState,
+             @NonNull OmniboxPedalDelegate omniboxPedalDelegate) {
+@@ -91,8 +93,10 @@ class DropdownItemViewInfoListBuilder {
+         mFaviconFetcher = new FaviconFetcher(context, iconBridgeSupplier);
+ 
+         mHeaderProcessor = new HeaderProcessor(context, host, delegate);
+-        registerSuggestionProcessor(new EditUrlSuggestionProcessor(
+-                context, host, delegate, mFaviconFetcher, mActivityTabSupplier, shareSupplier));
++        mEditUrlSuggestionProcessor = new EditUrlSuggestionProcessor(
++                context, host, delegate, mFaviconFetcher, mActivityTabSupplier, shareSupplier);
++        registerSuggestionProcessor(mEditUrlSuggestionProcessor);
++
+         registerSuggestionProcessor(
+                 new AnswerSuggestionProcessor(context, host, textProvider, imageFetcherSupplier));
+         registerSuggestionProcessor(
+@@ -216,6 +220,9 @@ class DropdownItemViewInfoListBuilder {
+     /** Signals that native initialization has completed. */
+     void onNativeInitialized() {
+         mHeaderProcessor.onNativeInitialized();
++        if (ChromeFeatureList.isEnabled(ChromeFeatureList.SEARCH_READY_OMNIBOX) == false) {
++            mPriorityOrderedSuggestionProcessors.remove(mEditUrlSuggestionProcessor);
++        }
+         for (int index = 0; index < mPriorityOrderedSuggestionProcessors.size(); index++) {
+             mPriorityOrderedSuggestionProcessors.get(index).onNativeInitialized();
+         }
+-- 
+2.38.1
+

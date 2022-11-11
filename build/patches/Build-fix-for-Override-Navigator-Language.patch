@@ -1,0 +1,48 @@
+From: Chirayu Desai <chirayudesai1@gmail.com>
+Date: Fri, 18 Nov 2022 03:18:35 +0530
+Subject: Build fix for "Override Navigator Language"
+
+---
+ .../browser/language/AppLocaleUtils.java      | 20 -------------------
+ 1 file changed, 20 deletions(-)
+
+diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java
+--- a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java
++++ b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java
+@@ -35,10 +35,6 @@ import java.util.Locale;
+ public class AppLocaleUtils {
+     private AppLocaleUtils(){};
+ 
+-    public interface InstallListener {
+-        void onComplete(boolean success);
+-    }
+-
+     // Value of AppLocale preference when the system language is used.
+     public static final String APP_LOCALE_USE_SYSTEM_LANGUAGE = null;
+ 
+@@ -103,22 +99,6 @@ public class AppLocaleUtils {
+         return locale.toLanguageTag();
+     }
+ 
+-    public static void setAppLanguagePref(
+-            String languageName, InstallListener listener) {
+-        InstallListener wrappedListener = (success) -> {
+-            if (success) {
+-                if (shouldUseSystemManagedLocale()) {
+-                    setSystemManagedAppLanguage(languageName);
+-                } else {
+-                    SharedPreferencesManager.getInstance().writeString(
+-                            ChromePreferenceKeys.APPLICATION_OVERRIDE_LANGUAGE, languageName);
+-                }
+-            }
+-            listener.onComplete(success);
+-        };
+-        wrappedListener.onComplete(true);
+-    }
+-
+     /**
+      * Gets the first original system locale from {@link LocaleManager}. This is the language that
+      * Chrome would use if there was no override set. If there are no possible UI languages en-US is
+-- 
+2.38.1
+
