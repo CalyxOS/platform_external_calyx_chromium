@@ -1,0 +1,38 @@
+From d60f9a3cf5f4e8fffe60bf11de8d4d84be38fe73 Mon Sep 17 00:00:00 2001
+From: Chirayu Desai <chirayudesai1@gmail.com>
+Date: Sat, 19 Nov 2022 03:14:18 +0530
+Subject: [PATCH] Restore model name in user agent
+
+* This partially reverts "Client hints overrides"
+* For our usecase, we want to blend in with the stock
+  Pixels running the same Android version (for supported devices),
+  and same Chromium build (given we stick with stable tags)
+
+Test: atest android.webkit.cts.WebSettingsTest#testUserAgentString_default
+---
+ content/common/user_agent.cc | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
+index 79da1f59d92e6..e135cc5a09fc7 100644
+--- a/content/common/user_agent.cc
++++ b/content/common/user_agent.cc
+@@ -323,7 +323,14 @@ std::string BuildUserAgentFromProduct(const std::string& product) {
+ }
+ 
+ std::string BuildModelInfo() {
+-  return "SAMSUNG SM-G960U";
++  std::string model;
++#if BUILDFLAG(IS_ANDROID)
++  // Only send the model information if on the release build of Android,
++  // matching user agent behaviour.
++  if (base::SysInfo::GetAndroidBuildCodename() == "REL")
++    model = base::SysInfo::HardwareModelName();
++#endif
++  return model;
+ }
+ 
+ #if BUILDFLAG(IS_ANDROID)
+-- 
+2.38.1
+
