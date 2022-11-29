@@ -35,7 +35,7 @@ diff --git a/third_party/blink/renderer/core/dom/build.gni b/third_party/blink/r
 diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
 --- a/third_party/blink/renderer/core/dom/document.cc
 +++ b/third_party/blink/renderer/core/dom/document.cc
-@@ -283,6 +283,7 @@
+@@ -284,6 +284,7 @@
  #include "third_party/blink/renderer/core/page/scrolling/root_scroller_controller.h"
  #include "third_party/blink/renderer/core/page/scrolling/scroll_state_callback.h"
  #include "third_party/blink/renderer/core/page/scrolling/scrolling_coordinator.h"
@@ -43,7 +43,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #include "third_party/blink/renderer/core/page/scrolling/snap_coordinator.h"
  #include "third_party/blink/renderer/core/page/scrolling/top_document_root_scroller_controller.h"
  #include "third_party/blink/renderer/core/page/spatial_navigation_controller.h"
-@@ -355,6 +356,8 @@
+@@ -356,6 +357,8 @@
  #include "third_party/blink/renderer/platform/wtf/text/string_buffer.h"
  #include "third_party/blink/renderer/platform/wtf/text/text_encoding_registry.h"
  
@@ -52,14 +52,14 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #ifndef NDEBUG
  using WeakDocumentSet = blink::HeapHashSet<blink::WeakMember<blink::Document>>;
  static WeakDocumentSet& LiveDocumentSet();
-@@ -7065,6 +7068,64 @@ void Document::OnPrepareToStopParsing() {
+@@ -7109,6 +7112,64 @@ void Document::OnPrepareToStopParsing() {
        MilestoneForDelayedAsyncScript::kFinishedParsing);
  }
  
 +void Document::injectScripts() {
 +  // determine whether this is a search results page
 +  const WTF::String& host = url_.Host();
-+  if ((host == nullptr) || host.IsEmpty())
++  if ((host == nullptr) || host.empty())
 +    return;
 +
 +  auto* bodyElement = body();
@@ -108,7 +108,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 +  for (unsigned i = 0; i < source_length; ++i) {
 +    Element* element = s->item(i);
 +    const AtomicString& nonce = element->nonce();
-+    if ((nonce != g_null_atom) && !nonce.IsEmpty())
++    if ((nonce != g_null_atom) && !nonce.empty())
 +      return nonce;
 +  }
 +  return g_null_atom;
@@ -117,9 +117,9 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  void Document::FinishedParsing() {
    DCHECK(!GetScriptableDocumentParser() || !parser_->IsParsing());
    DCHECK(!GetScriptableDocumentParser() || ready_state_ != kLoading);
-@@ -7124,6 +7185,10 @@ void Document::FinishedParsing() {
-       }
-     }
+@@ -7160,6 +7221,10 @@ void Document::FinishedParsing() {
+ 
+     frame->Loader().FinishedParsing();
  
 +    if (!IsPrefetchOnly()) {
 +       injectScripts();
@@ -131,7 +131,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/renderer/core/dom/document.h
 --- a/third_party/blink/renderer/core/dom/document.h
 +++ b/third_party/blink/renderer/core/dom/document.h
-@@ -1975,6 +1975,9 @@ class CORE_EXPORT Document : public ContainerNode,
+@@ -1993,6 +1993,9 @@ class CORE_EXPORT Document : public ContainerNode,
    // Called when the AXMode of an existing AXContext changes.
    void AXContextModeChanged();
  
@@ -143,7 +143,6 @@ diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/
    bool IsDocumentNode() const =
 diff --git a/third_party/blink/renderer/core/dom/extensions/anti_amp_cure.h b/third_party/blink/renderer/core/dom/extensions/anti_amp_cure.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..9922dc460c67151a759aa49d7fe9a9f6c08be092
 --- /dev/null
 +++ b/third_party/blink/renderer/core/dom/extensions/anti_amp_cure.h
 @@ -0,0 +1,6 @@
@@ -155,7 +154,6 @@ index 0000000000000000000000000000000000000000..9922dc460c67151a759aa49d7fe9a9f6
 +#endif  // anti_amp_cure_h
 diff --git a/third_party/blink/renderer/core/dom/extensions/video_bg_play.h b/third_party/blink/renderer/core/dom/extensions/video_bg_play.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..e730bd799a98d0fe65a6959a1b1c15c30d0d1dbf
 --- /dev/null
 +++ b/third_party/blink/renderer/core/dom/extensions/video_bg_play.h
 @@ -0,0 +1,6 @@
@@ -168,8 +166,8 @@ index 0000000000000000000000000000000000000000..e730bd799a98d0fe65a6959a1b1c15c3
 diff --git a/third_party/blink/renderer/core/html/html_script_element.cc b/third_party/blink/renderer/core/html/html_script_element.cc
 --- a/third_party/blink/renderer/core/html/html_script_element.cc
 +++ b/third_party/blink/renderer/core/html/html_script_element.cc
-@@ -194,6 +194,11 @@ void HTMLScriptElement::setTextContent(const String& string) {
-   script_text_internal_slot_ = ParkableString(string.Impl());
+@@ -190,6 +190,11 @@ void HTMLScriptElement::setTextContent(const String& string) {
+   Node::setTextContent(string);
  }
  
 +void HTMLScriptElement::setTextDirect(
@@ -191,6 +189,5 @@ diff --git a/third_party/blink/renderer/core/html/html_script_element.h b/third_
  
    void setAsync(bool);
    bool async() const;
--- 
-2.38.1
-
+--
+2.25.1

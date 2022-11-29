@@ -23,7 +23,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../site_settings/SiteSettingsDelegate.java   |   2 +
  ...imezoneOverrideSiteSettingsPreference.java | 193 ++++++++++++++++++
  .../browser_ui/site_settings/Website.java     |  11 +
- .../WebsitePermissionsFetcher.java            |   3 +
+ .../WebsitePermissionsFetcher.java            |   2 +
  .../WebsitePreferenceBridge.java              |  12 ++
  .../android/website_preference_bridge.cc      |  16 ++
  .../strings/android/site_settings.grdp        |  35 ++++
@@ -44,7 +44,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/content_settings_agent_impl.cc   |  83 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 35 files changed, 697 insertions(+), 12 deletions(-)
+ 35 files changed, 696 insertions(+), 12 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -63,8 +63,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
  /**
   * A SiteSettingsDelegate instance that contains Chrome-specific Site Settings logic.
   */
-@@ -232,6 +236,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
-         PrivacySandboxBridge.setFirstPartySetsDataAccessEnabled(enabled);
+@@ -242,6 +246,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
+         return PrivacySandboxBridge.getFirstPartySetOwner(memberOrigin);
      }
  
 +    // open wiki page for documentation about the timezone override feature
@@ -85,15 +85,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -83,6 +83,7 @@ android_library("java") {
-     "java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java",
+@@ -86,6 +86,7 @@ android_library("java") {
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreference.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java",
+     "java/src/org/chromium/components/browser_ui/site_settings/WebsiteRowPreference.java",
 +    "java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java"
    ]
    annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -211,6 +212,8 @@ android_resources("java_resources") {
+@@ -214,6 +215,8 @@ android_resources("java_resources") {
      "java/res/xml/single_website_preferences.xml",
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/website_preferences.xml",
@@ -104,7 +104,6 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    deps = [
 diff --git a/components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml b/components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
 new file mode 100755
-index 0000000000000000000000000000000000000000..05ac75a4cb5cdaff4573775c7da3f641bff87cce
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
 @@ -0,0 +1,36 @@
@@ -147,7 +146,6 @@ index 0000000000000000000000000000000000000000..05ac75a4cb5cdaff4573775c7da3f641
 \ No newline at end of file
 diff --git a/components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml b/components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
 new file mode 100755
-index 0000000000000000000000000000000000000000..e7570d55a1f5e8d77b9670d6754755f410e5783f
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
 @@ -0,0 +1,68 @@
@@ -512,7 +510,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -135,6 +135,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -138,6 +138,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  return "popup_permission_list";
              case ContentSettingsType.SOUND:
                  return "sound_permission_list";
@@ -521,7 +519,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.AR:
                  return "ar_permission_list";
              case ContentSettingsType.MEDIASTREAM_CAMERA:
-@@ -897,11 +899,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -934,11 +936,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          if (value == null) return;
          setUpPreferenceCommon(preference, value);
  
@@ -536,7 +534,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          switchPreference.setOnPreferenceChangeListener(this);
          @ContentSettingsType
          int contentType = getContentSettingsTypeFromPreferenceKey(preference.getKey());
-@@ -1100,7 +1104,7 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1137,7 +1141,7 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          }
  
          mSite.setContentSetting(browserContextHandle, type, permission);
@@ -603,9 +601,9 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
-@@ -145,6 +145,8 @@ public interface SiteSettingsDelegate {
+@@ -158,6 +158,8 @@ public interface SiteSettingsDelegate {
       */
-     void setFirstPartySetsDataAccessEnabled(boolean enabled);
+     String getFirstPartySetOwner(String memberOrigin);
  
 +    void launchTimeZoneOverrideHelpAndFeedbackActivity(Activity currentActivity);
 +
@@ -614,7 +612,6 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
       * Browsing Data dialog in Settings.
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
 new file mode 100755
-index 0000000000000000000000000000000000000000..f43c133c736a96e7d1dbe93d4096a5dd8027063d
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
 @@ -0,0 +1,193 @@
@@ -814,7 +811,7 @@ index 0000000000000000000000000000000000000000..f43c133c736a96e7d1dbe93d4096a5dd
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -226,6 +226,17 @@ public final class Website implements Serializable {
+@@ -243,6 +243,17 @@ public final class Website implements WebsiteEntry {
              } else {
                  RecordUserAction.record("SoundContentSetting.UnmuteBy.SiteSettings");
              }
@@ -835,7 +832,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
-@@ -68,6 +68,7 @@ public class WebsitePermissionsFetcher {
+@@ -71,6 +71,7 @@ public class WebsitePermissionsFetcher {
              case ContentSettingsType.POPUPS:
              case ContentSettingsType.REQUEST_DESKTOP_SITE:
              case ContentSettingsType.SOUND:
@@ -843,19 +840,18 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  return WebsitePermissionsType.CONTENT_SETTING_EXCEPTION;
              case ContentSettingsType.AR:
              case ContentSettingsType.CLIPBOARD_READ_WRITE:
-@@ -148,6 +149,8 @@ public class WebsitePermissionsFetcher {
-         for (@ContentSettingsType int type = 0; type < ContentSettingsType.NUM_TYPES; type++) {
-             addFetcherForContentSettingsType(queue, type);
+@@ -208,6 +209,7 @@ public class WebsitePermissionsFetcher {
+             for (@ContentSettingsType int type = 0; type < ContentSettingsType.NUM_TYPES; type++) {
+                 addFetcherForContentSettingsType(queue, type);
+             }
++            queue.add(new ExceptionInfoFetcher(ContentSettingsType.TIMEZONE_OVERRIDE));
          }
-+        queue.add(new ExceptionInfoFetcher(ContentSettingsType.TIMEZONE_OVERRIDE));
-+
-         queue.add(new PermissionsAvailableCallbackRunner(callback));
-         queue.next();
-     }
+ 
+         /**
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
-@@ -222,6 +222,8 @@ public class WebsitePreferenceBridge {
+@@ -243,6 +243,8 @@ public class WebsitePreferenceBridge {
          switch (contentSettingsType) {
              case ContentSettingsType.PROTECTED_MEDIA_IDENTIFIER:
                  return true;
@@ -864,7 +860,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              default:
                  return false;
          }
-@@ -371,6 +373,14 @@ public class WebsitePreferenceBridge {
+@@ -392,6 +394,14 @@ public class WebsitePreferenceBridge {
          return WebsitePreferenceBridgeJni.get().toHostOnlyPattern(pattern);
      }
  
@@ -872,25 +868,25 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +        return WebsitePreferenceBridgeJni.get().getCustomTimezone(browserContextHandle);
 +    }
 +
-+    public static void setCustomTimezone(BrowserContextHandle browserContextHandle, String timezone) {
-+        WebsitePreferenceBridgeJni.get().setCustomTimezone(browserContextHandle, timezone);
++    public static void setCustomTimezone(BrowserContextHandle browserContextHandle, String custom_timezone) {
++        WebsitePreferenceBridgeJni.get().setCustomTimezone(browserContextHandle, custom_timezone);
 +    }
 +
      @NativeMethods
      public interface Natives {
          boolean isNotificationEmbargoedForOrigin(
-@@ -434,5 +444,7 @@ public class WebsitePreferenceBridge {
+@@ -456,5 +466,7 @@ public class WebsitePreferenceBridge {
          boolean getLocationAllowedByPolicy(BrowserContextHandle browserContextHandle);
          String toDomainWildcardPattern(String pattern);
          String toHostOnlyPattern(String pattern);
 +        String getCustomTimezone(BrowserContextHandle browserContextHandle);
-+        void setCustomTimezone(BrowserContextHandle browserContextHandle, String timezone);
++        void setCustomTimezone(BrowserContextHandle browserContextHandle, String custom_timezone);
      }
  }
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -985,3 +985,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
+@@ -1016,3 +1016,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
            ContentSettingsPattern::FromString(pattern_string));
    return ConvertUTF8ToJavaString(env, host_only_pattern.ToString());
  }
@@ -898,17 +894,17 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
 +static void JNI_WebsitePreferenceBridge_SetCustomTimezone(
 +    JNIEnv* env,
 +    const JavaParamRef<jobject>& jbrowser_context_handle,
-+    const JavaParamRef<jstring>& timezone) {
-+  std::string new_timezone = ConvertJavaStringToUTF8(env, timezone);
++    const JavaParamRef<jstring>& custom_timezone) {
++  std::string new_timezone = ConvertJavaStringToUTF8(env, custom_timezone);
 +  GetHostContentSettingsMap(jbrowser_context_handle)->SetTimezoneOverrideValue(new_timezone);
 +}
 +
 +static base::android::ScopedJavaLocalRef<jstring> JNI_WebsitePreferenceBridge_GetCustomTimezone(
 +    JNIEnv* env,
 +    const JavaParamRef<jobject>& jbrowser_context_handle) {
-+  std::string timezone;
-+  GetHostContentSettingsMap(jbrowser_context_handle)->GetTimezoneOverrideValue(timezone);
-+  return ConvertUTF8ToJavaString(env, timezone);
++  std::string custom_timezone;
++  GetHostContentSettingsMap(jbrowser_context_handle)->GetTimezoneOverrideValue(custom_timezone);
++  return ConvertUTF8ToJavaString(env, custom_timezone);
 +}
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
@@ -923,7 +919,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
    <message name="IDS_DESKTOP_SITE_TITLE" desc="Title of the permission to request the desktop view of a site by default [CHAR_LIMIT=32]">
      Desktop site
    </message>
-@@ -563,6 +566,38 @@
+@@ -587,6 +590,38 @@
      Block sites from playing protected content
    </message>
  
@@ -965,7 +961,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
 diff --git a/components/content_settings/core/browser/content_settings_pref_provider.cc b/components/content_settings/core/browser/content_settings_pref_provider.cc
 --- a/components/content_settings/core/browser/content_settings_pref_provider.cc
 +++ b/components/content_settings/core/browser/content_settings_pref_provider.cc
-@@ -88,6 +88,8 @@ void PrefProvider::RegisterProfilePrefs(
+@@ -90,6 +90,8 @@ void PrefProvider::RegisterProfilePrefs(
                                       info->GetPrefRegistrationFlags());
    }
  
@@ -974,7 +970,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
    // Obsolete prefs ----------------------------------------------------------
  
    // These prefs have been removed, but need to be registered so they can
-@@ -175,6 +177,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
+@@ -178,6 +180,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
      event_args->set_number_of_exceptions(
          num_exceptions);  // PrefProvider::PrefProvider.
    });
@@ -985,7 +981,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
  }
  
  PrefProvider::~PrefProvider() {
-@@ -338,4 +344,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
+@@ -342,4 +348,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
    clock_ = clock;
  }
  
@@ -1024,7 +1020,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -658,6 +658,18 @@ void ContentSettingsRegistry::Init() {
+@@ -645,6 +645,18 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::PERSISTENT,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
  
@@ -1067,12 +1063,12 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
      provider->SetClockForTesting(clock);
  }
  
-+void HostContentSettingsMap::GetTimezoneOverrideValue(std::string& timezone) const {
-+  GetPrefProvider()->GetPrefTimezoneOverrideValue(timezone);
++void HostContentSettingsMap::GetTimezoneOverrideValue(std::string& custom_timezone) const {
++  GetPrefProvider()->GetPrefTimezoneOverrideValue(custom_timezone);
 +}
 +
-+void HostContentSettingsMap::SetTimezoneOverrideValue(const std::string& timezone) {
-+  GetPrefProvider()->SetPrefTimezoneOverrideValue(timezone);
++void HostContentSettingsMap::SetTimezoneOverrideValue(const std::string& custom_timezone) {
++  GetPrefProvider()->SetPrefTimezoneOverrideValue(custom_timezone);
 +}
 +
  void HostContentSettingsMap::RecordExceptionMetrics() {
@@ -1085,8 +1081,8 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
      allow_invalid_secondary_pattern_for_testing_ = allow;
    }
  
-+  void GetTimezoneOverrideValue(std::string& timezone) const;
-+  void SetTimezoneOverrideValue(const std::string& timezone);
++  void GetTimezoneOverrideValue(std::string& custom_timezone) const;
++  void SetTimezoneOverrideValue(const std::string& custom_timezone);
 +
   private:
    friend class base::RefCountedThreadSafe<HostContentSettingsMap>;
@@ -1094,7 +1090,7 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -203,7 +203,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -204,7 +204,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
           content_type == ContentSettingsType::JAVASCRIPT ||
           content_type == ContentSettingsType::POPUPS ||
           content_type == ContentSettingsType::MIXEDSCRIPT ||
@@ -1104,7 +1100,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
  }
  
  void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -213,6 +214,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -214,6 +215,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(popup_redirect_rules, outermost_main_frame_url);
    FilterRulesForType(mixed_content_rules, outermost_main_frame_url);
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
@@ -1171,7 +1167,7 @@ diff --git a/components/content_settings/core/common/content_settings_mojom_trai
 diff --git a/components/content_settings/core/common/content_settings_types.h b/components/content_settings/core/common/content_settings_types.h
 --- a/components/content_settings/core/common/content_settings_types.h
 +++ b/components/content_settings/core/common/content_settings_types.h
-@@ -225,6 +225,9 @@ enum class ContentSettingsType : int32_t {
+@@ -226,6 +226,9 @@ enum class ContentSettingsType : int32_t {
    // by the File System Access API.
    FILE_SYSTEM_LAST_PICKED_DIRECTORY,
  
@@ -1352,6 +1348,5 @@ diff --git a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLay
      @Override
      public boolean isFirstPartySetsDataAccessEnabled() {
          return false;
--- 
-2.38.1
-
+--
+2.25.1
