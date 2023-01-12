@@ -8,8 +8,8 @@ See https://bugs.chromium.org/p/chromium/issues/detail?id=1236113
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../animation_frame/worker_animation_frame_provider.cc    | 8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
+ .../core/animation_frame/worker_animation_frame_provider.cc     | 2 ++
+ 1 file changed, 2 insertions(+)
 
 diff --git a/third_party/blink/renderer/core/animation_frame/worker_animation_frame_provider.cc b/third_party/blink/renderer/core/animation_frame/worker_animation_frame_provider.cc
 --- a/third_party/blink/renderer/core/animation_frame/worker_animation_frame_provider.cc
@@ -21,21 +21,8 @@ diff --git a/third_party/blink/renderer/core/animation_frame/worker_animation_fr
 +#include "third_party/blink/renderer/core/workers/worker_global_scope.h"
 +#include "third_party/blink/renderer/platform/wtf/casting.h"
  #include "third_party/blink/renderer/core/timing/worker_global_scope_performance.h"
+ #include "third_party/blink/renderer/core/workers/worker_global_scope.h"
  #include "third_party/blink/renderer/platform/scheduler/public/event_loop.h"
- #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
-@@ -63,7 +65,11 @@ void WorkerAnimationFrameProvider::BeginFrame(const viz::BeginFrameArgs& args) {
-             }
-           }
- 
--          double time = (args.frame_time - base::TimeTicks()).InMillisecondsF();
-+          auto* global_scope = DynamicTo<WorkerGlobalScope>(provider->context_.Get());
-+          DCHECK(global_scope);
-+          double time = Performance::ClampTimeResolution(
-+                          args.frame_time - global_scope->TimeOrigin(),
-+                          provider->context_->CrossOriginIsolatedCapability());
-           provider->callback_collection_.ExecuteFrameCallbacks(time, time);
-         }
-         provider->begin_frame_provider_->FinishBeginFrame(args);
 -- 
 2.39.0
 
