@@ -9,13 +9,13 @@ Removed auto update code for now, need to add it back
 ---
  .../android/java/res/layout/fre_tosanduma.xml |   9 -
  .../firstrun/ChildAccountStatusSupplier.java  |  14 +-
- .../browser/firstrun/FirstRunActivity.java    |  48 +-----
+ .../browser/firstrun/FirstRunActivity.java    |  47 +-----
  .../firstrun/FirstRunActivityBase.java        |  11 +-
  .../firstrun/FirstRunFlowSequencer.java       |  60 ++-----
  .../browser/firstrun/FirstRunUtils.java       |  13 +-
  .../firstrun/ToSAndUMAFirstRunFragment.java   | 156 ++----------------
  .../strings/android_chrome_strings.grd        |  26 ++-
- 8 files changed, 62 insertions(+), 275 deletions(-)
+ 8 files changed, 62 insertions(+), 274 deletions(-)
 
 diff --git a/chrome/android/java/res/layout/fre_tosanduma.xml b/chrome/android/java/res/layout/fre_tosanduma.xml
 --- a/chrome/android/java/res/layout/fre_tosanduma.xml
@@ -71,7 +71,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildA
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-@@ -33,9 +33,6 @@ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+@@ -32,9 +32,6 @@ import org.chromium.chrome.browser.customtabs.CustomTabActivity;
  import org.chromium.chrome.browser.fonts.FontPreloader;
  import org.chromium.chrome.browser.metrics.UmaUtils;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
@@ -79,8 +79,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -import org.chromium.chrome.browser.signin.SigninFirstRunFragment;
 -import org.chromium.chrome.browser.signin.services.FREMobileIdentityConsistencyFieldTrial;
  import org.chromium.components.browser_ui.modaldialog.AppModalPresenter;
+ import org.chromium.components.metrics.LowEntropySource;
  import org.chromium.ui.base.LocalizationUtils;
- import org.chromium.ui.modaldialog.ModalDialogManager;
 @@ -146,18 +143,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      /** Creates first page and sets up adapter. Should result UI being shown on the screen. */
      private void createFirstPage() {
@@ -117,19 +117,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      /**
       * Create the page sequence which requires native initialized, and policies loaded if any
       * on-device policies may exists.
-@@ -186,20 +163,12 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -184,17 +161,10 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+         assert !mPostNativeAndPolicyPagesCreated;
+         assert areNativeAndPoliciesInitialized();
  
-         if (ChromeFeatureList.isEnabled(
-                     ChromeFeatureList.CREATE_SIGNIN_CHECKER_BEFORE_SYNC_CONSENT_FRAGMENT)) {
--            // Initialize SigninChecker, to kick off sign-in for child accounts as early as
--            // possible.
--            //
--            // TODO(b/245912657): explicitly sign in supervised users in {@link
--            // SigninFirstRunMediator#handleContinueWithNative} rather than relying on
--            // SigninChecker.
--            SigninCheckerProvider.get();
-         }
- 
+-        // Initialize SigninChecker, to kick off sign-in for child accounts as early as possible.
+-        //
+-        // TODO(b/245912657): explicitly sign in supervised users in {@link
+-        // SigninFirstRunMediator#handleContinueWithNative} rather than relying on SigninChecker.
+-        SigninCheckerProvider.get();
+-
          mFirstRunFlowSequencer.updateFirstRunProperties(mFreProperties);
  
          BooleanSupplier showSearchEnginePromo =
@@ -138,7 +135,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          // An optional page to select a default search engine.
          if (showSearchEnginePromo.getAsBoolean()) {
-@@ -208,11 +177,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -203,11 +173,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
              mFreProgressStates.add(MobileFreProgress.DEFAULT_SEARCH_ENGINE_SHOWN);
          }
  
@@ -150,7 +147,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          if (mPagerAdapter != null) {
              mPagerAdapter.notifyDataSetChanged();
          }
-@@ -257,10 +221,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -252,10 +217,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
  
      @Override
      public void triggerLayoutInflation() {
@@ -161,7 +158,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          super.triggerLayoutInflation();
  
          initializeStateFromLaunchData();
-@@ -270,7 +230,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -265,7 +226,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          setFinishOnTouchOutside(true);
  
          setContentView(createContentView());
@@ -170,7 +167,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
              // SigninFirstRunFragment doesn't use getProperties() and can be shown right away,
              // without waiting for FirstRunFlowSequencer.
              createFirstPage();
-@@ -542,10 +502,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -540,10 +501,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      public void acceptTermsOfService(boolean allowMetricsAndCrashUploading) {
          assert mNativeInitializationPromise.isFulfilled();
  
