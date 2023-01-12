@@ -11,21 +11,21 @@ Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../java/res/xml/privacy_preferences.xml      |  4 ---
- .../privacy/settings/PrivacySettings.java     | 22 ------------
+ .../privacy/settings/PrivacySettings.java     | 23 ------------
  .../browser/chrome_content_browser_client.cc  |  3 ++
  .../history/core/browser/history_backend.cc   | 13 +------
  .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
  .../privacy_sandbox_settings.cc               | 35 +++++++++++--------
  .../privacy_sandbox_settings.h                |  1 -
- 7 files changed, 25 insertions(+), 55 deletions(-)
+ 7 files changed, 25 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -44,10 +44,6 @@ found in the LICENSE file.
-         android:fragment="org.chromium.chrome.browser.privacy.settings.DoNotTrackSettings"
-         android:key="do_not_track"
-         android:title="@string/do_not_track_title"/>
+@@ -68,10 +68,6 @@ found in the LICENSE file.
+         android:title="@string/open_external_links_incognito_title"
+         android:summary="@string/open_external_links_incognito_summary"
+         android:defaultValue="false" />
 -    <Preference
 -        android:key="privacy_sandbox"
 -        android:title="@string/prefs_privacy_sandbox"
@@ -36,15 +36,16 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -55,7 +55,6 @@ public class PrivacySettings
+@@ -58,8 +58,6 @@ public class PrivacySettings
      private static final String PREF_SECURE_DNS = "secure_dns";
      private static final String PREF_DO_NOT_TRACK = "do_not_track";
      private static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
 -    private static final String PREF_PRIVACY_SANDBOX = "privacy_sandbox";
+-    private static final String PREF_PROXY_OPTIONS = "proxy";
      private static final String PREF_PRIVACY_GUIDE = "privacy_guide";
      private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
  
-@@ -77,21 +76,6 @@ public class PrivacySettings
+@@ -86,21 +84,6 @@ public class PrivacySettings
          SettingsUtils.addPreferencesFromResource(this, R.xml.privacy_preferences);
          getActivity().setTitle(R.string.prefs_privacy_security);
  
@@ -66,7 +67,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          Preference privacyGuidePreference = findPreference(PREF_PRIVACY_GUIDE);
          if (!ChromeFeatureList.isEnabled(ChromeFeatureList.PRIVACY_GUIDE)) {
              getPreferenceScreen().removePreference(privacyGuidePreference);
-@@ -181,12 +165,6 @@ public class PrivacySettings
+@@ -220,12 +203,6 @@ public class PrivacySettings
              secureDnsPref.setSummary(SecureDnsSettings.getSummary(getContext()));
          }
  
@@ -82,7 +83,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3091,6 +3091,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -3231,6 +3231,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* source_origin,
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin) {
@@ -95,7 +96,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/components/history/core/browser/history_backend.cc b/components/history/core/browser/history_backend.cc
 --- a/components/history/core/browser/history_backend.cc
 +++ b/components/history/core/browser/history_backend.cc
-@@ -495,18 +495,7 @@ void HistoryBackend::SetBrowsingTopicsAllowed(ContextID context_id,
+@@ -517,18 +517,7 @@ void HistoryBackend::SetBrowsingTopicsAllowed(ContextID context_id,
    if (!visit_id)
      return;
  
@@ -240,12 +241,11 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings.h b/components/
 +++ b/components/privacy_sandbox/privacy_sandbox_settings.h
 @@ -227,7 +227,6 @@ class PrivacySandboxSettings : public KeyedService {
    scoped_refptr<content_settings::CookieSettings> cookie_settings_;
-   raw_ptr<PrefService> pref_service_;
+   raw_ptr<PrefService, DanglingUntriaged> pref_service_;
    PrefChangeRegistrar pref_change_registrar_;
 -  bool incognito_profile_;
  };
  
  }  // namespace privacy_sandbox
--- 
-2.39.0
-
+--
+2.25.1
