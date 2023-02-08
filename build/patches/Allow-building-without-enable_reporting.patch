@@ -200,22 +200,22 @@ diff --git a/content/browser/renderer_host/render_frame_host_impl.cc b/content/b
 diff --git a/content/browser/web_package/signed_exchange_reporter.cc b/content/browser/web_package/signed_exchange_reporter.cc
 --- a/content/browser/web_package/signed_exchange_reporter.cc
 +++ b/content/browser/web_package/signed_exchange_reporter.cc
-@@ -128,6 +128,7 @@ void ReportResult(
+@@ -127,6 +127,7 @@ bool ShouldDowngradeReport(const char* result_string,
+ void ReportResult(
      int frame_tree_node_id,
      network::mojom::SignedExchangeReportPtr report,
-     const net::NetworkAnonymizationKey& network_anonymization_key) {
 +#if BUILDFLAG(ENABLE_REPORTING)
+     const net::NetworkAnonymizationKey& network_anonymization_key) {
    FrameTreeNode* frame_tree_node =
        FrameTreeNode::GloballyFindByID(frame_tree_node_id);
-   if (!frame_tree_node)
-@@ -142,6 +143,7 @@ void ReportResult(
+@@ -141,6 +142,7 @@ void ReportResult(
+       frame_host->GetBrowserContext()->GetStoragePartition(site_instance);
    DCHECK(partition);
    partition->GetNetworkContext()->QueueSignedExchangeReport(
-       std::move(report), network_anonymization_key);
 +#endif
+       std::move(report), network_anonymization_key);
  }
  
- }  // namespace
 diff --git a/content/public/common/content_switch_dependent_feature_overrides.cc b/content/public/common/content_switch_dependent_feature_overrides.cc
 --- a/content/public/common/content_switch_dependent_feature_overrides.cc
 +++ b/content/public/common/content_switch_dependent_feature_overrides.cc
@@ -436,6 +436,5 @@ diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_p
  
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
--- 
-2.39.0
-
+--
+2.25.1

@@ -195,10 +195,10 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #include "base/notreached.h"
  #include "base/ranges/algorithm.h"
  #include "base/time/time.h"
-@@ -824,6 +825,15 @@ Document::Document(const DocumentInit& initializer,
-               : nullptr),
-       data_(MakeGarbageCollected<DocumentData>(GetExecutionContext())) {
-   DCHECK(agent_);
+@@ -820,6 +821,15 @@ Document::Document(const DocumentInit& initializer,
+           MakeGarbageCollected<DisplayLockDocumentState>(this)),
+       render_blocking_resource_manager_(
+           initializer.GetType() == DocumentInit::Type::kHTML
 +  if (RuntimeEnabledFeatures::FingerprintingClientRectsNoiseEnabled()) {
 +    // Precompute -0.0003% to 0.0003% noise factor for get*ClientRect*() fingerprinting
 +    noise_factor_x_ = 1 + (base::RandDouble() - 0.5) * 0.000003;
@@ -208,9 +208,9 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 +    noise_factor_y_ = 1;
 +  }
 +
-   if (base::FeatureList::IsEnabled(features::kDelayAsyncScriptExecution))
-     script_runner_delayer_->Activate();
- 
+               ? MakeGarbageCollected<RenderBlockingResourceManager>(*this)
+               : nullptr),
+       data_(MakeGarbageCollected<DocumentData>(GetExecutionContext())) {
 @@ -2252,6 +2262,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
  #endif
  }
@@ -779,7 +779,6 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        public: true,
 diff --git a/third_party/ungoogled/BUILD.gn b/third_party/ungoogled/BUILD.gn
 new file mode 100644
-index 0000000000000000000000000000000000000000..9414e356b63ec6fe6edc74eb6eec4b8f8111b5f6
 --- /dev/null
 +++ b/third_party/ungoogled/BUILD.gn
 @@ -0,0 +1,10 @@
@@ -795,7 +794,6 @@ index 0000000000000000000000000000000000000000..9414e356b63ec6fe6edc74eb6eec4b8f
 +}
 diff --git a/third_party/ungoogled/ungoogled_switches.cc b/third_party/ungoogled/ungoogled_switches.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..ef7d11031ef652c53146b7af2793936f4320be38
 --- /dev/null
 +++ b/third_party/ungoogled/ungoogled_switches.cc
 @@ -0,0 +1,18 @@
@@ -819,7 +817,6 @@ index 0000000000000000000000000000000000000000..ef7d11031ef652c53146b7af2793936f
 +}  // namespace switches
 diff --git a/third_party/ungoogled/ungoogled_switches.h b/third_party/ungoogled/ungoogled_switches.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..28d542c0e999bb5b740cc5f92e5f3c778cab8a76
 --- /dev/null
 +++ b/third_party/ungoogled/ungoogled_switches.h
 @@ -0,0 +1,18 @@
@@ -841,6 +838,5 @@ index 0000000000000000000000000000000000000000..28d542c0e999bb5b740cc5f92e5f3c77
 +}
 +
 +#endif  // THIRD_PARTY_UNGOOGLED_FINGERPRINTING_SWITCHES_H_
--- 
-2.39.0
-
+--
+2.25.1
