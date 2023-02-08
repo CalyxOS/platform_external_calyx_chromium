@@ -1,0 +1,40 @@
+From: Chirayu Desai <chirayudesai1@gmail.com>
+Date: Thu, 9 Feb 2023 02:50:07 +0530
+Subject: Build fix for "Disable conversion measurement api"
+
+---
+ .../attribution_report_network_sender.cc             | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
+--- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
++++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
+@@ -56,8 +56,13 @@ void AttributionReportNetworkSender::SendReport(
+     AttributionReport report,
+     bool is_debug_report,
+     ReportSentCallback sent_callback) {
+-  // this is never called on Bromite but nothing would be sent if it were
+-  OnReportSent(std::move(it), report, is_debug_report, std::move(sent_callback), nullptr);
++  GURL url = report.ReportURL(is_debug_report);
++  base::Value::Dict body = report.ReportBody();
++
++  SendReport(std::move(url), body,
++             base::BindOnce(&AttributionReportNetworkSender::OnReportSent,
++                            base::Unretained(this), std::move(report),
++                            is_debug_report, std::move(sent_callback)));
+ }
+ 
+ void AttributionReportNetworkSender::SendReport(AttributionDebugReport report) {
+@@ -71,6 +76,9 @@ void AttributionReportNetworkSender::SendReport(AttributionDebugReport report) {
+ void AttributionReportNetworkSender::SendReport(GURL url,
+                                                 base::ValueView report_body,
+                                                 UrlLoaderCallback callback) {
++  // this is never called on Bromite but nothing would be sent if it were
++  if ((true)) return;
++
+   auto resource_request = std::make_unique<network::ResourceRequest>();
+   resource_request->url = std::move(url);
+   resource_request->method = net::HttpRequestHeaders::kPostMethod;
+-- 
+2.39.1
+

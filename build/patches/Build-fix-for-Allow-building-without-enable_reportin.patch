@@ -1,0 +1,30 @@
+From: Chirayu Desai <chirayudesai1@gmail.com>
+Date: Thu, 9 Feb 2023 02:59:02 +0530
+Subject: Build fix for "Allow building without enable_reporting"
+
+---
+ content/browser/web_package/signed_exchange_reporter.cc | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/content/browser/web_package/signed_exchange_reporter.cc b/content/browser/web_package/signed_exchange_reporter.cc
+--- a/content/browser/web_package/signed_exchange_reporter.cc
++++ b/content/browser/web_package/signed_exchange_reporter.cc
+@@ -127,7 +127,6 @@ bool ShouldDowngradeReport(const char* result_string,
+ void ReportResult(
+     int frame_tree_node_id,
+     network::mojom::SignedExchangeReportPtr report,
+-#if BUILDFLAG(ENABLE_REPORTING)
+     const net::NetworkAnonymizationKey& network_anonymization_key) {
+   FrameTreeNode* frame_tree_node =
+       FrameTreeNode::GloballyFindByID(frame_tree_node_id);
+@@ -142,7 +141,6 @@ void ReportResult(
+       frame_host->GetBrowserContext()->GetStoragePartition(site_instance);
+   DCHECK(partition);
+   partition->GetNetworkContext()->QueueSignedExchangeReport(
+-#endif
+       std::move(report), network_anonymization_key);
+ }
+ 
+-- 
+2.39.1
+
