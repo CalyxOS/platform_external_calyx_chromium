@@ -197,22 +197,22 @@ diff --git a/third_party/blink/renderer/core/fileapi/public_url_manager.cc b/thi
  }  // namespace
  
  PublicURLManager::PublicURLManager(ExecutionContext* execution_context)
-@@ -261,6 +276,7 @@ void PublicURLManager::Resolve(
- 
-   GetBlobURLStore().ResolveAsURLLoaderFactory(
-       url, std::move(factory_receiver),
+@@ -223,6 +238,7 @@ void PublicURLManager::Resolve(
+                                  unsafe_agent_cluster_id,
+                              const absl::optional<BlinkSchemefulSite>&
+                                  unsafe_top_level_site) {
 +      GetExecutionContext()->GetAgentClusterID(), GetInsecureTopLevelSite(GetExecutionContext()),
+     if (execution_context->GetAgentClusterID() != unsafe_agent_cluster_id) {
+       execution_context->CountUse(
+           WebFeature::
+@@ -264,6 +280,7 @@ void PublicURLManager::Resolve(
        WTF::BindOnce(metrics_callback, WrapPersistent(GetExecutionContext())));
  }
  
-@@ -284,6 +300,7 @@ void PublicURLManager::Resolve(
- 
-   GetBlobURLStore().ResolveForNavigation(
-       url, std::move(token_receiver),
 +      GetExecutionContext()->GetAgentClusterID(), GetInsecureTopLevelSite(GetExecutionContext()),
-       WTF::BindOnce(metrics_callback, WrapPersistent(GetExecutionContext())));
- }
- 
+ void PublicURLManager::Resolve(
+     const KURL& url,
+     mojo::PendingReceiver<mojom::blink::BlobURLToken> token_receiver) {
 -- 
-2.39.0
+2.39.1
 
