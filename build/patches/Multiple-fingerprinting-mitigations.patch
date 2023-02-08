@@ -195,10 +195,10 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #include "base/notreached.h"
  #include "base/ranges/algorithm.h"
  #include "base/time/time.h"
-@@ -824,6 +825,15 @@ Document::Document(const DocumentInit& initializer,
-               : nullptr),
-       data_(MakeGarbageCollected<DocumentData>(GetExecutionContext())) {
-   DCHECK(agent_);
+@@ -820,6 +821,15 @@ Document::Document(const DocumentInit& initializer,
+           MakeGarbageCollected<DisplayLockDocumentState>(this)),
+       render_blocking_resource_manager_(
+           initializer.GetType() == DocumentInit::Type::kHTML
 +  if (RuntimeEnabledFeatures::FingerprintingClientRectsNoiseEnabled()) {
 +    // Precompute -0.0003% to 0.0003% noise factor for get*ClientRect*() fingerprinting
 +    noise_factor_x_ = 1 + (base::RandDouble() - 0.5) * 0.000003;
@@ -208,9 +208,9 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 +    noise_factor_y_ = 1;
 +  }
 +
-   if (base::FeatureList::IsEnabled(features::kDelayAsyncScriptExecution))
-     script_runner_delayer_->Activate();
- 
+               ? MakeGarbageCollected<RenderBlockingResourceManager>(*this)
+               : nullptr),
+       data_(MakeGarbageCollected<DocumentData>(GetExecutionContext())) {
 @@ -2252,6 +2262,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
  #endif
  }
@@ -842,5 +842,5 @@ index 0000000000000000000000000000000000000000..28d542c0e999bb5b740cc5f92e5f3c77
 +
 +#endif  // THIRD_PARTY_UNGOOGLED_FINGERPRINTING_SWITCHES_H_
 -- 
-2.39.0
+2.39.1
 

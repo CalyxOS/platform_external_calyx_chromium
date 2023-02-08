@@ -19,7 +19,7 @@ ld.lld: error: undefined symbol: notifier::NotifierOptions::NotifierOptions()
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/android/BUILD.gn                       |  20 --
+ chrome/android/BUILD.gn                       |  21 --
  chrome/android/chrome_java_sources.gni        |  30 ---
  .../features/autofill_assistant/BUILD.gn      |   1 -
  .../AssistantAccessTokenUtilChrome.java       |   8 -
@@ -39,11 +39,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chrome/browser/ChromeBackupWatcher.java   |  10 -
  .../chrome/browser/ChromeTabbedActivity.java  |   9 -
  .../chrome/browser/app/ChromeActivity.java    |  76 ------
- .../app/feed/FeedActionDelegateImpl.java      |   3 -
  .../AutofillAssistantPreferenceFragment.java  |  17 +-
  .../bookmarks/BookmarkItemsAdapter.java       |  56 +---
  .../bookmarks/BookmarkPromoHeader.java        | 241 +-----------------
- .../ClearBrowsingDataFragment.java            |  79 +-----
+ .../ClearBrowsingDataFragment.java            |  82 +-----
  .../ClearBrowsingDataFragmentBasic.java       |  27 +-
  .../contacts_picker/ChromePickerAdapter.java  |  67 +----
  .../browser/customtabs/CustomTabActivity.java |   7 -
@@ -79,7 +78,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../CommerceSubscriptionsMetrics.java         |   6 +-
  .../CommerceSubscriptionsService.java         |  14 -
  .../subscriptions/android/java_sources.gni    |   1 -
- chrome/browser/feed/android/BUILD.gn          |   1 -
+ chrome/browser/feed/android/BUILD.gn          |   2 -
  .../chrome/browser/feed/FeedFeatures.java     |   2 -
  .../browser/feed/FeedServiceBridge.java       |   2 +-
  chrome/browser/feedback/android/BUILD.gn      |   1 -
@@ -90,7 +89,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  ...sswordManagerErrorMessageHelperBridge.java |  26 --
  .../PasswordManagerHelper.java                | 121 +--------
  ...swordSyncControllerDelegateBridgeImpl.java |   7 -
- chrome/browser/privacy_guide/android/BUILD.gn |   2 -
+ chrome/browser/privacy/BUILD.gn               |   1 -
+ chrome/browser/privacy_guide/android/BUILD.gn |   7 -
  .../res/layout/privacy_guide_msbb_step.xml    |   8 -
  .../browser/privacy_guide/MSBBFragment.java   |   9 -
  chrome/browser/search_resumption/BUILD.gn     |   4 -
@@ -113,8 +113,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ui/signin/SyncConsentFragmentBase.java    |  53 +---
  .../ui/signin/SyncPromoController.java        |  15 +-
  .../WebSigninAccountPickerDelegate.java       |  23 --
- .../ui/signin/fre/SigninFirstRunMediator.java |  70 +----
- .../strings/android_chrome_strings.grd        |   3 -
+ .../ui/signin/fre/SigninFirstRunMediator.java |  62 +----
+ .../strings/android_chrome_strings.grd        |  18 --
  .../core/browser/leak_detection_delegate.cc   |   2 +-
  .../core/browser/password_form_manager.cc     |  34 +--
  .../browser/password_manager_client_helper.cc |  43 +---
@@ -126,12 +126,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ProfileOAuth2TokenServiceDelegate.java    |  52 ----
  .../net/HttpNegotiateAuthenticator.java       |  88 +------
  .../chromoting/base/OAuthTokenFetcher.java    |   2 -
- 107 files changed, 100 insertions(+), 2649 deletions(-)
+ 107 files changed, 98 insertions(+), 2666 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -274,7 +274,6 @@ if (current_toolchain == default_toolchain) {
+@@ -274,14 +274,12 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/password_check/android:java_resources",
        "//chrome/browser/password_manager/android:java_resources",
        "//chrome/browser/search_resumption:java_resources",
@@ -139,7 +139,14 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/tab:java_resources",
        "//chrome/browser/ui/android/appmenu:java_resources",
        "//chrome/browser/ui/android/favicon:java_resources",
-@@ -478,8 +477,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/ui/android/management:java_resources",
+       "//chrome/browser/ui/android/omnibox:java_resources",
+       "//chrome/browser/ui/android/quickactionsearchwidget:java_resources",
+-      "//chrome/browser/ui/android/signin:java_resources",
+       "//chrome/browser/ui/android/strings:ui_strings_grd",
+       "//chrome/browser/ui/android/theme:java_resources",
+       "//chrome/browser/ui/android/toolbar:java_resources",
+@@ -478,8 +476,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/settings:java",
        "//chrome/browser/share:java",
        "//chrome/browser/share/android:java_resources",
@@ -148,7 +155,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/tab:java",
        "//chrome/browser/tab_group:java",
        "//chrome/browser/tabmodel:factory_java",
-@@ -502,7 +499,6 @@ if (current_toolchain == default_toolchain) {
+@@ -502,7 +498,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/ui/android/page_info:java",
        "//chrome/browser/ui/android/quickactionsearchwidget:java",
        "//chrome/browser/ui/android/searchactivityutils:java",
@@ -156,7 +163,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/ui/android/theme:java",
        "//chrome/browser/ui/android/toolbar:java",
        "//chrome/browser/ui/messages/android:java",
-@@ -630,7 +626,6 @@ if (current_toolchain == default_toolchain) {
+@@ -630,7 +625,6 @@ if (current_toolchain == default_toolchain) {
        "//components/strictmode/android:java",
        "//components/stylus_handwriting/android:java",
        "//components/subresource_filter/android:java",
@@ -164,7 +171,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//components/sync/protocol:protocol_java",
        "//components/sync_device_info:sync_device_info_java",
        "//components/thin_webview:factory_java",
-@@ -1078,9 +1073,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1078,9 +1072,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/search_resumption:junit",
        "//chrome/browser/segmentation_platform:factory_java",
        "//chrome/browser/share:java",
@@ -174,7 +181,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/tab:java",
        "//chrome/browser/tab:junit",
        "//chrome/browser/tab_group:java",
-@@ -1112,8 +1104,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1112,8 +1103,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/ui/android/omnibox:junit",
        "//chrome/browser/ui/android/quickactionsearchwidget:java",
        "//chrome/browser/ui/android/searchactivityutils:java",
@@ -183,7 +190,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/ui/android/theme:java",
        "//chrome/browser/ui/android/toolbar:java",
        "//chrome/browser/ui/android/toolbar:junit",
-@@ -1204,7 +1194,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1204,7 +1193,6 @@ if (current_toolchain == default_toolchain) {
        "//components/signin/core/browser:signin_enums_java",
        "//components/signin/public/android:java",
        "//components/signin/public/android:signin_java_test_support",
@@ -191,7 +198,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//components/sync_device_info:sync_device_info_java",
        "//components/translate/content/android:junit",
        "//components/ukm/android:java",
-@@ -1622,10 +1611,8 @@ if (current_toolchain == default_toolchain) {
+@@ -1622,10 +1610,8 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/settings:test_support_java",
        "//chrome/browser/share:java",
        "//chrome/browser/share/android:java_resources",
@@ -202,7 +209,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/sync/test/android:test_support_java",
        "//chrome/browser/tab:critical_persisted_tab_data_flatbuffer_java",
        "//chrome/browser/tab:critical_persisted_tab_data_proto_java",
-@@ -1651,8 +1638,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1651,8 +1637,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/ui/android/quickactionsearchwidget:java",
        "//chrome/browser/ui/android/quickactionsearchwidget:javatests",
        "//chrome/browser/ui/android/searchactivityutils:java",
@@ -211,7 +218,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/ui/android/theme:java",
        "//chrome/browser/ui/android/toolbar:java",
        "//chrome/browser/ui/messages/android:java",
-@@ -1769,7 +1754,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1769,7 +1753,6 @@ if (current_toolchain == default_toolchain) {
        "//components/signin/public/android:java",
        "//components/signin/public/android:signin_java_test_support",
        "//components/site_engagement/content/android:java",
@@ -219,7 +226,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//components/sync/protocol:protocol_java",
        "//components/sync_device_info:sync_device_info_java",
        "//components/url_formatter/android:url_formatter_java",
-@@ -2468,7 +2452,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2468,7 +2451,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/download/android:java",
        "//chrome/browser/prefetch/android:java",
        "//chrome/browser/profiles/android:java",
@@ -227,7 +234,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/tab:java",
        "//components/offline_items_collection/core:core_java",
        "//components/sync/protocol:protocol_java",
-@@ -3183,13 +3166,11 @@ if (current_toolchain == default_toolchain) {
+@@ -3187,13 +3169,11 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/optimization_guide/android:unit_device_javatests",
        "//chrome/browser/partnercustomizations:unit_device_javatests",
        "//chrome/browser/password_edit_dialog/android:unit_device_javatests",
@@ -241,7 +248,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/ui/messages/android:unit_device_javatests",
        "//chrome/browser/user_education:unit_device_javatests",
        "//chrome/browser/video_tutorials/internal:unit_device_javatests",
-@@ -4169,7 +4150,6 @@ generate_jni("chrome_jni_headers") {
+@@ -4173,7 +4153,6 @@ generate_jni("chrome_jni_headers") {
      "java/src/org/chromium/chrome/browser/sharing/shared_clipboard/SharedClipboardMessageHandler.java",
      "java/src/org/chromium/chrome/browser/sharing/sms_fetcher/SmsFetcherMessageHandler.java",
      "java/src/org/chromium/chrome/browser/signin/SigninBridge.java",
@@ -1156,26 +1163,6 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
              });
          }
  
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/feed/FeedActionDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/app/feed/FeedActionDelegateImpl.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/app/feed/FeedActionDelegateImpl.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/app/feed/FeedActionDelegateImpl.java
-@@ -19,7 +19,6 @@ import org.chromium.chrome.browser.offlinepages.OfflinePageBridge;
- import org.chromium.chrome.browser.offlinepages.RequestCoordinatorBridge;
- import org.chromium.chrome.browser.profiles.Profile;
- import org.chromium.chrome.browser.share.crow.CrowButtonDelegate;
--import org.chromium.chrome.browser.signin.SyncConsentActivityLauncherImpl;
- import org.chromium.chrome.browser.suggestions.SuggestionsConfig;
- import org.chromium.chrome.browser.tab.EmptyTabObserver;
- import org.chromium.chrome.browser.tab.Tab;
-@@ -129,8 +128,6 @@ public class FeedActionDelegateImpl implements FeedActionDelegate {
-     @Override
-     public void showSignInActivity() {
-         if (ChromeFeatureList.isEnabled(ChromeFeatureList.FEED_SHOW_SIGN_IN_COMMAND)) {
--            SyncConsentActivityLauncherImpl.get().launchActivityIfAllowed(
--                    mActivityContext, SigninAccessPoint.NTP_CONTENT_SUGGESTIONS);
-         }
-     }
- 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantPreferenceFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantPreferenceFragment.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantPreferenceFragment.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantPreferenceFragment.java
@@ -1722,15 +1709,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
      }
  
      // We either show the dialog, or modify the current one to display our messages.  This avoids
-@@ -664,27 +646,7 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+@@ -662,29 +644,6 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+     }
+ 
      private void updateSignOutOfChromeText() {
-         ClickableSpansTextMessagePreference signOutOfChromeTextPref =
-                 findPreference(ClearBrowsingDataFragment.PREF_SIGN_OUT_OF_CHROME_TEXT);
+-        ClickableSpansTextMessagePreference signOutOfChromeTextPref =
+-                findPreference(ClearBrowsingDataFragment.PREF_SIGN_OUT_OF_CHROME_TEXT);
 -        if (mSigninManager.isSignOutAllowed()) {
 -            signOutOfChromeTextPref.setSummary(buildSignOutOfChromeText());
 -            signOutOfChromeTextPref.setVisible(true);
 -        } else {
-             signOutOfChromeTextPref.setVisible(false);
+-            signOutOfChromeTextPref.setVisible(false);
 -        }
 -    }
 -
@@ -1750,7 +1739,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
      }
  
      /**
-@@ -749,43 +711,4 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+@@ -749,43 +708,4 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
                      ignoredDomains, ignoredDomainReasons);
          }
      }
@@ -3369,7 +3358,7 @@ diff --git a/chrome/browser/android/signin/fre_mobile_identity_consistency_field
 -      Java_FREMobileIdentityConsistencyFieldTrial_getFirstRunTrialVariationId(
 -          env, low_entropy_source, low_entropy_size);
 -  return static_cast<variations::VariationID>(variation_id);
-+  return variations::EMPTY_ID;
++  return static_cast<variations::VariationID>(0);
  }
  
  }  // namespace fre_mobile_identity_consistency_field_trial
@@ -3588,7 +3577,7 @@ diff --git a/chrome/browser/commerce/subscriptions/android/java_sources.gni b/ch
 diff --git a/chrome/browser/feed/android/BUILD.gn b/chrome/browser/feed/android/BUILD.gn
 --- a/chrome/browser/feed/android/BUILD.gn
 +++ b/chrome/browser/feed/android/BUILD.gn
-@@ -103,7 +103,6 @@ android_library("java") {
+@@ -103,12 +103,10 @@ android_library("java") {
      "//chrome/browser/privacy:java",
      "//chrome/browser/profiles/android:java",
      "//chrome/browser/share:java",
@@ -3596,6 +3585,11 @@ diff --git a/chrome/browser/feed/android/BUILD.gn b/chrome/browser/feed/android/
      "//chrome/browser/tab:java",
      "//chrome/browser/ui/android/appmenu:java",
      "//chrome/browser/ui/android/native_page:java",
+     "//chrome/browser/ui/android/omnibox:java",
+-    "//chrome/browser/ui/android/signin:java",
+     "//chrome/browser/ui/android/toolbar:java",
+     "//chrome/browser/ui/android/toolbar:java_resources",
+     "//chrome/browser/ui/messages/android:java",
 diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
 --- a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
 +++ b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
@@ -3966,25 +3960,58 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      }
  
      /**
+diff --git a/chrome/browser/privacy/BUILD.gn b/chrome/browser/privacy/BUILD.gn
+--- a/chrome/browser/privacy/BUILD.gn
++++ b/chrome/browser/privacy/BUILD.gn
+@@ -11,7 +11,6 @@ if (is_android) {
+       "//chrome/android:*",
+       "//chrome/browser/feed/android:*",
+       "//chrome/browser/ui/android/omnibox:*",
+-      "//chrome/browser/ui/android/signin:*",
+     ]
+     sources = [
+       "java/src/org/chromium/chrome/browser/privacy/secure_dns/SecureDnsBridge.java",
 diff --git a/chrome/browser/privacy_guide/android/BUILD.gn b/chrome/browser/privacy_guide/android/BUILD.gn
 --- a/chrome/browser/privacy_guide/android/BUILD.gn
 +++ b/chrome/browser/privacy_guide/android/BUILD.gn
-@@ -21,7 +21,6 @@ android_library("java") {
+@@ -21,14 +21,11 @@ android_library("java") {
      ":java_resources",
      "//chrome/browser/profiles/android:java",
      "//chrome/browser/safe_browsing/android:java",
 -    "//chrome/browser/signin/services/android:java",
-     "//chrome/browser/sync/android:java",
+-    "//chrome/browser/sync/android:java",
      "//components/browser_ui/bottomsheet/android:java",
      "//components/browser_ui/site_settings/android:java",
-@@ -55,7 +54,6 @@ robolectric_library("junit") {
+     "//components/browser_ui/widget/android:java",
+     "//components/content_settings/android:content_settings_enums_java",
+     "//components/prefs/android:java",
+-    "//components/sync/android:sync_java",
+     "//components/user_prefs/android:java",
+     "//third_party/android_deps:material_design_java",
+     "//third_party/androidx:androidx_annotation_annotation_java",
+@@ -55,14 +52,11 @@ robolectric_library("junit") {
      "//base:base_junit_test_support",
      "//chrome/browser/profiles/android:java",
      "//chrome/browser/safe_browsing/android:java",
 -    "//chrome/browser/signin/services/android:java",
-     "//chrome/browser/sync/android:java",
+-    "//chrome/browser/sync/android:java",
      "//components/browser_ui/bottomsheet/android:java",
      "//components/browser_ui/site_settings/android:java",
+     "//components/browser_ui/widget/android:java",
+     "//components/content_settings/android:content_settings_enums_java",
+     "//components/prefs/android:java",
+-    "//components/sync/android:sync_java",
+     "//components/user_prefs/android:java",
+     "//third_party/androidx:androidx_appcompat_appcompat_java",
+     "//third_party/androidx:androidx_fragment_fragment_java",
+@@ -81,7 +75,6 @@ android_library("javatests") {
+     "//base:base_java_test_support",
+     "//chrome/browser/flags:java",
+     "//chrome/browser/settings:test_support_java",
+-    "//chrome/browser/sync/android:java",
+     "//chrome/test/android:chrome_java_test_support_common",
+     "//content/public/test/android:content_java_test_support",
+     "//third_party/android_deps:espresso_java",
 diff --git a/chrome/browser/privacy_guide/android/java/res/layout/privacy_guide_msbb_step.xml b/chrome/browser/privacy_guide/android/java/res/layout/privacy_guide_msbb_step.xml
 --- a/chrome/browser/privacy_guide/android/java/res/layout/privacy_guide_msbb_step.xml
 +++ b/chrome/browser/privacy_guide/android/java/res/layout/privacy_guide_msbb_step.xml
@@ -4898,21 +4925,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
 diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
 --- a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
 +++ b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
-@@ -186,22 +186,16 @@ public class SigninFirstRunMediator
-         boolean isSigninDisabledByPolicy = false;
-         boolean isMetricsReportingDisabledByPolicy = false;
-         if (hasPolicies) {
--            isSigninDisabledByPolicy =
--                    IdentityServicesProvider.get()
--                            .getSigninManager(Profile.getLastUsedRegularProfile())
--                            .isSigninDisabledByPolicy();
--            isMetricsReportingDisabledByPolicy =
--                    !mPrivacyPreferencesManager.isUsageAndCrashReportingPermittedByPolicy();
-+            isSigninDisabledByPolicy = true;
-+            isMetricsReportingDisabledByPolicy = true;
- 
-             final FrePolicy frePolicy = new FrePolicy();
-             frePolicy.metricsReportingDisabledByPolicy = isMetricsReportingDisabledByPolicy;
+@@ -198,10 +198,8 @@ public class SigninFirstRunMediator
              mModel.set(SigninFirstRunProperties.FRE_POLICY, frePolicy);
          }
  
@@ -4925,7 +4938,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
  
          mModel.set(SigninFirstRunProperties.FOOTER_STRING,
                  getFooterString(isMetricsReportingDisabledByPolicy));
-@@ -305,41 +299,6 @@ public class SigninFirstRunMediator
+@@ -305,41 +303,6 @@ public class SigninFirstRunMediator
                  TextUtils.equals(mDefaultAccountName, mSelectedAccountName)
                          ? MobileFreProgress.WELCOME_SIGNIN_WITH_DEFAULT_ACCOUNT
                          : MobileFreProgress.WELCOME_SIGNIN_WITH_NON_DEFAULT_ACCOUNT);
@@ -4967,7 +4980,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
      }
  
      /**
-@@ -368,26 +327,9 @@ public class SigninFirstRunMediator
+@@ -368,26 +331,9 @@ public class SigninFirstRunMediator
  
          mDelegate.recordFreProgressHistogram(MobileFreProgress.WELCOME_DISMISS);
          mDelegate.acceptTermsOfService(mAllowMetricsAndCrashUploading);
@@ -5009,6 +5022,28 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        <message name="IDS_SIGNIN_PREF_SUMMARY" desc="Summary for the entry in Settings to sign in to Chrome, explaining benefits of signing in.">
          Sync and personalize across devices
        </message>
+@@ -396,21 +393,6 @@ CHAR_LIMIT guidelines:
+       <message name="IDS_PRELOAD_PAGES_EXTENDED_PRELOADING_BULLET_FOUR" desc="Fourth bullet point under the Preload Pages extended preloading mode. Informs the user about what the extended preloading setting does.">
+         Because the preloaded pages are encrypted, Google will not learn anything about the preloaded page content. Google servers will learn which sites are privately preloaded. This information is only used to preload the pages, and is not linked to other information from your Google Account.
+       </message>
+-      <message name="IDS_URL_KEYED_ANONYMIZED_DATA_TITLE" desc="Title for a checkbox in Settings that controls non-personalized URL collection and informs the user about the data shared by this feature.">
+-        Make searches and browsing better
+-      </message>
+-      <message name="IDS_URL_KEYED_ANONYMIZED_DATA_SUMMARY" desc="Summary for a checkbox in Settings that controls non-personalized URL collection and informs the user about the data shared by this feature.">
+-        Sends URLs of pages you visit to Google
+-      </message>
+-      <message name="IDS_PRIVACY_SYNC_AND_SERVICES_LINK_LEGACY" desc="The text for Privacy preferences that is shown after all preference rows.">
+-        For more settings that relate to privacy, security, and data collection, see <ph name="BEGIN_LINK">&lt;link&gt;</ph>Sync and Google services<ph name="END_LINK">&lt;/link&gt;</ph>
+-      </message>
+-      <message name="IDS_PRIVACY_SYNC_AND_SERVICES_LINK_SYNC_ON" desc="The text for Privacy preferences that is shown after all preference rows. This version of the text is shown if Sync has been turned on.">
+-        For more settings that relate to privacy, security, and data collection, see <ph name="BEGIN_LINK1">&lt;link1&gt;</ph>Sync<ph name="END_LINK1">&lt;/link1&gt;</ph> and <ph name="BEGIN_LINK2">&lt;link2&gt;</ph>Google services<ph name="END_LINK2">&lt;/link2&gt;</ph>
+-      </message>
+-      <message name="IDS_PRIVACY_SYNC_AND_SERVICES_LINK_SYNC_OFF" desc="The text for Privacy preferences that is shown after all preference rows. This version of the text is shown if Sync hasn't been turned on.">
+-        For more settings that relate to privacy, security, and data collection, see <ph name="BEGIN_LINK">&lt;link&gt;</ph>Google services<ph name="END_LINK">&lt;/link&gt;</ph>
+-      </message>
+ 
+       <!-- Metrics settings -->
+       <message name="IDS_PREFS_METRICS_SETTINGS" desc="Title for the page that allows the user to control how much usage data Chrome uploads. [CHAR_LIMIT=32]">
 diff --git a/components/password_manager/core/browser/leak_detection_delegate.cc b/components/password_manager/core/browser/leak_detection_delegate.cc
 --- a/components/password_manager/core/browser/leak_detection_delegate.cc
 +++ b/components/password_manager/core/browser/leak_detection_delegate.cc
@@ -5676,5 +5711,5 @@ diff --git a/remoting/android/java/src/org/chromium/chromoting/base/OAuthTokenFe
  
      private void fetchImpl(final String expiredToken) {
 -- 
-2.39.0
+2.39.1
 
