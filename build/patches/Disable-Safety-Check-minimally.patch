@@ -1,0 +1,55 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 8 Mar 2023 12:22:58 -0500
+Subject: Disable Safety Check minimally
+
+Remove Safety Check from Settings and the omnibox, but in case it is
+accessed through some other unknown means, ensure that method for
+performing it (called when clicking the button) does nothing.
+
+Change-Id: Ieaa019e878f2cd39a01393d2bcf8425d70f8f02e
+---
+ chrome/android/java/res/xml/main_preferences.xml             | 5 -----
+ .../chrome/browser/safety_check/SafetyCheckMediator.java     | 1 +
+ chrome/browser/ui/omnibox/omnibox_pedal_implementations.cc   | 1 -
+ 3 files changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
+--- a/chrome/android/java/res/xml/main_preferences.xml
++++ b/chrome/android/java/res/xml/main_preferences.xml
+@@ -38,11 +38,6 @@ found in the LICENSE file.
+         android:key="privacy"
+         android:order="10"
+         android:title="@string/prefs_privacy_security"/>
+-    <Preference
+-        android:fragment="org.chromium.chrome.browser.safety_check.SafetyCheckSettingsFragment"
+-        android:key="safety_check"
+-        android:order="11"
+-        android:title="@string/prefs_safety_check"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.settings.AdBlockPreferences"
+         android:key="adblock"
+diff --git a/chrome/browser/safety_check/android/java/src/org/chromium/chrome/browser/safety_check/SafetyCheckMediator.java b/chrome/browser/safety_check/android/java/src/org/chromium/chrome/browser/safety_check/SafetyCheckMediator.java
+--- a/chrome/browser/safety_check/android/java/src/org/chromium/chrome/browser/safety_check/SafetyCheckMediator.java
++++ b/chrome/browser/safety_check/android/java/src/org/chromium/chrome/browser/safety_check/SafetyCheckMediator.java
+@@ -279,6 +279,7 @@ class SafetyCheckMediator
+ 
+     /** Triggers all safety check child checks. */
+     public void performSafetyCheck() {
++        if (true) return;
+         // Cancel pending delayed show callbacks if a new check is starting while any existing
+         // elements are pending.
+         cancelCallbacks();
+diff --git a/chrome/browser/ui/omnibox/omnibox_pedal_implementations.cc b/chrome/browser/ui/omnibox/omnibox_pedal_implementations.cc
+--- a/chrome/browser/ui/omnibox/omnibox_pedal_implementations.cc
++++ b/chrome/browser/ui/omnibox/omnibox_pedal_implementations.cc
+@@ -1995,7 +1995,6 @@ GetPedalImplementations(bool incognito, bool testing) {
+   add(new OmniboxPedalManagePasswords());
+   add(new OmniboxPedalUpdateCreditCard());
+   add(new OmniboxPedalLaunchIncognito());
+-  add(new OmniboxPedalRunChromeSafetyCheck());
+   add(new OmniboxPedalPlayChromeDinoGame());
+   add(new OmniboxPedalManageSiteSettings());
+   add(new OmniboxPedalManageChromeSettings());
+-- 
+2.39.2
+
