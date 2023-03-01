@@ -1,0 +1,59 @@
+From f2752960bf33c09d8e17d93322fbb8f479d9131d Mon Sep 17 00:00:00 2001
+From: Chirayu Desai <chirayudesai1@gmail.com>
+Date: Tue, 7 Mar 2023 01:55:33 +0530
+Subject: [PATCH] try policy
+
+* https://developer.android.com/reference/android/os/Bundle#putShort(java.lang.String,%20short)
+* "Inserts a short value into the mapping of this Bundle, replacing any existing value for the given key."
+---
+ .../policy/AppRestrictionsProvider.java       | 30 +++++++++++++++++--
+ 1 file changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/components/policy/android/java/src/org/chromium/components/policy/AppRestrictionsProvider.java b/components/policy/android/java/src/org/chromium/components/policy/AppRestrictionsProvider.java
+index 85cf94e4e6ec9..10166ad6220fb 100644
+--- a/components/policy/android/java/src/org/chromium/components/policy/AppRestrictionsProvider.java
++++ b/components/policy/android/java/src/org/chromium/components/policy/AppRestrictionsProvider.java
+@@ -24,12 +24,38 @@ public class AppRestrictionsProvider extends AbstractAppRestrictionsProvider {
+      */
+     public static Bundle getApplicationRestrictionsFromUserManager(
+             UserManager userManager, String packageName) {
++        Bundle restrictions = new Bundle();
+         try {
+-            return userManager.getApplicationRestrictions(packageName);
++            restrictions = userManager.getApplicationRestrictions(packageName);
+         } catch (SecurityException e) {
+             // Android bug may throw SecurityException. See crbug.com/886814.
+-            return new Bundle();
++            // Do nothing
+         }
++        // https://chromeenterprise.google/policies/#BrowserSignin
++        restrictions.putShort("BrowserSignin", (short) 0);
++        // https://chromeenterprise.google/policies/#ComponentUpdatesEnabled
++        restrictions.putShort("ComponentUpdatesEnabled", (short) 0); // false
++        // https://chromeenterprise.google/policies/#ContextualSearchEnabled
++        restrictions.putShort("ContextualSearchEnabled", (short) 0); // false
++	// https://chromeenterprise.google/policies/#DomainReliabilityAllowed
++        restrictions.putShort("DomainReliabilityAllowed", (short) 0); // false
++        // https://chromeenterprise.google/policies/#MetricsReportingEnabled
++        restrictions.putShort("MetricsReportingEnabled", (short) 0); // false
++	// https://chromeenterprise.google/policies/#NTPContentSuggestionsEnabled
++	restrictions.putShort("NTPContentSuggestionsEnabled", (short) 0); // false
++        // https://chromeenterprise.google/policies/#NetworkPredictionOptions
++        restrictions.putShort("NetworkPredictionOptions", (short) 2);
++        // https://chromeenterprise.google/policies/#SearchSuggestEnabled
++        restrictions.putShort("SearchSuggestEnabled", (short) 0); // false
++        // https://chromeenterprise.google/policies/#PrivacySandbox
++        restrictions.putShort("PrivacySandboxAdMeasurementEnabled", (short) 0); // false
++        restrictions.putShort("PrivacySandboxAdTopicsEnabled", (short) 0); // false
++        restrictions.putShort("PrivacySandboxPromptEnabled", (short) 0); // false
++        restrictions.putShort("PrivacySandboxSiteEnabledAdsEnabled", (short) 0); // false
++        // https://chromeenterprise.google/policies/#SafeBrowsing
++        restrictions.putShort("SafeBrowsingExtendedReportingEnabled", (short) 0); // false
++        restrictions.putShort("SafeBrowsingProtectionLevel", (short) 0);
++        return restrictions;
+     }
+ 
+     private final UserManager mUserManager;
+-- 
+2.39.2
+
