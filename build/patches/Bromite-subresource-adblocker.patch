@@ -11,13 +11,7 @@ Fix RestoreForeignSessionTab by recreating the tab (issue #681)
 Enable AutomaticLazyFrameLoadingToAds and AutomaticLazyFrameLoadingToEmbeds features
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-# ------------------------ >8 ------------------------
-# Do not modify or remove the line above.
-# Everything below it will be ignored.
-#
-# Conflicts:
-#	chrome/android/chrome_java_resources.gni
+Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 ---
  chrome/android/BUILD.gn                       |   1 +
  chrome/android/chrome_java_resources.gni      |   2 +
@@ -45,7 +39,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/common/pref_names.h                    |   1 +
  .../strings/android/site_settings.grdp        |   4 +-
  components/component_updater/BUILD.gn         |   7 +
- .../adblock_updater_service.cc                | 271 ++++++++++++++++++
+ .../adblock_updater_service.cc                | 270 ++++++++++++++++++
  .../adblock_updater_service.h                 | 100 +++++++
  .../download_filters_task.cc                  | 224 +++++++++++++++
  .../component_updater/download_filters_task.h | 130 +++++++++
@@ -58,7 +52,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../core/common/indexed_ruleset.cc            |   5 +-
  .../navigation_throttle_runner.cc             |   5 -
  third_party/blink/common/features.cc          |  12 +-
- 39 files changed, 1166 insertions(+), 135 deletions(-)
+ 39 files changed, 1165 insertions(+), 135 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -71,7 +65,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -394,6 +394,7 @@ if (current_toolchain == default_toolchain) {
+@@ -380,6 +380,7 @@ if (current_toolchain == default_toolchain) {
        "//chrome/android/modules/image_editor/provider:java",
        "//chrome/android/modules/stack_unwinder/provider:java",
        "//chrome/android/webapk/libs/client:client_java",
@@ -82,7 +76,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -457,6 +457,7 @@ chrome_java_resources = [
+@@ -447,6 +447,7 @@ chrome_java_resources = [
    "java/res/layout/account_chooser_dialog_title.xml",
    "java/res/layout/account_divider_preference.xml",
    "java/res/layout/account_management_account_row.xml",
@@ -90,7 +84,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_unmask_prompt.xml",
-@@ -643,6 +644,7 @@ chrome_java_resources = [
+@@ -632,6 +633,7 @@ chrome_java_resources = [
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
    "java/res/xml/account_management_preferences_legacy.xml",
@@ -101,7 +95,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -896,6 +896,8 @@ chrome_java_sources = [
+@@ -932,6 +932,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -186,7 +180,7 @@ index 0000000000000000000000000000000000000000..aced0dbca5a2be7e2dc03207a757a6c0
 diff --git a/chrome/android/java/res/values/styles.xml b/chrome/android/java/res/values/styles.xml
 --- a/chrome/android/java/res/values/styles.xml
 +++ b/chrome/android/java/res/values/styles.xml
-@@ -180,6 +180,24 @@ found in the LICENSE file.
+@@ -224,6 +224,24 @@ found in the LICENSE file.
          </item>
      </style>
  
@@ -257,10 +251,10 @@ index 0000000000000000000000000000000000000000..36ea147ed26934ca5d502c3d20c79190
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
 +++ b/chrome/android/java/res/xml/main_preferences.xml
-@@ -44,6 +44,11 @@ found in the LICENSE file.
-         android:key="privacy"
-         android:order="10"
-         android:title="@string/prefs_privacy_security"/>
+@@ -67,6 +67,11 @@ found in the LICENSE file.
+         android:key="safety_check"
+         android:order="11"
+         android:title="@string/prefs_safety_check"/>
 +    <Preference
 +        android:fragment="org.chromium.chrome.browser.settings.AdBlockPreferences"
 +        android:key="adblock"
@@ -436,7 +430,7 @@ index 0000000000000000000000000000000000000000..b24689ee7964b82d9394f769172960f4
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
-@@ -705,7 +705,7 @@ public class TabModelImpl extends TabModelJniBridge {
+@@ -707,7 +707,7 @@ public class TabModelImpl extends TabModelJniBridge {
      protected boolean createTabWithWebContents(
              Tab parent, Profile profile, WebContents webContents) {
          return getTabCreator(profile.isOffTheRecord())
@@ -448,7 +442,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -12703,6 +12703,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -12872,6 +12872,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -497,7 +491,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
  
  class BackgroundModeManager;
  class BrowserProcessPlatformPart;
-@@ -67,6 +68,10 @@ namespace component_updater {
+@@ -71,6 +72,10 @@ namespace component_updater {
  class ComponentUpdateService;
  }
  
@@ -508,7 +502,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
  namespace extensions {
  class EventRouterForwarder;
  }
-@@ -230,6 +235,7 @@ class BrowserProcess {
+@@ -237,6 +242,7 @@ class BrowserProcess {
  #endif
  
    virtual component_updater::ComponentUpdateService* component_updater() = 0;
@@ -519,7 +513,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1094,6 +1094,26 @@ BrowserProcessImpl::component_updater() {
+@@ -1113,6 +1113,26 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -549,7 +543,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_process_impl.h
 --- a/chrome/browser/browser_process_impl.h
 +++ b/chrome/browser/browser_process_impl.h
-@@ -192,6 +192,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -193,6 +193,7 @@ class BrowserProcessImpl : public BrowserProcess,
  #endif
  
    component_updater::ComponentUpdateService* component_updater() override;
@@ -557,13 +551,13 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
    MediaFileSystemRegistry* media_file_system_registry() override;
    WebRtcLogUploader* webrtc_log_uploader() override;
    network_time::NetworkTimeTracker* network_time_tracker() override;
-@@ -376,6 +377,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -380,6 +381,7 @@ class BrowserProcessImpl : public BrowserProcess,
    // to concerns over integrity of data shared between profiles,
    // but some users of component updater only install per-user.
    std::unique_ptr<component_updater::ComponentUpdateService> component_updater_;
 +  std::unique_ptr<adblock_updater::AdBlockUpdaterService> adblock_updater_;
  
- #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS_ASH)
+ #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
    // Used to create a singleton instance of SodaInstallerImpl, which can be
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
@@ -606,7 +600,7 @@ diff --git a/chrome/browser/flags/android/cached_feature_flags.cc b/chrome/brows
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
-@@ -190,6 +190,14 @@ public class CachedFeatureFlags {
+@@ -188,6 +188,14 @@ public class CachedFeatureFlags {
                  ChromeFeatureList.isEnabled(ChromeFeatureList.BACKGROUND_THREAD_POOL));
      }
  
@@ -621,7 +615,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      /**
       * Caches flags that must take effect on startup but are set via native code.
       */
-@@ -427,5 +435,7 @@ public class CachedFeatureFlags {
+@@ -425,5 +433,7 @@ public class CachedFeatureFlags {
      @NativeMethods
      interface Natives {
          boolean isNetworkServiceWarmUpEnabled();
@@ -667,8 +661,8 @@ diff --git a/chrome/browser/sessions/session_restore_android.cc b/chrome/browser
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -215,6 +215,20 @@ CHAR_LIMIT guidelines:
-         Enter VR
+@@ -212,6 +212,20 @@ CHAR_LIMIT guidelines:
+         Advanced
        </message>
  
 +      <!-- AdBlock settings -->
@@ -691,7 +685,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 --- a/chrome/common/pref_names.cc
 +++ b/chrome/common/pref_names.cc
-@@ -2426,6 +2426,9 @@ const char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2385,6 +2385,9 @@ const char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  // capture devices without prompt.
  const char kAudioCaptureAllowedUrls[] = "hardware.audio_capture_allowed_urls";
  
@@ -715,7 +709,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
 +++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -337,8 +337,8 @@
+@@ -346,8 +346,8 @@
    <message name="IDS_INTRUSIVE_ADS_INFORMATION" desc="The extra information at the top of the Site Details page when the site tends to show intrusive ads">
      This site shows intrusive or misleading ads
    </message>
@@ -752,10 +746,10 @@ diff --git a/components/component_updater/BUILD.gn b/components/component_update
      "//url",
 diff --git a/components/component_updater/adblock_updater_service.cc b/components/component_updater/adblock_updater_service.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a5c91736b
+index 0000000000000000000000000000000000000000..b4123c29af15fc803cb01874ee4cdf8c8bd9c478
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.cc
-@@ -0,0 +1,271 @@
+@@ -0,0 +1,270 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -781,13 +775,12 @@ index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a
 +#include <utility>
 +#include <vector>
 +
-+#include "base/bind.h"
-+#include "base/callback.h"
++#include "base/functional/bind.h"
++#include "base/functional/callback.h"
 +#include "base/files/file_path.h"
 +#include "base/files/file_util.h"
 +#include "base/logging.h"
-+#include "base/threading/thread_checker.h"
-+#include "base/threading/thread_task_runner_handle.h"
++#include "base/task/single_thread_task_runner.h"
 +#include "base/time/time.h"
 +#include "base/timer/timer.h"
 +#include "url/gurl.h"
@@ -874,14 +867,14 @@ index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a
 +  }
 +
 +  if (is_updating_) {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(std::move(on_finished),
 +                                    Error::UPDATE_IN_PROGRESS));
 +    return false;
 +  }
 +  is_updating_ = true;
 +
-+  base::ThreadTaskRunnerHandle::Get()->PostTask(
++  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_CHECKING_FOR_UPDATES));
 +
 +  base::Time::Exploded e = {0};
@@ -951,11 +944,11 @@ index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a
 +
 +  // run task now; task is responsible for downloading the filters (if Last-Modified header is more recent)
 +  // and then clearing the 'is_updating' status
-+  base::ThreadTaskRunnerHandle::Get()->PostTask(FROM_HERE,
++  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
 +      base::BindOnce(&DownloadFiltersTask::Run, base::Unretained(task.get())));
 +  tasks_.insert(task);
 +
-+  base::ThreadTaskRunnerHandle::Get()->PostTask(
++  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_DOWNLOADING));
 +
 +  return true;
@@ -968,7 +961,7 @@ index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a
 +
 +  auto file_path = task->file_path();
 +  if (error == Error::NONE) {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_READY));
 +
 +    subresource_filter::UnindexedRulesetInfo ruleset_info;
@@ -1004,20 +997,20 @@ index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a
 +      LOG(WARNING) << "AdBlockUpdaterService: invalid Last-Modified header, ignoring version check.";
 +    ruleset_service_->IndexAndStoreAndPublishRulesetIfNeeded(ruleset_info, ignore_version);
 +
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATED));
 +  } else if (error == Error::UPDATE_NOT_NEEDED) {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_NOT_UPDATED));
 +  } else {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_ERROR));
 +  }
 +
 +  //TODO: run these only when index-and-store is actually finished?
 +  // would require exposing the callback in IndexAndStoreAndPublishRulesetIfNeeded
 +  if (!on_finished.is_null()) {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(std::move(on_finished), error));
 +  }
 +
@@ -1029,7 +1022,7 @@ index 0000000000000000000000000000000000000000..8c5c653f37654765f544a7c71202123a
 +}  // namespace adblock_updater
 diff --git a/components/component_updater/adblock_updater_service.h b/components/component_updater/adblock_updater_service.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..d5f9948ee3dfb285521b2c3dbf025719fac191c0
+index 0000000000000000000000000000000000000000..1ac0e23409a2a01be0f6ebba66c1656c7028fd68
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.h
 @@ -0,0 +1,100 @@
@@ -1059,7 +1052,7 @@ index 0000000000000000000000000000000000000000..d5f9948ee3dfb285521b2c3dbf025719
 +#include <string>
 +#include <vector>
 +
-+#include "base/callback_forward.h"
++#include "base/functional/callback_forward.h"
 +#include "base/gtest_prod_util.h"
 +#include "base/memory/ref_counted.h"
 +#include "base/observer_list.h"
@@ -1135,7 +1128,7 @@ index 0000000000000000000000000000000000000000..d5f9948ee3dfb285521b2c3dbf025719
 +#endif  // COMPONENTS_ADBLOCK_UPDATER_SERVICE_H
 diff --git a/components/component_updater/download_filters_task.cc b/components/component_updater/download_filters_task.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..21cab490eca514270477e185e5b8be34d4c2331c
+index 0000000000000000000000000000000000000000..96a6289dd00129a2030bf3cc7a25c1beb56bbeca
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.cc
 @@ -0,0 +1,224 @@
@@ -1160,9 +1153,9 @@ index 0000000000000000000000000000000000000000..21cab490eca514270477e185e5b8be34
 +#include <utility>
 +
 +#include "base/files/file_util.h"
-+#include "base/bind.h"
++#include "base/functional/bind.h"
 +#include "base/location.h"
-+#include "base/threading/thread_task_runner_handle.h"
++#include "base/task/single_thread_task_runner.h"
 +#include "base/logging.h"
 +#include "net/base/load_flags.h"
 +#include "url/gurl.h"
@@ -1349,7 +1342,7 @@ index 0000000000000000000000000000000000000000..21cab490eca514270477e185e5b8be34
 +void DownloadFiltersTask::TaskComplete(Error error) {
 +  DCHECK(thread_checker_.CalledOnValidThread());
 +
-+  base::ThreadTaskRunnerHandle::Get()->PostTask(
++  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(std::move(complete_callback_),
 +                                scoped_refptr<DownloadFiltersTask>(this), error));
 +}
@@ -1365,7 +1358,7 @@ index 0000000000000000000000000000000000000000..21cab490eca514270477e185e5b8be34
 +}  // namespace adblock_updater
 diff --git a/components/component_updater/download_filters_task.h b/components/component_updater/download_filters_task.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..c3c12de73ee63d077abe7125ea031fdcb4edf342
+index 0000000000000000000000000000000000000000..5b1468fb033f06fa864d66ca2bc12ed592c21476
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.h
 @@ -0,0 +1,130 @@
@@ -1392,7 +1385,7 @@ index 0000000000000000000000000000000000000000..c3c12de73ee63d077abe7125ea031fdc
 +#include <string>
 +#include <vector>
 +
-+#include "base/callback.h"
++#include "base/functional/callback.h"
 +#include "base/memory/ref_counted.h"
 +#include "base/threading/thread_checker.h"
 +#include "components/update_client/network.h"
@@ -1677,8 +1670,8 @@ diff --git a/components/subresource_filter/content/browser/verified_ruleset_deal
 --- a/components/subresource_filter/content/browser/verified_ruleset_dealer.cc
 +++ b/components/subresource_filter/content/browser/verified_ruleset_dealer.cc
 @@ -11,6 +11,7 @@
- #include "base/check.h"
- #include "base/files/file.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
  #include "base/location.h"
 +#include "base/logging.h"
  #include "base/metrics/histogram_macros.h"
@@ -1920,5 +1913,5 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  // Define the strategy for LazyEmbeds to decide which frames we apply
  // lazy-loading or not. If the loading strategy is kAllowList, the detection
 -- 
-2.39.1
+2.39.2
 
