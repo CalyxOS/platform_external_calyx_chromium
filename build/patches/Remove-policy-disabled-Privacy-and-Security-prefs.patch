@@ -1,0 +1,114 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 8 Mar 2023 13:24:32 -0500
+Subject: Remove policy-disabled Privacy and Security prefs
+
+Remove Safe Browsing, Preload pages, and Touch to Search from the
+Privacy and security settings screen.
+
+Change-Id: Ic86dc8dac25b4e9bc89ab73952ec997ce517395b
+---
+ .../android/java/res/xml/privacy_preferences.xml  | 14 --------------
+ .../java/res/xml/privacy_preferences_v2.xml       | 10 ----------
+ .../browser/privacy/settings/PrivacySettings.java | 15 ---------------
+ 3 files changed, 39 deletions(-)
+
+diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
+--- a/chrome/android/java/res/xml/privacy_preferences.xml
++++ b/chrome/android/java/res/xml/privacy_preferences.xml
+@@ -19,11 +19,6 @@ found in the LICENSE file.
+         android:title="@string/prefs_privacy_guide_title"
+         android:summary="@string/prefs_privacy_guide_summary"
+         android:fragment="org.chromium.chrome.browser.privacy_guide.PrivacyGuideFragment"/>
+-    <Preference
+-        android:key="safe_browsing"
+-        android:title="@string/prefs_safe_browsing_title"
+-        android:summary="@string/prefs_safe_browsing_summary"
+-        android:fragment="org.chromium.chrome.browser.safe_browsing.settings.SafeBrowsingSettingsFragment"/>
+     <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
+         android:key="https_first_mode"
+         android:title="@string/settings_https_first_mode_title"
+@@ -37,11 +32,6 @@ found in the LICENSE file.
+         android:key="can_make_payment"
+         android:title="@string/can_make_payment_title"
+         android:summary="@string/settings_can_make_payment_toggle_label"/>
+-    <Preference
+-        android:key="preload_pages"
+-        android:title="@string/preload_pages_title"
+-        android:summary="@string/preload_pages_summary"
+-        android:fragment="org.chromium.chrome.browser.prefetch.settings.PreloadPagesSettingsFragment"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:key="usage_stats_reporting"
+         android:title="@string/usage_stats_setting_title"
+@@ -62,10 +52,6 @@ found in the LICENSE file.
+           android:title="@string/autocomplete_searches_and_urls_title"
+           android:summary="@string/autocomplete_searches_and_urls_summary"
+           android:persistent="false"/>
+-      <org.chromium.components.browser_ui.settings.ChromeBasePreference
+-          android:key="contextual_search"
+-          android:title="@string/contextual_search_title"
+-          android:fragment="org.chromium.chrome.browser.contextualsearch.ContextualSearchPreferenceFragment"/>
+     </PreferenceCategory>
+     <Preference
+         android:key="phone_as_a_security_key"
+diff --git a/chrome/android/java/res/xml/privacy_preferences_v2.xml b/chrome/android/java/res/xml/privacy_preferences_v2.xml
+--- a/chrome/android/java/res/xml/privacy_preferences_v2.xml
++++ b/chrome/android/java/res/xml/privacy_preferences_v2.xml
+@@ -34,11 +34,6 @@ found in the LICENSE file.
+         android:key="do_not_track"
+         android:title="@string/do_not_track_title"
+         android:fragment="org.chromium.chrome.browser.privacy.settings.DoNotTrackSettings" />
+-    <Preference
+-        android:key="preload_pages"
+-        android:title="@string/preload_pages_title"
+-        android:summary="@string/preload_pages_summary"
+-        android:fragment="org.chromium.chrome.browser.prefetch.settings.PreloadPagesSettingsFragment" />
+     <org.chromium.chrome.browser.incognito.reauth.IncognitoReauthSettingSwitchPreference
+         android:key="incognito_lock"
+         android:title="@string/settings_incognito_tab_lock_title"
+@@ -48,11 +43,6 @@ found in the LICENSE file.
+     <PreferenceCategory
+         android:key="security_section"
+         android:title="@string/security_section_title" />
+-    <Preference
+-        android:key="safe_browsing"
+-        android:title="@string/prefs_safe_browsing_title"
+-        android:summary="@string/prefs_safe_browsing_summary"
+-        android:fragment="org.chromium.chrome.browser.safe_browsing.settings.SafeBrowsingSettingsFragment" />
+     <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
+         android:key="https_first_mode"
+         android:title="@string/settings_https_first_mode_title"
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
+@@ -112,15 +112,6 @@ public class PrivacySettings
+         mIncognitoLockSettings = new IncognitoLockSettings(incognitoReauthPreference);
+         mIncognitoLockSettings.setUpIncognitoReauthPreference(getActivity());
+ 
+-        Preference safeBrowsingPreference = findPreference(PREF_SAFE_BROWSING);
+-        safeBrowsingPreference.setSummary(
+-                SafeBrowsingSettingsFragment.getSafeBrowsingSummaryString(getContext()));
+-        safeBrowsingPreference.setOnPreferenceClickListener((preference) -> {
+-            preference.getExtras().putInt(
+-                    SafeBrowsingSettingsFragment.ACCESS_POINT, SettingsAccessPoint.PARENT_SETTINGS);
+-            return false;
+-        });
+-
+         setHasOptionsMenu(true);
+ 
+         mManagedPreferenceDelegate = createManagedPreferenceDelegate();
+@@ -129,12 +120,6 @@ public class PrivacySettings
+         mSearchSuggestions.setOnPreferenceChangeListener(this);
+         mSearchSuggestions.setManagedPreferenceDelegate(mManagedPreferenceDelegate);
+ 
+-        mContextualSearch = findPreference(PREF_CONTEXTUAL_SEARCH);
+-        boolean isContextualSearchEnabled =
+-                !ContextualSearchManager.isContextualSearchDisabled();
+-        mContextualSearch.setSummary(
+-                isContextualSearchEnabled ? R.string.text_on : R.string.text_off);
+-
+         ChromeSwitchPreference canMakePaymentPref =
+                 (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
+         canMakePaymentPref.setOnPreferenceChangeListener(this);
+-- 
+2.39.2
+
