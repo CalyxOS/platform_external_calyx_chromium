@@ -5,15 +5,16 @@ Subject: Show site settings for cookies, javascript and ads
 Avoid displaying info about intrusive ads
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+Change-Id: Ie13754b13dd6530aee34520a227497cdb97cea0e
 ---
- .../site_settings/SingleWebsiteSettings.java  | 54 +++++++++----------
+ .../site_settings/SingleWebsiteSettings.java  | 52 +++++++++----------
  .../browser_ui/site_settings/Website.java     | 15 ++++--
- 2 files changed, 37 insertions(+), 32 deletions(-)
+ 2 files changed, 36 insertions(+), 31 deletions(-)
 
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -514,6 +514,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -520,6 +520,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  setUpSoundPreference(preference);
              } else if (type == ContentSettingsType.JAVASCRIPT) {
                  setUpJavascriptPreference(preference);
@@ -22,7 +23,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              } else if (type == ContentSettingsType.GEOLOCATION) {
                  setUpLocationPreference(preference);
              } else if (type == ContentSettingsType.IMAGES) {
-@@ -869,16 +871,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -875,16 +877,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
      private void setUpAdsInformationalBanner() {
          // Add the informational banner which shows at the top of the UI if ad blocking is
          // activated on this site.
@@ -39,7 +40,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      }
  
      private SiteSettingsCategory getWarningCategory() {
-@@ -1058,16 +1052,34 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1064,17 +1058,35 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          @Nullable
          Integer currentValue =
                  mSite.getContentSetting(browserContextHandle, ContentSettingsType.JAVASCRIPT);
@@ -49,18 +50,17 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 -                && !WebsitePreferenceBridge.isCategoryEnabled(
 -                        browserContextHandle, ContentSettingsType.JAVASCRIPT)) {
 -            currentValue = ContentSettingValues.BLOCK;
--        }
 +        // Always show the Javascript permission
 +        if (currentValue == null) {
 +            currentValue = WebsitePreferenceBridge.isCategoryEnabled(
 +                                   browserContextHandle, ContentSettingsType.JAVASCRIPT)
 +                    ? ContentSettingValues.ALLOW
 +                    : ContentSettingValues.BLOCK;
-+         }
+         }
          // Not possible to embargo JAVASCRIPT.
          setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
      }
-+ 
+ 
 +    private void setUpCookiesPreference(Preference preference) {
 +        BrowserContextHandle browserContextHandle =
 +                getSiteSettingsDelegate().getBrowserContextHandle();
@@ -77,11 +77,12 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +        }
 +        // Not possible to embargo COOKIES.
 +        setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
-+     }
- 
++    }
++
      /**
       * Updates the ads list preference based on whether the site is a candidate for blocking. This
-@@ -1084,22 +1096,10 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+      * has some custom behavior.
+@@ -1090,22 +1102,10 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
              setupContentSettingsPreference(preference, null, false);
              return;
          }
@@ -132,5 +133,5 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  setContentSettingException(type, exception);
              }
 -- 
-2.39.1
+2.39.2
 
