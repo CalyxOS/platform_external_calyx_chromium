@@ -11,7 +11,7 @@ Fix RestoreForeignSessionTab by recreating the tab (issue #681)
 Enable AutomaticLazyFrameLoadingToAds and AutomaticLazyFrameLoadingToEmbeds features
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
+Change-Id: I3a6c0dfaa7f96e986f9f99a6a4b435c1c4d8cf8c
 ---
  chrome/android/BUILD.gn                       |   1 +
  chrome/android/chrome_java_resources.gni      |   2 +
@@ -39,10 +39,10 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  chrome/common/pref_names.h                    |   1 +
  .../strings/android/site_settings.grdp        |   4 +-
  components/component_updater/BUILD.gn         |   7 +
- .../adblock_updater_service.cc                | 270 ++++++++++++++++++
- .../adblock_updater_service.h                 | 100 +++++++
- .../download_filters_task.cc                  | 224 +++++++++++++++
- .../component_updater/download_filters_task.h | 130 +++++++++
+ .../adblock_updater_service.cc                | 268 ++++++++++++++++++
+ .../adblock_updater_service.h                 |  98 +++++++
+ .../download_filters_task.cc                  | 222 +++++++++++++++
+ .../component_updater/download_filters_task.h | 129 +++++++++
  ...ent_subresource_filter_throttle_manager.cc |  11 +
  .../content/browser/ruleset_service.cc        |  33 ++-
  .../content/browser/ruleset_service.h         |   7 +-
@@ -52,7 +52,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../core/common/indexed_ruleset.cc            |   5 +-
  .../navigation_throttle_runner.cc             |   5 -
  third_party/blink/common/features.cc          |  12 +-
- 39 files changed, 1165 insertions(+), 135 deletions(-)
+ 39 files changed, 1158 insertions(+), 135 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -208,15 +208,15 @@ diff --git a/chrome/android/java/res/values/styles.xml b/chrome/android/java/res
 diff --git a/chrome/android/java/res/values/values.xml b/chrome/android/java/res/values/values.xml
 --- a/chrome/android/java/res/values/values.xml
 +++ b/chrome/android/java/res/values/values.xml
-@@ -26,6 +26,8 @@ found in the LICENSE file.
-     <integer name="default_compression_queue_size">5</integer>
+@@ -27,6 +27,8 @@ found in the LICENSE file.
      <!-- Compositor Tab Title Text -->
      <bool name="compositor_tab_title_fake_bold_text">true</bool>
-+ 
-+    <string name="adblock_help_url">https://www.bromite.org/custom-filters</string>
  
++    <string name="adblock_help_url">https://www.bromite.org/custom-filters</string>
++
      <!-- Download InfoBar animation. -->
      <integer name="download_infobar_fill_in_delay">1200</integer>
+     <integer name="download_infobar_fill_out_delay">200</integer>
 diff --git a/chrome/android/java/res/xml/adblock_preferences.xml b/chrome/android/java/res/xml/adblock_preferences.xml
 new file mode 100644
 index 0000000000000000000000000000000000000000..36ea147ed26934ca5d502c3d20c7919027d00f19
@@ -746,10 +746,10 @@ diff --git a/components/component_updater/BUILD.gn b/components/component_update
      "//url",
 diff --git a/components/component_updater/adblock_updater_service.cc b/components/component_updater/adblock_updater_service.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..b4123c29af15fc803cb01874ee4cdf8c8bd9c478
+index 0000000000000000000000000000000000000000..4562b2e53da83be94f68b96c139e6d9369330290
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.cc
-@@ -0,0 +1,270 @@
+@@ -0,0 +1,268 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -775,12 +775,10 @@ index 0000000000000000000000000000000000000000..b4123c29af15fc803cb01874ee4cdf8c
 +#include <utility>
 +#include <vector>
 +
-+#include "base/functional/bind.h"
-+#include "base/functional/callback.h"
 +#include "base/files/file_path.h"
 +#include "base/files/file_util.h"
 +#include "base/logging.h"
-+#include "base/task/single_thread_task_runner.h"
++#include "base/threading/thread_checker.h"
 +#include "base/time/time.h"
 +#include "base/timer/timer.h"
 +#include "url/gurl.h"
@@ -867,14 +865,14 @@ index 0000000000000000000000000000000000000000..b4123c29af15fc803cb01874ee4cdf8c
 +  }
 +
 +  if (is_updating_) {
-+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(std::move(on_finished),
 +                                    Error::UPDATE_IN_PROGRESS));
 +    return false;
 +  }
 +  is_updating_ = true;
 +
-+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_CHECKING_FOR_UPDATES));
 +
 +  base::Time::Exploded e = {0};
@@ -944,11 +942,11 @@ index 0000000000000000000000000000000000000000..b4123c29af15fc803cb01874ee4cdf8c
 +
 +  // run task now; task is responsible for downloading the filters (if Last-Modified header is more recent)
 +  // and then clearing the 'is_updating' status
-+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
 +      base::BindOnce(&DownloadFiltersTask::Run, base::Unretained(task.get())));
 +  tasks_.insert(task);
 +
-+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_DOWNLOADING));
 +
 +  return true;
@@ -961,7 +959,7 @@ index 0000000000000000000000000000000000000000..b4123c29af15fc803cb01874ee4cdf8c
 +
 +  auto file_path = task->file_path();
 +  if (error == Error::NONE) {
-+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_READY));
 +
 +    subresource_filter::UnindexedRulesetInfo ruleset_info;
@@ -997,20 +995,20 @@ index 0000000000000000000000000000000000000000..b4123c29af15fc803cb01874ee4cdf8c
 +      LOG(WARNING) << "AdBlockUpdaterService: invalid Last-Modified header, ignoring version check.";
 +    ruleset_service_->IndexAndStoreAndPublishRulesetIfNeeded(ruleset_info, ignore_version);
 +
-+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATED));
 +  } else if (error == Error::UPDATE_NOT_NEEDED) {
-+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_NOT_UPDATED));
 +  } else {
-+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_ERROR));
 +  }
 +
 +  //TODO: run these only when index-and-store is actually finished?
 +  // would require exposing the callback in IndexAndStoreAndPublishRulesetIfNeeded
 +  if (!on_finished.is_null()) {
-+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(std::move(on_finished), error));
 +  }
 +
@@ -1022,10 +1020,10 @@ index 0000000000000000000000000000000000000000..b4123c29af15fc803cb01874ee4cdf8c
 +}  // namespace adblock_updater
 diff --git a/components/component_updater/adblock_updater_service.h b/components/component_updater/adblock_updater_service.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..1ac0e23409a2a01be0f6ebba66c1656c7028fd68
+index 0000000000000000000000000000000000000000..d581ab59588515a69a4d4a2ef5c875f5587c93e2
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.h
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,98 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1052,8 +1050,6 @@ index 0000000000000000000000000000000000000000..1ac0e23409a2a01be0f6ebba66c1656c
 +#include <string>
 +#include <vector>
 +
-+#include "base/functional/callback_forward.h"
-+#include "base/gtest_prod_util.h"
 +#include "base/memory/ref_counted.h"
 +#include "base/observer_list.h"
 +#include "base/version.h"
@@ -1128,10 +1124,10 @@ index 0000000000000000000000000000000000000000..1ac0e23409a2a01be0f6ebba66c1656c
 +#endif  // COMPONENTS_ADBLOCK_UPDATER_SERVICE_H
 diff --git a/components/component_updater/download_filters_task.cc b/components/component_updater/download_filters_task.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..96a6289dd00129a2030bf3cc7a25c1beb56bbeca
+index 0000000000000000000000000000000000000000..69bed5f7b7b790207699fd54afed547527cdde82
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.cc
-@@ -0,0 +1,224 @@
+@@ -0,0 +1,222 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1153,9 +1149,7 @@ index 0000000000000000000000000000000000000000..96a6289dd00129a2030bf3cc7a25c1be
 +#include <utility>
 +
 +#include "base/files/file_util.h"
-+#include "base/functional/bind.h"
 +#include "base/location.h"
-+#include "base/task/single_thread_task_runner.h"
 +#include "base/logging.h"
 +#include "net/base/load_flags.h"
 +#include "url/gurl.h"
@@ -1342,7 +1336,7 @@ index 0000000000000000000000000000000000000000..96a6289dd00129a2030bf3cc7a25c1be
 +void DownloadFiltersTask::TaskComplete(Error error) {
 +  DCHECK(thread_checker_.CalledOnValidThread());
 +
-+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(std::move(complete_callback_),
 +                                scoped_refptr<DownloadFiltersTask>(this), error));
 +}
@@ -1358,10 +1352,10 @@ index 0000000000000000000000000000000000000000..96a6289dd00129a2030bf3cc7a25c1be
 +}  // namespace adblock_updater
 diff --git a/components/component_updater/download_filters_task.h b/components/component_updater/download_filters_task.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..5b1468fb033f06fa864d66ca2bc12ed592c21476
+index 0000000000000000000000000000000000000000..e5aeb7c9a7f1f2b8e71c6345edfcbd6f7d13d704
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.h
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,129 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1385,7 +1379,6 @@ index 0000000000000000000000000000000000000000..5b1468fb033f06fa864d66ca2bc12ed5
 +#include <string>
 +#include <vector>
 +
-+#include "base/functional/callback.h"
 +#include "base/memory/ref_counted.h"
 +#include "base/threading/thread_checker.h"
 +#include "components/update_client/network.h"
@@ -1913,5 +1906,5 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  // Define the strategy for LazyEmbeds to decide which frames we apply
  // lazy-loading or not. If the loading strategy is kAllowList, the detection
 -- 
-2.39.2
+2.40.0
 
