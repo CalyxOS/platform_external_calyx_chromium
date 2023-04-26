@@ -19,11 +19,11 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../attribution_reporting/attribution_host.cc     |  1 +
  .../attribution_report_network_sender.cc          |  9 +++++++++
  .../attribution_storage_sql.cc                    |  8 +++++---
- content/browser/storage_partition_impl.cc         |  7 +------
+ content/browser/storage_partition_impl.cc         |  8 +-------
  content/public/browser/navigation_controller.cc   |  1 -
  third_party/blink/common/features.cc              |  4 ++--
  .../platform/runtime_enabled_features.json5       |  7 +++++++
- 10 files changed, 36 insertions(+), 27 deletions(-)
+ 10 files changed, 36 insertions(+), 28 deletions(-)
 
 diff --git a/components/embedder_support/origin_trials/features.cc b/components/embedder_support/origin_trials/features.cc
 --- a/components/embedder_support/origin_trials/features.cc
@@ -90,14 +90,14 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -189,6 +189,7 @@ void AttributionHost::DidRedirectNavigation(
-     return;
-   }
+@@ -186,6 +186,7 @@ void AttributionHost::DidRedirectNavigation(
+   const auto impression = navigation_handle->GetImpression();
+   DCHECK(impression.has_value());
  
 +  if ((true)) return;
-   AttributionManager* attribution_manager =
+   auto* attribution_manager =
        AttributionManager::FromWebContents(web_contents());
-   if (!attribution_manager) {
+   DCHECK(attribution_manager);
 diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
 --- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
 +++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
@@ -127,7 +127,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -438,6 +438,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
+@@ -443,6 +443,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
    return user_data_directory.Append(kDatabasePath);
  }
  
@@ -136,7 +136,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
  }  // namespace
  
  // static
-@@ -449,9 +451,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
+@@ -454,9 +456,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
  AttributionStorageSql::AttributionStorageSql(
      const base::FilePath& user_data_directory,
      std::unique_ptr<AttributionStorageDelegate> delegate)
@@ -152,13 +152,14 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1339,12 +1339,7 @@ void StoragePartitionImpl::Initialize(
+@@ -1423,13 +1423,7 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
--  // The Conversion Measurement API is not available in Incognito mode.
--  if (!is_in_memory() &&
--      base::FeatureList::IsEnabled(blink::features::kConversionMeasurement)) {
+-  if (base::FeatureList::IsEnabled(blink::features::kConversionMeasurement)) {
+-    // The Conversion Measurement API is not available in Incognito mode, but
+-    // this is enforced by the `AttributionManagerImpl` itself for better error
+-    // reporting and metrics.
 -    attribution_manager_ = std::make_unique<AttributionManagerImpl>(
 -        this, path, special_storage_policy_);
 -  }
@@ -180,7 +181,7 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -128,8 +128,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
+@@ -135,8 +135,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
  
  // Controls whether the Conversion Measurement API infrastructure is enabled.
  BASE_FEATURE(kConversionMeasurement,
@@ -209,5 +210,5 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        name: "AbortSignalAny",
        status: "experimental",
 -- 
-2.40.0
+2.40.1
 
