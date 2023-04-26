@@ -14,11 +14,11 @@ Change-Id: Ia59ed533b4ea5465d2e04ca1438c583b8b95fc65
  .../CloseAllTabsDialogUnitTest.java           | 23 +++++++++++++++++++
  chrome/browser/about_flags.cc                 |  7 ++++++
  chrome/browser/flag_descriptions.cc           |  5 ++++
- chrome/browser/flag_descriptions.h            |  3 +++
+ chrome/browser/flag_descriptions.h            |  6 +++++
  .../flags/android/chrome_feature_list.cc      |  9 ++++++--
  .../flags/android/chrome_feature_list.h       |  1 +
  .../browser/flags/ChromeFeatureList.java      |  1 +
- 9 files changed, 56 insertions(+), 2 deletions(-)
+ 9 files changed, 59 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/CloseAllTabsDialog.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/CloseAllTabsDialog.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/CloseAllTabsDialog.java
@@ -71,19 +71,18 @@ diff --git a/chrome/android/features/tab_ui/javatests/src/org/chromium/chrome/br
 diff --git a/chrome/android/features/tab_ui/junit/src/org/chromium/chrome/browser/tasks/tab_management/CloseAllTabsDialogUnitTest.java b/chrome/android/features/tab_ui/junit/src/org/chromium/chrome/browser/tasks/tab_management/CloseAllTabsDialogUnitTest.java
 --- a/chrome/android/features/tab_ui/junit/src/org/chromium/chrome/browser/tasks/tab_management/CloseAllTabsDialogUnitTest.java
 +++ b/chrome/android/features/tab_ui/junit/src/org/chromium/chrome/browser/tasks/tab_management/CloseAllTabsDialogUnitTest.java
-@@ -25,9 +25,11 @@ import org.mockito.Mockito;
+@@ -22,8 +22,10 @@ import org.mockito.Mockito;
  import org.mockito.MockitoAnnotations;
  import org.robolectric.annotation.Config;
  
 +import org.chromium.base.FeatureList;
- import org.chromium.base.metrics.UmaRecorder;
- import org.chromium.base.metrics.UmaRecorderHolder;
  import org.chromium.base.test.BaseRobolectricTestRunner;
+ import org.chromium.base.test.util.HistogramWatcher;
 +import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.tab_ui.R;
  import org.chromium.ui.modaldialog.DialogDismissalCause;
  import org.chromium.ui.modaldialog.ModalDialogManager;
-@@ -135,6 +137,7 @@ public class CloseAllTabsDialogUnitTest {
+@@ -122,6 +124,7 @@ public class CloseAllTabsDialogUnitTest {
      @Test
      @SmallTest
      public void testDialog() {
@@ -91,7 +90,7 @@ diff --git a/chrome/android/features/tab_ui/junit/src/org/chromium/chrome/browse
          final boolean isIncognito = false;
          CloseAllTabsDialog.show(mContext, this::getModalDialogManager,
                  () -> { mRunnableCalled = true; }, isIncognito);
-@@ -148,6 +151,7 @@ public class CloseAllTabsDialogUnitTest {
+@@ -142,6 +145,7 @@ public class CloseAllTabsDialogUnitTest {
      @Test
      @SmallTest
      public void testDismissButton() {
@@ -99,7 +98,7 @@ diff --git a/chrome/android/features/tab_ui/junit/src/org/chromium/chrome/browse
          final boolean isIncognito = true;
          CloseAllTabsDialog.show(mContext, this::getModalDialogManager,
                  () -> { mRunnableCalled = true; }, isIncognito);
-@@ -161,6 +165,7 @@ public class CloseAllTabsDialogUnitTest {
+@@ -162,6 +166,7 @@ public class CloseAllTabsDialogUnitTest {
      @Test
      @SmallTest
      public void testDismissNoButton() {
@@ -107,9 +106,9 @@ diff --git a/chrome/android/features/tab_ui/junit/src/org/chromium/chrome/browse
          final boolean isIncognito = false;
          CloseAllTabsDialog.show(mContext, this::getModalDialogManager,
                  () -> { mRunnableCalled = true; }, isIncognito);
-@@ -171,4 +176,22 @@ public class CloseAllTabsDialogUnitTest {
-         assertFalse(mRunnableCalled);
-         verifyDismissed(false, isIncognito);
+@@ -179,4 +184,22 @@ public class CloseAllTabsDialogUnitTest {
+         verifyDismissed();
+         histograms.assertExpected();
      }
 +
 +    @Test
@@ -133,7 +132,7 @@ diff --git a/chrome/android/features/tab_ui/junit/src/org/chromium/chrome/browse
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -8545,6 +8545,13 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -8877,6 +8877,13 @@ const FeatureEntry kFeatureEntries[] = {
       FEATURE_VALUE_TYPE(features::kWaylandScreenCoordinatesEnabled)},
  #endif
  
@@ -150,7 +149,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -3635,6 +3635,11 @@ const char kChromeSharingHubLaunchAdjacentDescription[] =
+@@ -3686,6 +3686,11 @@ const char kChromeSharingHubLaunchAdjacentDescription[] =
      "In multi-window mode, launches share hub actions in an adjacent window. "
      "For internal debugging.";
  
@@ -165,28 +164,31 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -395,6 +395,9 @@ extern const char kContextMenuGoogleLensSearchOptimizationsDescription[];
- extern const char kClientStorageAccessContextAuditingName[];
- extern const char kClientStorageAccessContextAuditingDescription[];
+@@ -405,6 +405,12 @@ extern const char kContextMenuSearchWithGoogleLensDescription[];
+ extern const char kContextMenuGoogleLensSearchOptimizationsName[];
+ extern const char kContextMenuGoogleLensSearchOptimizationsDescription[];
  
 +extern const char kCloseAllTabsModalDialogName[];
 +extern const char kCloseAllTabsModalDialogDescription[];
 +
- extern const char kClosedTabCacheName[];
- extern const char kClosedTabCacheDescription[];
- 
++extern const char kClosedTabCacheName[];
++extern const char kClosedTabCacheDescription[];
++
+ extern const char kClearCrossSiteCrossBrowsingContextGroupWindowNameName[];
+ extern const char
+     kClearCrossSiteCrossBrowsingContextGroupWindowNameDescription[];
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -173,6 +173,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
-     &kAssistantIntentTranslateInfo,
-     &kAssistantNonPersonalizedVoiceSearch,
-     &kAppMenuMobileSiteOption,
-+    &kCloseAllTabsModalDialog,
-     &kBackgroundThreadPool,
+@@ -181,6 +181,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kBaselineGM3SurfaceColors,
      &kCastDeviceFilter,
-@@ -500,6 +501,10 @@ BASE_FEATURE(kBaselineGM3SurfaceColors,
+     &kClearOmniboxFocusAfterNavigation,
++    &kCloseAllTabsModalDialog,
+     &kCloseTabSuggestions,
+     &kCriticalPersistedTabData,
+     &kCommerceCoupons,
+@@ -511,6 +512,10 @@ BASE_FEATURE(kBaselineGM3SurfaceColors,
               "BaselineGM3SurfaceColors",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
@@ -197,7 +199,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
  // Used in downstream code.
  BASE_FEATURE(kCastDeviceFilter,
               "CastDeviceFilter",
-@@ -510,8 +515,8 @@ BASE_FEATURE(kClearOmniboxFocusAfterNavigation,
+@@ -521,8 +526,8 @@ BASE_FEATURE(kClearOmniboxFocusAfterNavigation,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kCloseTabSuggestions,
@@ -211,7 +213,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -31,6 +31,7 @@ BASE_DECLARE_FEATURE(kAppMenuMobileSiteOption);
+@@ -37,6 +37,7 @@ BASE_DECLARE_FEATURE(kBackGestureRefactorAndroid);
  BASE_DECLARE_FEATURE(kBackgroundThreadPool);
  BASE_DECLARE_FEATURE(kBaselineGM3SurfaceColors);
  BASE_DECLARE_FEATURE(kClearOmniboxFocusAfterNavigation);
@@ -222,14 +224,14 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -250,6 +250,7 @@ public abstract class ChromeFeatureList {
+@@ -260,6 +260,7 @@ public abstract class ChromeFeatureList {
      public static final String CCT_RESOURCE_PREFETCH = "CCTResourcePrefetch";
      public static final String CCT_RETAINING_STATE_IN_MEMORY = "CCTRetainingStateInMemory";
      public static final String CCT_TOOLBAR_CUSTOMIZATIONS = "CCTToolbarCustomizations";
 +    public static final String CLOSE_ALL_TABS_MODAL_DIALOG = "CloseAllTabsModalDialog";
      public static final String CHROME_NEW_DOWNLOAD_TAB = "ChromeNewDownloadTab";
-     public static final String CHROME_SHARE_LONG_SCREENSHOT = "ChromeShareLongScreenshot";
      public static final String CHROME_SHARING_HUB = "ChromeSharingHub";
+     public static final String CHROME_SHARING_HUB_LAUNCH_ADJACENT =
 -- 
-2.40.0
+2.40.1
 
