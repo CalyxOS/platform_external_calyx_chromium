@@ -5,16 +5,17 @@ Subject: ungoogled-chromium: Disable webRTC log uploader
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: Ieb553d3b7c839dee6c5b06c1d3587842b95cba1c
 ---
- .../media/webrtc/webrtc_log_uploader.cc       | 28 ++++---------------
- 1 file changed, 6 insertions(+), 22 deletions(-)
+ .../media/webrtc/webrtc_log_uploader.cc       | 36 +++----------------
+ 1 file changed, 5 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/browser/media/webrtc/webrtc_log_uploader.cc b/chrome/browser/media/webrtc/webrtc_log_uploader.cc
 --- a/chrome/browser/media/webrtc/webrtc_log_uploader.cc
 +++ b/chrome/browser/media/webrtc/webrtc_log_uploader.cc
-@@ -126,28 +126,7 @@ void WebRtcLogUploader::LoggingStoppedDoUpload(
+@@ -126,37 +126,6 @@ void WebRtcLogUploader::OnLoggingStopped(
+   DCHECK(log_buffer.get());
    DCHECK(meta_data.get());
    DCHECK(!upload_done_data.paths.directory.empty());
- 
+-
 -  std::string compressed_log = CompressLog(log_buffer.get());
 -
 -  std::string local_log_id;
@@ -35,13 +36,20 @@ diff --git a/chrome/browser/media/webrtc/webrtc_log_uploader.cc b/chrome/browser
 -  }
 -
 -  upload_done_data.local_log_id = local_log_id;
--  PrepareMultipartPostData(compressed_log, std::move(meta_data),
--                           std::move(upload_done_data));
-+  NotifyUploadDoneAndLogStats(net::HTTP_OK, net::OK, "", std::move(upload_done_data));
+-
+-  if (is_text_log_upload_allowed) {
+-    PrepareMultipartPostData(compressed_log, std::move(meta_data),
+-                             std::move(upload_done_data));
+-  } else {
+-    main_task_runner_->PostTask(
+-        FROM_HERE,
+-        base::BindOnce(&WebRtcLogUploader::NotifyUploadDisabled,
+-                       base::Unretained(this), std::move(upload_done_data)));
+-  }
  }
  
  void WebRtcLogUploader::PrepareMultipartPostData(
-@@ -158,6 +137,11 @@ void WebRtcLogUploader::PrepareMultipartPostData(
+@@ -167,6 +136,11 @@ void WebRtcLogUploader::PrepareMultipartPostData(
    DCHECK(!compressed_log.empty());
    DCHECK(meta_data.get());
  
@@ -54,5 +62,5 @@ diff --git a/chrome/browser/media/webrtc/webrtc_log_uploader.cc b/chrome/browser
    SetupMultipart(post_data.get(), compressed_log,
                   upload_done_data.paths.incoming_rtp_dump,
 -- 
-2.40.0
+2.40.1
 
