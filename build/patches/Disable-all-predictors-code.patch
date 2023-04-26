@@ -11,14 +11,13 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  .../optimization_guide_keyed_service.cc       |  1 -
  chrome/common/chrome_features.cc              |  8 ++---
  .../optimization_guide/core/hints_fetcher.cc  |  1 +
- .../optimization_guide/core/hints_manager.cc  |  5 +++
+ .../optimization_guide/core/hints_manager.cc  |  6 ++++
  .../core/optimization_guide_features.cc       | 34 ++++++++-----------
  .../core/prediction_model_download_manager.cc |  6 ++--
  .../core/prediction_model_fetcher_impl.cc     |  1 +
- components/optimization_guide/features.gni    |  4 +--
  components/permissions/features.cc            |  8 ++---
  third_party/blink/common/features.cc          |  8 ++---
- 11 files changed, 38 insertions(+), 39 deletions(-)
+ 10 files changed, 38 insertions(+), 36 deletions(-)
 
 diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/browser/optimization_guide/chrome_hints_manager.cc
 --- a/chrome/browser/optimization_guide/chrome_hints_manager.cc
@@ -45,7 +44,7 @@ diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.
 diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 --- a/chrome/common/chrome_features.cc
 +++ b/chrome/common/chrome_features.cc
-@@ -888,8 +888,8 @@ BASE_FEATURE(kPermissionAuditing,
+@@ -895,8 +895,8 @@ BASE_FEATURE(kPermissionAuditing,
  // Enables using the prediction service for permission prompts. We will keep
  // this feature in order to allow us to update the holdback chance via finch.
  BASE_FEATURE(kPermissionPredictions,
@@ -56,7 +55,7 @@ diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
  
  // The holdback chance is 30% but it can also be configured/updated
  // through finch if needed.
-@@ -900,8 +900,8 @@ const base::FeatureParam<double> kPermissionPredictionsHoldbackChance(
+@@ -907,8 +907,8 @@ const base::FeatureParam<double> kPermissionPredictionsHoldbackChance(
  
  // Enables using the prediction service for geolocation permission prompts.
  BASE_FEATURE(kPermissionGeolocationPredictions,
@@ -70,9 +69,9 @@ diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/optimization_guide/core/hints_fetcher.cc
 --- a/components/optimization_guide/core/hints_fetcher.cc
 +++ b/components/optimization_guide/core/hints_fetcher.cc
-@@ -178,6 +178,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
-     optimization_guide::proto::RequestContext request_context,
+@@ -180,6 +180,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
      const std::string& locale,
+     bool skip_cache,
      HintsFetchedCallback hints_fetched_callback) {
 +  if ((true)) return false;
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -81,7 +80,7 @@ diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/op
 diff --git a/components/optimization_guide/core/hints_manager.cc b/components/optimization_guide/core/hints_manager.cc
 --- a/components/optimization_guide/core/hints_manager.cc
 +++ b/components/optimization_guide/core/hints_manager.cc
-@@ -352,6 +352,7 @@ void HintsManager::Shutdown() {
+@@ -357,6 +357,7 @@ void HintsManager::Shutdown() {
  OptimizationGuideDecision
  HintsManager::GetOptimizationGuideDecisionFromOptimizationTypeDecision(
      OptimizationTypeDecision optimization_type_decision) {
@@ -89,16 +88,17 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
    switch (optimization_type_decision) {
      case OptimizationTypeDecision::kAllowedByOptimizationFilter:
      case OptimizationTypeDecision::kAllowedByHint:
-@@ -1056,6 +1057,7 @@ void HintsManager::CanApplyOptimizationOnDemand(
+@@ -1062,6 +1063,8 @@ void HintsManager::CanApplyOptimizationOnDemand(
+     OnDemandOptimizationGuideDecisionRepeatingCallback callback) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
  
-   // TODO(crbug/1275612): Check whether we have consent to fetch.
 +  if ((true)) return; // no consent on bromite
- 
++
    // This set contains URLs that require some information to be fetched, whether
    // that be a URL-keyed hint or a host-keyed hint.
-@@ -1264,6 +1266,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
-     proto::OptimizationType optimization_type,
+   base::flat_set<proto::OptimizationType> unregistered_optimization_types;
+@@ -1376,6 +1379,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
+     bool skip_cache,
      OptimizationMetadata* optimization_metadata) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 +  if ((true)) {
@@ -235,20 +235,6 @@ diff --git a/components/optimization_guide/core/prediction_model_fetcher_impl.cc
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
  
    if (url_loader_)
-diff --git a/components/optimization_guide/features.gni b/components/optimization_guide/features.gni
---- a/components/optimization_guide/features.gni
-+++ b/components/optimization_guide/features.gni
-@@ -11,9 +11,7 @@ declare_args() {
-   # This enables build with TFLite library.
-   # TODO(b/269198471): Make sure the internal archive files for opt guide get
-   #   updated when win arm64 gets added as a supported platform for TFLite.
--  build_with_tflite_lib =
--      is_android || (is_win && target_cpu != "arm64") || is_linux || is_mac ||
--      is_chromeos || is_fuchsia || is_ios
-+  build_with_tflite_lib = false
- }
- 
- declare_args() {
 diff --git a/components/permissions/features.cc b/components/permissions/features.cc
 --- a/components/permissions/features.cc
 +++ b/components/permissions/features.cc
@@ -272,9 +258,9 @@ diff --git a/components/permissions/features.cc b/components/permissions/feature
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -232,12 +232,8 @@ BASE_FEATURE(kMixedContentAutoupgrade,
- // predictor may preconnect/prefetch to resources/origins to make the
- // future navigations faster.
+@@ -239,12 +239,8 @@ BASE_FEATURE(kMixedContentAutoupgrade,
+ // in the first viewport after the page load and the metrics of the clicked
+ // anchor element will be extracted and recorded.
  BASE_FEATURE(kNavigationPredictor,
 -             "NavigationPredictor",
 -#if BUILDFLAG(IS_ANDROID)
@@ -288,5 +274,5 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // Anchor Element Interaction
 -- 
-2.40.0
+2.40.1
 
