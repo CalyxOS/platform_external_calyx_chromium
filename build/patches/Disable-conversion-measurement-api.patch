@@ -18,12 +18,12 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../aggregatable_report_sender.cc                 | 15 +++++++--------
  .../attribution_reporting/attribution_host.cc     |  1 +
  .../attribution_report_network_sender.cc          |  9 +++++++++
- .../attribution_storage_sql.cc                    |  8 +++++---
+ .../attribution_storage_sql.cc                    |  4 +++-
  content/browser/storage_partition_impl.cc         |  8 +-------
  content/public/browser/navigation_controller.cc   |  1 -
  third_party/blink/common/features.cc              |  4 ++--
  .../platform/runtime_enabled_features.json5       |  7 +++++++
- 10 files changed, 36 insertions(+), 28 deletions(-)
+ 10 files changed, 34 insertions(+), 26 deletions(-)
 
 diff --git a/components/embedder_support/origin_trials/features.cc b/components/embedder_support/origin_trials/features.cc
 --- a/components/embedder_support/origin_trials/features.cc
@@ -90,9 +90,9 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -186,6 +186,7 @@ void AttributionHost::DidRedirectNavigation(
-   const auto impression = navigation_handle->GetImpression();
-   DCHECK(impression.has_value());
+@@ -185,6 +185,7 @@ void AttributionHost::DidStartNavigation(NavigationHandle* navigation_handle) {
+ 
+   const NavigationInfo& navigation_info = it->second;
  
 +  if ((true)) return;
    auto* attribution_manager =
@@ -127,7 +127,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -443,6 +443,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
+@@ -591,6 +591,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
    return user_data_directory.Append(kDatabasePath);
  }
  
@@ -136,23 +136,19 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
  }  // namespace
  
  // static
-@@ -454,9 +456,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
+@@ -602,7 +604,7 @@ bool AttributionStorageSql::DeleteStorageForTesting(
  AttributionStorageSql::AttributionStorageSql(
      const base::FilePath& user_data_directory,
      std::unique_ptr<AttributionStorageDelegate> delegate)
 -    : path_to_database_(user_data_directory.empty()
--                            ? base::FilePath()
--                            : DatabasePath(user_data_directory)),
 +    : path_to_database_(user_data_directory.empty() || g_run_in_memory
-+                             ? base::FilePath()
-+                             : DatabasePath(user_data_directory)),
-       delegate_(std::move(delegate)),
-       rate_limit_table_(delegate_.get()) {
-   DCHECK(delegate_);
+                             ? base::FilePath()
+                             : DatabasePath(user_data_directory)),
+       db_(sql::DatabaseOptions{.exclusive_locking = true,
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1423,13 +1423,7 @@ void StoragePartitionImpl::Initialize(
+@@ -1432,13 +1432,7 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
@@ -181,7 +177,7 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -135,8 +135,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
+@@ -136,8 +136,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
  
  // Controls whether the Conversion Measurement API infrastructure is enabled.
  BASE_FEATURE(kConversionMeasurement,
