@@ -22,15 +22,15 @@ Change-Id: I3b7bde93b5ec12ed4dffbca0105ab9ea3329bae7
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -240,6 +240,7 @@
+@@ -241,6 +241,7 @@
  #include "chrome/browser/push_messaging/push_messaging_features.h"
  #include "components/browser_ui/photo_picker/android/features.h"
  #include "components/content_creation/notes/core/note_features.h"
 +#include "components/external_intents/android/external_intents_features.h"
  #include "components/translate/content/android/translate_message.h"
+ #include "ui/android/ui_android_features.h"
  #else  // BUILDFLAG(IS_ANDROID)
- #include "chrome/browser/media/router/discovery/access_code/access_code_cast_sink_service.h"
-@@ -7486,6 +7487,12 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7692,6 +7693,12 @@ const FeatureEntry kFeatureEntries[] = {
  #endif  // BUILDFLAG(ENABLE_PAINT_PREVIEW) && BUILDFLAG(IS_ANDROID)
  
  #if BUILDFLAG(IS_ANDROID)
@@ -46,7 +46,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
-@@ -759,6 +759,11 @@
+@@ -779,6 +779,11 @@
      "owners": [ "ioanap", "vsemeniuk@google.com" ],
      "expiry_milestone": 117
    },
@@ -61,7 +61,7 @@ diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.js
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -3822,6 +3822,12 @@ const char kInstantStartName[] = "Instant start";
+@@ -3937,6 +3937,12 @@ const char kInstantStartName[] = "Instant start";
  const char kInstantStartDescription[] =
      "Show start surface before native library is loaded.";
  
@@ -77,7 +77,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -2196,6 +2196,9 @@ extern const char kInstanceSwitcherDescription[];
+@@ -2285,6 +2285,9 @@ extern const char kInstanceSwitcherDescription[];
  extern const char kInstantStartName[];
  extern const char kInstantStartDescription[];
  
@@ -90,17 +90,17 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/components/external_intents/android/external_intents_features.cc b/components/external_intents/android/external_intents_features.cc
 --- a/components/external_intents/android/external_intents_features.cc
 +++ b/components/external_intents/android/external_intents_features.cc
-@@ -20,7 +20,8 @@ namespace {
+@@ -19,7 +19,8 @@ namespace {
+ // Array of features exposed through the Java ExternalIntentsFeatures API.
  const base::Feature* kFeaturesExposedToJava[] = {
-     &kExternalNavigationDebugLogs,       &kExternalNavigationSubframeRedirects,
-     &kBlockSubframeIntentToSelf,         &kBlockFrameRenavigations,
+     &kExternalNavigationDebugLogs, &kBlockFrameRenavigations,
 -    &kDoNotRequireSpecializedCCTHandler, &kBlockIntentsToSelf};
 +    &kDoNotRequireSpecializedCCTHandler, &kBlockIntentsToSelf,
 +    &kIntentBlockExternalFormRedirectsNoGesture};
  
  }  // namespace
  
-@@ -50,6 +51,10 @@ BASE_FEATURE(kBlockIntentsToSelf,
+@@ -41,6 +42,10 @@ BASE_FEATURE(kBlockIntentsToSelf,
               "BlockIntentsToSelf",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
@@ -114,7 +114,7 @@ diff --git a/components/external_intents/android/external_intents_features.cc b/
 diff --git a/components/external_intents/android/external_intents_features.h b/components/external_intents/android/external_intents_features.h
 --- a/components/external_intents/android/external_intents_features.h
 +++ b/components/external_intents/android/external_intents_features.h
-@@ -15,6 +15,7 @@ BASE_DECLARE_FEATURE(kBlockSubframeIntentToSelf);
+@@ -13,6 +13,7 @@ BASE_DECLARE_FEATURE(kExternalNavigationDebugLogs);
  BASE_DECLARE_FEATURE(kBlockFrameRenavigations);
  BASE_DECLARE_FEATURE(kDoNotRequireSpecializedCCTHandler);
  BASE_DECLARE_FEATURE(kBlockIntentsToSelf);
@@ -125,7 +125,7 @@ diff --git a/components/external_intents/android/external_intents_features.h b/c
 diff --git a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalIntentsFeatures.java b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalIntentsFeatures.java
 --- a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalIntentsFeatures.java
 +++ b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalIntentsFeatures.java
-@@ -25,6 +25,8 @@ public class ExternalIntentsFeatures extends Features {
+@@ -22,6 +22,8 @@ public class ExternalIntentsFeatures extends Features {
      public static final String DO_NOT_REQUIRE_SPECIALIZED_CCT_HANDLER_NAME =
              "DoNotRequireSpecializedCCTHandler";
      public static final String BLOCK_INTENTS_TO_SELF_NAME = "BlockIntentsToSelf";
@@ -134,9 +134,9 @@ diff --git a/components/external_intents/android/java/src/org/chromium/component
  
      public static final ExternalIntentsFeatures EXTERNAL_NAVIGATION_DEBUG_LOGS =
              new ExternalIntentsFeatures(0, EXTERNAL_NAVIGATION_DEBUG_LOGS_NAME);
-@@ -44,6 +46,9 @@ public class ExternalIntentsFeatures extends Features {
+@@ -35,6 +37,9 @@ public class ExternalIntentsFeatures extends Features {
      public static final ExternalIntentsFeatures BLOCK_INTENTS_TO_SELF =
-             new ExternalIntentsFeatures(5, BLOCK_INTENTS_TO_SELF_NAME);
+             new ExternalIntentsFeatures(3, BLOCK_INTENTS_TO_SELF_NAME);
  
 +    public static final ExternalIntentsFeatures INTENT_BLOCK_EXTERNAL_FORM_REDIRECT_NO_GESTURE =
 +            new ExternalIntentsFeatures(0, INTENT_BLOCK_EXTERNAL_FORM_REDIRECT_NO_GESTURE_NAME);
@@ -147,7 +147,7 @@ diff --git a/components/external_intents/android/java/src/org/chromium/component
 diff --git a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
 --- a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
 +++ b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
-@@ -1492,6 +1492,12 @@ public class ExternalNavigationHandler {
+@@ -1504,6 +1504,12 @@ public class ExternalNavigationHandler {
          }
      }
  
@@ -160,7 +160,7 @@ diff --git a/components/external_intents/android/java/src/org/chromium/component
      private OverrideUrlLoadingResult shouldOverrideUrlLoadingInternal(
              ExternalNavigationParams params, Intent targetIntent, GURL browserFallbackUrl,
              MutableBoolean canLaunchExternalFallbackResult) {
-@@ -1542,6 +1548,21 @@ public class ExternalNavigationHandler {
+@@ -1558,6 +1564,21 @@ public class ExternalNavigationHandler {
              return OverrideUrlLoadingResult.forNoOverride();
          }
  
@@ -185,7 +185,7 @@ diff --git a/components/external_intents/android/java/src/org/chromium/component
 diff --git a/components/external_intents/android/javatests/src/org/chromium/components/external_intents/ExternalNavigationHandlerTest.java b/components/external_intents/android/javatests/src/org/chromium/components/external_intents/ExternalNavigationHandlerTest.java
 --- a/components/external_intents/android/javatests/src/org/chromium/components/external_intents/ExternalNavigationHandlerTest.java
 +++ b/components/external_intents/android/javatests/src/org/chromium/components/external_intents/ExternalNavigationHandlerTest.java
-@@ -283,8 +283,7 @@ public class ExternalNavigationHandlerTest {
+@@ -282,8 +282,7 @@ public class ExternalNavigationHandlerTest {
                  .withPageTransition(PageTransition.FORM_SUBMIT)
                  .withIsRedirect(true)
                  .withHasUserGesture(true)
@@ -195,7 +195,7 @@ diff --git a/components/external_intents/android/javatests/src/org/chromium/comp
  
          // If the page matches the referrer, then continue loading in Chrome.
          checkUrl("http://youtube.com://", handler)
-@@ -2719,6 +2718,11 @@ public class ExternalNavigationHandlerTest {
+@@ -2718,6 +2717,11 @@ public class ExternalNavigationHandlerTest {
                      && !packageName.equals(INVALID_WEBAPK_PACKAGE_NAME);
          }
  

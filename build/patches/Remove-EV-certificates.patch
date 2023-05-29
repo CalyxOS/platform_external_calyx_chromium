@@ -11,13 +11,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: Ia943a861dc5cc173c982c969e4864d5ab2930106
 ---
  net/cert/ev_root_ca_metadata.cc | 19 ++++++++++++++++++-
- net/cert/ev_root_ca_metadata.h  |  4 +---
- 2 files changed, 19 insertions(+), 4 deletions(-)
+ net/cert/ev_root_ca_metadata.h  |  7 ++++++-
+ 2 files changed, 24 insertions(+), 2 deletions(-)
 
 diff --git a/net/cert/ev_root_ca_metadata.cc b/net/cert/ev_root_ca_metadata.cc
 --- a/net/cert/ev_root_ca_metadata.cc
 +++ b/net/cert/ev_root_ca_metadata.cc
-@@ -40,7 +40,19 @@ struct EVMetadata {
+@@ -36,7 +36,19 @@ struct EVMetadata {
    const base::StringPiece policy_oids[kMaxOIDsPerCA];
  };
  
@@ -38,16 +38,16 @@ diff --git a/net/cert/ev_root_ca_metadata.cc b/net/cert/ev_root_ca_metadata.cc
  
  #endif  // defined(PLATFORM_USES_CHROMIUM_EV_METADATA)
  }  // namespace
-@@ -225,6 +237,11 @@ bool EVRootCAMetadata::RemoveEVCA(const SHA256HashValue& fingerprint) {
+@@ -114,6 +126,11 @@ bool EVRootCAMetadata::RemoveEVCA(const SHA256HashValue& fingerprint) {
  // metadata.
  //
  
-+bool EVRootCAMetadata::IsCaBrowserForumEvOid(PolicyOID policy_oid) {
++bool EVRootCAMetadata::IsCaBrowserForumEvOid(der::Input policy_oid) {
 +  LOG(WARNING) << "Not implemented";
 +  return false;
 +}
 +
- bool EVRootCAMetadata::IsEVPolicyOID(PolicyOID policy_oid) const {
+ bool EVRootCAMetadata::IsEVPolicyOID(der::Input policy_oid) const {
    LOG(WARNING) << "Not implemented";
    return false;
 diff --git a/net/cert/ev_root_ca_metadata.h b/net/cert/ev_root_ca_metadata.h
@@ -62,19 +62,18 @@ diff --git a/net/cert/ev_root_ca_metadata.h b/net/cert/ev_root_ca_metadata.h
  #endif
  
  namespace base {
-@@ -65,12 +65,10 @@ class NET_EXPORT_PRIVATE EVRootCAMetadata {
-   bool HasEVPolicyOIDGivenBytes(const SHA256HashValue& fingerprint,
-                                 const der::Input& policy_oid) const;
+@@ -43,6 +43,11 @@ class NET_EXPORT_PRIVATE EVRootCAMetadata {
+   EVRootCAMetadata(const EVRootCAMetadata&) = delete;
+   EVRootCAMetadata& operator=(const EVRootCAMetadata&) = delete;
  
--#if defined(PLATFORM_USES_CHROMIUM_EV_METADATA)
-   // Returns true if |policy_oid| is for 2.23.140.1.1 (CA/Browser Forum's
-   // Extended Validation Policy). This is used as a hack by the
-   // platform-specific CertVerifyProcs when doing EV verification.
-   static bool IsCaBrowserForumEvOid(PolicyOID policy_oid);
--#endif
++  // Returns true if |policy_oid| is for 2.23.140.1.1 (CA/Browser Forum's
++  // Extended Validation Policy). This is used as a hack by the
++  // platform-specific CertVerifyProcs when doing EV verification.
++  static bool IsCaBrowserForumEvOid(der::Input policy_oid);
++
+   // Returns true if policy_oid is an EV policy OID of some root CA.
+   bool IsEVPolicyOID(der::Input policy_oid) const;
  
-   // AddEVCA adds an EV CA to the list of known EV CAs with the given policy.
-   // |policy| is expressed as a string of dotted numbers. It returns true on
 -- 
 2.40.1
 
