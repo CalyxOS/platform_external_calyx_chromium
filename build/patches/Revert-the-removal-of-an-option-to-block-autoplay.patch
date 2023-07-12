@@ -32,13 +32,13 @@ Change-Id: I0800ab1fc452d0a57932b7e0653a353c3fdf464c
  .../renderer/content_settings_agent_impl.cc   |  11 +++++++++
  .../renderer/content_settings_agent_impl.h    |   1 +
  .../android/page_info_controller_android.cc   |   1 +
- components/page_info/page_info.cc             |   6 +++++
+ components/page_info/page_info.cc             |   7 ++++++
  components/page_info/page_info_ui.cc          |   1 +
  components/site_settings_strings.grdp         |   3 +++
  .../platform/web_content_settings_client.h    |   3 +++
  .../core/html/media/autoplay_policy.cc        |  12 ++++++++++
  .../core/html/media/autoplay_policy.h         |   4 ++++
- 31 files changed, 126 insertions(+), 4 deletions(-)
+ 31 files changed, 127 insertions(+), 4 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/settings_autoplay.png
@@ -48,7 +48,7 @@ Change-Id: I0800ab1fc452d0a57932b7e0653a353c3fdf464c
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -194,6 +194,11 @@ android_resources("java_resources") {
+@@ -196,6 +196,11 @@ android_resources("java_resources") {
      "java/res/drawable-mdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-mdpi/permission_background_sync.png",
      "java/res/drawable-mdpi/permission_javascript.png",
@@ -226,7 +226,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -133,6 +133,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -137,6 +137,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  return "cookies_permission_list";
              case ContentSettingsType.FEDERATED_IDENTITY_API:
                  return "federated_identity_api_list";
@@ -235,7 +235,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.IDLE_DETECTION:
                  return "idle_detection_permission_list";
              case ContentSettingsType.JAVASCRIPT:
-@@ -510,6 +512,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -523,6 +525,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
  
              if (type == ContentSettingsType.ADS) {
                  setUpAdsPreference(preference);
@@ -244,7 +244,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              } else if (type == ContentSettingsType.SOUND) {
                  setUpSoundPreference(preference);
              } else if (type == ContentSettingsType.JAVASCRIPT) {
-@@ -1032,6 +1036,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1045,6 +1049,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
      }
  
@@ -345,7 +345,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -827,6 +827,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
+@@ -828,6 +828,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
        case ContentSettingsType::REQUEST_DESKTOP_SITE:
        case ContentSettingsType::SENSORS:
        case ContentSettingsType::SOUND:
@@ -375,7 +375,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -236,7 +236,7 @@ void ContentSettingsRegistry::Init() {
+@@ -233,7 +233,7 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
@@ -399,7 +399,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -215,6 +215,7 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -227,6 +227,7 @@ bool RendererContentSettingRules::IsRendererContentSetting(
    return content_type == ContentSettingsType::IMAGES ||
           content_type == ContentSettingsType::JAVASCRIPT ||
           content_type == ContentSettingsType::POPUPS ||
@@ -407,7 +407,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
           content_type == ContentSettingsType::MIXEDSCRIPT ||
           content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
           content_type == ContentSettingsType::TIMEZONE_OVERRIDE;
-@@ -228,6 +229,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -240,6 +241,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(mixed_content_rules, outermost_main_frame_url);
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
    FilterRulesForType(timezone_override_rules, outermost_main_frame_url);
@@ -418,7 +418,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
 diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
 --- a/components/content_settings/core/common/content_settings.h
 +++ b/components/content_settings/core/common/content_settings.h
-@@ -90,6 +90,7 @@ struct RendererContentSettingRules {
+@@ -92,6 +92,7 @@ struct RendererContentSettingRules {
  
    ContentSettingsForOneType image_rules;
    ContentSettingsForOneType script_rules;
@@ -509,7 +509,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
 diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.cc
 --- a/components/page_info/page_info.cc
 +++ b/components/page_info/page_info.cc
-@@ -107,6 +107,7 @@ ContentSettingsType kPermissionType[] = {
+@@ -110,6 +110,7 @@ ContentSettingsType kPermissionType[] = {
      ContentSettingsType::ADS,
      ContentSettingsType::BACKGROUND_SYNC,
      ContentSettingsType::SOUND,
@@ -517,8 +517,16 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
      ContentSettingsType::AUTOMATIC_DOWNLOADS,
  #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_WIN)
      ContentSettingsType::PROTECTED_MEDIA_IDENTIFIER,
-@@ -150,6 +151,11 @@ bool ShouldShowPermission(const PageInfo::PermissionInfo& info,
-     return is_subresource_filter_activated;
+@@ -571,6 +572,7 @@ void PageInfo::OnSitePermissionChanged(
+   // compare it against other kinds of actions in Page Info.
+   HostContentSettingsMap* map = GetContentSettings();
+   RecordPageInfoAction(PAGE_INFO_CHANGED_PERMISSION);
++
+   if (type == ContentSettingsType::SOUND) {
+     ContentSetting default_setting =
+         map->GetDefaultContentSetting(ContentSettingsType::SOUND, nullptr);
+@@ -1195,6 +1197,11 @@ bool PageInfo::ShouldShowPermission(
+     return delegate_->IsSubresourceFilterActivated(site_url_);
    }
  
 +  // Always show autoplay when it has a site-specific override
