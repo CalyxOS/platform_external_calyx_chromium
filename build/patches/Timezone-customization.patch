@@ -35,7 +35,7 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../core/browser/content_settings_utils.cc    |   7 +
  .../core/browser/host_content_settings_map.cc |   8 +
  .../core/browser/host_content_settings_map.h  |   3 +
- .../core/common/content_settings.cc           |   4 +-
+ .../core/common/content_settings.cc           |   7 +-
  .../core/common/content_settings.h            |   2 +
  .../core/common/content_settings.mojom        |   2 +
  .../common/content_settings_mojom_traits.cc   |   4 +-
@@ -45,8 +45,9 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../content_settings/core/common/pref_names.h |   2 +
  .../renderer/content_settings_agent_impl.cc   |  83 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
+ tools/metrics/histograms/enums.xml            |   3 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 35 files changed, 690 insertions(+), 9 deletions(-)
+ 36 files changed, 696 insertions(+), 9 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -65,7 +66,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
  /**
   * A SiteSettingsDelegate instance that contains Chrome-specific Site Settings logic.
   */
-@@ -267,6 +271,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
+@@ -265,6 +269,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
          return PrivacySandboxBridge.getFirstPartySetOwner(memberOrigin);
      }
  
@@ -87,7 +88,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -100,6 +100,7 @@ android_library("java") {
+@@ -101,6 +101,7 @@ android_library("java") {
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreference.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsiteRowPreference.java",
@@ -95,7 +96,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    ]
    annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -248,6 +249,8 @@ android_resources("java_resources") {
+@@ -250,6 +251,8 @@ android_resources("java_resources") {
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/site_settings_preferences_with_categories.xml",
      "java/res/xml/website_preferences.xml",
@@ -494,7 +495,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -141,6 +141,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -145,6 +145,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  return "popup_permission_list";
              case ContentSettingsType.SOUND:
                  return "sound_permission_list";
@@ -503,7 +504,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.AR:
                  return "ar_permission_list";
              case ContentSettingsType.MEDIASTREAM_CAMERA:
-@@ -945,11 +947,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -958,11 +960,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          if (value == null) return;
          setUpPreferenceCommon(preference, value);
  
@@ -518,7 +519,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          switchPreference.setOnPreferenceChangeListener(this);
          @ContentSettingsType
          int contentType = getContentSettingsTypeFromPreferenceKey(preference.getKey());
-@@ -1149,7 +1153,7 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1166,7 +1170,7 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          }
  
          mSite.setContentSetting(browserContextHandle, type, permission);
@@ -871,7 +872,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -1018,3 +1018,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
+@@ -1019,3 +1019,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
            ContentSettingsPattern::FromString(pattern_string));
    return ConvertUTF8ToJavaString(env, host_only_pattern.ToString());
  }
@@ -904,7 +905,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
    <message name="IDS_DESKTOP_SITE_TITLE" desc="Title of the permission to request the desktop view of a site by default [CHAR_LIMIT=32]">
      Desktop site
    </message>
-@@ -742,6 +745,38 @@
+@@ -748,6 +751,38 @@
      Block sites from playing protected content
    </message>
  
@@ -946,7 +947,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
 diff --git a/components/content_settings/core/browser/content_settings_pref_provider.cc b/components/content_settings/core/browser/content_settings_pref_provider.cc
 --- a/components/content_settings/core/browser/content_settings_pref_provider.cc
 +++ b/components/content_settings/core/browser/content_settings_pref_provider.cc
-@@ -89,6 +89,8 @@ void PrefProvider::RegisterProfilePrefs(
+@@ -90,6 +90,8 @@ void PrefProvider::RegisterProfilePrefs(
                                       info->GetPrefRegistrationFlags());
    }
  
@@ -955,7 +956,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
    // Obsolete prefs ----------------------------------------------------------
  
    // These prefs have been removed, but need to be registered so they can
-@@ -165,6 +167,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
+@@ -166,6 +168,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
      event_args->set_number_of_exceptions(
          num_exceptions);  // PrefProvider::PrefProvider.
    });
@@ -966,7 +967,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
  }
  
  PrefProvider::~PrefProvider() {
-@@ -351,4 +357,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
+@@ -359,4 +365,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
    clock_ = clock;
  }
  
@@ -1005,7 +1006,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -555,6 +555,17 @@ void ContentSettingsRegistry::Init() {
+@@ -551,6 +551,17 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
  
@@ -1074,7 +1075,17 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -216,7 +216,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -125,6 +125,9 @@ constexpr auto kHistogramValue = base::MakeFixedFlatMap<ContentSettingsType,
+     {ContentSettingsType::GET_DISPLAY_MEDIA_SET_SELECT_ALL_SCREENS, 101},
+     {ContentSettingsType::MIDI, 102},
+ 
++    // Bromite-added. Starts at 9001 to avoid upstream conflicts.
++    {ContentSettingsType::TIMEZONE_OVERRIDE, 9001},
++
+     // As mentioned at the top, please don't forget to update ContentType in
+     // enums.xml when you add entries here!
+ });
+@@ -225,7 +228,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
           content_type == ContentSettingsType::JAVASCRIPT ||
           content_type == ContentSettingsType::POPUPS ||
           content_type == ContentSettingsType::MIXEDSCRIPT ||
@@ -1084,7 +1095,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
  }
  
  void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -226,6 +227,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -235,6 +239,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(popup_redirect_rules, outermost_main_frame_url);
    FilterRulesForType(mixed_content_rules, outermost_main_frame_url);
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
@@ -1095,7 +1106,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
 diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
 --- a/components/content_settings/core/common/content_settings.h
 +++ b/components/content_settings/core/common/content_settings.h
-@@ -93,6 +93,8 @@ struct RendererContentSettingRules {
+@@ -95,6 +95,8 @@ struct RendererContentSettingRules {
    ContentSettingsForOneType popup_redirect_rules;
    ContentSettingsForOneType mixed_content_rules;
    ContentSettingsForOneType auto_dark_content_rules;
@@ -1164,7 +1175,7 @@ diff --git a/components/content_settings/core/common/content_settings_types.h b/
 diff --git a/components/content_settings/core/common/pref_names.cc b/components/content_settings/core/common/pref_names.cc
 --- a/components/content_settings/core/common/pref_names.cc
 +++ b/components/content_settings/core/common/pref_names.cc
-@@ -176,4 +176,7 @@ const char kDesktopSitePeripheralSettingEnabled[] =
+@@ -181,4 +181,7 @@ const char kDesktopSitePeripheralSettingEnabled[] =
  const char kDesktopSiteDisplaySettingEnabled[] = "desktop_site.display_setting";
  #endif
  
@@ -1175,7 +1186,7 @@ diff --git a/components/content_settings/core/common/pref_names.cc b/components/
 diff --git a/components/content_settings/core/common/pref_names.h b/components/content_settings/core/common/pref_names.h
 --- a/components/content_settings/core/common/pref_names.h
 +++ b/components/content_settings/core/common/pref_names.h
-@@ -91,6 +91,8 @@ extern const char kDesktopSitePeripheralSettingEnabled[];
+@@ -93,6 +93,8 @@ extern const char kDesktopSitePeripheralSettingEnabled[];
  extern const char kDesktopSiteDisplaySettingEnabled[];
  #endif
  
@@ -1319,6 +1330,19 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
  };
  
  }  // namespace content_settings
+diff --git a/tools/metrics/histograms/enums.xml b/tools/metrics/histograms/enums.xml
+--- a/tools/metrics/histograms/enums.xml
++++ b/tools/metrics/histograms/enums.xml
+@@ -19138,6 +19138,9 @@ Called by update_net_error_codes.py.-->
+   <int value="100" label="Cookies setting"/>
+   <int value="101" label="Get Display Media Set Select All Screens"/>
+   <int value="102" label="MIDI"/>
++
++  <!-- Bromite-added. Starts at 9001 to avoid upstream conflicts. -->
++  <int value="9001" label="Timezone Override"/>
+ </enum>
+ 
+ <enum name="ContentTypeParseableResult">
 diff --git a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java b/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
 --- a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
 +++ b/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
