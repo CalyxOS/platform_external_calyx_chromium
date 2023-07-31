@@ -1,0 +1,697 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Tue, 1 Aug 2023 12:43:27 -0400
+Subject: Mark feature states even if already matching Brave
+
+Add comments next to feature states that have been overridden in
+Brave but that are already the value we expect, here. This is to
+make it easier to catch upstream changes and ensure the feature
+states remain as we want them.
+
+Up-to-date as of brave-core tag v1.58.64, but only including the
+features applicable to Chromium 115.
+
+Change-Id: I3bd5b9eef9c5efc7dff001c01e81feaaac86b330
+---
+ android_webview/common/aw_features.cc         |  4 +-
+ chrome/browser/browser_features.cc            | 16 ++---
+ chrome/browser/companion/core/features.cc     |  8 +--
+ chrome/common/chrome_features.cc              |  8 +--
+ components/aggregation_service/features.cc    |  4 +-
+ .../commerce/core/commerce_feature_list.cc    | 20 +++---
+ components/history/core/browser/features.cc   |  4 +-
+ components/history_clusters/core/features.cc  | 20 +++---
+ components/lens/lens_features.cc              |  4 +-
+ .../network_time/network_time_tracker.cc      |  4 +-
+ components/omnibox/common/omnibox_features.cc |  4 +-
+ components/page_image_service/features.cc     |  4 +-
+ .../privacy_sandbox_features.cc               | 12 ++--
+ .../safe_browsing/core/common/features.cc     |  4 +-
+ components/search/ntp_features.cc             | 16 ++---
+ components/send_tab_to_self/features.cc       |  4 +-
+ .../common/shared_highlighting_features.cc    |  4 +-
+ content/public/common/content_features.cc     | 12 ++--
+ net/base/features.cc                          |  4 +-
+ services/network/public/cpp/features.cc       |  4 +-
+ third_party/blink/common/features.cc          | 64 ++++++++++---------
+ .../platform/runtime_enabled_features.json5   |  4 +-
+ 22 files changed, 118 insertions(+), 110 deletions(-)
+
+diff --git a/android_webview/common/aw_features.cc b/android_webview/common/aw_features.cc
+--- a/android_webview/common/aw_features.cc
++++ b/android_webview/common/aw_features.cc
+@@ -31,8 +31,8 @@ BASE_FEATURE(kWebViewCheckReturnResources,
+ 
+ // Server side sampling switch.
+ BASE_FEATURE(kWebViewServerSideSampling,
+-             "WebViewServerSideSampling",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "WebViewServerSideSampling",              // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Use the SafeBrowsingApiHandlerBridge which uses the connectionless GMS APIs.
+ // This Feature is checked and used in downstream internal code.
+diff --git a/chrome/browser/browser_features.cc b/chrome/browser/browser_features.cc
+--- a/chrome/browser/browser_features.cc
++++ b/chrome/browser/browser_features.cc
+@@ -213,8 +213,8 @@ BASE_FEATURE(kFlexOrgManagementDisclosure,
+ 
+ // Enables usage of the FedCM API without third party cookies at the same time.
+ BASE_FEATURE(kFedCmWithoutThirdPartyCookies,
+-             "FedCmWithoutThirdPartyCookies",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "FedCmWithoutThirdPartyCookies",          // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Enables the Incoming Call Notifications scenario. When created by an
+ // installed origin, an incoming call notification should have increased
+@@ -233,12 +233,12 @@ BASE_FEATURE(kOmniboxTriggerForPrerender2,
+ 
+ // Enables bookmark trigger prerendering.
+ BASE_FEATURE(kBookmarkTriggerForPrerender2,
+-             "BookmarkTriggerForPrerender2",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "BookmarkTriggerForPrerender2",           // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ BASE_FEATURE(kSupportSearchSuggestionForPrerender2,
+-             "SupportSearchSuggestionForPrerender2",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "SupportSearchSuggestionForPrerender2",   // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ const base::FeatureParam<SearchSuggestionPrerenderImplementationType>::Option
+     search_suggestion_implementation_types[] = {
+         {SearchSuggestionPrerenderImplementationType::kUsePrefetch,
+@@ -271,7 +271,7 @@ BASE_FEATURE(kAutocompleteActionPredictorConfidenceCutoff,
+ // kOmniboxTriggerForPrerender2 takes effect.
+ // TODO(crbug.com/1267731): Remove this flag once the experiments are completed.
+ BASE_FEATURE(kOmniboxTriggerForNoStatePrefetch,
+-             "OmniboxTriggerForNoStatePrefetch",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "OmniboxTriggerForNoStatePrefetch",       // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ }  // namespace features
+diff --git a/chrome/browser/companion/core/features.cc b/chrome/browser/companion/core/features.cc
+--- a/chrome/browser/companion/core/features.cc
++++ b/chrome/browser/companion/core/features.cc
+@@ -20,13 +20,13 @@ namespace internal {
+ // This differs from the search companion by providing a separate WebUI that
+ // contains untrusted content in an iframe.
+ BASE_FEATURE(kSidePanelCompanion,
+-             "SidePanelCompanion",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "SidePanelCompanion",                         // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);           // in Brave, too
+ // Dynamically enables the search companion if the user has experiments
+ // enabled.
+ BASE_FEATURE(kCompanionEnabledByObservingExpsNavigations,
+-             "CompanionEnabledByObservingExpsNavigations",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CompanionEnabledByObservingExpsNavigations", // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);           // in Brave, too
+ }  // namespace internal
+ 
+ }  // namespace features
+diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
+--- a/chrome/common/chrome_features.cc
++++ b/chrome/common/chrome_features.cc
+@@ -653,8 +653,8 @@ BASE_FEATURE(kHttpsFirstModeForAdvancedProtectionUsers,
+ 
+ // Enables the new implementation of HTTPS-First Mode.
+ BASE_FEATURE(kHttpsFirstModeV2,
+-             "HttpsFirstModeV2",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "HttpsFirstModeV2",                       // enabled by default
++             base::FEATURE_ENABLED_BY_DEFAULT);        // in Brave, too
+ 
+ // Enables HTTPS-First Mode for engaged sites. No-op if HttpsFirstModeV2 or
+ // HTTPS-Upgrades is disabled.
+@@ -738,8 +738,8 @@ BASE_FEATURE(kKioskEnableAppService,
+ 
+ // When enabled, allows other features to use the k-Anonymity Service.
+ BASE_FEATURE(kKAnonymityService,
+-             "KAnonymityService",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "KAnonymityService",                      // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Origin to use for requests to the k-Anonymity Auth server to get trust
+ // tokens.
+diff --git a/components/aggregation_service/features.cc b/components/aggregation_service/features.cc
+--- a/components/aggregation_service/features.cc
++++ b/components/aggregation_service/features.cc
+@@ -9,7 +9,7 @@
+ namespace aggregation_service {
+ 
+ BASE_FEATURE(kAggregationServiceMultipleCloudProviders,
+-             "AggregationServiceMultipleCloudProviders",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "AggregationServiceMultipleCloudProviders", // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);         // in Brave, too
+ 
+ }  // namespace aggregation_service
+diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
+--- a/components/commerce/core/commerce_feature_list.cc
++++ b/components/commerce/core/commerce_feature_list.cc
+@@ -128,8 +128,8 @@ BASE_FEATURE(kCommerceAllowServerImages,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kCommerceMerchantViewer,
+-             "CommerceMerchantViewer",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CommerceMerchantViewer",                 // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ #if BUILDFLAG(IS_ANDROID)
+ BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
+              "CommerceMerchantViewerRegionLaunched",
+@@ -145,8 +145,8 @@ BASE_FEATURE(kCommerceLocalPDPDetection,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kCommercePriceTracking,
+-             "CommercePriceTracking",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CommercePriceTracking",                  // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ BASE_FEATURE(kCommercePriceTrackingChipExperiment,
+              "CommercePriceTrackingChipExperiment",
+@@ -172,7 +172,9 @@ BASE_FEATURE(kPriceInsightsRegionLaunched,
+ const base::FeatureParam<bool> kDeleteAllMerchantsOnClearBrowsingHistory{
+     &kCommerceMerchantViewer, "delete_all_merchants_on_clear_history", false};
+ 
+-BASE_FEATURE(kShoppingList, "ShoppingList", base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kShoppingList,
++             "ShoppingList",                           // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || \
+     BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+ BASE_FEATURE(kShoppingListRegionLaunched,
+@@ -185,8 +187,8 @@ BASE_FEATURE(kShoppingListRegionLaunched,
+ #endif
+ 
+ BASE_FEATURE(kShoppingPDPMetrics,
+-             "ShoppingPDPMetrics",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "ShoppingPDPMetrics",                     // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ BASE_FEATURE(kShoppingPDPMetricsRegionLaunched,
+              "ShoppingPDPMetricsRegionLaunched",
+@@ -197,8 +199,8 @@ BASE_FEATURE(kRetailCoupons,
+              base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave
+ 
+ BASE_FEATURE(kCommerceDeveloper,
+-             "CommerceDeveloper",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CommerceDeveloper",                      // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ const char kRetailCouponsWithCodeParam[] = "RetailCouponsWithCodeParam";
+ 
+diff --git a/components/history/core/browser/features.cc b/components/history/core/browser/features.cc
+--- a/components/history/core/browser/features.cc
++++ b/components/history/core/browser/features.cc
+@@ -77,8 +77,8 @@ const base::FeatureParam<int> kRepeatableQueriesMinVisitCount(
+     is_android ? 6 : 1);
+ 
+ BASE_FEATURE(kSyncSegmentsData,
+-             "SyncSegmentsData",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "SyncSegmentsData",                       // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // The maximum number of New Tab Page displays to show with synced segments
+ // data.
+diff --git a/components/history_clusters/core/features.cc b/components/history_clusters/core/features.cc
+--- a/components/history_clusters/core/features.cc
++++ b/components/history_clusters/core/features.cc
+@@ -27,7 +27,9 @@ constexpr auto enabled_by_default_desktop_only =
+ 
+ namespace internal {
+ 
+-BASE_FEATURE(kJourneys, "Journeys", enabled_by_default_desktop_only);
++BASE_FEATURE(kJourneys,
++             "Journeys",                               // disabled by default
++             enabled_by_default_desktop_only);         // in Brave, too; we are Android
+ 
+ BASE_FEATURE(kJourneysLabels,
+              "JourneysLabel",
+@@ -45,12 +47,12 @@ BASE_FEATURE(kPersistedClusters,
+              base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave
+ 
+ BASE_FEATURE(kOmniboxAction,
+-             "JourneysOmniboxAction",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "JourneysOmniboxAction",                  // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ BASE_FEATURE(kOmniboxHistoryClusterProvider,
+-             "JourneysOmniboxHistoryClusterProvider",
+-             enabled_by_default_desktop_only);
++             "JourneysOmniboxHistoryClusterProvider",  // disabled by default
++             enabled_by_default_desktop_only);         // in Brave (too; we are Android)
+ 
+ BASE_FEATURE(kNonUserVisibleDebug,
+              "JourneysNonUserVisibleDebug",
+@@ -65,8 +67,8 @@ BASE_FEATURE(kPersistContextAnnotationsInHistoryDb,
+              base::FEATURE_DISABLED_BY_DEFAULT);             // in Brave
+ 
+ BASE_FEATURE(kHistoryClustersInternalsPage,
+-             "HistoryClustersInternalsPage",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "HistoryClustersInternalsPage",                 // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);             // in Brave, too
+ 
+ BASE_FEATURE(kHistoryClustersUseContinueOnShutdown,
+              "HistoryClustersUseContinueOnShutdown",
+@@ -108,8 +110,8 @@ BASE_FEATURE(kUseUrlForDisplayCache,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kJourneysZeroStateFiltering,
+-             "JourneysZeroStateFiltering",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "JourneysZeroStateFiltering",             // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ }  // namespace internal
+ 
+diff --git a/components/lens/lens_features.cc b/components/lens/lens_features.cc
+--- a/components/lens/lens_features.cc
++++ b/components/lens/lens_features.cc
+@@ -51,8 +51,8 @@ BASE_FEATURE(kEnableContextMenuInLensSidePanel,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kEnableLensPing,
+-             "EnableLensPing",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "EnableLensPing",                         // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ constexpr base::FeatureParam<std::string> kHomepageURLForLens{
+     &kLensStandalone, "lens-homepage-url", "https://lens.google.com/"};
+diff --git a/components/network_time/network_time_tracker.cc b/components/network_time/network_time_tracker.cc
+--- a/components/network_time/network_time_tracker.cc
++++ b/components/network_time/network_time_tracker.cc
+@@ -61,8 +61,8 @@ namespace network_time {
+ // which uses tlsdated to set the system time.
+ #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_IOS)
+ BASE_FEATURE(kNetworkTimeServiceQuerying,
+-             "NetworkTimeServiceQuerying",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "NetworkTimeServiceQuerying",             // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ #else
+ BASE_FEATURE(kNetworkTimeServiceQuerying,
+              "NetworkTimeServiceQuerying",
+diff --git a/components/omnibox/common/omnibox_features.cc b/components/omnibox/common/omnibox_features.cc
+--- a/components/omnibox/common/omnibox_features.cc
++++ b/components/omnibox/common/omnibox_features.cc
+@@ -328,8 +328,8 @@ BASE_FEATURE(kMostVisitedTiles,
+ // prefixes. Will also adjust the location bar UI and omnibox text selection to
+ // accommodate the autocompletions.
+ BASE_FEATURE(kRichAutocompletion,
+-             "OmniboxRichAutocompletion",
+-             enabled_by_default_desktop_only);
++             "OmniboxRichAutocompletion",              // disabled by default
++             enabled_by_default_desktop_only);         // in Brave, too; we are Android
+ 
+ // Feature used to enable Pedals in the NTP Realbox.
+ BASE_FEATURE(kNtpRealboxPedals,
+diff --git a/components/page_image_service/features.cc b/components/page_image_service/features.cc
+--- a/components/page_image_service/features.cc
++++ b/components/page_image_service/features.cc
+@@ -13,8 +13,8 @@ BASE_FEATURE(kImageService,
+ 
+ // Disabled by default because the usage of this is still not approved.
+ BASE_FEATURE(kImageServiceSuggestPoweredImages,
+-             "ImageServiceSuggestPoweredImages",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "ImageServiceSuggestPoweredImages",       // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Enabled the capability by default, can be used as a killswitch.
+ BASE_FEATURE(kImageServiceOptimizationGuideSalientImages,
+diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
+--- a/components/privacy_sandbox/privacy_sandbox_features.cc
++++ b/components/privacy_sandbox/privacy_sandbox_features.cc
+@@ -7,8 +7,8 @@
+ namespace privacy_sandbox {
+ 
+ BASE_FEATURE(kPrivacySandboxSettings4,
+-             "PrivacySandboxSettings4",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxSettings4",                // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ const char kPrivacySandboxSettings4ConsentRequiredName[] = "consent-required";
+ const char kPrivacySandboxSettings4NoticeRequiredName[] = "notice-required";
+@@ -80,8 +80,8 @@ const base::FeatureParam<bool> kPrivacySandboxSettings3DisablePromptForTesting{
+     &kPrivacySandboxSettings3, "disable-dialog-for-testing", false};
+ 
+ BASE_FEATURE(kOverridePrivacySandboxSettingsLocalTesting,
+-             "OverridePrivacySandboxSettingsLocalTesting",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "OverridePrivacySandboxSettingsLocalTesting", // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);           // in Brave, too
+ 
+ BASE_FEATURE(kDisablePrivacySandboxPrompts,
+              "DisablePrivacySandboxPrompts",
+@@ -94,7 +94,7 @@ const base::FeatureParam<bool> kPrivacySandboxFirstPartySetsUISampleSets{
+     &kPrivacySandboxFirstPartySetsUI, "use-sample-sets", false};
+ 
+ BASE_FEATURE(kEnforcePrivacySandboxAttestations,
+-             "EnforcePrivacySandboxAttestations",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "EnforcePrivacySandboxAttestations",      // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ }  // namespace privacy_sandbox
+diff --git a/components/safe_browsing/core/common/features.cc b/components/safe_browsing/core/common/features.cc
+--- a/components/safe_browsing/core/common/features.cc
++++ b/components/safe_browsing/core/common/features.cc
+@@ -156,8 +156,8 @@ BASE_FEATURE(kExtensionTelemetryCookiesGetSignal,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kExtensionTelemetryDeclarativeNetRequestSignal,
+-             "SafeBrowsingExtensionTelemetryDeclarativeNetRequestSignal",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "SafeBrowsingExtensionTelemetryDeclarativeNetRequestSignal", // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);                          // in Brave, too
+ 
+ BASE_FEATURE(kFileTypePoliciesTag,
+              "FileTypePoliciesTag",
+diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
+--- a/components/search/ntp_features.cc
++++ b/components/search/ntp_features.cc
+@@ -78,14 +78,14 @@ BASE_FEATURE(kRealboxUseGoogleGIcon,
+ 
+ // If enabled, alpha NTP backgrounds will show in Customize Chrome.
+ BASE_FEATURE(kNtpAlphaBackgroundCollections,
+-             "NtpAlphaBackgroundCollections",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "NtpAlphaBackgroundCollections",          // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // If enabled, NTP background image links will be checked for HTTP status
+ // errors."
+ BASE_FEATURE(kNtpBackgroundImageErrorDetection,
+-             "NtpBackgroundImageErrorDetection",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "NtpBackgroundImageErrorDetection",       // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // If enabled, chrome cart module will be shown.
+ BASE_FEATURE(kNtpChromeCartModule,
+@@ -251,8 +251,8 @@ BASE_FEATURE(kNtpSingleRowShortcuts,
+ 
+ // If enabled, the History clusters module will be shown.
+ BASE_FEATURE(kNtpHistoryClustersModule,
+-             "NtpHistoryClustersModule",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "NtpHistoryClustersModule",               // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Dummy feature to set kNtpHistoryClustersModuleBeginTimeDurationHoursParam.
+ BASE_FEATURE(kNtpHistoryClustersModuleBeginTimeDuration,
+@@ -278,8 +278,8 @@ BASE_FEATURE(kNtpHistoryClustersModuleCategories,
+ // useful to determine if a user would have seen modules in order to
+ // counterfactually log or trigger.
+ BASE_FEATURE(kNtpHistoryClustersModuleLoad,
+-             "NtpHistoryClustersModuleLoad",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "NtpHistoryClustersModuleLoad",           // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Dummy feature to set kNtpHistoryClustersModuleMaxClustersParam.
+ BASE_FEATURE(kNtpHistoryClustersModuleMaxClusters,
+diff --git a/components/send_tab_to_self/features.cc b/components/send_tab_to_self/features.cc
+--- a/components/send_tab_to_self/features.cc
++++ b/components/send_tab_to_self/features.cc
+@@ -10,8 +10,8 @@
+ namespace send_tab_to_self {
+ 
+ BASE_FEATURE(kSendTabToSelfSigninPromo,
+-             "SendTabToSelfSigninPromo",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "SendTabToSelfSigninPromo",               // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ BASE_FEATURE(kSendTabToSelfEnableNotificationTimeOut,
+              "SendTabToSelfEnableNotificationTimeOut",
+diff --git a/components/shared_highlighting/core/common/shared_highlighting_features.cc b/components/shared_highlighting/core/common/shared_highlighting_features.cc
+--- a/components/shared_highlighting/core/common/shared_highlighting_features.cc
++++ b/components/shared_highlighting/core/common/shared_highlighting_features.cc
+@@ -33,8 +33,8 @@ BASE_FEATURE(kSharedHighlightingRefinedMaxContextWords,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kSharedHighlightingManager,
+-             "SharedHighlightingManager",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "SharedHighlightingManager",              // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ const char kSharedHighlightingRefinedMaxContextWordsName[] =
+     "SharedHighlightingRefinedMaxContextWords";
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -39,8 +39,8 @@ BASE_FEATURE(kAndroidSurfaceControlMagnifier,
+ 
+ // Enables FLEDGE and Attribution Reporting API integration.
+ BASE_FEATURE(kAttributionFencedFrameReportingBeacon,
+-             "AttributionFencedFrameReportingBeacon",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "AttributionFencedFrameReportingBeacon",  // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Launches the audio service on the browser startup.
+ BASE_FEATURE(kAudioServiceLaunchOnStartup,
+@@ -469,8 +469,8 @@ BASE_FEATURE(kWebIdentityMDocs,
+ 
+ // Enables usage of First Party Sets to determine cookie availability.
+ BASE_FEATURE(kFirstPartySets,
+-             "FirstPartySets",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "FirstPartySets",                         // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Controls whether to clear sites data on FPS transitions.
+ const base::FeatureParam<bool> kFirstPartySetsClearSiteDataOnChangedSets{
+@@ -878,8 +878,8 @@ BASE_FEATURE(kPrivacySandboxAdsAPIsM1Override,
+ // FLEDGE, Topics, along with a number of other features actively in development
+ // within these APIs.
+ BASE_FEATURE(kPrivacySandboxAdsAPIsOverride,
+-             "PrivacySandboxAdsAPIsOverride",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxAdsAPIsOverride",          // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Enables Private Network Access checks for all types of web workers.
+ //
+diff --git a/net/base/features.cc b/net/base/features.cc
+--- a/net/base/features.cc
++++ b/net/base/features.cc
+@@ -231,8 +231,8 @@ BASE_FEATURE(kCookieSameSiteConsidersRedirectChain,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kSamePartyAttributeEnabled,
+-             "SamePartyAttributeEnabled",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "SamePartyAttributeEnabled",              // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ BASE_FEATURE(kWaitForFirstPartySetsInit,
+              "WaitForFirstPartySetsInit",
+diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
+--- a/services/network/public/cpp/features.cc
++++ b/services/network/public/cpp/features.cc
+@@ -137,8 +137,8 @@ BASE_FEATURE(kAttributionReportingCrossAppWeb,
+ // set, and handling their responses, according to the protocol.
+ // (See https://github.com/WICG/trust-token-api.)
+ BASE_FEATURE(kPrivateStateTokens,
+-             "PrivateStateTokens",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivateStateTokens",                     // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Secondary flag used by the FLEDGE ads experiment in the interim before
+ // PSTs are fully rolled out to stable.
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -125,8 +125,8 @@ BASE_FEATURE(kBackForwardCacheWithKeepaliveRequest,
+ // Enable background resource fetch in Blink. See https://crbug.com/1379780 for
+ // more details.
+ BASE_FEATURE(kBackgroundResourceFetch,
+-             "BackgroundResourceFetch",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "BackgroundResourceFetch",               // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);      // in Brave, too
+ 
+ // Enable intervention for download that was initiated from or occurred in an ad
+ // frame without user activation.
+@@ -221,8 +221,8 @@ BASE_FEATURE(kPath2DPaintCache,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPrivacySandboxAdsAPIs,
+-             "PrivacySandboxAdsAPIs",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxAdsAPIs",                  // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // When enabled, pages that don't specify a layout width will default to the
+ // window width rather than the traditional mobile fallback width of 980px.
+@@ -232,8 +232,8 @@ BASE_FEATURE(kDefaultViewportIsDeviceWidth,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kMixedContentAutoupgrade,
+-             "AutoupgradeMixedContent",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "AutoupgradeMixedContent",                // enabled by default
++             base::FEATURE_ENABLED_BY_DEFAULT);        // in Brave, too
+ 
+ // Used to control the collection of anchor element metrics (crbug.com/856683).
+ // If kNavigationPredictor is enabled, then metrics of anchor elements
+@@ -267,14 +267,16 @@ BASE_FEATURE(kPortalsCrossOrigin,
+ // this feature does not automatically expose this element to the web, it only
+ // allows the element to be enabled by the runtime enabled feature, for origin
+ // trials.
+-BASE_FEATURE(kFencedFrames, "FencedFrames", base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kFencedFrames,
++             "FencedFrames",                           // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Enables the Private Aggregation API. Note that this API also requires the
+ // `kPrivacySandboxAggregationService` to be enabled to successfully send
+ // reports.
+ BASE_FEATURE(kPrivateAggregationApi,
+-             "PrivateAggregationApi",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivateAggregationApi",                  // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Selectively allows the JavaScript API to be disabled in just one of the
+ // contexts.
+@@ -296,8 +298,8 @@ constexpr base::FeatureParam<bool>
+ // enabled by the runtime enabled feature, for origin trials.
+ // https://github.com/pythagoraskitty/shared-storage/blob/main/README.md
+ BASE_FEATURE(kSharedStorageAPI,
+-             "SharedStorageAPI",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "SharedStorageAPI",                       // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ const base::FeatureParam<int>
+     kSharedStorageURLSelectionOperationInputURLSizeLimit{
+         &kSharedStorageAPI, "url_selection_operation_input_url_size_limit", 8};
+@@ -927,8 +929,8 @@ bool IsParkableStringsToDiskEnabled() {
+ // Reduce the amount of information in the default 'referer' header for
+ // cross-origin requests.
+ BASE_FEATURE(kReducedReferrerGranularity,
+-             "ReducedReferrerGranularity",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "ReducedReferrerGranularity",             // enabled by default
++             base::FEATURE_ENABLED_BY_DEFAULT);        // in Brave, too
+ 
+ // Enables the constant streaming in the ContentCapture task.
+ BASE_FEATURE(kContentCaptureConstantStreaming,
+@@ -1034,8 +1036,8 @@ const base::FeatureParam<std::string>
+ // Kill switch for the Interest Group API, i.e. if disabled, the
+ // API exposure will be disabled regardless of the OT config.
+ BASE_FEATURE(kInterestGroupStorage,
+-             "InterestGroupStorage",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "InterestGroupStorage",                   // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ // TODO(crbug.com/1197209): Adjust these limits in response to usage.
+ const base::FeatureParam<int> kInterestGroupStorageMaxOwners{
+     &kInterestGroupStorage, "max_owners", 1000};
+@@ -1048,21 +1050,23 @@ const base::FeatureParam<int> kInterestGroupStorageMaxOpsBeforeMaintenance{
+ 
+ // See https://github.com/WICG/turtledove/blob/main/FLEDGE.md
+ // Enables FLEDGE implementation. See https://crbug.com/1186444.
+-BASE_FEATURE(kFledge, "Fledge", base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kFledge,
++             "Fledge",                                 // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // See
+ // https://github.com/WICG/turtledove/blob/main/FLEDGE_browser_bidding_and_auction_API.md
+ BASE_FEATURE(kFledgeBiddingAndAuctionServer,
+-             "FledgeBiddingAndAuctionServer",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "FledgeBiddingAndAuctionServer",          // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // See in the header.
+ BASE_FEATURE(kFledgeConsiderKAnonymity,
+-             "FledgeConsiderKAnonymity",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "FledgeConsiderKAnonymity",               // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ BASE_FEATURE(kFledgeEnforceKAnonymity,
+-             "FledgeEnforceKAnonymity",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "FledgeEnforceKAnonymity",                // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // See https://github.com/WICG/turtledove/blob/main/FLEDGE.md
+ // Changes default Permissions Policy for features join-ad-interest-group and
+@@ -1074,15 +1078,15 @@ BASE_FEATURE(kAdInterestGroupAPIRestrictedPolicyByDefault,
+ // See https://github.com/WICG/turtledove/blob/main/FLEDGE.md
+ // Feature flag to enable debug reporting APIs.
+ BASE_FEATURE(kBiddingAndScoringDebugReportingAPI,
+-             "BiddingAndScoringDebugReportingAPI",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "BiddingAndScoringDebugReportingAPI",     // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Enables URN URLs like those produced by FLEDGE auctions to be displayed by
+ // iframes (instead of requiring fenced frames). This is only intended to be
+ // enabled as part of the FLEDGE origin trial.
+ BASE_FEATURE(kAllowURNsInIframes,
+-             "AllowURNsInIframes",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "AllowURNsInIframes",                     // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ BLINK_COMMON_EXPORT bool IsAllowURNsInIframeEnabled() {
+   return base::FeatureList::IsEnabled(blink::features::kAllowURNsInIframes);
+@@ -1091,8 +1095,8 @@ BLINK_COMMON_EXPORT bool IsAllowURNsInIframeEnabled() {
+ // https://github.com/jkarlin/topics
+ // Kill switch for the Topics API.
+ BASE_FEATURE(kBrowsingTopics,
+-             "BrowsingTopics",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "BrowsingTopics",                         // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ // The number of epochs from where to calculate the topics to give to a
+ // requesting contexts.
+ const base::FeatureParam<int> kBrowsingTopicsNumberOfEpochsToExpose{
+@@ -1166,8 +1170,8 @@ const base::FeatureParam<std::string> kBrowsingTopicsDisabledTopicsList{
+ // `kBrowsingTopics` is enabled, and, either a valid Origin Trial token exists
+ // or `kPrivacySandboxAdsAPIsOverride` is enabled.)
+ BASE_FEATURE(kBrowsingTopicsXHR,
+-             "BrowsingTopicsXHR",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "BrowsingTopicsXHR",                      // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // If enabled, the check for whether the IP address is publicly routable will be
+ // bypassed when determining the eligibility for a page to be included in topics
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -2902,8 +2902,8 @@
+     // This User-Agent Reduction feature has been enabled starting from M101,
+     // but we still keep this flag for future phase tests.
+     {
+-      name: "ReduceUserAgentMinorVersion",
+-      status: "stable",
++      name: "ReduceUserAgentMinorVersion", // enabled
++      status: "stable",                    // in Brave, too
+     },
+     {
+       // If enabled, the platform and oscpu of the User-Agent string will be
+-- 
+2.30.2
+
