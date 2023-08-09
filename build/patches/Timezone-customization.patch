@@ -35,7 +35,7 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../core/browser/content_settings_utils.cc    |   7 +
  .../core/browser/host_content_settings_map.cc |   8 +
  .../core/browser/host_content_settings_map.h  |   3 +
- .../core/common/content_settings.cc           |   7 +-
+ .../core/common/content_settings.cc           |   4 +-
  .../core/common/content_settings.h            |   2 +
  .../core/common/content_settings.mojom        |   2 +
  .../common/content_settings_mojom_traits.cc   |   4 +-
@@ -47,7 +47,7 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../renderer/content_settings_agent_impl.h    |  11 +
  tools/metrics/histograms/enums.xml            |   3 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 36 files changed, 696 insertions(+), 9 deletions(-)
+ 36 files changed, 693 insertions(+), 9 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -55,7 +55,7 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java
-@@ -46,6 +46,10 @@ import org.chromium.url.GURL;
+@@ -47,6 +47,10 @@ import org.chromium.url.GURL;
  
  import java.util.Set;
  
@@ -66,7 +66,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/C
  /**
   * A SiteSettingsDelegate instance that contains Chrome-specific Site Settings logic.
   */
-@@ -265,6 +269,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
+@@ -266,6 +270,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
          return PrivacySandboxBridge.getFirstPartySetOwner(memberOrigin);
      }
  
@@ -94,9 +94,9 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/src/org/chromium/components/browser_ui/site_settings/WebsiteRowPreference.java",
 +    "java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java"
    ]
-   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
+ 
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -250,6 +251,8 @@ android_resources("java_resources") {
+@@ -252,6 +253,8 @@ android_resources("java_resources") {
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/site_settings_preferences_with_categories.xml",
      "java/res/xml/website_preferences.xml",
@@ -266,7 +266,7 @@ diff --git a/components/browser_ui/site_settings/android/java/res/xml/website_pr
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-@@ -302,6 +302,12 @@ public class ContentSettingsResources {
+@@ -303,6 +303,12 @@ public class ContentSettingsResources {
                          R.string.vr_permission_title, ContentSettingValues.ASK,
                          ContentSettingValues.BLOCK, R.string.website_settings_category_vr_ask,
                          R.string.website_settings_category_vr_blocked);
@@ -279,7 +279,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          }
          assert false; // NOTREACHED
          return null;
-@@ -468,6 +474,23 @@ public class ContentSettingsResources {
+@@ -469,6 +475,23 @@ public class ContentSettingsResources {
          }
      }
  
@@ -303,7 +303,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      /**
       * Returns the string resource id for a content type to show with a permission category.
       * @param enabled Whether the content type is enabled.
-@@ -485,6 +508,9 @@ public class ContentSettingsResources {
+@@ -486,6 +509,9 @@ public class ContentSettingsResources {
       */
      public static int getSiteSummary(@ContentSettingValues @Nullable Integer value,
              @ContentSettingsType int contentSettingsType) {
@@ -313,7 +313,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          switch (value) {
              case ContentSettingValues.ALLOW:
                  return contentSettingsType == ContentSettingsType.REQUEST_DESKTOP_SITE
-@@ -610,6 +636,13 @@ public class ContentSettingsResources {
+@@ -611,6 +637,13 @@ public class ContentSettingsResources {
                      R.string.website_settings_category_protected_content_blocked};
              return descriptionIDs;
          }
@@ -330,7 +330,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-@@ -85,6 +85,10 @@ import org.chromium.ui.widget.Toast;
+@@ -86,6 +86,10 @@ import org.chromium.ui.widget.Toast;
  
  import java.lang.annotation.Retention;
  import java.lang.annotation.RetentionPolicy;
@@ -341,7 +341,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  import java.util.ArrayList;
  import java.util.Collection;
  import java.util.Collections;
-@@ -196,6 +200,7 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -197,6 +201,7 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
      public static final String TRI_STATE_TOGGLE_KEY = "tri_state_toggle";
      public static final String TRI_STATE_COOKIE_TOGGLE = "tri_state_cookie_toggle";
      public static final String FOUR_STATE_COOKIE_TOGGLE_KEY = "four_state_cookie_toggle";
@@ -349,7 +349,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  
      // Keys for category-specific preferences (toggle, link, button etc.), dynamically shown.
      public static final String NOTIFICATIONS_VIBRATE_TOGGLE_KEY = "notifications_vibrate";
-@@ -214,6 +219,7 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -215,6 +220,7 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              "anti_abuse_things_to_consider_header";
      public static final String ANTI_ABUSE_THINGS_TO_CONSIDER_SECTION_ONE =
              "anti_abuse_things_to_consider_section_one";
@@ -357,7 +357,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  
      // Keys for Allowed/Blocked preference groups/headers.
      public static final String ALLOWED_GROUP = "allowed_group";
-@@ -306,7 +312,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -307,7 +313,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          Integer contentSetting = website.site().getContentSetting(
                  browserContextHandle, mCategory.getContentSettingsType());
          if (contentSetting != null) {
@@ -370,7 +370,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          }
          return false;
      }
-@@ -487,7 +497,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -488,7 +498,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              if (queryHasChanged) getInfoForOrigins();
          });
  
@@ -380,7 +380,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              MenuItem help = menu.add(
                      Menu.NONE, R.id.menu_id_site_settings_help, Menu.NONE, R.string.menu_help);
              help.setIcon(TraceEventVectorDrawableCompat.create(
-@@ -498,7 +509,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -499,7 +510,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
      @Override
      public boolean onOptionsItemSelected(MenuItem item) {
          if (item.getItemId() == R.id.menu_id_site_settings_help) {
@@ -392,7 +392,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  getSiteSettingsDelegate().launchProtectedContentHelpAndFeedbackActivity(
                          getActivity());
              } else {
-@@ -600,6 +614,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -601,6 +615,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              WebsitePreferenceBridge.setDefaultContentSetting(
                      browserContextHandle, mCategory.getContentSettingsType(), setting);
              getInfoForOrigins();
@@ -405,7 +405,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          } else if (FOUR_STATE_COOKIE_TOGGLE_KEY.equals(preference.getKey())) {
              setCookieSettingsPreference((CookieSettingsState) newValue);
              getInfoForOrigins();
-@@ -786,6 +806,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -787,6 +807,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
                          ? R.string.website_settings_blocked_group_heading_request_desktop_site
                          : R.string.website_settings_allowed_group_heading_request_desktop_site;
                  break;
@@ -418,7 +418,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          }
          assert resource > 0;
          return getString(resource);
-@@ -905,9 +931,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -906,9 +932,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              case SiteSettingsCategory.Type.THIRD_PARTY_COOKIES:
                  allowSpecifyingExceptions = getCookieControlsMode() != CookieControlsMode.OFF;
                  break;
@@ -434,7 +434,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          if (allowSpecifyingExceptions) {
              getPreferenceScreen().addPreference(new AddExceptionPreference(getStyledContext(),
                      ADD_EXCEPTION_KEY, getAddExceptionDialogMessage(), mCategory, this));
-@@ -1122,6 +1154,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1123,6 +1155,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          PreferenceGroup blockedGroup = screen.findPreference(BLOCKED_GROUP);
          PreferenceGroup managedGroup = screen.findPreference(MANAGED_GROUP);
          boolean permissionBlockedByOs = mCategory.showPermissionBlockedMessage(getContext());
@@ -444,7 +444,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  
          if (mGlobalToggleLayout != GlobalToggleLayout.BINARY_TOGGLE) {
              screen.removePreference(binaryToggle);
-@@ -1135,11 +1170,18 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1136,11 +1171,18 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          if (mGlobalToggleLayout != GlobalToggleLayout.FOUR_STATE_COOKIE_TOGGLE) {
              screen.removePreference(fourStateCookieToggle);
          }
@@ -463,7 +463,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  configureTriStateToggle(triStateToggle, contentType);
                  break;
              case GlobalToggleLayout.TRI_STATE_COOKIE_TOGGLE:
-@@ -1183,6 +1225,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1184,6 +1226,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              screen.removePreference(antiAbuseThingsToConsiderSectionOne);
          }
  
@@ -495,7 +495,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -145,6 +145,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -146,6 +146,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  return "popup_permission_list";
              case ContentSettingsType.SOUND:
                  return "sound_permission_list";
@@ -504,7 +504,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.AR:
                  return "ar_permission_list";
              case ContentSettingsType.MEDIASTREAM_CAMERA:
-@@ -958,11 +960,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -959,11 +961,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          if (value == null) return;
          setUpPreferenceCommon(preference, value);
  
@@ -519,7 +519,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          switchPreference.setOnPreferenceChangeListener(this);
          @ContentSettingsType
          int contentType = getContentSettingsTypeFromPreferenceKey(preference.getKey());
-@@ -1166,7 +1170,7 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1167,7 +1171,7 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          }
  
          mSite.setContentSetting(browserContextHandle, type, permission);
@@ -818,7 +818,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
-@@ -75,6 +75,7 @@ public class WebsitePermissionsFetcher {
+@@ -76,6 +76,7 @@ public class WebsitePermissionsFetcher {
              case ContentSettingsType.POPUPS:
              case ContentSettingsType.REQUEST_DESKTOP_SITE:
              case ContentSettingsType.SOUND:
@@ -826,7 +826,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  return WebsitePermissionsType.CONTENT_SETTING_EXCEPTION;
              case ContentSettingsType.AR:
              case ContentSettingsType.CLIPBOARD_READ_WRITE:
-@@ -212,6 +213,7 @@ public class WebsitePermissionsFetcher {
+@@ -213,6 +214,7 @@ public class WebsitePermissionsFetcher {
              for (@ContentSettingsType int type = 0; type < ContentSettingsType.NUM_TYPES; type++) {
                  addFetcherForContentSettingsType(queue, type);
              }
@@ -947,7 +947,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
 diff --git a/components/content_settings/core/browser/content_settings_pref_provider.cc b/components/content_settings/core/browser/content_settings_pref_provider.cc
 --- a/components/content_settings/core/browser/content_settings_pref_provider.cc
 +++ b/components/content_settings/core/browser/content_settings_pref_provider.cc
-@@ -90,6 +90,8 @@ void PrefProvider::RegisterProfilePrefs(
+@@ -71,6 +71,8 @@ void PrefProvider::RegisterProfilePrefs(
                                       info->GetPrefRegistrationFlags());
    }
  
@@ -956,7 +956,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
    // Obsolete prefs ----------------------------------------------------------
  
    // These prefs have been removed, but need to be registered so they can
-@@ -166,6 +168,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
+@@ -136,6 +138,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
      event_args->set_number_of_exceptions(
          num_exceptions);  // PrefProvider::PrefProvider.
    });
@@ -967,7 +967,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
  }
  
  PrefProvider::~PrefProvider() {
-@@ -359,4 +365,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
+@@ -324,4 +330,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
    clock_ = clock;
  }
  
@@ -1006,7 +1006,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -551,6 +551,17 @@ void ContentSettingsRegistry::Init() {
+@@ -561,6 +561,17 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
  
@@ -1044,7 +1044,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/browser/host_content_settings_map.cc b/components/content_settings/core/browser/host_content_settings_map.cc
 --- a/components/content_settings/core/browser/host_content_settings_map.cc
 +++ b/components/content_settings/core/browser/host_content_settings_map.cc
-@@ -611,6 +611,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
+@@ -657,6 +657,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
      provider->SetClockForTesting(clock);
  }
  
@@ -1062,7 +1062,7 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/browser/host_content_settings_map.h b/components/content_settings/core/browser/host_content_settings_map.h
 --- a/components/content_settings/core/browser/host_content_settings_map.h
 +++ b/components/content_settings/core/browser/host_content_settings_map.h
-@@ -334,6 +334,9 @@ class HostContentSettingsMap : public content_settings::Observer,
+@@ -364,6 +364,9 @@ class HostContentSettingsMap : public content_settings::Observer,
      allow_invalid_secondary_pattern_for_testing_ = allow;
    }
  
@@ -1075,17 +1075,7 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -125,6 +125,9 @@ constexpr auto kHistogramValue = base::MakeFixedFlatMap<ContentSettingsType,
-     {ContentSettingsType::GET_DISPLAY_MEDIA_SET_SELECT_ALL_SCREENS, 101},
-     {ContentSettingsType::MIDI, 102},
- 
-+    // Bromite-added. Starts at 9001 to avoid upstream conflicts.
-+    {ContentSettingsType::TIMEZONE_OVERRIDE, 9001},
-+
-     // As mentioned at the top, please don't forget to update ContentType in
-     // enums.xml when you add entries here!
- });
-@@ -225,7 +228,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -96,7 +96,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
           content_type == ContentSettingsType::JAVASCRIPT ||
           content_type == ContentSettingsType::POPUPS ||
           content_type == ContentSettingsType::MIXEDSCRIPT ||
@@ -1095,7 +1085,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
  }
  
  void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -235,6 +239,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -106,6 +107,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(popup_redirect_rules, outermost_main_frame_url);
    FilterRulesForType(mixed_content_rules, outermost_main_frame_url);
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
@@ -1106,7 +1096,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
 diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
 --- a/components/content_settings/core/common/content_settings.h
 +++ b/components/content_settings/core/common/content_settings.h
-@@ -95,6 +95,8 @@ struct RendererContentSettingRules {
+@@ -92,6 +92,8 @@ struct RendererContentSettingRules {
    ContentSettingsForOneType popup_redirect_rules;
    ContentSettingsForOneType mixed_content_rules;
    ContentSettingsForOneType auto_dark_content_rules;
@@ -1118,7 +1108,7 @@ diff --git a/components/content_settings/core/common/content_settings.h b/compon
 diff --git a/components/content_settings/core/common/content_settings.mojom b/components/content_settings/core/common/content_settings.mojom
 --- a/components/content_settings/core/common/content_settings.mojom
 +++ b/components/content_settings/core/common/content_settings.mojom
-@@ -78,4 +78,6 @@ struct RendererContentSettingRules {
+@@ -95,4 +95,6 @@ struct RendererContentSettingRules {
    array<ContentSettingPatternSource> popup_redirect_rules;
    array<ContentSettingPatternSource> mixed_content_rules;
    array<ContentSettingPatternSource> auto_dark_content_rules;
@@ -1128,7 +1118,7 @@ diff --git a/components/content_settings/core/common/content_settings.mojom b/co
 diff --git a/components/content_settings/core/common/content_settings_mojom_traits.cc b/components/content_settings/core/common/content_settings_mojom_traits.cc
 --- a/components/content_settings/core/common/content_settings_mojom_traits.cc
 +++ b/components/content_settings/core/common/content_settings_mojom_traits.cc
-@@ -102,7 +102,9 @@ bool StructTraits<content_settings::mojom::RendererContentSettingRulesDataView,
+@@ -162,7 +162,9 @@ bool StructTraits<content_settings::mojom::RendererContentSettingRulesDataView,
           data.ReadScriptRules(&out->script_rules) &&
           data.ReadPopupRedirectRules(&out->popup_redirect_rules) &&
           data.ReadMixedContentRules(&out->mixed_content_rules) &&
@@ -1142,7 +1132,7 @@ diff --git a/components/content_settings/core/common/content_settings_mojom_trai
 diff --git a/components/content_settings/core/common/content_settings_mojom_traits.h b/components/content_settings/core/common/content_settings_mojom_traits.h
 --- a/components/content_settings/core/common/content_settings_mojom_traits.h
 +++ b/components/content_settings/core/common/content_settings_mojom_traits.h
-@@ -150,6 +150,16 @@ struct StructTraits<
+@@ -194,6 +194,16 @@ struct StructTraits<
      return r.auto_dark_content_rules;
    }
  
@@ -1162,7 +1152,7 @@ diff --git a/components/content_settings/core/common/content_settings_mojom_trai
 diff --git a/components/content_settings/core/common/content_settings_types.h b/components/content_settings/core/common/content_settings_types.h
 --- a/components/content_settings/core/common/content_settings_types.h
 +++ b/components/content_settings/core/common/content_settings_types.h
-@@ -226,6 +226,9 @@ enum class ContentSettingsType : int32_t {
+@@ -223,6 +223,9 @@ enum class ContentSettingsType : int32_t {
    // by the File System Access API.
    FILE_SYSTEM_LAST_PICKED_DIRECTORY,
  
@@ -1175,7 +1165,7 @@ diff --git a/components/content_settings/core/common/content_settings_types.h b/
 diff --git a/components/content_settings/core/common/pref_names.cc b/components/content_settings/core/common/pref_names.cc
 --- a/components/content_settings/core/common/pref_names.cc
 +++ b/components/content_settings/core/common/pref_names.cc
-@@ -181,4 +181,7 @@ const char kDesktopSitePeripheralSettingEnabled[] =
+@@ -182,4 +182,7 @@ const char kDesktopSitePeripheralSettingEnabled[] =
  const char kDesktopSiteDisplaySettingEnabled[] = "desktop_site.display_setting";
  #endif
  
@@ -1333,7 +1323,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
 diff --git a/tools/metrics/histograms/enums.xml b/tools/metrics/histograms/enums.xml
 --- a/tools/metrics/histograms/enums.xml
 +++ b/tools/metrics/histograms/enums.xml
-@@ -19138,6 +19138,9 @@ Called by update_net_error_codes.py.-->
+@@ -19248,6 +19248,9 @@ Called by update_net_error_codes.py.-->
    <int value="100" label="Cookies setting"/>
    <int value="101" label="Get Display Media Set Select All Screens"/>
    <int value="102" label="MIDI"/>
@@ -1357,5 +1347,5 @@ diff --git a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLay
      public boolean isFirstPartySetsDataAccessEnabled() {
          return false;
 -- 
-2.41.0
+2.30.2
 
