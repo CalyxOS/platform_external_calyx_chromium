@@ -33,7 +33,7 @@ Change-Id: Ic63f7c7ddd4fc2336cb4e4f6b7fc14cfa44ca9fd
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1116,6 +1116,13 @@ static_library("browser") {
+@@ -1128,6 +1128,13 @@ static_library("browser") {
      "permissions/crowd_deny_preload_data.h",
      "permissions/crowd_deny_safe_browsing_request.cc",
      "permissions/crowd_deny_safe_browsing_request.h",
@@ -385,7 +385,7 @@ index 0000000000000000000000000000000000000000..f77adf075f8de4b14178b89c581ebf67
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -99,6 +99,7 @@
+@@ -104,6 +104,7 @@
  #include "chrome/browser/password_manager/password_reuse_manager_factory.h"
  #include "chrome/browser/password_manager/password_store_factory.h"
  #include "chrome/browser/permissions/adaptive_quiet_notification_permission_ui_enabler.h"
@@ -393,7 +393,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #include "chrome/browser/permissions/notification_permission_review_service_factory.h"
  #include "chrome/browser/permissions/notifications_engagement_service_factory.h"
  #include "chrome/browser/permissions/one_time_permissions_tracker_factory.h"
-@@ -687,6 +688,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -715,6 +716,7 @@ void ChromeBrowserMainExtraPartsProfiles::
  #endif
    KAnonymityServiceFactory::GetInstance();
    LanguageModelManagerFactory::GetInstance();
@@ -404,7 +404,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 diff --git a/chrome/browser/profiles/profile_keyed_service_browsertest.cc b/chrome/browser/profiles/profile_keyed_service_browsertest.cc
 --- a/chrome/browser/profiles/profile_keyed_service_browsertest.cc
 +++ b/chrome/browser/profiles/profile_keyed_service_browsertest.cc
-@@ -224,6 +224,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
+@@ -225,6 +225,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
  #endif
      "HidDeviceManager",
      "HostContentSettingsMap",
@@ -412,26 +412,26 @@ diff --git a/chrome/browser/profiles/profile_keyed_service_browsertest.cc b/chro
      "MediaRouterUIService",
      "NotificationDisplayService",
  #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
-@@ -402,6 +403,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
+@@ -410,6 +411,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
      "KidsChromeManagementClient",
  #endif  // BUILDFLAG(ENABLE_SUPERVISED_USERS)
      "LanguageSettingsPrivateDelegate",
 +    "LastTabStandingTrackerKeyedService",
      "LazyBackgroundTaskQueue",
-     "LoginUIServiceFactory",
-     "MDnsAPI",
+ #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+     "ListFamilyMembersService",
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -54,6 +54,7 @@
- #include "chrome/browser/page_info/page_info_features.h"
+@@ -55,6 +55,7 @@
  #include "chrome/browser/page_load_metrics/page_load_metrics_initialize.h"
  #include "chrome/browser/password_manager/chrome_password_manager_client.h"
+ #include "chrome/browser/performance_manager/public/user_tuning/user_performance_tuning_manager.h"
 +#include "chrome/browser/permissions/last_tab_standing_tracker_tab_helper.h"
  #include "chrome/browser/permissions/one_time_permissions_tracker_helper.h"
  #include "chrome/browser/permissions/unused_site_permissions_service_factory.h"
  #include "chrome/browser/predictors/loading_predictor_factory.h"
-@@ -493,6 +494,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -504,6 +505,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
        web_contents,
        std::make_unique<JavaScriptTabModalDialogManagerDelegateDesktop>(
            web_contents));

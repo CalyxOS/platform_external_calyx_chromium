@@ -90,7 +90,7 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -186,6 +186,7 @@ void AttributionHost::DidStartNavigation(NavigationHandle* navigation_handle) {
+@@ -228,6 +228,7 @@ void AttributionHost::DidStartNavigation(NavigationHandle* navigation_handle) {
  
    const NavigationInfo& navigation_info = it->second;
  
@@ -101,7 +101,7 @@ diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content
 diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
 --- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
 +++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
-@@ -88,6 +88,9 @@ void AttributionReportNetworkSender::SendReport(GURL url,
+@@ -89,6 +89,9 @@ void AttributionReportNetworkSender::SendReport(GURL url,
                                                  const std::string& body,
                                                  net::HttpRequestHeaders headers,
                                                  UrlLoaderCallback callback) {
@@ -111,7 +111,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
    auto resource_request = std::make_unique<network::ResourceRequest>();
    resource_request->url = std::move(url);
    resource_request->headers = std::move(headers);
-@@ -161,6 +164,12 @@ void AttributionReportNetworkSender::OnReportSent(
+@@ -162,6 +165,12 @@ void AttributionReportNetworkSender::OnReportSent(
      ReportSentCallback sent_callback,
      UrlLoaderList::iterator it,
      scoped_refptr<net::HttpResponseHeaders> headers) {
@@ -127,8 +127,8 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -609,12 +609,14 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
-   return user_data_directory.Append(kDatabasePath);
+@@ -629,12 +629,14 @@ StorableSource::Result ThrottleResultToStorableSourceResult(
+   }
  }
  
 +bool g_run_in_memory = true;
@@ -146,7 +146,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1426,13 +1426,7 @@ void StoragePartitionImpl::Initialize(
+@@ -1430,13 +1430,7 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
@@ -175,7 +175,7 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -136,8 +136,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
+@@ -520,8 +520,8 @@ BASE_FEATURE(kContentCaptureConstantStreaming,
  
  // Controls whether the Conversion Measurement API infrastructure is enabled.
  BASE_FEATURE(kConversionMeasurement,
@@ -184,8 +184,8 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 +             "ConversionMeasurement",                 // must be disabled
 +             base::FEATURE_DISABLED_BY_DEFAULT);      // in Bromite
  
- // Controls whether LCP calculations should exclude low-entropy images. If
- // enabled, then the associated parameter sets the cutoff, expressed as the
+ BASE_FEATURE(kCorrectFloatExtensionTestForWebGL,
+              "CorrectFloatExtensionTestForWebGL",
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
@@ -202,7 +202,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 +    },
      {
        name: "AbortSignalAny",
-       status: "experimental",
+       status: "stable",
 -- 
 2.41.0
 
