@@ -51,27 +51,26 @@ See also: https://github.com/bromite/bromite/issues/1549
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: Ic8a115d5b45b5768bec1f2fda45a8bf19da96e48
 ---
- .../permissions/last_tab_standing_tracker.cc  | 33 +++++++-
- .../permissions/last_tab_standing_tracker.h   |  4 +-
- .../last_tab_standing_tracker_factory.cc      |  2 +-
- chrome/browser/ui/tab_helpers.cc              |  1 +
+ .../permissions/last_tab_standing_tracker.cc  | 33 ++++++++
+ .../one_time_permissions_tracker.cc           | 34 +++++++-
+ .../one_time_permissions_tracker.h            |  5 +-
+ .../one_time_permissions_tracker_factory.cc   |  2 +-
+ .../permission_prompt_bubble_base_view.cc     |  2 +-
  .../site_settings/PermissionInfo.java         | 14 +++-
  .../site_settings/SingleWebsiteSettings.java  | 10 +++
  .../WebsitePreferenceBridge.java              |  6 +-
  .../android/website_preference_bridge.cc      |  7 +-
  .../strings/android/browser_ui_strings.grd    |  5 ++
  components/content_settings/android/BUILD.gn  |  1 +
- .../core/browser/content_settings_utils.cc    | 29 +++++++
+ .../core/browser/content_settings_utils.cc    | 36 +++++++++
  .../core/browser/content_settings_utils.h     |  6 ++
  .../common/content_settings_constraints.h     | 11 +++
  .../page_info/PageInfoController.java         |  4 +-
  .../PermissionParamsListBuilder.java          | 13 ++-
  .../android/page_info_controller_android.cc   | 10 ++-
  components/page_info/page_info.cc             |  2 +
- components/page_info/page_info.h              |  2 +
+ components/page_info/page_info.h              |  1 +
  .../permissions/PermissionDialogDelegate.java | 13 +++
  .../permissions/PermissionDialogModel.java    | 81 ++++++++++++++++++-
  .../permission_dialog_delegate.cc             | 19 +++++
@@ -88,20 +87,19 @@ Change-Id: Ic8a115d5b45b5768bec1f2fda45a8bf19da96e48
  components/permissions/permission_request.h   | 18 ++++-
  .../permissions/permission_request_manager.cc | 45 +++++++----
  .../permissions/permission_request_manager.h  | 11 ++-
- 34 files changed, 483 insertions(+), 58 deletions(-)
+ 35 files changed, 523 insertions(+), 60 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
 +++ b/chrome/browser/permissions/last_tab_standing_tracker.cc
-@@ -6,9 +6,35 @@
- 
+@@ -7,6 +7,33 @@
  #include "base/observer_list.h"
  #include "url/gurl.h"
+ 
 +#include "components/content_settings/core/browser/host_content_settings_map.h"
 +#include "components/content_settings/core/common/content_settings_utils.h"
 +#include "components/permissions/permissions_client.h"
- 
--LastTabStandingTracker::LastTabStandingTracker() = default;
++
 +namespace {
 +  // Remove all sessions content setting by origin and type
 +  void RemoveSessionSettings(HostContentSettingsMap* content_settings,
@@ -111,7 +109,7 @@ diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/br
 +    content_settings->GetSettingsForOneType(
 +        type, &session_settings,
 +        content_settings::SessionModel::UserSession);
- 
++
 +    GURL url = origin.GetURL();
 +    for (ContentSettingPatternSource& entry : session_settings) {
 +      if (content_settings::IsConstraintSessionExpiration(entry,
@@ -125,15 +123,64 @@ diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/br
 +  }
 +}
 +
-+LastTabStandingTracker::LastTabStandingTracker(content::BrowserContext* context)
-+    : context_(context) {}
- LastTabStandingTracker::~LastTabStandingTracker() = default;
+ LastTabStandingTracker::LastTabStandingTracker(content::BrowserContext* context)
+     : context_(context) {}
  
- void LastTabStandingTracker::Shutdown() {
-@@ -54,5 +80,10 @@ void LastTabStandingTracker::WebContentsUnloadedOrigin(
-     tab_counter_.erase(origin);
-     for (auto& observer : observer_list_)
+@@ -56,4 +83,10 @@ void LastTabStandingTracker::WebContentsUnloadedOrigin(
+     for (auto& observer : observer_list_) {
        observer.OnLastPageFromOriginClosed(origin);
+     }
++    HostContentSettingsMap* content_settings =
++            permissions::PermissionsClient::Get()->GetSettingsMap(context_);
++    RemoveSessionSettings(content_settings, origin, ContentSettingsType::GEOLOCATION);
++    RemoveSessionSettings(content_settings, origin, ContentSettingsType::MEDIASTREAM_MIC);
++    RemoveSessionSettings(content_settings, origin, ContentSettingsType::MEDIASTREAM_CAMERA);
++  }
+ }
+diff --git a/chrome/browser/permissions/one_time_permissions_tracker.cc b/chrome/browser/permissions/one_time_permissions_tracker.cc
+--- a/chrome/browser/permissions/one_time_permissions_tracker.cc
++++ b/chrome/browser/permissions/one_time_permissions_tracker.cc
+@@ -16,8 +16,35 @@
+ #include "components/permissions/features.h"
+ #include "content/public/browser/visibility.h"
+ #include "url/gurl.h"
++#include "components/content_settings/core/browser/host_content_settings_map.h"
++#include "components/content_settings/core/common/content_settings_utils.h"
++#include "components/permissions/permissions_client.h"
+ 
+-OneTimePermissionsTracker::OneTimePermissionsTracker() = default;
++namespace {
++  // Remove all sessions content setting by origin and type
++  void RemoveSessionSettings(HostContentSettingsMap* content_settings,
++                             const url::Origin& origin,
++                             ContentSettingsType type) {
++    ContentSettingsForOneType session_settings;
++    content_settings->GetSettingsForOneType(
++        type, &session_settings,
++        content_settings::SessionModel::UserSession);
++
++    GURL url = origin.GetURL();
++    for (ContentSettingPatternSource& entry : session_settings) {
++      if (content_settings::IsConstraintSessionExpiration(entry,
++              content_settings::LifetimeMode::UntilOriginClosed) &&
++          entry.primary_pattern.Matches(url)) {
++        content_settings->SetWebsiteSettingCustomScope(
++            entry.primary_pattern, entry.secondary_pattern,
++            type, base::Value());
++      }
++    }
++  }
++}
++
++OneTimePermissionsTracker::OneTimePermissionsTracker(content::BrowserContext* context)
++    : context_(context) {}
+ OneTimePermissionsTracker::~OneTimePermissionsTracker() = default;
+ 
+ OneTimePermissionsTracker::OriginTrackEntry::OriginTrackEntry() = default;
+@@ -91,6 +118,11 @@ void OneTimePermissionsTracker::WebContentsUnloadedOrigin(
+         observer.OnLastPageFromOriginClosed(origin);
+       }
+     }
 +    HostContentSettingsMap* content_settings =
 +            permissions::PermissionsClient::Get()->GetSettingsMap(context_);
 +    RemoveSessionSettings(content_settings, origin, ContentSettingsType::GEOLOCATION);
@@ -141,55 +188,58 @@ diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/br
 +    RemoveSessionSettings(content_settings, origin, ContentSettingsType::MEDIASTREAM_CAMERA);
    }
  }
-diff --git a/chrome/browser/permissions/last_tab_standing_tracker.h b/chrome/browser/permissions/last_tab_standing_tracker.h
---- a/chrome/browser/permissions/last_tab_standing_tracker.h
-+++ b/chrome/browser/permissions/last_tab_standing_tracker.h
-@@ -9,6 +9,7 @@
  
+diff --git a/chrome/browser/permissions/one_time_permissions_tracker.h b/chrome/browser/permissions/one_time_permissions_tracker.h
+--- a/chrome/browser/permissions/one_time_permissions_tracker.h
++++ b/chrome/browser/permissions/one_time_permissions_tracker.h
+@@ -11,6 +11,7 @@
  #include "base/observer_list.h"
- #include "chrome/browser/permissions/last_tab_standing_tracker_observer.h"
+ #include "base/timer/timer.h"
+ #include "chrome/browser/permissions/one_time_permissions_tracker_observer.h"
 +#include "chrome/browser/profiles/profile.h"
+ #include "components/content_settings/core/common/content_settings_types.h"
  #include "components/keyed_service/core/keyed_service.h"
- #include "url/origin.h"
+ #include "content/public/browser/visibility.h"
+@@ -23,7 +24,7 @@ class OneTimePermissionsTracker : public KeyedService {
+       void (OneTimePermissionsTracker::*)(const url::Origin&);
  
-@@ -16,7 +17,7 @@
- // all tabs of a particular origin have been closed or navigated away from.
- class LastTabStandingTracker : public KeyedService {
   public:
--  LastTabStandingTracker();
-+  explicit LastTabStandingTracker(content::BrowserContext* context);
-   ~LastTabStandingTracker() override;
+-  OneTimePermissionsTracker();
++  OneTimePermissionsTracker(content::BrowserContext* context);
+   ~OneTimePermissionsTracker() override;
  
-   LastTabStandingTracker(const LastTabStandingTracker&) = delete;
-@@ -33,6 +34,7 @@ class LastTabStandingTracker : public KeyedService {
-   base::ObserverList<LastTabStandingTrackerObserver> observer_list_;
-   // Tracks how many tabs of a particular origin are open at any given time.
-   std::map<url::Origin, int> tab_counter_;
+   OneTimePermissionsTracker(const OneTimePermissionsTracker&) = delete;
+@@ -118,7 +119,7 @@ class OneTimePermissionsTracker : public KeyedService {
+   base::ObserverList<OneTimePermissionsTrackerObserver> observer_list_;
+ 
+   std::map<url::Origin, OriginTrackEntry> origin_tracker_;
+-
 +  raw_ptr<content::BrowserContext> context_;
+   base::WeakPtrFactory<OneTimePermissionsTracker> weak_factory_{this};
  };
  
- #endif  // CHROME_BROWSER_PERMISSIONS_LAST_TAB_STANDING_TRACKER_H_
-diff --git a/chrome/browser/permissions/last_tab_standing_tracker_factory.cc b/chrome/browser/permissions/last_tab_standing_tracker_factory.cc
---- a/chrome/browser/permissions/last_tab_standing_tracker_factory.cc
-+++ b/chrome/browser/permissions/last_tab_standing_tracker_factory.cc
-@@ -31,5 +31,5 @@ bool LastTabStandingTrackerFactory::ServiceIsCreatedWithBrowserContext() const {
+diff --git a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc b/chrome/browser/permissions/one_time_permissions_tracker_factory.cc
+--- a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc
++++ b/chrome/browser/permissions/one_time_permissions_tracker_factory.cc
+@@ -40,5 +40,5 @@ bool OneTimePermissionsTrackerFactory::ServiceIsCreatedWithBrowserContext()
  
- KeyedService* LastTabStandingTrackerFactory::BuildServiceInstanceFor(
+ KeyedService* OneTimePermissionsTrackerFactory::BuildServiceInstanceFor(
      content::BrowserContext* context) const {
--  return new LastTabStandingTracker();
-+  return new LastTabStandingTracker(context);
+-  return new OneTimePermissionsTracker();
++  return new OneTimePermissionsTracker(context);
  }
-diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
---- a/chrome/browser/ui/tab_helpers.cc
-+++ b/chrome/browser/ui/tab_helpers.cc
-@@ -481,6 +481,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
-   }
-   PolicyAuditorBridge::CreateForWebContents(web_contents);
-   PluginObserverAndroid::CreateForWebContents(web_contents);
-+  LastTabStandingTrackerTabHelper::CreateForWebContents(web_contents);
- #else
-   if (web_app::AreWebAppsUserInstallable(profile))
-     webapps::AppBannerManagerDesktop::CreateForWebContents(web_contents);
+diff --git a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
+--- a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
++++ b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
+@@ -336,7 +336,7 @@ void PermissionPromptBubbleBaseView::RunButtonCallbacks(
+       delegate_->Accept();
+       return;
+     case PermissionDialogButton::kAcceptOnce:
+-      delegate_->AcceptThisTime();
++      delegate_->AcceptThisTime(content_settings::LifetimeMode::Always);
+       return;
+     case PermissionDialogButton::kDeny:
+       delegate_->Deny();
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
@@ -244,7 +294,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  import org.chromium.components.embedder_support.util.Origin;
  import org.chromium.content_public.browser.BrowserContextHandle;
  import org.chromium.content_public.browser.ContentFeatureList;
-@@ -552,6 +553,11 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -553,6 +554,11 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          }
      }
  
@@ -256,7 +306,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      private void setUpClearDataPreference() {
          ClearWebsiteStorage preference = findPreference(PREF_CLEAR_DATA);
          long usage = mSite.getTotalUsage();
-@@ -975,6 +981,10 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -976,6 +982,10 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          if (contentType == mHighlightedPermission) {
              switchPreference.setBackgroundColor(mHighlightColor);
          }
@@ -315,7 +365,7 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
      insertionFunc(env, static_cast<int>(content_type), list,
                    ConvertOriginToJavaString(env, origin), jembedder,
 -                  /*is_embargoed=*/false);
-+                  /*is_embargoed=*/false, static_cast<int>(settings_it.metadata.session_model));
++                  /*is_embargoed=*/false, static_cast<int>(settings_it.metadata.session_model()));
    }
  
    // Add any origins which have a default content setting value (thus skipped
@@ -357,34 +407,41 @@ diff --git a/components/content_settings/android/BUILD.gn b/components/content_s
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -187,6 +187,35 @@ base::Time GetConstraintExpiration(const base::TimeDelta duration) {
-   return base::Time::Now() + duration;
+@@ -180,6 +180,42 @@ bool IsConstraintPersistent(const ContentSettingConstraints& constraints) {
+   return constraints.session_model() == SessionModel::Durable;
  }
  
 +ContentSettingConstraints GetConstraintSessionExpiration(LifetimeMode lifetime_mode) {
++  int lifetime;
++  base::Time now;
 +  if (lifetime_mode == LifetimeMode::OnlyThisTime) {
 +    // note: this content settings will be discarded immediately
 +    // 1h is used as a magic constant to identify the one-time lifetime mode
-+    return {base::Time() + base::Hours(1), content_settings::SessionModel::UserSession};
++    lifetime = 1;
 +  } else if (lifetime_mode == LifetimeMode::UntilOriginClosed) {
-+    return {base::Time::Now() + base::Hours(24), content_settings::SessionModel::UserSession};
++    now = base::Time::Now();
++    lifetime = 24;
 +  } else {
-+    return {base::Time(), content_settings::SessionModel::UserSession};
++    lifetime = 0;
 +  }
++  content_settings::ContentSettingConstraints c(now);
++  c.set_lifetime(base::Hours(lifetime));
++  c.set_session_model(content_settings::SessionModel::UserSession);
++  return c;
 +}
 +
 +bool IsConstraintSessionExpiration(const ContentSettingPatternSource& source,
 +                                   LifetimeMode lifetime_mode) {
-+  if (source.metadata.session_model != content_settings::SessionModel::UserSession)
++  if (source.metadata.session_model() != content_settings::SessionModel::UserSession)
 +    return false;
 +
 +  LifetimeMode type;
-+  if (source.metadata.expiration == base::Time()) {
-+    type = LifetimeMode::UntilBrowserClosed;
-+  } else if (source.metadata.expiration == (base::Time() + base::Hours(1))) {
++  if (source.metadata.lifetime() == base::Hours(24)) {
++    type = LifetimeMode::UntilOriginClosed;
++  } else if (source.metadata.expiration() == (base::Time() + base::Hours(1))) {
 +    type = LifetimeMode::OnlyThisTime;
 +  } else {
-+    type = LifetimeMode::UntilOriginClosed;
++    type = LifetimeMode::UntilBrowserClosed;
 +  }
 +
 +  return lifetime_mode == type;
@@ -396,7 +453,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/browser/content_settings_utils.h b/components/content_settings/core/browser/content_settings_utils.h
 --- a/components/content_settings/core/browser/content_settings_utils.h
 +++ b/components/content_settings/core/browser/content_settings_utils.h
-@@ -76,6 +76,12 @@ base::Time GetConstraintExpiration(const base::TimeDelta duration);
+@@ -73,6 +73,12 @@ bool IsConstraintPersistent(const ContentSettingConstraints& constraints);
  // Returns whether the given type supports tracking last_visit timestamps.
  bool CanTrackLastVisit(ContentSettingsType type);
  
@@ -435,8 +492,8 @@ diff --git a/components/content_settings/core/common/content_settings_constraint
 +};
 +
  // Constraints to be applied when setting a content setting.
- struct ContentSettingConstraints {
-   // Specification of an |expiration| provides an upper bound on the time a
+ class ContentSettingConstraints {
+  public:
 diff --git a/components/page_info/android/java/src/org/chromium/components/page_info/PageInfoController.java b/components/page_info/android/java/src/org/chromium/components/page_info/PageInfoController.java
 --- a/components/page_info/android/java/src/org/chromium/components/page_info/PageInfoController.java
 +++ b/components/page_info/android/java/src/org/chromium/components/page_info/PageInfoController.java
@@ -539,23 +596,22 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
 diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.cc
 --- a/components/page_info/page_info.cc
 +++ b/components/page_info/page_info.cc
-@@ -1134,6 +1134,8 @@ void PageInfo::PopulatePermissionInfo(PermissionInfo& permission_info,
+@@ -1135,6 +1135,8 @@ void PageInfo::PopulatePermissionInfo(PermissionInfo& permission_info,
    permission_info.source = info.source;
-   permission_info.is_one_time =
-       (info.metadata.session_model == content_settings::SessionModel::OneTime);
+   permission_info.is_one_time = (info.metadata.session_model() ==
+                                  content_settings::SessionModel::OneTime);
 +  permission_info.is_user_session =
-+      (info.metadata.session_model == content_settings::SessionModel::UserSession);
++      (info.metadata.session_model() == content_settings::SessionModel::UserSession);
  
    if (info.primary_pattern == ContentSettingsPattern::Wildcard() &&
        info.secondary_pattern == ContentSettingsPattern::Wildcard()) {
 diff --git a/components/page_info/page_info.h b/components/page_info/page_info.h
 --- a/components/page_info/page_info.h
 +++ b/components/page_info/page_info.h
-@@ -197,6 +197,8 @@ class PageInfo : private content_settings::CookieControlsView {
+@@ -197,6 +197,7 @@ class PageInfo : private content_settings::OldCookieControlsObserver {
          content_settings::SETTING_SOURCE_NONE;
      // Whether the permission is a one-time grant.
      bool is_one_time = false;
-+    // Whether the permission should last for the lifetime of the user session.
 +    bool is_user_session = false;
      // Only set for settings that can have multiple permissions for different
      // embedded origins.
@@ -1042,10 +1098,10 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
    DCHECK_EQ(requesting_origin, requesting_origin.DeprecatedGetOriginAsURL());
    DCHECK_EQ(embedding_origin, embedding_origin.DeprecatedGetOriginAsURL());
    DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
-@@ -542,6 +583,8 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
-   content_settings::ContentSettingConstraints constraints = {
-       base::Time(), is_one_time ? content_settings::SessionModel::OneTime
-                                 : content_settings::SessionModel::Durable};
+@@ -543,6 +584,8 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
+   constraints.set_session_model(is_one_time
+                                     ? content_settings::SessionModel::OneTime
+                                     : content_settings::SessionModel::Durable);
 +  if (is_one_time)
 +    constraints = content_settings::GetConstraintSessionExpiration(lifetime_option);
  
@@ -1110,7 +1166,7 @@ diff --git a/components/permissions/permission_context_base.h b/components/permi
 diff --git a/components/permissions/permission_prompt.h b/components/permissions/permission_prompt.h
 --- a/components/permissions/permission_prompt.h
 +++ b/components/permissions/permission_prompt.h
-@@ -59,8 +59,9 @@ class PermissionPrompt {
+@@ -63,8 +63,9 @@ class PermissionPrompt {
      virtual GURL GetEmbeddingOrigin() const = 0;
  
      virtual void Accept() = 0;
@@ -1143,7 +1199,7 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
  PermissionRequest::~PermissionRequest() {
    DCHECK(delete_callback_.is_null());
  }
-@@ -256,19 +268,37 @@ bool PermissionRequest::ShouldUseTwoOriginPrompt() const {
+@@ -263,19 +275,37 @@ bool PermissionRequest::ShouldUseTwoOriginPrompt() const {
               permissions::features::kPermissionStorageAccessAPI);
  }
  
@@ -1237,7 +1293,7 @@ diff --git a/components/permissions/permission_request.h b/components/permission
 diff --git a/components/permissions/permission_request_manager.cc b/components/permissions/permission_request_manager.cc
 --- a/components/permissions/permission_request_manager.cc
 +++ b/components/permissions/permission_request_manager.cc
-@@ -152,7 +152,7 @@ void PermissionRequestManager::AddRequest(
+@@ -155,7 +155,7 @@ void PermissionRequestManager::AddRequest(
  
    if (base::CommandLine::ForCurrentProcess()->HasSwitch(
            switches::kDenyPermissionPrompts)) {
@@ -1246,7 +1302,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
      request->RequestFinished();
      return;
    }
-@@ -228,7 +228,7 @@ void PermissionRequestManager::AddRequest(
+@@ -231,7 +231,7 @@ void PermissionRequestManager::AddRequest(
    if (auto_approval_origin) {
      if (url::Origin::Create(request->requesting_origin()) ==
          auto_approval_origin.value()) {
@@ -1255,7 +1311,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
      }
      request->RequestFinished();
      return;
-@@ -563,7 +563,8 @@ void PermissionRequestManager::Accept() {
+@@ -566,7 +566,8 @@ void PermissionRequestManager::Accept() {
                                  (*requests_iter)->request_type(),
                                  PermissionAction::GRANTED);
      PermissionGrantedIncludingDuplicates(*requests_iter,
@@ -1265,7 +1321,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
  
  #if !BUILDFLAG(IS_ANDROID)
      absl::optional<ContentSettingsType> content_settings_type =
-@@ -581,7 +582,7 @@ void PermissionRequestManager::Accept() {
+@@ -584,7 +585,7 @@ void PermissionRequestManager::Accept() {
    FinalizeCurrentRequests(PermissionAction::GRANTED);
  }
  
@@ -1274,7 +1330,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    if (ignore_callbacks_from_prompt_)
      return;
    DCHECK(view_);
-@@ -592,7 +593,8 @@ void PermissionRequestManager::AcceptThisTime() {
+@@ -595,7 +596,8 @@ void PermissionRequestManager::AcceptThisTime() {
                                  (*requests_iter)->request_type(),
                                  PermissionAction::GRANTED_ONCE);
      PermissionGrantedIncludingDuplicates(*requests_iter,
@@ -1284,7 +1340,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    }
  
    NotifyRequestDecided(PermissionAction::GRANTED_ONCE);
-@@ -600,6 +602,15 @@ void PermissionRequestManager::AcceptThisTime() {
+@@ -603,6 +605,15 @@ void PermissionRequestManager::AcceptThisTime() {
  }
  
  void PermissionRequestManager::Deny() {
@@ -1300,7 +1356,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    if (ignore_callbacks_from_prompt_)
      return;
    DCHECK(view_);
-@@ -622,7 +633,7 @@ void PermissionRequestManager::Deny() {
+@@ -625,7 +636,7 @@ void PermissionRequestManager::Deny() {
      StorePermissionActionForUMA((*requests_iter)->requesting_origin(),
                                  (*requests_iter)->request_type(),
                                  PermissionAction::DENIED);
@@ -1309,7 +1365,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    }
  
    NotifyRequestDecided(PermissionAction::DENIED);
-@@ -1137,32 +1148,32 @@ PermissionRequestManager::VisitDuplicateRequests(
+@@ -1155,32 +1166,32 @@ PermissionRequestManager::VisitDuplicateRequests(
  
  void PermissionRequestManager::PermissionGrantedIncludingDuplicates(
      PermissionRequest* request,
@@ -1352,7 +1408,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
        request);
  }
  
-@@ -1411,7 +1422,7 @@ void PermissionRequestManager::LogWarningToConsole(const char* message) {
+@@ -1429,7 +1440,7 @@ void PermissionRequestManager::LogWarningToConsole(const char* message) {
  void PermissionRequestManager::DoAutoResponseForTesting() {
    switch (auto_response_for_test_) {
      case ACCEPT_ONCE:
@@ -1375,8 +1431,8 @@ diff --git a/components/permissions/permission_request_manager.h b/components/pe
 +  void DenyThisTime(content_settings::LifetimeMode lifetime_option) override;
    void Dismiss() override;
    void Ignore() override;
-   void PreIgnoreQuietPrompt() override;
-@@ -355,9 +357,12 @@ class PermissionRequestManager
+   void OpenHelpCenterLink(const ui::Event& event) override;
+@@ -356,9 +358,12 @@ class PermissionRequestManager
  
    // Calls PermissionGranted on a request and all its duplicates.
    void PermissionGrantedIncludingDuplicates(PermissionRequest* request,
