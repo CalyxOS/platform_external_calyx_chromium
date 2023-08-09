@@ -1,27 +1,23 @@
-From: Chirayu Desai <chirayudesai1@gmail.com>
-Date: Tue, 30 May 2023 23:11:38 +0530
-Subject: Partially revert "One time permissions", bring back LastTabStanding
-
-* This seemed easier for the moment then getting "one time permissions"
-  working on Android.
+From: uazo <uazo@users.noreply.github.com>
+Date: Tue, 30 May 2023 15:13:31 +0000
+Subject: Restore LastTabStandingTracker
 
 Reverts: I9bfa551ba975645d2079c266430e41cf3fb3d135
 Needed-for: Ic8a115d5b45b5768bec1f2fda45a8bf19da96e48
 Change-Id: Ic63f7c7ddd4fc2336cb4e4f6b7fc14cfa44ca9fd
 ---
- chrome/browser/BUILD.gn                       |  7 +++
+ chrome/browser/BUILD.gn                       | 10 ++++
  .../host_content_settings_map_factory.cc      |  2 +
- .../permissions/last_tab_standing_tracker.cc  | 58 +++++++++++++++++++
- .../permissions/last_tab_standing_tracker.h   | 38 ++++++++++++
+ .../permissions/last_tab_standing_tracker.cc  | 59 +++++++++++++++++++
+ .../permissions/last_tab_standing_tracker.h   | 40 +++++++++++++
  .../last_tab_standing_tracker_factory.cc      | 35 +++++++++++
  .../last_tab_standing_tracker_factory.h       | 40 +++++++++++++
  .../last_tab_standing_tracker_observer.h      | 24 ++++++++
- .../last_tab_standing_tracker_tab_helper.cc   | 42 ++++++++++++++
+ .../last_tab_standing_tracker_tab_helper.cc   | 42 +++++++++++++
  .../last_tab_standing_tracker_tab_helper.h    | 37 ++++++++++++
  ...hrome_browser_main_extra_parts_profiles.cc |  2 +
- .../profile_keyed_service_browsertest.cc      |  2 +
  chrome/browser/ui/tab_helpers.cc              |  2 +
- 12 files changed, 289 insertions(+)
+ 11 files changed, 293 insertions(+)
  create mode 100644 chrome/browser/permissions/last_tab_standing_tracker.cc
  create mode 100644 chrome/browser/permissions/last_tab_standing_tracker.h
  create mode 100644 chrome/browser/permissions/last_tab_standing_tracker_factory.cc
@@ -33,10 +29,11 @@ Change-Id: Ic63f7c7ddd4fc2336cb4e4f6b7fc14cfa44ca9fd
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1116,6 +1116,13 @@ static_library("browser") {
-     "permissions/crowd_deny_preload_data.h",
-     "permissions/crowd_deny_safe_browsing_request.cc",
-     "permissions/crowd_deny_safe_browsing_request.h",
+@@ -1873,6 +1873,16 @@ static_library("browser") {
+     "webid/federated_identity_permission_context_factory.h",
+   ]
+ 
++  sources += [
 +    "permissions/last_tab_standing_tracker.cc",
 +    "permissions/last_tab_standing_tracker.h",
 +    "permissions/last_tab_standing_tracker_factory.cc",
@@ -44,20 +41,22 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 +    "permissions/last_tab_standing_tracker_observer.h",
 +    "permissions/last_tab_standing_tracker_tab_helper.cc",
 +    "permissions/last_tab_standing_tracker_tab_helper.h",
-     "permissions/notification_permission_review_service_factory.cc",
-     "permissions/notification_permission_review_service_factory.h",
-     "permissions/notifications_engagement_service_factory.cc",
++  ]
++
+   configs += [
+     "//build/config/compiler:wexit_time_destructors",
+     "//build/config:precompiled_headers",
 diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.cc b/chrome/browser/content_settings/host_content_settings_map_factory.cc
 --- a/chrome/browser/content_settings/host_content_settings_map_factory.cc
 +++ b/chrome/browser/content_settings/host_content_settings_map_factory.cc
-@@ -10,6 +10,7 @@
- #include "build/build_config.h"
+@@ -11,6 +11,7 @@
  #include "build/buildflag.h"
  #include "chrome/browser/content_settings/one_time_permission_provider.h"
-+#include "chrome/browser/permissions/last_tab_standing_tracker_factory.h"
  #include "chrome/browser/permissions/one_time_permissions_tracker_factory.h"
++#include "chrome/browser/permissions/last_tab_standing_tracker_factory.h"
  #include "chrome/browser/profiles/off_the_record_profile_impl.h"
  #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/search_engines/template_url_service_factory.h"
 @@ -59,6 +60,7 @@ HostContentSettingsMapFactory::HostContentSettingsMapFactory()
                // Guest mode.
                .WithGuest(ProfileSelection::kOwnInstance)
@@ -68,10 +67,10 @@ diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.c
  #endif
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..1741dc9f03f31d856b6cf77e9712f78a9615b573
+index 0000000000000000000000000000000000000000..5df1981731e0e6ca93a243a6a2dd7c05c3a08fbc
 --- /dev/null
 +++ b/chrome/browser/permissions/last_tab_standing_tracker.cc
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,59 @@
 +// Copyright 2020 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -81,7 +80,8 @@ index 0000000000000000000000000000000000000000..1741dc9f03f31d856b6cf77e9712f78a
 +#include "base/observer_list.h"
 +#include "url/gurl.h"
 +
-+LastTabStandingTracker::LastTabStandingTracker() = default;
++LastTabStandingTracker::LastTabStandingTracker(content::BrowserContext* context)
++    : context_(context) {}
 +
 +LastTabStandingTracker::~LastTabStandingTracker() = default;
 +
@@ -126,16 +126,16 @@ index 0000000000000000000000000000000000000000..1741dc9f03f31d856b6cf77e9712f78a
 +  tab_counter_[origin]--;
 +  if (tab_counter_[origin] <= 0) {
 +    tab_counter_.erase(origin);
-+    for (auto& observer : observer_list_)
++    for (auto& observer : observer_list_) {
 +      observer.OnLastPageFromOriginClosed(origin);
-+  }
++    }
 +}
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.h b/chrome/browser/permissions/last_tab_standing_tracker.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..8cd75750545b4a6eb584b45220a616f6e11a10a8
+index 0000000000000000000000000000000000000000..fedb9d1973a7ac483ad1f64736cf535653f89721
 --- /dev/null
 +++ b/chrome/browser/permissions/last_tab_standing_tracker.h
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,40 @@
 +// Copyright 2020 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -146,6 +146,7 @@ index 0000000000000000000000000000000000000000..8cd75750545b4a6eb584b45220a616f6
 +#include <map>
 +
 +#include "base/observer_list.h"
++#include "chrome/browser/profiles/profile.h"
 +#include "chrome/browser/permissions/last_tab_standing_tracker_observer.h"
 +#include "components/keyed_service/core/keyed_service.h"
 +#include "url/origin.h"
@@ -154,7 +155,7 @@ index 0000000000000000000000000000000000000000..8cd75750545b4a6eb584b45220a616f6
 +// all tabs of a particular origin have been closed or navigated away from.
 +class LastTabStandingTracker : public KeyedService {
 + public:
-+  LastTabStandingTracker();
++  LastTabStandingTracker(content::BrowserContext* context);
 +  ~LastTabStandingTracker() override;
 +
 +  LastTabStandingTracker(const LastTabStandingTracker&) = delete;
@@ -169,6 +170,7 @@ index 0000000000000000000000000000000000000000..8cd75750545b4a6eb584b45220a616f6
 +
 + private:
 +  base::ObserverList<LastTabStandingTrackerObserver> observer_list_;
++  raw_ptr<content::BrowserContext> context_;
 +  // Tracks how many tabs of a particular origin are open at any given time.
 +  std::map<url::Origin, int> tab_counter_;
 +};
@@ -176,7 +178,7 @@ index 0000000000000000000000000000000000000000..8cd75750545b4a6eb584b45220a616f6
 +#endif  // CHROME_BROWSER_PERMISSIONS_LAST_TAB_STANDING_TRACKER_H_
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker_factory.cc b/chrome/browser/permissions/last_tab_standing_tracker_factory.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..1a8884320e4d08d5e0dc19bc32afdf31d7bbd47c
+index 0000000000000000000000000000000000000000..f09a613ac153356b8d8161db142ff30505d3e901
 --- /dev/null
 +++ b/chrome/browser/permissions/last_tab_standing_tracker_factory.cc
 @@ -0,0 +1,35 @@
@@ -213,7 +215,7 @@ index 0000000000000000000000000000000000000000..1a8884320e4d08d5e0dc19bc32afdf31
 +
 +KeyedService* LastTabStandingTrackerFactory::BuildServiceInstanceFor(
 +    content::BrowserContext* context) const {
-+  return new LastTabStandingTracker();
++  return new LastTabStandingTracker(context);
 +}
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker_factory.h b/chrome/browser/permissions/last_tab_standing_tracker_factory.h
 new file mode 100644
@@ -385,7 +387,7 @@ index 0000000000000000000000000000000000000000..f77adf075f8de4b14178b89c581ebf67
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -99,6 +99,7 @@
+@@ -104,6 +104,7 @@
  #include "chrome/browser/password_manager/password_reuse_manager_factory.h"
  #include "chrome/browser/password_manager/password_store_factory.h"
  #include "chrome/browser/permissions/adaptive_quiet_notification_permission_ui_enabler.h"
@@ -393,7 +395,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #include "chrome/browser/permissions/notification_permission_review_service_factory.h"
  #include "chrome/browser/permissions/notifications_engagement_service_factory.h"
  #include "chrome/browser/permissions/one_time_permissions_tracker_factory.h"
-@@ -687,6 +688,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -715,6 +716,7 @@ void ChromeBrowserMainExtraPartsProfiles::
  #endif
    KAnonymityServiceFactory::GetInstance();
    LanguageModelManagerFactory::GetInstance();
@@ -401,44 +403,25 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #if !BUILDFLAG(IS_ANDROID)
    if (base::FeatureList::IsEnabled(permissions::features::kOneTimePermission)) {
      OneTimePermissionsTrackerFactory::GetInstance();
-diff --git a/chrome/browser/profiles/profile_keyed_service_browsertest.cc b/chrome/browser/profiles/profile_keyed_service_browsertest.cc
---- a/chrome/browser/profiles/profile_keyed_service_browsertest.cc
-+++ b/chrome/browser/profiles/profile_keyed_service_browsertest.cc
-@@ -224,6 +224,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
- #endif
-     "HidDeviceManager",
-     "HostContentSettingsMap",
-+    "LastTabStandingTrackerKeyedService",
-     "MediaRouterUIService",
-     "NotificationDisplayService",
- #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
-@@ -402,6 +403,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
-     "KidsChromeManagementClient",
- #endif  // BUILDFLAG(ENABLE_SUPERVISED_USERS)
-     "LanguageSettingsPrivateDelegate",
-+    "LastTabStandingTrackerKeyedService",
-     "LazyBackgroundTaskQueue",
-     "LoginUIServiceFactory",
-     "MDnsAPI",
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -54,6 +54,7 @@
- #include "chrome/browser/page_info/page_info_features.h"
+@@ -55,6 +55,7 @@
  #include "chrome/browser/page_load_metrics/page_load_metrics_initialize.h"
  #include "chrome/browser/password_manager/chrome_password_manager_client.h"
+ #include "chrome/browser/performance_manager/public/user_tuning/user_performance_tuning_manager.h"
 +#include "chrome/browser/permissions/last_tab_standing_tracker_tab_helper.h"
  #include "chrome/browser/permissions/one_time_permissions_tracker_helper.h"
  #include "chrome/browser/permissions/unused_site_permissions_service_factory.h"
  #include "chrome/browser/predictors/loading_predictor_factory.h"
-@@ -493,6 +494,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
-       web_contents,
-       std::make_unique<JavaScriptTabModalDialogManagerDelegateDesktop>(
-           web_contents));
-+    LastTabStandingTrackerTabHelper::CreateForWebContents(web_contents);
-   if (base::FeatureList::IsEnabled(permissions::features::kOneTimePermission)) {
-     OneTimePermissionsTrackerHelper::CreateForWebContents(web_contents);
-   }
+@@ -368,6 +369,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+   HistoryClustersTabHelper::CreateForWebContents(web_contents);
+   HttpsOnlyModeTabHelper::CreateForWebContents(web_contents);
+   webapps::InstallableManager::CreateForWebContents(web_contents);
++  LastTabStandingTrackerTabHelper::CreateForWebContents(web_contents);
+   login_detection::LoginDetectionTabHelper::MaybeCreateForWebContents(
+       web_contents);
+   if (MediaEngagementService::IsEnabled())
 -- 
 2.41.0
 
