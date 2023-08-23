@@ -1,0 +1,62 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 9 Aug 2023 20:18:08 -0400
+Subject: Fix build after "Disable fetching of all field trials"
+
+Change-Id: Iaa1b158db2ea418b011cc1ae640107716fbd1ad7
+---
+ .../NonEmbeddedFastVariationsSeedSafeModeAction.java   |  2 --
+ .../SafeModeVariationsSeedContentProvider.java         | 10 +---------
+ build/android/gyp/proguard.py                          |  2 ++
+ 3 files changed, 3 insertions(+), 11 deletions(-)
+
+diff --git a/android_webview/nonembedded/java/src/org/chromium/android_webview/services/NonEmbeddedFastVariationsSeedSafeModeAction.java b/android_webview/nonembedded/java/src/org/chromium/android_webview/services/NonEmbeddedFastVariationsSeedSafeModeAction.java
+--- a/android_webview/nonembedded/java/src/org/chromium/android_webview/services/NonEmbeddedFastVariationsSeedSafeModeAction.java
++++ b/android_webview/nonembedded/java/src/org/chromium/android_webview/services/NonEmbeddedFastVariationsSeedSafeModeAction.java
+@@ -27,13 +27,11 @@ public class NonEmbeddedFastVariationsSeedSafeModeAction implements NonEmbeddedS
+ 
+     @Override
+     public boolean onActivate() {
+-        AwVariationsSeedFetcher.scheduleIfNeeded(/*requireFastMode=*/true);
+         return true;
+     }
+ 
+     @Override
+     public boolean onDeactivate() {
+-        AwVariationsSeedFetcher.cancelSafeModeSeedFetchSchedulerJob();
+         return true;
+     }
+ }
+diff --git a/android_webview/nonembedded/java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java b/android_webview/nonembedded/java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java
+--- a/android_webview/nonembedded/java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java
++++ b/android_webview/nonembedded/java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java
+@@ -82,15 +82,7 @@ public class SafeModeVariationsSeedContentProvider extends ContentProvider {
+     }
+ 
+     private Boolean awaitSeedResults() {
+-        CountDownLatch countDownLatch = new CountDownLatch(1);
+-        VariationsSeedHolder.getInstance().hasSeedUpdateCompletedAsync(
+-                () -> { countDownLatch.countDown(); });
+-        try {
+-            return countDownLatch.await(TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS);
+-        } catch (InterruptedException e) {
+-            Log.w(TAG, e.toString());
+-            return false;
+-        }
++        return false;
+     }
+ 
+     @Override
+diff --git a/build/android/gyp/proguard.py b/build/android/gyp/proguard.py
+--- a/build/android/gyp/proguard.py
++++ b/build/android/gyp/proguard.py
+@@ -52,6 +52,8 @@ _IGNORE_WARNINGS = (
+         r'EditorDialogToolbar',
+         # https://crbug.com/1441226
+         r'PaymentRequest[BH]',
++        # No fetching of trials
++        r'org\.chromium\.android_webview\.services\.AwVariationsSeedFetcher',
+     ]) + ')',
+     # TODO(agrieve): Remove once we update to U SDK.
+     r'OnBackAnimationCallback',
+-- 
+

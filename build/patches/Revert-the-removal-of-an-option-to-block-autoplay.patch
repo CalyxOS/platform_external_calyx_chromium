@@ -2,6 +2,12 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Sat, 7 Nov 2020 21:59:18 +0000
 Subject: Revert the removal of an option to block autoplay
 
+CalyxOS Port Note: Cromite now uses a different patch to accomplish
+this: "Add autoplay site setting". That patch is highly dependent
+on the "Content settings infrastructure" patch, which we do not include.
+Our variant is therefore *much* different and was not updated during
+our sync with Cromite 116.
+
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
@@ -226,7 +232,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -138,6 +138,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -139,6 +139,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  return "cookies_permission_list";
              case ContentSettingsType.FEDERATED_IDENTITY_API:
                  return "federated_identity_api_list";
@@ -235,7 +241,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.IDLE_DETECTION:
                  return "idle_detection_permission_list";
              case ContentSettingsType.JAVASCRIPT:
-@@ -524,6 +526,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -525,6 +527,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
  
              if (type == ContentSettingsType.ADS) {
                  setUpAdsPreference(preference);
@@ -244,7 +250,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              } else if (type == ContentSettingsType.SOUND) {
                  setUpSoundPreference(preference);
              } else if (type == ContentSettingsType.JAVASCRIPT) {
-@@ -1046,6 +1050,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1050,6 +1054,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
      }
  
@@ -315,7 +321,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -230,6 +230,15 @@ public final class Website implements WebsiteEntry {
+@@ -235,6 +235,15 @@ public final class Website implements WebsiteEntry {
              } else {
                  RecordUserAction.record("JavascriptContentSetting.DisableBy.SiteSettings");
              }
@@ -345,7 +351,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -828,6 +828,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
+@@ -829,6 +829,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
        case ContentSettingsType::REQUEST_DESKTOP_SITE:
        case ContentSettingsType::SENSORS:
        case ContentSettingsType::SOUND:
@@ -525,7 +531,7 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
    if (type == ContentSettingsType::SOUND) {
      ContentSetting default_setting =
          map->GetDefaultContentSetting(ContentSettingsType::SOUND, nullptr);
-@@ -1202,6 +1204,11 @@ bool PageInfo::ShouldShowPermission(
+@@ -1204,6 +1206,11 @@ bool PageInfo::ShouldShowPermission(
      return delegate_->IsSubresourceFilterActivated(site_url_);
    }
  
@@ -625,5 +631,4 @@ diff --git a/third_party/blink/renderer/core/html/media/autoplay_policy.h b/thir
    bool IsOrWillBeAutoplayingMutedInternal(bool muted) const;
  
 -- 
-2.41.0
 

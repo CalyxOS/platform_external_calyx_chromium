@@ -12,87 +12,15 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
 ---
- .../java/res/xml/privacy_preferences.xml      |  4 ---
- .../privacy/settings/PrivacySettings.java     | 35 -------------------
- .../browser/chrome_content_browser_client.cc  |  3 ++
- .../history/core/browser/history_backend.cc   | 13 +------
+ .../browser/chrome_content_browser_client.cc  |  3 +++
+ .../PrivacySandboxSettingsFragmentV3.java     |  1 +
+ .../privacy_sandbox_settings_delegate.cc      |  1 +
+ .../history/core/browser/history_backend.cc   | 13 +-----------
+ .../privacy_sandbox_features.cc               | 10 ++++-----
  .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
- .../privacy_sandbox_settings_impl.cc          | 21 ++++++-----
- 6 files changed, 18 insertions(+), 60 deletions(-)
+ .../privacy_sandbox_settings_impl.cc          | 21 +++++++++++++------
+ 7 files changed, 27 insertions(+), 24 deletions(-)
 
-diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
---- a/chrome/android/java/res/xml/privacy_preferences.xml
-+++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -54,10 +54,6 @@ found in the LICENSE file.
-         android:fragment="org.chromium.chrome.browser.privacy.settings.DoNotTrackSettings"
-         android:key="do_not_track"
-         android:title="@string/do_not_track_title"/>
--    <Preference
--        android:key="privacy_sandbox"
--        android:title="@string/prefs_privacy_sandbox"
--        android:fragment="org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsFragmentV3"/>
-     <PreferenceCategory
-         android:key="services_category"
-         android:title="@string/services_category_title">
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -79,7 +79,6 @@ public class PrivacySettings extends PreferenceFragmentCompat
-     private static final String PREF_DO_NOT_TRACK = "do_not_track";
-     private static final String PREF_SAFE_BROWSING = "safe_browsing";
-     private static final String PREF_SYNC_AND_SERVICES_LINK = "sync_and_services_link";
--    private static final String PREF_PRIVACY_SANDBOX = "privacy_sandbox";
-     private static final String PREF_PRIVACY_GUIDE = "privacy_guide";
-     private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
-     private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
-@@ -105,33 +104,6 @@ public class PrivacySettings extends PreferenceFragmentCompat
-                 PrivacyPreferencesManagerImpl.getInstance();
-         getActivity().setTitle(R.string.prefs_privacy_security);
- 
--        if (ChromeFeatureList.isEnabled(ChromeFeatureList.PRIVACY_SANDBOX_SETTINGS_4)) {
--            SettingsUtils.addPreferencesFromResource(this, R.xml.privacy_preferences_v2);
--        } else {
--            SettingsUtils.addPreferencesFromResource(this, R.xml.privacy_preferences);
--        }
--
--        Preference sandboxPreference = findPreference(PREF_PRIVACY_SANDBOX);
--        if (PrivacySandboxBridge.isPrivacySandboxRestricted()
--                && !PrivacySandboxBridge.isRestrictedNoticeEnabled()) {
--            // Hide the Privacy Sandbox if it is restricted and ad-measurement is not
--            // available to restricted users.
--            getPreferenceScreen().removePreference(sandboxPreference);
--        } else {
--            if (PrivacySandboxBridge.isRestrictedNoticeEnabled()) {
--                // Update the summary to one that describes only ad measurement if ad-measurement
--                // is available to restricted users.
--                sandboxPreference.setSummary(getContext().getString(
--                        R.string.settings_ad_privacy_restricted_link_row_sub_label));
--            }
--            // Overwrite the click listener to pass a correct referrer to the fragment.
--            sandboxPreference.setOnPreferenceClickListener(preference -> {
--                PrivacySandboxSettingsBaseFragment.launchPrivacySandboxSettings(getContext(),
--                        new SettingsLauncherImpl(), PrivacySandboxReferrer.PRIVACY_SETTINGS);
--                return true;
--            });
--        }
--
-         Preference privacyGuidePreference = findPreference(PREF_PRIVACY_GUIDE);
-         // Record the launch of PG from the S&P link-row entry point
-         privacyGuidePreference.setOnPreferenceClickListener(preference -> {
-@@ -322,13 +294,6 @@ public class PrivacySettings extends PreferenceFragmentCompat
-             }
-         }
- 
--        Preference privacySandboxPreference = findPreference(PREF_PRIVACY_SANDBOX);
--        if (privacySandboxPreference != null
--                && !ChromeFeatureList.isEnabled(ChromeFeatureList.PRIVACY_SANDBOX_SETTINGS_4)) {
--            privacySandboxPreference.setSummary(
--                    PrivacySandboxSettingsBaseFragment.getStatusString(getContext()));
--        }
--
-         mIncognitoLockSettings.updateIncognitoReauthPreferenceIfNeeded(getActivity());
- 
-         Preference thirdPartyCookies = findPreference(PREF_THIRD_PARTY_COOKIES);
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
@@ -106,6 +34,28 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    Profile* profile = Profile::FromBrowserContext(browser_context);
  
    auto* privacy_sandbox_settings =
+diff --git a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java b/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
+--- a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
++++ b/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
+@@ -47,6 +47,7 @@ public class PrivacySandboxSettingsFragmentV3 extends PrivacySandboxSettingsBase
+         privacySandboxToggle.setOnPreferenceChangeListener(this);
+         privacySandboxToggle.setManagedPreferenceDelegate(createManagedPreferenceDelegate());
+         privacySandboxToggle.setChecked(PrivacySandboxBridge.isPrivacySandboxEnabled());
++        privacySandboxToggle.setEnabled(false);
+ 
+         ChromeBasePreference learnMorePreference = findPreference(LEARN_MORE_PREFERENCE);
+         SpannableString spannableString = new SpannableString(
+diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
+--- a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
++++ b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
+@@ -115,6 +115,7 @@ bool PrivacySandboxSettingsDelegate::HasAppropriateTopicsConsent() const {
+ 
+ bool PrivacySandboxSettingsDelegate::PrivacySandboxRestrictedNoticeRequired()
+     const {
++  if ((true)) return true;
+   auto* identity_manager = IdentityManagerFactory::GetForProfile(profile_);
+ 
+   if (!identity_manager ||
 diff --git a/components/history/core/browser/history_backend.cc b/components/history/core/browser/history_backend.cc
 --- a/components/history/core/browser/history_backend.cc
 +++ b/components/history/core/browser/history_backend.cc
@@ -129,6 +79,40 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
    ScheduleCommit();
  }
  
+diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
+--- a/components/privacy_sandbox/privacy_sandbox_features.cc
++++ b/components/privacy_sandbox/privacy_sandbox_features.cc
+@@ -7,8 +7,8 @@
+ namespace privacy_sandbox {
+ 
+ BASE_FEATURE(kPrivacySandboxSettings4,
+-             "PrivacySandboxSettings4",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxSettings4",          // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
+ 
+ const char kPrivacySandboxSettings4ConsentRequiredName[] = "consent-required";
+ const char kPrivacySandboxSettings4NoticeRequiredName[] = "notice-required";
+@@ -66,8 +66,8 @@ const base::FeatureParam<bool>
+         true};
+ 
+ BASE_FEATURE(kPrivacySandboxSettings3,
+-             "PrivacySandboxSettings3",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "PrivacySandboxSettings3",          // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
+ const base::FeatureParam<bool> kPrivacySandboxSettings3ConsentRequired{
+     &kPrivacySandboxSettings3, "consent-required", false};
+ const base::FeatureParam<bool> kPrivacySandboxSettings3NoticeRequired{
+@@ -90,7 +90,7 @@ BASE_FEATURE(kOverridePrivacySandboxSettingsLocalTesting,
+ 
+ BASE_FEATURE(kDisablePrivacySandboxPrompts,
+              "DisablePrivacySandboxPrompts",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPrivacySandboxFirstPartySetsUI,
+              "PrivacySandboxFirstPartySetsUI",
 diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
 --- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
@@ -164,17 +148,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    const auto& blocked_topics =
        pref_service_->GetList(prefs::kPrivacySandboxBlockedTopics);
  
-@@ -314,7 +316,8 @@ PrivacySandboxSettingsImpl::GetM1AttributionReportingAllowedStatus(
-                                     reporting_origin.GetURL());
- }
- 
--bool PrivacySandboxSettingsImpl::IsAttributionReportingEverAllowed() const {
-+bool PrivacySandboxSettingsImpl::IsAttributionReportingEverAllowed() const { // disabled in Bromite
-+  if ((true)) return false;
-   // M1 specific
-   if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings4)) {
-     Status status = GetM1PrivacySandboxApiEnabledStatus(
-@@ -463,7 +466,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
+@@ -463,7 +465,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
  }
  
  bool PrivacySandboxSettingsImpl::IsFledgeJoiningAllowed(
@@ -184,29 +158,45 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
    auto& pref_data = scoped_pref_update.Get();
-@@ -596,7 +600,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationAllowed(
+@@ -595,7 +598,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationAllowed(
+                                            reporting_origin.GetURL());
  }
  
- bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const {
--  PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
-+  PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus(); // disabled in Bromite
+-bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const {
++bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const { // disabled in Bromite
 +  if ((true)) return false;
+   PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
    if (!IsAllowed(status)) {
      return false;
-   }
-@@ -695,9 +700,9 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
+@@ -633,7 +637,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
+   pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, false);
+ }
+ 
+-void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) {
++void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) { // disabled in Bromite
++  enabled = false;
+   pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
+ }
+ 
+@@ -695,7 +700,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
        net::CookieSettingOverrides());
  }
  
 -void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const {
--  pref_service_->SetTime(prefs::kPrivacySandboxTopicsDataAccessibleSince,
--                         base::Time::Now());
 +void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const { // disabled in Bromite
 +  pref_service_->ClearPref(prefs::kPrivacySandboxTopicsDataAccessibleSince);
 +  if ((true)) return;
++
+   pref_service_->SetTime(prefs::kPrivacySandboxTopicsDataAccessibleSince,
+                          base::Time::Now());
  
-   for (auto& observer : observers_) {
-     observer.OnTopicsDataAccessibleSinceUpdated();
+@@ -708,6 +716,7 @@ PrivacySandboxSettingsImpl::Status
+ PrivacySandboxSettingsImpl::GetSiteAccessAllowedStatus(
+     const url::Origin& top_frame_origin,
+     const GURL& url) const {
++  if ((true)) return Status::kSiteDataAccessBlocked;
+   // Relying on |host_content_settings_map_| instead of |cookie_settings_|
+   // allows to query whether the site associated with the |url| is allowed to
+   // access Site data (aka ContentSettingsType::COOKIES) without considering any
 -- 
-2.41.0
 

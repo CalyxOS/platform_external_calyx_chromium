@@ -3,10 +3,11 @@ Date: Sun, 26 Nov 2017 11:40:05 +0100
 Subject: Restore classic new tab page
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: Ic8fd01a150e3641d9bc9819970d4b05862d6bace
 ---
- chrome/browser/search/search.cc | 44 +++------------------------------
- 1 file changed, 3 insertions(+), 41 deletions(-)
+ chrome/browser/search/search.cc | 58 +--------------------------------
+ 1 file changed, 1 insertion(+), 57 deletions(-)
 
 diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
 --- a/chrome/browser/search/search.cc
@@ -62,28 +63,33 @@ diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
  // Used to look up the URL to use for the New Tab page. Also tracks how we
  // arrived at that URL so it can be logged with UMA.
  struct NewTabURLDetails {
-@@ -187,10 +150,9 @@ struct NewTabURLDetails {
+@@ -187,26 +150,7 @@ struct NewTabURLDetails {
                               : chrome::kChromeUINewTabPageThirdPartyURL);
  #endif
  
 -    if (ShouldShowLocalNewTab(profile))
 -      return NewTabURLDetails(local_url, NEW_TAB_URL_VALID);
-+    return NewTabURLDetails(local_url, NEW_TAB_URL_VALID);
- 
+-
 -    const TemplateURL* template_url =
-+/*    const TemplateURL* template_url =
-         GetDefaultSearchProviderTemplateURL(profile);
-     if (!profile || !template_url)
-       return NewTabURLDetails(local_url, NEW_TAB_URL_BAD);
-@@ -206,7 +168,7 @@ struct NewTabURLDetails {
-     if (!IsURLAllowedForSupervisedUser(search_provider_url, profile))
-       return NewTabURLDetails(local_url, NEW_TAB_URL_BLOCKED);
- 
+-        GetDefaultSearchProviderTemplateURL(profile);
+-    if (!profile || !template_url)
+-      return NewTabURLDetails(local_url, NEW_TAB_URL_BAD);
+-
+-    GURL search_provider_url(template_url->new_tab_url_ref().ReplaceSearchTerms(
+-        TemplateURLRef::SearchTermsArgs(std::u16string()),
+-        UIThreadSearchTermsData()));
+-
+-    if (!search_provider_url.is_valid())
+-      return NewTabURLDetails(local_url, NEW_TAB_URL_NOT_SET);
+-    if (!search_provider_url.SchemeIsCryptographic())
+-      return NewTabURLDetails(local_url, NEW_TAB_URL_INSECURE);
+-    if (!IsURLAllowedForSupervisedUser(search_provider_url, profile))
+-      return NewTabURLDetails(local_url, NEW_TAB_URL_BLOCKED);
+-
 -    return NewTabURLDetails(search_provider_url, NEW_TAB_URL_VALID);
-+    return NewTabURLDetails(search_provider_url, NEW_TAB_URL_VALID);*/
++    return NewTabURLDetails(local_url, NEW_TAB_URL_VALID);
    }
  
    const GURL url;
 -- 
-2.41.0
 
