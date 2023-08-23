@@ -5,12 +5,13 @@ Subject: Move some account settings back to privacy settings
 Search suggestions, autofill assistant and contextual search
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: I48dee27e0d0c6c263ec484fe427876fa3cdc7733
 ---
- .../java/res/xml/privacy_preferences.xml      | 13 +++++
- .../privacy/settings/PrivacySettings.java     | 48 ++++++++++++++++++-
- .../strings/android_chrome_strings.grd        |  4 ++
- 3 files changed, 63 insertions(+), 2 deletions(-)
+ .../java/res/xml/privacy_preferences.xml      | 13 ++++++++
+ .../privacy/settings/PrivacySettings.java     | 32 +++++++++++++++++++
+ .../strings/android_chrome_strings.grd        |  4 +++
+ 3 files changed, 49 insertions(+)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
@@ -38,17 +39,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -45,7 +45,9 @@ import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
- import org.chromium.chrome.browser.sync.settings.GoogleServicesSettings;
- import org.chromium.chrome.browser.sync.settings.ManageSyncSettings;
- import org.chromium.chrome.browser.usage_stats.UsageStatsConsentDialog;
-+import org.chromium.components.prefs.PrefService;
- import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
-+import org.chromium.components.browser_ui.settings.ManagedPreferenceDelegate;
- import org.chromium.components.browser_ui.settings.SettingsLauncher;
- import org.chromium.components.browser_ui.settings.SettingsUtils;
- import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
-@@ -57,6 +59,12 @@ import org.chromium.components.user_prefs.UserPrefs;
+@@ -57,6 +57,13 @@ import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.NoUnderlineClickableSpan;
  import org.chromium.ui.text.SpanApplier;
  
@@ -57,11 +48,12 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +import org.chromium.chrome.browser.contextualsearch.ContextualSearchManager;
 +import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
 +import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
++import org.chromium.components.browser_ui.settings.ManagedPreferenceDelegate;
 +
  /**
   * Fragment to keep track of the all the privacy related preferences.
   */
-@@ -76,6 +84,17 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -76,6 +83,16 @@ public class PrivacySettings extends PreferenceFragmentCompat
      private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
      private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
  
@@ -73,18 +65,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +    private @Nullable Preference mContextualSearch;
 +    private final SharedPreferencesManager mSharedPreferencesManager =
 +            SharedPreferencesManager.getInstance();
-+    private final PrefService prefService = UserPrefs.get(Profile.getLastUsedRegularProfile());
 +
 +    private ManagedPreferenceDelegate mManagedPreferenceDelegate;
      private IncognitoLockSettings mIncognitoLockSettings;
      private HelpAndFeedbackLauncher mHelpAndFeedbackLauncher;
      private Profile mProfile;
-@@ -144,6 +163,18 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -144,6 +161,16 @@ public class PrivacySettings extends PreferenceFragmentCompat
  
          setHasOptionsMenu(true);
  
-+        mManagedPreferenceDelegate = createManagedPreferenceDelegate();
-+
 +        mSearchSuggestions = (ChromeSwitchPreference) findPreference(PREF_SEARCH_SUGGESTIONS);
 +        mSearchSuggestions.setOnPreferenceChangeListener(this);
 +        mSearchSuggestions.setManagedPreferenceDelegate(mManagedPreferenceDelegate);
@@ -98,47 +87,25 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -224,6 +255,8 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -224,6 +251,9 @@ public class PrivacySettings extends PreferenceFragmentCompat
              UserPrefs.get(mProfile).setBoolean(Pref.CAN_MAKE_PAYMENT_ENABLED, (boolean) newValue);
          } else if (PREF_HTTPS_FIRST_MODE.equals(key)) {
              UserPrefs.get(mProfile).setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
 +        } else if (PREF_SEARCH_SUGGESTIONS.equals(key)) {
-+            UserPrefs.get(mProfile).setBoolean(Pref.SEARCH_SUGGEST_ENABLED, (boolean) newValue);
++            UserPrefs.get(Profile.getLastUsedRegularProfile())
++                    .setBoolean(Pref.SEARCH_SUGGEST_ENABLED, (boolean) newValue);
          }
          return true;
      }
-@@ -238,11 +271,11 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -238,6 +268,8 @@ public class PrivacySettings extends PreferenceFragmentCompat
       * Updates the preferences.
       */
      public void updatePreferences() {
-+        mSearchSuggestions.setChecked(prefService.getBoolean(Pref.SEARCH_SUGGEST_ENABLED));
++        mSearchSuggestions.setChecked(UserPrefs.get(mProfile).getBoolean(Pref.SEARCH_SUGGEST_ENABLED));
 +
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          if (canMakePaymentPref != null) {
--            canMakePaymentPref.setChecked(
--                    UserPrefs.get(mProfile).getBoolean(Pref.CAN_MAKE_PAYMENT_ENABLED));
-         }
- 
-         Preference doNotTrackPref = findPreference(PREF_DO_NOT_TRACK);
-@@ -334,6 +367,17 @@ public class PrivacySettings extends PreferenceFragmentCompat
-         privacyGuide.setTitle(privacyGuidePrefTitle);
-     }
- 
-+    private ChromeManagedPreferenceDelegate createManagedPreferenceDelegate() {
-+        return preference -> {
-+            String key = preference.getKey();
-+            if (PREF_HTTPS_FIRST_MODE.equals(key)) {
-+                return UserPrefs.get(Profile.getLastUsedRegularProfile())
-+                        .isManagedPreference(Pref.HTTPS_ONLY_MODE_ENABLED);
-+            }
-+            return false;
-+        };
-+    }
-+
-     @Override
-     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-         menu.clear();
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
@@ -154,5 +121,5 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        <message name="IDS_SEARCH_ENGINE_SETTINGS" desc="Title for Search Engine settings. [CHAR_LIMIT=32]">
          Search engine
 -- 
-2.41.0
+2.42.0
 

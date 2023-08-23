@@ -3,22 +3,24 @@ Date: Sat, 27 Oct 2018 17:54:01 +0200
 Subject: Disable update scheduler
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: I506563e65e1ff41eb0a3fea73715de496b365a51
 ---
- .../android/background_task_update_scheduler.cc                  | 1 +
- 1 file changed, 1 insertion(+)
+ .../background_task_scheduler/ChromeBackgroundTaskFactory.java  | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/components/component_updater/android/background_task_update_scheduler.cc b/components/component_updater/android/background_task_update_scheduler.cc
---- a/components/component_updater/android/background_task_update_scheduler.cc
-+++ b/components/component_updater/android/background_task_update_scheduler.cc
-@@ -19,6 +19,7 @@ const base::TimeDelta kOnStartTaskDelay = base::Seconds(2);
- }  // namespace
- 
- BackgroundTaskUpdateScheduler::BackgroundTaskUpdateScheduler() {
-+  DCHECK(false);
-   JNIEnv* env = base::android::AttachCurrentThread();
-   j_update_scheduler_.Reset(Java_UpdateScheduler_getInstance(env));
-   Java_UpdateScheduler_setNativeScheduler(env, j_update_scheduler_,
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java b/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
+@@ -66,7 +66,7 @@ public class ChromeBackgroundTaskFactory implements BackgroundTaskFactory {
+             case TaskIds.WEBAPK_UPDATE_JOB_ID:
+                 return new WebApkUpdateTask();
+             case TaskIds.COMPONENT_UPDATE_JOB_ID:
+-                return new UpdateTask();
++                return null;
+             case TaskIds.BACKGROUND_SYNC_ONE_SHOT_JOB_ID:
+                 return new BackgroundSyncBackgroundTask();
+             case TaskIds.NOTIFICATION_SCHEDULER_JOB_ID:
 -- 
-2.41.0
+2.42.0
 
