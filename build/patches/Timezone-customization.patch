@@ -6,6 +6,11 @@ Allow specifying a custom timezone, or using a random one.
 
 See also: https://github.com/bromite/bromite/wiki/TimezoneOverride
 
+CalyxOS Port Note: Cromite's variant of this patch is highly dependent
+on the "Content settings infrastructure" patch, which we do not include.
+Our variant is therefore *much* different and was not updated during
+our sync with Cromite 116.
+
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
@@ -496,7 +501,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -146,6 +146,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -147,6 +147,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  return "popup_permission_list";
              case ContentSettingsType.SOUND:
                  return "sound_permission_list";
@@ -520,7 +525,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          switchPreference.setOnPreferenceChangeListener(this);
          @ContentSettingsType
          int contentType = getContentSettingsTypeFromPreferenceKey(preference.getKey());
-@@ -1167,7 +1171,7 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1177,7 +1181,7 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          }
  
          mSite.setContentSetting(browserContextHandle, type, permission);
@@ -798,7 +803,7 @@ index 0000000000000000000000000000000000000000..636d75e5b94e476e4551ddde61533e73
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -243,6 +243,17 @@ public final class Website implements WebsiteEntry {
+@@ -248,6 +248,17 @@ public final class Website implements WebsiteEntry {
              } else {
                  RecordUserAction.record("SoundContentSetting.UnmuteBy.SiteSettings");
              }
@@ -838,7 +843,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
-@@ -243,6 +243,8 @@ public class WebsitePreferenceBridge {
+@@ -245,6 +245,8 @@ public class WebsitePreferenceBridge {
          switch (contentSettingsType) {
              case ContentSettingsType.PROTECTED_MEDIA_IDENTIFIER:
                  return true;
@@ -847,7 +852,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              default:
                  return false;
          }
-@@ -383,6 +385,14 @@ public class WebsitePreferenceBridge {
+@@ -385,6 +387,14 @@ public class WebsitePreferenceBridge {
          return WebsitePreferenceBridgeJni.get().toHostOnlyPattern(pattern);
      }
  
@@ -862,7 +867,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      @NativeMethods
      public interface Natives {
          boolean isNotificationEmbargoedForOrigin(
-@@ -447,5 +457,7 @@ public class WebsitePreferenceBridge {
+@@ -449,5 +459,7 @@ public class WebsitePreferenceBridge {
          boolean getLocationAllowedByPolicy(BrowserContextHandle browserContextHandle);
          String toDomainWildcardPattern(String pattern);
          String toHostOnlyPattern(String pattern);
@@ -873,7 +878,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -1019,3 +1019,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
+@@ -1020,3 +1020,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
            ContentSettingsPattern::FromString(pattern_string));
    return ConvertUTF8ToJavaString(env, host_only_pattern.ToString());
  }
@@ -1339,7 +1344,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
 diff --git a/tools/metrics/histograms/enums.xml b/tools/metrics/histograms/enums.xml
 --- a/tools/metrics/histograms/enums.xml
 +++ b/tools/metrics/histograms/enums.xml
-@@ -19248,6 +19248,9 @@ Called by update_net_error_codes.py.-->
+@@ -19253,6 +19253,9 @@ Called by update_net_error_codes.py.-->
    <int value="100" label="Cookies setting"/>
    <int value="101" label="Get Display Media Set Select All Screens"/>
    <int value="102" label="MIDI"/>
@@ -1363,5 +1368,5 @@ diff --git a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLay
      public boolean isFirstPartySetsDataAccessEnabled() {
          return false;
 -- 
-2.41.0
+2.42.0
 

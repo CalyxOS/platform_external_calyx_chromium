@@ -2,6 +2,11 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Tue, 5 Oct 2021 08:38:52 +0000
 Subject: Site setting for images
 
+CalyxOS Port Note: Cromite's variant of this patch is highly dependent
+on the "Content settings infrastructure" patch, which we do not include.
+Our variant is therefore *much* different and was not updated during
+our sync with Cromite 116.
+
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
@@ -218,7 +223,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -142,6 +142,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -143,6 +143,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  return "autoplay_permission_list";
              case ContentSettingsType.IDLE_DETECTION:
                  return "idle_detection_permission_list";
@@ -227,8 +232,8 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.JAVASCRIPT:
                  return "javascript_permission_list";
              case ContentSettingsType.POPUPS:
-@@ -534,6 +536,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
-                 setUpJavascriptPreference(preference);
+@@ -537,6 +539,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+                 setUpCookiesPreference(preference);
              } else if (type == ContentSettingsType.GEOLOCATION) {
                  setUpLocationPreference(preference);
 +            } else if (type == ContentSettingsType.IMAGES) {
@@ -236,7 +241,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              } else if (type == ContentSettingsType.NOTIFICATIONS) {
                  setUpNotificationsPreference(preference, mSite.isEmbargoed(type));
              } else if (type == ContentSettingsType.REQUEST_DESKTOP_SITE) {
-@@ -1142,6 +1146,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1152,6 +1156,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  mSite.isEmbargoed(ContentSettingsType.REQUEST_DESKTOP_SITE));
      }
  
@@ -318,7 +323,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -214,6 +214,13 @@ public final class Website implements WebsiteEntry {
+@@ -219,6 +219,13 @@ public final class Website implements WebsiteEntry {
                          /*isEmbargoed=*/false);
                  setContentSettingException(type, exception);
              }
@@ -346,7 +351,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -823,6 +823,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
+@@ -824,6 +824,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
        case ContentSettingsType::BACKGROUND_SYNC:
        case ContentSettingsType::COOKIES:
        case ContentSettingsType::FEDERATED_IDENTITY_API:
@@ -411,7 +416,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/page_info/android/page_info_controller_android.cc b/components/page_info/android/page_info_controller_android.cc
 --- a/components/page_info/android/page_info_controller_android.cc
 +++ b/components/page_info/android/page_info_controller_android.cc
-@@ -222,6 +222,10 @@ absl::optional<ContentSetting> PageInfoControllerAndroid::GetSettingToDisplay(
+@@ -228,6 +228,10 @@ absl::optional<ContentSetting> PageInfoControllerAndroid::GetSettingToDisplay(
      // audio since last navigation.
      if (web_contents_->WasEverAudible())
        return permission.default_setting;
@@ -435,7 +440,7 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
      ContentSettingsType::POPUPS,
      ContentSettingsType::WINDOW_MANAGEMENT,
      ContentSettingsType::ADS,
-@@ -1209,6 +1207,11 @@ bool PageInfo::ShouldShowPermission(
+@@ -1211,6 +1209,11 @@ bool PageInfo::ShouldShowPermission(
       return true;
    }
  
@@ -498,5 +503,5 @@ diff --git a/components/site_settings_strings.grdp b/components/site_settings_st
      Insecure content
    </message>
 -- 
-2.41.0
+2.42.0
 
