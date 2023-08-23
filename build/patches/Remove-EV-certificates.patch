@@ -8,11 +8,12 @@ do not give users a false sense of extra security with EV certs.
 Instead, let them appear just like regular ones.
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: Ia943a861dc5cc173c982c969e4864d5ab2930106
 ---
- net/cert/ev_root_ca_metadata.cc | 19 ++++++++++++++++++-
- net/cert/ev_root_ca_metadata.h  |  7 ++++++-
- 2 files changed, 24 insertions(+), 2 deletions(-)
+ net/cert/ev_root_ca_metadata.cc | 15 +++++++++++++--
+ net/cert/ev_root_ca_metadata.h  |  2 +-
+ 2 files changed, 14 insertions(+), 3 deletions(-)
 
 diff --git a/net/cert/ev_root_ca_metadata.cc b/net/cert/ev_root_ca_metadata.cc
 --- a/net/cert/ev_root_ca_metadata.cc
@@ -38,18 +39,14 @@ diff --git a/net/cert/ev_root_ca_metadata.cc b/net/cert/ev_root_ca_metadata.cc
  
  #endif  // defined(PLATFORM_USES_CHROMIUM_EV_METADATA)
  }  // namespace
-@@ -114,6 +126,11 @@ bool EVRootCAMetadata::RemoveEVCA(const SHA256HashValue& fingerprint) {
- // metadata.
+@@ -115,7 +127,6 @@ bool EVRootCAMetadata::RemoveEVCA(const SHA256HashValue& fingerprint) {
  //
  
-+bool EVRootCAMetadata::IsCaBrowserForumEvOid(der::Input policy_oid) {
-+  LOG(WARNING) << "Not implemented";
-+  return false;
-+}
-+
  bool EVRootCAMetadata::IsEVPolicyOID(der::Input policy_oid) const {
-   LOG(WARNING) << "Not implemented";
+-  LOG(WARNING) << "Not implemented";
    return false;
+ }
+ 
 diff --git a/net/cert/ev_root_ca_metadata.h b/net/cert/ev_root_ca_metadata.h
 --- a/net/cert/ev_root_ca_metadata.h
 +++ b/net/cert/ev_root_ca_metadata.h
@@ -62,18 +59,6 @@ diff --git a/net/cert/ev_root_ca_metadata.h b/net/cert/ev_root_ca_metadata.h
  #endif
  
  namespace base {
-@@ -43,6 +43,11 @@ class NET_EXPORT_PRIVATE EVRootCAMetadata {
-   EVRootCAMetadata(const EVRootCAMetadata&) = delete;
-   EVRootCAMetadata& operator=(const EVRootCAMetadata&) = delete;
- 
-+  // Returns true if |policy_oid| is for 2.23.140.1.1 (CA/Browser Forum's
-+  // Extended Validation Policy). This is used as a hack by the
-+  // platform-specific CertVerifyProcs when doing EV verification.
-+  static bool IsCaBrowserForumEvOid(der::Input policy_oid);
-+
-   // Returns true if policy_oid is an EV policy OID of some root CA.
-   bool IsEVPolicyOID(der::Input policy_oid) const;
- 
 -- 
 2.41.0
 
