@@ -1,0 +1,32 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 6 Sep 2023 13:00:08 +0000
+Subject: TFLITE build error fix
+
+Change-Id: I74d4fb747be7f28da1e3a8c8f9db857c4384c9b7
+---
+ .../renderer/phishing_classifier/phishing_image_embedder.cc   | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc b/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
+--- a/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
++++ b/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
+@@ -52,6 +52,7 @@ void PhishingImageEmbedder::BeginImageEmbedding(DoneCallback done_callback) {
+ }
+ 
+ void PhishingImageEmbedder::OnPlaybackDone(std::unique_ptr<SkBitmap> bitmap) {
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   if (bitmap) {
+     bitmap_ = std::move(bitmap);
+     ScorerStorage::GetInstance()
+@@ -63,6 +64,9 @@ void PhishingImageEmbedder::OnPlaybackDone(std::unique_ptr<SkBitmap> bitmap) {
+   } else {
+     RunFailureCallback();
+   }
++#else
++  RunFailureCallback();
++#endif
+ }
+ 
+ void PhishingImageEmbedder::CancelPendingImageEmbedding() {
+-- 
+

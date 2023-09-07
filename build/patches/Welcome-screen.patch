@@ -32,7 +32,7 @@ Change-Id: I4a722acfabcd9a4da886d2d164e69ac36e734813
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -529,6 +529,7 @@ chrome_java_resources = [
+@@ -532,6 +532,7 @@ chrome_java_resources = [
    "java/res/layout/find_in_page.xml",
    "java/res/layout/find_toolbar.xml",
    "java/res/layout/fre_tos_privacy_disclaimer.xml",
@@ -43,7 +43,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -625,6 +625,8 @@ chrome_java_sources = [
+@@ -636,6 +636,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/firstrun/SyncConsentFirstRunFragment.java",
    "java/src/org/chromium/chrome/browser/firstrun/TabbedModeFirstRunActivity.java",
    "java/src/org/chromium/chrome/browser/firstrun/TosDialogBehaviorSharedPrefInvalidator.java",
@@ -282,7 +282,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildA
 -        appRestrictionInfo.getHasAppRestriction(this::onAppRestrictionDetected);
 -
 -        accountManagerFacade.getAccounts().then(accounts -> {
--            AccountUtils.checkChildAccountStatus(accountManagerFacade, accounts,
+-            AccountUtils.checkChildAccountStatusLegacy(accountManagerFacade, accounts,
 -                    (isChild, account) -> onChildAccountStatusReady(isChild));
 -        });
      }
@@ -291,9 +291,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildA
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-@@ -30,9 +30,7 @@ import org.chromium.chrome.browser.fonts.FontPreloader;
+@@ -29,9 +29,7 @@ import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
+ import org.chromium.chrome.browser.fonts.FontPreloader;
  import org.chromium.chrome.browser.metrics.UmaUtils;
- import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 -import org.chromium.chrome.browser.signin.SigninCheckerProvider;
 -import org.chromium.chrome.browser.signin.SigninFirstRunFragment;
@@ -302,7 +302,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  import org.chromium.components.browser_ui.modaldialog.AppModalPresenter;
  import org.chromium.components.feature_engagement.EventConstants;
  import org.chromium.components.metrics.LowEntropySource;
-@@ -122,7 +120,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -121,7 +119,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      /** Creates first page and sets up adapter. Should result UI being shown on the screen. */
      private void createFirstPage() {
          BooleanSupplier showWelcomePage = () -> !FirstRunStatus.shouldSkipWelcomePage();
@@ -311,7 +311,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          mFreProgressStates.add(MobileFreProgress.WELCOME_SHOWN);
          mPagerAdapter = new FirstRunPagerAdapter(FirstRunActivity.this, mPages);
          mPager.setAdapter(mPagerAdapter);
-@@ -144,13 +142,11 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -143,13 +141,11 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          //
          // TODO(b/245912657): explicitly sign in supervised users in {@link
          // SigninFirstRunMediator#handleContinueWithNative} rather than relying on SigninChecker.
@@ -325,7 +325,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          // An optional page to select a default search engine.
          if (showSearchEnginePromo.getAsBoolean()) {
-@@ -159,11 +155,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -158,11 +154,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
              mFreProgressStates.add(MobileFreProgress.DEFAULT_SEARCH_ENGINE_SHOWN);
          }
  
@@ -337,7 +337,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          if (mPagerAdapter != null) {
              mPagerAdapter.notifyDataSetChanged();
          }
-@@ -208,10 +199,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -207,10 +198,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
  
      @Override
      public void triggerLayoutInflation() {
@@ -362,7 +362,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
-@@ -32,8 +32,6 @@ import org.chromium.chrome.browser.policy.PolicyServiceFactory;
+@@ -33,8 +33,6 @@ import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.profiles.ProfileManagerUtils;
  import org.chromium.components.browser_ui.widget.gesture.BackPressHandler;
  import org.chromium.components.policy.PolicyService;
@@ -371,7 +371,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  /** Base class for First Run Experience. */
  public abstract class FirstRunActivityBase
-@@ -101,9 +99,7 @@ public abstract class FirstRunActivityBase
+@@ -104,9 +102,7 @@ public abstract class FirstRunActivityBase
      @Override
      @CallSuper
      public void triggerLayoutInflation() {
@@ -385,7 +385,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
-@@ -26,14 +26,9 @@ import org.chromium.chrome.browser.locale.LocaleManager;
+@@ -27,14 +27,9 @@ import org.chromium.chrome.browser.locale.LocaleManager;
  import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.SearchEnginePromoType;
@@ -400,7 +400,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  import java.util.List;
  
-@@ -58,38 +53,19 @@ public abstract class FirstRunFlowSequencer  {
+@@ -65,38 +60,19 @@ public abstract class FirstRunFlowSequencer  {
          /** Returns true if the sync consent promo page should be shown. */
          boolean shouldShowSyncConsentPage(
                  Activity activity, List<Account> accounts, boolean isChild) {
@@ -408,9 +408,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -                // Always show the sync consent page for child account.
 -                return true;
 -            }
+-            assert mProfileSupplier.get() != null;
 -            final IdentityManager identityManager =
--                    IdentityServicesProvider.get().getIdentityManager(
--                            Profile.getLastUsedRegularProfile());
+-                    IdentityServicesProvider.get().getIdentityManager(mProfileSupplier.get());
 -            if (identityManager.hasPrimaryAccount(ConsentLevel.SYNC) || !isSyncAllowed()) {
 -                // No need to show the sync consent page if users already consented to sync or
 -                // if sync is not allowed.
@@ -433,15 +433,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          /** @return true if Sync is allowed for the current user. */
          @VisibleForTesting
          protected boolean isSyncAllowed() {
--            SigninManager signinManager = IdentityServicesProvider.get().getSigninManager(
--                    Profile.getLastUsedRegularProfile());
+-            SigninManager signinManager =
+-                    IdentityServicesProvider.get().getSigninManager(mProfileSupplier.get());
 -            return FirstRunUtils.canAllowSync() && !signinManager.isSigninDisabledByPolicy()
 -                    && signinManager.isSigninSupported(/*requireUpdatedPlayServices=*/false);
 +            return false;
          }
      }
  
-@@ -133,12 +109,8 @@ public abstract class FirstRunFlowSequencer  {
+@@ -147,12 +123,8 @@ public abstract class FirstRunFlowSequencer  {
       *                                  method.
       */
      void start() {
@@ -456,7 +456,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @VisibleForTesting
-@@ -163,14 +135,10 @@ public abstract class FirstRunFlowSequencer  {
+@@ -177,14 +149,10 @@ public abstract class FirstRunFlowSequencer  {
      }
  
      private void maybeProcessFreEnvironmentPreNative() {
@@ -471,7 +471,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          onFlowIsKnown(freProperties);
      }
-@@ -181,8 +149,8 @@ public abstract class FirstRunFlowSequencer  {
+@@ -195,8 +163,8 @@ public abstract class FirstRunFlowSequencer  {
       * @param freProperties Resulting FRE properties bundle.
       */
      public void updateFirstRunProperties(Bundle freProperties) {
@@ -482,7 +482,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          freProperties.putBoolean(
                  FirstRunActivity.SHOW_SEARCH_ENGINE_PAGE, shouldShowSearchEnginePage());
      }
-@@ -283,13 +251,17 @@ public abstract class FirstRunFlowSequencer  {
+@@ -297,13 +265,17 @@ public abstract class FirstRunFlowSequencer  {
              if (!(caller instanceof Activity)) {
                  freIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
              }
@@ -505,7 +505,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
-@@ -18,9 +18,6 @@ import org.chromium.chrome.browser.metrics.UmaSessionStats;
+@@ -19,9 +19,6 @@ import org.chromium.chrome.browser.metrics.UmaSessionStats;
  import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
  import org.chromium.chrome.browser.util.ChromeAccessibilityUtil;
@@ -515,7 +515,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  /** Provides first run related utility functions. */
  public class FirstRunUtils {
-@@ -83,16 +80,12 @@ public class FirstRunUtils {
+@@ -84,16 +81,12 @@ public class FirstRunUtils {
       * @return Whether or not sync is allowed on this device.
       */
      static boolean canAllowSync() {
@@ -534,7 +534,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @VisibleForTesting
-@@ -102,10 +95,7 @@ public class FirstRunUtils {
+@@ -103,10 +96,7 @@ public class FirstRunUtils {
  
      @VisibleForTesting
      static boolean hasGoogleAccounts() {
@@ -1204,7 +1204,7 @@ index 0000000000000000000000000000000000000000..74887df1139e07cf113f8ce7e0c69c3c
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3030,7 +3030,22 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3072,7 +3072,22 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
          <ph name="APP_NAME">%1$s<ex>Google Maps</ex></ph> will open in Chrome. By continuing, you agree to the <ph name="BEGIN_LINK1">&lt;LINK1&gt;</ph>Google Terms of Service<ph name="END_LINK1">&lt;/LINK1&gt;</ph>, and the <ph name="BEGIN_LINK2">&lt;LINK2&gt;</ph>Google Chrome and ChromeOS Additional Terms of Service<ph name="END_LINK2">&lt;/LINK2&gt;</ph>. The <ph name="BEGIN_LINK3">&lt;LINK3&gt;</ph>Privacy Policy<ph name="END_LINK3">&lt;/LINK3&gt;</ph> also applies.
        </message>
        <message name="IDS_FRE_ACCEPT_CONTINUE" desc="Text for first page accept and continue button [CHAR_LIMIT=20]">
