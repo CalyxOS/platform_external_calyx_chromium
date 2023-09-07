@@ -38,9 +38,9 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
  #include "components/autofill/core/common/autofill_util.h"
 +#include "components/bookmarks/browser/features.h"
  #include "components/browser_sync/browser_sync_switches.h"
- #include "components/browser_ui/site_settings/android/features.h"
  #include "components/browsing_data/core/features.h"
-@@ -6388,6 +6389,11 @@ const FeatureEntry kFeatureEntries[] = {
+ #include "components/commerce/core/commerce_feature_list.h"
+@@ -6486,6 +6487,11 @@ const FeatureEntry kFeatureEntries[] = {
       FEATURE_VALUE_TYPE(features::kQuickSettingsPWANotifications)},
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
  
@@ -67,7 +67,7 @@ diff --git a/chrome/browser/background/background_mode_manager.cc b/chrome/brows
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -1590,7 +1590,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
+@@ -1599,7 +1599,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
  void ChromeContentBrowserClient::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kDisable3DAPIs, false);
@@ -79,7 +79,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -3224,6 +3224,10 @@ const char kTabGroupsContinuationAndroidName[] = "Tab Groups Continuation";
+@@ -3290,6 +3290,10 @@ const char kTabGroupsContinuationAndroidName[] = "Tab Groups Continuation";
  const char kTabGroupsContinuationAndroidDescription[] =
      "Allows users to access continuation features in Tab Group on phones.";
  
@@ -93,7 +93,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -1829,6 +1829,9 @@ extern const char kCommerceMerchantViewerAndroidDescription[];
+@@ -1881,6 +1881,9 @@ extern const char kCommerceMerchantViewerAndroidDescription[];
  extern const char kTabGroupsContinuationAndroidName[];
  extern const char kTabGroupsContinuationAndroidDescription[];
  
@@ -106,7 +106,7 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/chrome/browser/prefetch/prefetch_prefs.h b/chrome/browser/prefetch/prefetch_prefs.h
 --- a/chrome/browser/prefetch/prefetch_prefs.h
 +++ b/chrome/browser/prefetch/prefetch_prefs.h
-@@ -28,7 +28,7 @@ enum class NetworkPredictionOptions {
+@@ -23,7 +23,7 @@ enum class NetworkPredictionOptions {
    kWifiOnlyDeprecated = 1,
    kDisabled = 2,
    kExtended = 3,
@@ -160,18 +160,18 @@ diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_u
 diff --git a/components/bookmarks/browser/BUILD.gn b/components/bookmarks/browser/BUILD.gn
 --- a/components/bookmarks/browser/BUILD.gn
 +++ b/components/bookmarks/browser/BUILD.gn
-@@ -19,6 +19,7 @@ static_library("browser") {
-     "bookmark_storage.h",
+@@ -20,6 +20,7 @@ static_library("browser") {
      "bookmark_undo_provider.h",
      "bookmark_utils.h",
+     "bookmark_uuids.h",
 +    "features.h",
      "history_bookmark_model.h",
      "model_loader.h",
      "scoped_group_bookmark_actions.h",
-@@ -40,6 +41,7 @@ static_library("browser") {
-     "bookmark_node_data.cc",
+@@ -42,6 +43,7 @@ static_library("browser") {
      "bookmark_storage.cc",
      "bookmark_utils.cc",
+     "bookmark_uuids.cc",
 +    "features.cc",
      "model_loader.cc",
      "scoped_group_bookmark_actions.cc",
@@ -252,7 +252,7 @@ index 0000000000000000000000000000000000000000..5aa1e1ffce6247650bc5faa27d647a34
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -234,7 +234,7 @@ void ContentSettingsRegistry::Init() {
+@@ -236,7 +236,7 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
    Register(ContentSettingsType::BACKGROUND_SYNC, "background-sync",
@@ -261,7 +261,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
             /*allowlisted_schemes=*/{},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
-@@ -325,7 +325,7 @@ void ContentSettingsRegistry::Init() {
+@@ -336,7 +336,7 @@ void ContentSettingsRegistry::Init() {
    // TODO(crbug.com/904439): Update this to "SECURE_ONLY" once
    // DeviceOrientationEvents and DeviceMotionEvents are only fired in secure
    // contexts.
@@ -273,7 +273,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 diff --git a/components/content_settings/core/browser/cookie_settings.cc b/components/content_settings/core/browser/cookie_settings.cc
 --- a/components/content_settings/core/browser/cookie_settings.cc
 +++ b/components/content_settings/core/browser/cookie_settings.cc
-@@ -73,7 +73,7 @@ void CookieSettings::RegisterProfilePrefs(
+@@ -72,7 +72,7 @@ void CookieSettings::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterIntegerPref(
        prefs::kCookieControlsMode,
@@ -297,7 +297,7 @@ diff --git a/components/payments/core/payment_prefs.cc b/components/payments/cor
 diff --git a/components/safe_browsing/core/common/safe_browsing_prefs.cc b/components/safe_browsing/core/common/safe_browsing_prefs.cc
 --- a/components/safe_browsing/core/common/safe_browsing_prefs.cc
 +++ b/components/safe_browsing/core/common/safe_browsing_prefs.cc
-@@ -239,13 +239,13 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+@@ -258,13 +258,13 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
    registry->RegisterBooleanPref(
        prefs::kSafeBrowsingSawInterstitialScoutReporting, false);
    registry->RegisterBooleanPref(
@@ -331,7 +331,7 @@ diff --git a/components/signin/internal/identity_manager/primary_account_manager
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -946,8 +946,8 @@ const base::FeatureParam<int> kInterestGroupStorageMaxOpsBeforeMaintenance{
+@@ -997,8 +997,8 @@ const base::FeatureParam<int> kInterestGroupStorageMaxOpsBeforeMaintenance{
  // the attribute. Note: At present, only iframes with origin-restricted
  // sandboxes are isolated.
  BASE_FEATURE(kIsolateSandboxedIframes,
