@@ -1,0 +1,25 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 6 Sep 2023 14:12:27 +0000
+Subject: fixup! Revert removal of execution context address space
+
+---
+ .../blink/renderer/core/workers/installed_scripts_manager.cc  | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/workers/installed_scripts_manager.cc b/third_party/blink/renderer/core/workers/installed_scripts_manager.cc
+--- a/third_party/blink/renderer/core/workers/installed_scripts_manager.cc
++++ b/third_party/blink/renderer/core/workers/installed_scripts_manager.cc
+@@ -33,9 +33,9 @@ InstalledScriptsManager::ScriptData::ScriptData(
+   // place so that this is shareable out of worker code.
+   response_address_space_ = network::mojom::IPAddressSpace::kPublic;
+   if (network_utils::IsReservedIPAddress(script_url_.Host()))
+-    response_address_space_ = network::mojom::IPAddressSpace::kLocal;
++    response_address_space_ = network::mojom::IPAddressSpace::kPrivate;
+   if (SecurityOrigin::Create(script_url_)->IsLocalhost())
+-    response_address_space_ = network::mojom::IPAddressSpace::kLoopback;
++    response_address_space_ = network::mojom::IPAddressSpace::kLocal;
+ }
+ 
+ ContentSecurityPolicyResponseHeaders
+-- 
+

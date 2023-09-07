@@ -25,7 +25,7 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../attribution_storage_sql.cc                |   8 +-
  content/browser/storage_partition_impl.cc     |   8 +-
  content/public/android/BUILD.gn               |   2 -
- .../browser/AttributionOsLevelManager.java    | 168 +-----------------
+ .../browser/AttributionOsLevelManager.java    | 174 +-----------------
  .../public/browser/navigation_controller.cc   |   1 -
  content/public/common/content_features.cc     |   4 +-
  content/renderer/render_thread_impl.cc        |   5 +-
@@ -36,7 +36,7 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../platform/runtime_enabled_features.json5   |   7 +
  ui/base/ui_base_features.cc                   |   2 +-
  ui/events/android/motion_event_android.cc     |   6 +-
- 23 files changed, 72 insertions(+), 209 deletions(-)
+ 23 files changed, 72 insertions(+), 215 deletions(-)
 
 diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
 --- a/chrome/android/java/AndroidManifest.xml
@@ -128,8 +128,8 @@ diff --git a/content/browser/aggregation_service/aggregation_service_features.cc
 diff --git a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
 --- a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
 +++ b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
-@@ -446,6 +446,11 @@ void AttributionDataHostManagerImpl::ParseSource(
-     RegistrarAndHeader header) {
+@@ -499,6 +499,11 @@ void AttributionDataHostManagerImpl::ParseSource(
+     Registrar registrar) {
    DCHECK(it != registrations_.end());
  
 +  if ((true)) {
@@ -137,13 +137,13 @@ diff --git a/content/browser/attribution_reporting/attribution_data_host_manager
 +    return;
 +  }
 +
-   switch (header.registrar) {
+   switch (registrar) {
      case Registrar::kWeb:
        if (!network::HasAttributionWebSupport(
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -390,6 +390,7 @@ void AttributionHost::RegisterNavigationDataHost(
+@@ -359,6 +359,7 @@ void AttributionHost::RegisterNavigationDataHost(
      return;
    }
  
@@ -175,7 +175,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
    auto resource_request = std::make_unique<network::ResourceRequest>();
    resource_request->url = std::move(url);
    resource_request->headers = std::move(headers);
-@@ -162,6 +165,12 @@ void AttributionReportNetworkSender::OnReportSent(
+@@ -164,6 +167,12 @@ void AttributionReportNetworkSender::OnReportSent(
      ReportSentCallback sent_callback,
      UrlLoaderList::iterator it,
      scoped_refptr<net::HttpResponseHeaders> headers) {
@@ -191,7 +191,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -629,14 +629,16 @@ StorableSource::Result ThrottleResultToStorableSourceResult(
+@@ -682,14 +682,16 @@ StorableSource::Result DestinationRateLimitResultToStorableSourceResult(
    }
  }
  
@@ -214,7 +214,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1430,13 +1430,7 @@ void StoragePartitionImpl::Initialize(
+@@ -1485,13 +1485,7 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
@@ -262,7 +262,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
  
  import org.chromium.base.ContextUtils;
  import org.chromium.base.Log;
-@@ -46,6 +35,8 @@ import java.util.concurrent.TimeoutException;
+@@ -48,6 +37,8 @@ import java.util.concurrent.TimeoutException;
   */
  @JNINamespace("content")
  public class AttributionOsLevelManager {
@@ -271,7 +271,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      private static final String TAG = "AttributionManager";
      // TODO: replace with constant in android.Manifest.permission once it becomes available in U.
      private static final String PERMISSION_ACCESS_ADSERVICES_ATTRIBUTION =
-@@ -87,12 +78,7 @@ public class AttributionOsLevelManager {
+@@ -91,12 +82,7 @@ public class AttributionOsLevelManager {
      }
  
      private MeasurementManagerFutures getManager() {
@@ -285,7 +285,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      private void onRegistrationCompleted(
-@@ -117,40 +103,6 @@ public class AttributionOsLevelManager {
+@@ -121,46 +107,6 @@ public class AttributionOsLevelManager {
          }
      }
  
@@ -309,7 +309,13 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
 -                } else if (thrown instanceof IOException) {
 -                    result = RegistrationResult.ERROR_IO;
 -                } else if (thrown instanceof IllegalStateException) {
--                    result = RegistrationResult.ERROR_ILLEGAL_STATE;
+-                    // The Android API doesn't break out this error as a separate exception so we
+-                    // are forced to inspect the message for now.
+-                    if (thrown.getMessage().toLowerCase(Locale.US).contains("background")) {
+-                        result = RegistrationResult.ERROR_BACKGROUND_CALLER;
+-                    } else {
+-                        result = RegistrationResult.ERROR_ILLEGAL_STATE;
+-                    }
 -                } else if (thrown instanceof SecurityException) {
 -                    result = RegistrationResult.ERROR_SECURITY;
 -                } else if (thrown instanceof TimeoutException) {
@@ -326,7 +332,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      /**
       * Registers a web attribution source with native, see `registerWebSourceAsync()`:
       * https://developer.android.com/reference/androidx/privacysandbox/ads/adservices/java/measurement/MeasurementManagerFutures.
-@@ -169,13 +121,6 @@ public class AttributionOsLevelManager {
+@@ -179,13 +125,6 @@ public class AttributionOsLevelManager {
                      requestId, RegistrationType.SOURCE, RegistrationResult.ERROR_INTERNAL);
              return;
          }
@@ -340,7 +346,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      /**
-@@ -195,9 +140,7 @@ public class AttributionOsLevelManager {
+@@ -205,9 +144,7 @@ public class AttributionOsLevelManager {
                      requestId, RegistrationType.SOURCE, RegistrationResult.ERROR_INTERNAL);
              return;
          }
@@ -351,7 +357,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      /**
-@@ -219,11 +162,6 @@ public class AttributionOsLevelManager {
+@@ -229,11 +166,6 @@ public class AttributionOsLevelManager {
                      requestId, RegistrationType.TRIGGER, RegistrationResult.ERROR_INTERNAL);
              return;
          }
@@ -363,7 +369,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      private void onDataDeletionCompleted(int requestId) {
-@@ -248,77 +186,7 @@ public class AttributionOsLevelManager {
+@@ -258,77 +190,7 @@ public class AttributionOsLevelManager {
              onDataDeletionCompleted(requestId);
              return;
          }
@@ -442,7 +448,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      /**
-@@ -343,32 +211,6 @@ public class AttributionOsLevelManager {
+@@ -356,32 +218,6 @@ public class AttributionOsLevelManager {
              AttributionOsLevelManagerJni.get().onMeasurementStateReturned(0);
              return;
          }
@@ -489,7 +495,7 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -859,8 +859,8 @@ BASE_FEATURE(kPrivacySandboxAdsAPIsM1Override,
+@@ -811,8 +811,8 @@ BASE_FEATURE(kPrivacySandboxAdsAPIsM1Override,
  // FLEDGE, Topics, along with a number of other features actively in development
  // within these APIs.
  BASE_FEATURE(kPrivacySandboxAdsAPIsOverride,
@@ -503,7 +509,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
 diff --git a/content/renderer/render_thread_impl.cc b/content/renderer/render_thread_impl.cc
 --- a/content/renderer/render_thread_impl.cc
 +++ b/content/renderer/render_thread_impl.cc
-@@ -928,6 +928,9 @@ void RenderThreadImpl::InitializeRenderer(
+@@ -925,6 +925,9 @@ void RenderThreadImpl::InitializeRenderer(
    GetContentClient()->renderer()->DidSetUserAgent(user_agent);
    user_agent_metadata_ = user_agent_metadata;
    cors_exempt_header_list_ = cors_exempt_header_list;
@@ -513,7 +519,7 @@ diff --git a/content/renderer/render_thread_impl.cc b/content/renderer/render_th
    attribution_support_ = attribution_support;
  
    blink::WebVector<blink::WebString> web_cors_exempt_header_list(
-@@ -1835,7 +1838,7 @@ RenderThreadImpl::GetAttributionReportingSupport() {
+@@ -1830,7 +1833,7 @@ RenderThreadImpl::GetAttributionReportingSupport() {
  
  void RenderThreadImpl::SetAttributionReportingSupport(
      network::mojom::AttributionSupport attribution_support) {
@@ -555,7 +561,7 @@ diff --git a/services/network/public/cpp/attribution_utils.cc b/services/network
 diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
 --- a/services/network/public/cpp/features.cc
 +++ b/services/network/public/cpp/features.cc
-@@ -136,9 +136,9 @@ BASE_FEATURE(kAttributionReportingReportVerification,
+@@ -149,9 +149,9 @@ BASE_FEATURE(kAttributionReportingReportVerification,
  
  // Gate access to Attribution Reporting cross app and web APIs that allow
  // registering with a native attribution API.
@@ -571,7 +577,7 @@ diff --git a/services/network/public/cpp/features.cc b/services/network/public/c
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -520,8 +520,8 @@ BASE_FEATURE(kContentCaptureConstantStreaming,
+@@ -543,8 +543,8 @@ BASE_FEATURE(kContentCaptureConstantStreaming,
  
  // Controls whether the Conversion Measurement API infrastructure is enabled.
  BASE_FEATURE(kConversionMeasurement,
@@ -582,7 +588,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  BASE_FEATURE(kCorrectFloatExtensionTestForWebGL,
               "CorrectFloatExtensionTestForWebGL",
-@@ -1265,16 +1265,16 @@ const base::FeatureParam<bool> kPrewarmFantasy = {&kPrewarmDefaultFontFamilies,
+@@ -1352,16 +1352,16 @@ const base::FeatureParam<bool> kPrewarmFantasy = {&kPrewarmDefaultFontFamilies,
                                                    "prewarm_fantasy", false};
  #endif
  
@@ -603,7 +609,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 +             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
  
  // Selectively allows the JavaScript API to be disabled in just one of the
- // contexts.
+ // contexts. The Protected Audience param's name has not been updated (from
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
@@ -624,7 +630,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
 --- a/ui/base/ui_base_features.cc
 +++ b/ui/base/ui_base_features.cc
-@@ -500,7 +500,7 @@ BASE_FEATURE(kMacClipboardWriteImageWithPng,
+@@ -553,7 +553,7 @@ BASE_FEATURE(kMacClipboardWriteImageWithPng,
  // We want to experiment with disabling it to align with CR2023 designs.
  BASE_FEATURE(kCr2023MacFontSmoothing,
               "Cr2023MacFontSmoothing",

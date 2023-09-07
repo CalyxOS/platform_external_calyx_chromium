@@ -1,0 +1,92 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 6 Sep 2023 13:49:00 +0000
+Subject: fixup! Block gateway attacks via websockets
+
+---
+ .../renderer/core/execution_context/execution_context.cc    | 6 +++---
+ .../blink/renderer/core/loader/frame_fetch_context.cc       | 4 ++--
+ .../blink/renderer/core/loader/worker_fetch_context.cc      | 4 ++--
+ .../modules/background_fetch/background_fetch_manager.cc    | 4 ++--
+ .../blink/renderer/modules/websockets/websocket_common.cc   | 4 ++--
+ 5 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/execution_context/execution_context.cc b/third_party/blink/renderer/core/execution_context/execution_context.cc
+--- a/third_party/blink/renderer/core/execution_context/execution_context.cc
++++ b/third_party/blink/renderer/core/execution_context/execution_context.cc
+@@ -742,11 +742,11 @@ String ExecutionContext::addressSpaceForBindings() const {
+     case network::mojom::IPAddressSpace::kUnknown:
+       return "public";
+ 
+-    case network::mojom::IPAddressSpace::kLoopback:
+-      return "loopback";
+-
+     case network::mojom::IPAddressSpace::kLocal:
+       return "local";
++
++    case network::mojom::IPAddressSpace::kPrivate:
++      return "private";
+   }
+   NOTREACHED();
+   return "public";
+diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
+--- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
++++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
+@@ -600,9 +600,9 @@ bool FrameFetchContext::ShouldBlockGateWayAttacks(network::mojom::IPAddressSpace
+   network::mojom::IPAddressSpace target_space =
+       network::mojom::IPAddressSpace::kPublic;
+   if (network_utils::IsReservedIPAddress(request_url.Host()))
+-    target_space = network::mojom::IPAddressSpace::kLocal;
++    target_space = network::mojom::IPAddressSpace::kPrivate;
+   if (SecurityOrigin::Create(request_url)->IsLocalhost())
+-    target_space = network::mojom::IPAddressSpace::kLoopback;
++    target_space = network::mojom::IPAddressSpace::kLocal;
+ 
+   bool is_external_request = requestor_space > target_space;
+   if (is_external_request)
+diff --git a/third_party/blink/renderer/core/loader/worker_fetch_context.cc b/third_party/blink/renderer/core/loader/worker_fetch_context.cc
+--- a/third_party/blink/renderer/core/loader/worker_fetch_context.cc
++++ b/third_party/blink/renderer/core/loader/worker_fetch_context.cc
+@@ -104,9 +104,9 @@ bool WorkerFetchContext::ShouldBlockGateWayAttacks(network::mojom::IPAddressSpac
+   network::mojom::IPAddressSpace target_space =
+       network::mojom::IPAddressSpace::kPublic;
+   if (network_utils::IsReservedIPAddress(request_url.Host()))
+-    target_space = network::mojom::IPAddressSpace::kLocal;
++    target_space = network::mojom::IPAddressSpace::kPrivate;
+   if (SecurityOrigin::Create(request_url)->IsLocalhost())
+-    target_space = network::mojom::IPAddressSpace::kLoopback;
++    target_space = network::mojom::IPAddressSpace::kLocal;
+ 
+   bool is_external_request = requestor_space > target_space;
+   if (is_external_request)
+diff --git a/third_party/blink/renderer/modules/background_fetch/background_fetch_manager.cc b/third_party/blink/renderer/modules/background_fetch/background_fetch_manager.cc
+--- a/third_party/blink/renderer/modules/background_fetch/background_fetch_manager.cc
++++ b/third_party/blink/renderer/modules/background_fetch/background_fetch_manager.cc
+@@ -114,9 +114,9 @@ bool ShouldBlockGateWayAttacks(ExecutionContext* execution_context,
+     network::mojom::IPAddressSpace target_space =
+         network::mojom::IPAddressSpace::kPublic;
+     if (network_utils::IsReservedIPAddress(request_url.Host()))
+-      target_space = network::mojom::IPAddressSpace::kLocal;
++      target_space = network::mojom::IPAddressSpace::kPrivate;
+     if (SecurityOrigin::Create(request_url)->IsLocalhost())
+-      target_space = network::mojom::IPAddressSpace::kLoopback;
++      target_space = network::mojom::IPAddressSpace::kLocal;
+ 
+     bool is_external_request = requestor_space > target_space;
+     if (is_external_request)
+diff --git a/third_party/blink/renderer/modules/websockets/websocket_common.cc b/third_party/blink/renderer/modules/websockets/websocket_common.cc
+--- a/third_party/blink/renderer/modules/websockets/websocket_common.cc
++++ b/third_party/blink/renderer/modules/websockets/websocket_common.cc
+@@ -146,9 +146,9 @@ bool WebSocketCommon::ShouldBlockGateWayAttacks(network::mojom::IPAddressSpace r
+   network::mojom::IPAddressSpace target_space =
+       network::mojom::IPAddressSpace::kPublic;
+   if (network_utils::IsReservedIPAddress(request_url.Host()))
+-    target_space = network::mojom::IPAddressSpace::kLocal;
++    target_space = network::mojom::IPAddressSpace::kPrivate;
+   if (SecurityOrigin::Create(request_url)->IsLocalhost())
+-    target_space = network::mojom::IPAddressSpace::kLoopback;
++    target_space = network::mojom::IPAddressSpace::kLocal;
+ 
+   bool is_external_request = requestor_space > target_space;
+   if (is_external_request)
+-- 
+

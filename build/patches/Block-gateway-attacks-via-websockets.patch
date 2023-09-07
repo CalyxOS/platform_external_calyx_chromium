@@ -25,7 +25,7 @@ Change-Id: Iaa6823daecc7fbe6f3592b03674b20d99387ad6b
 diff --git a/third_party/blink/renderer/core/execution_context/execution_context.cc b/third_party/blink/renderer/core/execution_context/execution_context.cc
 --- a/third_party/blink/renderer/core/execution_context/execution_context.cc
 +++ b/third_party/blink/renderer/core/execution_context/execution_context.cc
-@@ -721,4 +721,20 @@ void ExecutionContext::WriteIntoTrace(
+@@ -713,4 +713,20 @@ void ExecutionContext::WriteIntoTrace(
    proto->set_world_type(GetWorldType(*this));
  }
  
@@ -71,7 +71,7 @@ diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
-@@ -578,6 +578,26 @@ bool FrameFetchContext::ShouldBlockRequestByInspector(const KURL& url) const {
+@@ -591,6 +591,26 @@ bool FrameFetchContext::ShouldBlockRequestByInspector(const KURL& url) const {
    return should_block_request;
  }
  
@@ -101,7 +101,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/third_party/blink/renderer/core/loader/frame_fetch_context.h
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.h
-@@ -173,6 +173,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
+@@ -175,6 +175,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
    bool ShouldBlockWebSocketByMixedContentCheck(const KURL&) const override;
    std::unique_ptr<WebSocketHandshakeThrottle> CreateWebSocketHandshakeThrottle()
        override;
@@ -161,7 +161,7 @@ diff --git a/third_party/blink/renderer/core/loader/worker_fetch_context.h b/thi
 diff --git a/third_party/blink/renderer/modules/background_fetch/background_fetch_manager.cc b/third_party/blink/renderer/modules/background_fetch/background_fetch_manager.cc
 --- a/third_party/blink/renderer/modules/background_fetch/background_fetch_manager.cc
 +++ b/third_party/blink/renderer/modules/background_fetch/background_fetch_manager.cc
-@@ -102,6 +102,30 @@ bool ShouldBlockDanglingMarkup(const KURL& request_url) {
+@@ -101,6 +101,30 @@ bool ShouldBlockDanglingMarkup(const KURL& request_url) {
           request_url.ProtocolIsInHTTPFamily();
  }
  
@@ -192,20 +192,20 @@ diff --git a/third_party/blink/renderer/modules/background_fetch/background_fetc
  scoped_refptr<BlobDataHandle> ExtractBlobHandle(
      Request* request,
      ExceptionState& exception_state) {
-@@ -216,6 +240,13 @@ ScriptPromise BackgroundFetchManager::fetch(
+@@ -210,6 +234,13 @@ ScriptPromise BackgroundFetchManager::fetch(
+                                  "it contains dangling markup",
                                   exception_state);
      }
- 
++
 +    if (ShouldBlockGateWayAttacks(execution_context, request_url)) {
 +      return RejectWithTypeError(script_state, request_url,
 +                                 "Requestor IP address space doesn't match the "
 +                                 "target address space.",
 +                                 exception_state);
 +    }
-+
-     kurls.insert(request_url);
    }
  
+   auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(
 diff --git a/third_party/blink/renderer/modules/websockets/websocket_channel_impl.cc b/third_party/blink/renderer/modules/websockets/websocket_channel_impl.cc
 --- a/third_party/blink/renderer/modules/websockets/websocket_channel_impl.cc
 +++ b/third_party/blink/renderer/modules/websockets/websocket_channel_impl.cc
