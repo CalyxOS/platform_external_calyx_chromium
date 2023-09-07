@@ -60,7 +60,7 @@ Change-Id: I68466e09bf3e643f2362e67c8af614a9bba45a06
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -186,7 +186,7 @@ BASE_FEATURE(kBlockInsecurePrivateNetworkRequestsFromPrivate,
+@@ -197,7 +197,7 @@ BASE_FEATURE(kBlockInsecurePrivateNetworkRequestsFromPrivate,
  //  - kBlockInsecurePrivateNetworkRequests
  BASE_FEATURE(kBlockInsecurePrivateNetworkRequestsFromUnknown,
               "BlockInsecurePrivateNetworkRequestsFromUnknown",
@@ -72,7 +72,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
 diff --git a/third_party/blink/renderer/core/execution_context/execution_context.cc b/third_party/blink/renderer/core/execution_context/execution_context.cc
 --- a/third_party/blink/renderer/core/execution_context/execution_context.cc
 +++ b/third_party/blink/renderer/core/execution_context/execution_context.cc
-@@ -524,6 +524,15 @@ void ExecutionContext::SetReferrerPolicy(
+@@ -516,6 +516,15 @@ void ExecutionContext::SetReferrerPolicy(
    policy_container_->UpdateReferrerPolicy(referrer_policy);
  }
  
@@ -177,7 +177,7 @@ diff --git a/third_party/blink/renderer/core/frame/policy_container.h b/third_pa
 diff --git a/third_party/blink/renderer/core/frame/web_frame_test.cc b/third_party/blink/renderer/core/frame/web_frame_test.cc
 --- a/third_party/blink/renderer/core/frame/web_frame_test.cc
 +++ b/third_party/blink/renderer/core/frame/web_frame_test.cc
-@@ -8063,6 +8063,40 @@ TEST_F(WebFrameTest, PushStateStartsAndStops) {
+@@ -8064,6 +8064,40 @@ TEST_F(WebFrameTest, PushStateStartsAndStops) {
    EXPECT_EQ(client.StopLoadingCount(), 2);
  }
  
@@ -233,7 +233,7 @@ diff --git a/third_party/blink/renderer/core/layout/ng/custom/layout_worklet_glo
 diff --git a/third_party/blink/renderer/core/loader/modulescript/installed_service_worker_module_script_fetcher.cc b/third_party/blink/renderer/core/loader/modulescript/installed_service_worker_module_script_fetcher.cc
 --- a/third_party/blink/renderer/core/loader/modulescript/installed_service_worker_module_script_fetcher.cc
 +++ b/third_party/blink/renderer/core/loader/modulescript/installed_service_worker_module_script_fetcher.cc
-@@ -67,6 +67,7 @@ void InstalledServiceWorkerModuleScriptFetcher::Fetch(
+@@ -69,6 +69,7 @@ void InstalledServiceWorkerModuleScriptFetcher::Fetch(
  
      global_scope_->Initialize(
          response_url, response_referrer_policy,
@@ -263,7 +263,7 @@ diff --git a/third_party/blink/renderer/core/loader/modulescript/worker_module_s
  #include "services/network/public/mojom/referrer_policy.mojom-blink.h"
  #include "third_party/blink/public/common/features.h"
  #include "third_party/blink/public/common/loader/network_utils.h"
-@@ -174,7 +175,7 @@ void WorkerModuleScriptFetcher::NotifyClient(
+@@ -175,7 +176,7 @@ void WorkerModuleScriptFetcher::NotifyClient(
  
      // Step 12.3-12.6 are implemented in Initialize().
      global_scope_->Initialize(
@@ -502,9 +502,9 @@ diff --git a/third_party/blink/renderer/core/workers/installed_scripts_manager.c
 +  // place so that this is shareable out of worker code.
 +  response_address_space_ = network::mojom::IPAddressSpace::kPublic;
 +  if (network_utils::IsReservedIPAddress(script_url_.Host()))
-+    response_address_space_ = network::mojom::IPAddressSpace::kLocal;
++    response_address_space_ = network::mojom::IPAddressSpace::kPrivate;
 +  if (SecurityOrigin::Create(script_url_)->IsLocalhost())
-+    response_address_space_ = network::mojom::IPAddressSpace::kLoopback;
++    response_address_space_ = network::mojom::IPAddressSpace::kLocal;
  }
  
  ContentSecurityPolicyResponseHeaders
@@ -788,7 +788,7 @@ diff --git a/third_party/blink/renderer/modules/exported/web_embedded_worker_imp
 diff --git a/third_party/blink/renderer/modules/service_worker/service_worker_global_scope.cc b/third_party/blink/renderer/modules/service_worker/service_worker_global_scope.cc
 --- a/third_party/blink/renderer/modules/service_worker/service_worker_global_scope.cc
 +++ b/third_party/blink/renderer/modules/service_worker/service_worker_global_scope.cc
-@@ -454,6 +454,7 @@ void ServiceWorkerGlobalScope::DidFetchClassicScript(
+@@ -455,6 +455,7 @@ void ServiceWorkerGlobalScope::DidFetchClassicScript(
    // is set, and with the following callback steps given evaluationStatus:"
    RunClassicScript(
        classic_script_loader->ResponseURL(), referrer_policy,
@@ -796,7 +796,7 @@ diff --git a/third_party/blink/renderer/modules/service_worker/service_worker_gl
        classic_script_loader->GetContentSecurityPolicy()
            ? mojo::Clone(classic_script_loader->GetContentSecurityPolicy()
                              ->GetParsedPolicies())
-@@ -467,6 +468,7 @@ void ServiceWorkerGlobalScope::DidFetchClassicScript(
+@@ -468,6 +469,7 @@ void ServiceWorkerGlobalScope::DidFetchClassicScript(
  void ServiceWorkerGlobalScope::Initialize(
      const KURL& response_url,
      network::mojom::ReferrerPolicy response_referrer_policy,
@@ -804,7 +804,7 @@ diff --git a/third_party/blink/renderer/modules/service_worker/service_worker_gl
      Vector<network::mojom::blink::ContentSecurityPolicyPtr> response_csp,
      const Vector<String>* response_origin_trial_tokens) {
    // Step 4.5. "Set workerGlobalScope's url to serviceWorker's script url."
-@@ -480,6 +482,9 @@ void ServiceWorkerGlobalScope::Initialize(
+@@ -481,6 +483,9 @@ void ServiceWorkerGlobalScope::Initialize(
    // script resource's referrer policy."
    SetReferrerPolicy(response_referrer_policy);
  
@@ -814,7 +814,7 @@ diff --git a/third_party/blink/renderer/modules/service_worker/service_worker_gl
    // This is quoted from the "Content Security Policy" algorithm in the service
    // workers spec:
    // "Whenever a user agent invokes Run Service Worker algorithm with a service
-@@ -490,6 +495,9 @@ void ServiceWorkerGlobalScope::Initialize(
+@@ -491,6 +496,9 @@ void ServiceWorkerGlobalScope::Initialize(
    // - If serviceWorker's script resource was delivered with a
    //   Content-Security-Policy-Report-Only HTTP header containing the value
    //   policy, the user agent must monitor policy for serviceWorker."
@@ -824,7 +824,7 @@ diff --git a/third_party/blink/renderer/modules/service_worker/service_worker_gl
    InitContentSecurityPolicyFromVector(std::move(response_csp));
    BindContentSecurityPolicyToExecutionContext();
  
-@@ -530,26 +538,27 @@ void ServiceWorkerGlobalScope::LoadAndRunInstalledClassicScript(
+@@ -531,26 +539,27 @@ void ServiceWorkerGlobalScope::LoadAndRunInstalledClassicScript(
          kDoNotSupportReferrerPolicyLegacyKeywords, &referrer_policy);
    }
  
