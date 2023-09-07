@@ -56,7 +56,7 @@ diff --git a/third_party/blink/renderer/core/html/parser/html_srcset_parser.cc b
 diff --git a/third_party/blink/renderer/core/inspector/inspector_network_agent.cc b/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
 --- a/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
 +++ b/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
-@@ -2296,7 +2296,7 @@ bool InspectorNetworkAgent::FetchResourceContent(Document* document,
+@@ -2315,7 +2315,7 @@ bool InspectorNetworkAgent::FetchResourceContent(Document* document,
    Resource* cached_resource = document->Fetcher()->CachedResource(url);
    if (!cached_resource) {
      cached_resource = MemoryCache::Get()->ResourceForURL(
@@ -177,7 +177,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.h b/t
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
-@@ -808,7 +808,8 @@ Resource* ResourceFetcher::CreateResourceForStaticData(
+@@ -839,7 +839,8 @@ Resource* ResourceFetcher::CreateResourceForStaticData(
    if (!archive_ && factory.GetType() == ResourceType::kRaw)
      return nullptr;
  
@@ -187,7 +187,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    // Most off-main-thread resource fetches use Resource::kRaw and don't reach
    // this point, but off-main-thread module fetches might.
    if (IsMainThread()) {
-@@ -1294,7 +1295,9 @@ Resource* ResourceFetcher::RequestResource(FetchParameters& params,
+@@ -1326,7 +1327,9 @@ Resource* ResourceFetcher::RequestResource(FetchParameters& params,
          resource = nullptr;
        } else {
          resource = MemoryCache::Get()->ResourceForURL(
@@ -198,7 +198,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
        }
        if (resource) {
          policy = DetermineRevalidationPolicy(resource_type, params, *resource,
-@@ -1408,6 +1411,8 @@ Resource* ResourceFetcher::RequestResource(FetchParameters& params,
+@@ -1440,6 +1443,8 @@ Resource* ResourceFetcher::RequestResource(FetchParameters& params,
      if (resource_cache_remote_.is_bound()) {
        resource_cache_remote_->Contains(
            params.Url(),
@@ -207,7 +207,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
            WTF::BindOnce(&ResourceFetcher::OnResourceCacheContainsFinished,
                          WrapWeakPersistent(this), base::TimeTicks::Now(),
                          resource_request.GetRequestDestination()));
-@@ -1549,7 +1554,8 @@ Resource* ResourceFetcher::CreateResourceForLoading(
+@@ -1581,7 +1586,8 @@ Resource* ResourceFetcher::CreateResourceForLoading(
      const FetchParameters& params,
      const ResourceFactory& factory) {
    const String cache_identifier =
@@ -217,7 +217,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    if (!base::FeatureList::IsEnabled(
            blink::features::kScopeMemoryCachePerContext)) {
      DCHECK(!IsMainThread() || params.IsStaleRevalidation() ||
-@@ -2563,10 +2569,13 @@ void ResourceFetcher::UpdateAllImageResourcePriorities() {
+@@ -2582,10 +2588,13 @@ void ResourceFetcher::UpdateAllImageResourcePriorities() {
    to_be_removed.clear();
  }
  
@@ -233,7 +233,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    }
  
    // Requests that can be satisfied via `archive_` (i.e. MHTML) or
-@@ -2579,7 +2588,7 @@ String ResourceFetcher::GetCacheIdentifier(const KURL& url) const {
+@@ -2598,7 +2607,7 @@ String ResourceFetcher::GetCacheIdentifier(const KURL& url) const {
    if (bundle)
      return bundle->GetCacheIdentifier();
  
@@ -245,7 +245,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
-@@ -258,7 +258,8 @@ class PLATFORM_EXPORT ResourceFetcher
+@@ -261,7 +261,8 @@ class PLATFORM_EXPORT ResourceFetcher
                           uint32_t inflight_keepalive_bytes);
    blink::mojom::ControllerServiceWorkerMode IsControlledByServiceWorker() const;
  
