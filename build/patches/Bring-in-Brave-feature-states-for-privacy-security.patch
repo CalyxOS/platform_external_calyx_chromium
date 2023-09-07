@@ -49,7 +49,7 @@ Change-Id: Ic0e67157ff4a747bb05ceba264660bfeb1ac73ef
  chrome/browser/companion/core/features.cc     |  8 +--
  chrome/browser/dips/dips_features.cc          |  4 +-
  .../analysis/content_analysis_features.cc     |  4 +-
- chrome/common/chrome_features.cc              |  8 +--
+ chrome/common/chrome_features.cc              |  4 +-
  components/aggregation_service/features.cc    |  4 +-
  components/attribution_reporting/features.cc  |  4 +-
  .../autofill/core/common/autofill_features.cc |  8 +--
@@ -68,15 +68,15 @@ Change-Id: Ic0e67157ff4a747bb05ceba264660bfeb1ac73ef
  components/search/ntp_features.cc             | 20 +++---
  .../segmentation_platform/public/features.cc  |  4 +-
  components/send_tab_to_self/features.cc       |  4 +-
- .../common/shared_highlighting_features.cc    | 12 ++--
+ .../common/shared_highlighting_features.cc    |  4 +-
  .../core/common/common_features.cc            |  4 +-
  .../browser/file_system_access/features.cc    |  4 +-
- content/public/common/content_features.cc     | 41 +++++------
- net/base/features.cc                          | 12 ++--
+ content/public/common/content_features.cc     | 33 ++++-----
+ net/base/features.cc                          |  8 +--
  services/network/public/cpp/features.cc       |  4 +-
  third_party/blink/common/features.cc          | 68 ++++++++++---------
  .../platform/runtime_enabled_features.json5   | 38 +++++------
- 32 files changed, 210 insertions(+), 202 deletions(-)
+ 32 files changed, 199 insertions(+), 189 deletions(-)
 
 diff --git a/android_webview/common/aw_features.cc b/android_webview/common/aw_features.cc
 --- a/android_webview/common/aw_features.cc
@@ -92,18 +92,7 @@ diff --git a/android_webview/common/aw_features.cc b/android_webview/common/aw_f
  
  // Enable brotli compression support in WebView.
  BASE_FEATURE(kWebViewBrotliSupport,
-@@ -31,8 +31,8 @@ BASE_FEATURE(kWebViewCheckReturnResources,
- 
- // Server side sampling switch.
- BASE_FEATURE(kWebViewServerSideSampling,
--             "WebViewServerSideSampling",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "WebViewServerSideSampling",              // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
- 
- // Whether to destroy the WebView rendering functor when after a WebView window
- // becomes invisible.
-@@ -49,8 +49,8 @@ BASE_FEATURE(kWebViewConnectionlessSafeBrowsing,
+@@ -44,8 +44,8 @@ BASE_FEATURE(kWebViewConnectionlessSafeBrowsing,
  // Cache origins which have camera/mic permissions approved to allow subsequent
  // calls to enumerate devices to return device labels.
  BASE_FEATURE(kWebViewEnumerateDevicesCache,
@@ -114,10 +103,21 @@ diff --git a/android_webview/common/aw_features.cc b/android_webview/common/aw_f
  
  // Enable WebView to automatically darken the page in FORCE_DARK_AUTO mode if
  // the app's theme is dark.
+@@ -92,8 +92,8 @@ BASE_FEATURE(kWebViewJavaJsBridgeMojo,
+ // Enable reporting filtered metrics from webview clients used to be
+ // out-sampled.
+ BASE_FEATURE(kWebViewMetricsFiltering,
+-             "WebViewMetricsFiltering",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "WebViewMetricsFiltering",                // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
+ 
+ // Field trial feature for controlling support of Origin Trials on WebView.
+ BASE_FEATURE(kWebViewOriginTrials,
 diff --git a/chrome/browser/browser_features.cc b/chrome/browser/browser_features.cc
 --- a/chrome/browser/browser_features.cc
 +++ b/chrome/browser/browser_features.cc
-@@ -25,13 +25,8 @@ BASE_FEATURE(kClosedTabCache,
+@@ -26,13 +26,8 @@ BASE_FEATURE(kClosedTabCache,
  // On Lacros the feature is enabled only for secondary profiles, check the
  // implementation of `ProfileManager::ProfileInfo::FromUnownedProfile()`.
  BASE_FEATURE(kDestroyProfileOnBrowserClose,
@@ -133,7 +133,7 @@ diff --git a/chrome/browser/browser_features.cc b/chrome/browser/browser_feature
  
  // DestroyProfileOnBrowserClose only covers deleting regular (non-System)
  // Profiles. This flags lets us destroy the System Profile, as well.
-@@ -218,8 +213,8 @@ BASE_FEATURE(kFlexOrgManagementDisclosure,
+@@ -224,8 +219,8 @@ BASE_FEATURE(kFlexOrgManagementDisclosure,
  
  // Enables usage of the FedCM API without third party cookies at the same time.
  BASE_FEATURE(kFedCmWithoutThirdPartyCookies,
@@ -144,7 +144,7 @@ diff --git a/chrome/browser/browser_features.cc b/chrome/browser/browser_feature
  
  // Enables the Incoming Call Notifications scenario. When created by an
  // installed origin, an incoming call notification should have increased
-@@ -276,7 +271,7 @@ BASE_FEATURE(kAutocompleteActionPredictorConfidenceCutoff,
+@@ -291,7 +286,7 @@ BASE_FEATURE(kAutocompleteActionPredictorConfidenceCutoff,
  // kOmniboxTriggerForPrerender2 takes effect.
  // TODO(crbug.com/1267731): Remove this flag once the experiments are completed.
  BASE_FEATURE(kOmniboxTriggerForNoStatePrefetch,
@@ -208,18 +208,7 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/content_analysis_feat
 diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 --- a/chrome/common/chrome_features.cc
 +++ b/chrome/common/chrome_features.cc
-@@ -649,8 +649,8 @@ BASE_FEATURE(kHttpsFirstModeForAdvancedProtectionUsers,
- 
- // Enables the new implementation of HTTPS-First Mode.
- BASE_FEATURE(kHttpsFirstModeV2,
--             "HttpsFirstModeV2",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "HttpsFirstModeV2",                       // enabled by default
-+             base::FEATURE_ENABLED_BY_DEFAULT);        // in Brave, too
- 
- // Enables HTTPS-First Mode for engaged sites. No-op if HttpsFirstModeV2 or
- // HTTPS-Upgrades is disabled.
-@@ -734,8 +734,8 @@ BASE_FEATURE(kKioskEnableAppService,
+@@ -770,8 +770,8 @@ BASE_FEATURE(kKioskEnableAppService,
  
  // When enabled, allows other features to use the k-Anonymity Service.
  BASE_FEATURE(kKAnonymityService,
@@ -260,7 +249,7 @@ diff --git a/components/attribution_reporting/features.cc b/components/attributi
 diff --git a/components/autofill/core/common/autofill_features.cc b/components/autofill/core/common/autofill_features.cc
 --- a/components/autofill/core/common/autofill_features.cc
 +++ b/components/autofill/core/common/autofill_features.cc
-@@ -139,8 +139,8 @@ BASE_FEATURE(kAutofillDisableAddressImport,
+@@ -142,8 +142,8 @@ BASE_FEATURE(kAutofillDisableAddressImport,
  // Kill switch for computing heuristics other than the active ones
  // (GetActivePatternSource()).
  BASE_FEATURE(kAutofillDisableShadowHeuristics,
@@ -271,7 +260,7 @@ diff --git a/components/autofill/core/common/autofill_features.cc b/components/a
  
  // When enabled, autofill will use the new ranking algorithm for address profile
  // autofill suggestions.
-@@ -718,8 +718,8 @@ BASE_FEATURE(kAutofillLogToTerminal,
+@@ -753,8 +753,8 @@ BASE_FEATURE(kAutofillLogToTerminal,
  // "upload" resources.
  // i.e., https://other.autofill.server:port/tbproxy/af/
  BASE_FEATURE(kAutofillServerCommunication,
@@ -285,7 +274,7 @@ diff --git a/components/autofill/core/common/autofill_features.cc b/components/a
 diff --git a/components/autofill/core/common/autofill_payments_features.cc b/components/autofill/core/common/autofill_payments_features.cc
 --- a/components/autofill/core/common/autofill_payments_features.cc
 +++ b/components/autofill/core/common/autofill_payments_features.cc
-@@ -108,8 +108,8 @@ BASE_FEATURE(kAutofillEnableNewSaveCardBubbleUi,
+@@ -113,8 +113,8 @@ BASE_FEATURE(kAutofillEnableNewSaveCardBubbleUi,
  // When enabled, a notification will be displayed on page navigation if the
  // domain has an eligible merchant promo code offer or reward.
  BASE_FEATURE(kAutofillEnableOfferNotificationForPromoCodes,
@@ -296,7 +285,7 @@ diff --git a/components/autofill/core/common/autofill_payments_features.cc b/com
  
  // When enabled, offers will be displayed in the Clank keyboard accessory during
  // downstream.
-@@ -126,8 +126,8 @@ BASE_FEATURE(kAutofillEnablePaymentsMandatoryReauth,
+@@ -139,8 +139,8 @@ BASE_FEATURE(kAutofillEnablePaymentsMandatoryReauth,
  
  // When enabled, some extra metrics logging for Autofill Downstream will start.
  BASE_FEATURE(kAutofillEnableRemadeDownstreamMetrics,
@@ -307,7 +296,7 @@ diff --git a/components/autofill/core/common/autofill_payments_features.cc b/com
  
  // When enabled, if the user interacts with the manual fallback bottom sheet
  // on Android, it'll remain sticky until the user dismisses it.
-@@ -256,8 +256,8 @@ BASE_FEATURE(kAutofillUpstream,
+@@ -252,8 +252,8 @@ BASE_FEATURE(kAutofillUpstream,
  // user's email domain is from a common email provider (thus unlikely to be an
  // enterprise or education user).
  BASE_FEATURE(kAutofillUpstreamAllowAdditionalEmailDomains,
@@ -354,9 +343,9 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
  
  BASE_FEATURE(kCommercePriceTrackingChipExperiment,
               "CommercePriceTrackingChipExperiment",
-@@ -183,7 +183,9 @@ const base::FeatureParam<bool> kPriceInsightsShowFeedback{
- const base::FeatureParam<bool> kDeleteAllMerchantsOnClearBrowsingHistory{
-     &kCommerceMerchantViewer, "delete_all_merchants_on_clear_history", false};
+@@ -187,7 +187,9 @@ BASE_FEATURE(kShoppingCollection,
+              "ShoppingCollection",
+              base::FEATURE_DISABLED_BY_DEFAULT);
  
 -BASE_FEATURE(kShoppingList, "ShoppingList", base::FEATURE_DISABLED_BY_DEFAULT);
 +BASE_FEATURE(kShoppingList,
@@ -365,7 +354,7 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
  #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || \
      BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
  BASE_FEATURE(kShoppingListRegionLaunched,
-@@ -200,18 +202,20 @@ BASE_FEATURE(kShoppingListTrackByDefault,
+@@ -204,18 +206,20 @@ BASE_FEATURE(kShoppingListTrackByDefault,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kShoppingPDPMetrics,
@@ -459,7 +448,7 @@ diff --git a/components/history_clusters/core/features.cc b/components/history_c
  
  BASE_FEATURE(kHistoryClustersUseContinueOnShutdown,
               "HistoryClustersUseContinueOnShutdown",
-@@ -89,27 +91,27 @@ BASE_FEATURE(kJourneysPersistCachesToPrefs,
+@@ -89,23 +91,23 @@ BASE_FEATURE(kJourneysPersistCachesToPrefs,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kHistoryClustersNavigationContextClustering,
@@ -474,10 +463,6 @@ diff --git a/components/history_clusters/core/features.cc b/components/history_c
 -             base::FEATURE_ENABLED_BY_DEFAULT);
 +             "JourneysNamedNewTabGroups",              // disabled by default
 +             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave
- 
- BASE_FEATURE(kUseUrlForDisplayCache,
-              "HistoryClustersUrlForDisplayCache",
-              base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kJourneysZeroStateFiltering,
 -             "JourneysZeroStateFiltering",
@@ -546,8 +531,8 @@ diff --git a/components/metrics/metrics_features.cc b/components/metrics/metrics
 +             "EnableStructuredMetrics",                // disabled by default
 +             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave
  
- BASE_FEATURE(kRestoreUmaClientIdIndependentLogs,
-              "RestoreUmaClientIdIndependentLogs",
+ #if BUILDFLAG(IS_ANDROID)
+ BASE_FEATURE(kMergeSubprocessMetricsOnBgAndFg,
 diff --git a/components/network_time/network_time_tracker.cc b/components/network_time/network_time_tracker.cc
 --- a/components/network_time/network_time_tracker.cc
 +++ b/components/network_time/network_time_tracker.cc
@@ -565,7 +550,7 @@ diff --git a/components/network_time/network_time_tracker.cc b/components/networ
 diff --git a/components/omnibox/common/omnibox_features.cc b/components/omnibox/common/omnibox_features.cc
 --- a/components/omnibox/common/omnibox_features.cc
 +++ b/components/omnibox/common/omnibox_features.cc
-@@ -332,8 +332,8 @@ BASE_FEATURE(kMostVisitedTiles,
+@@ -333,8 +333,8 @@ BASE_FEATURE(kMostVisitedTiles,
  // prefixes. Will also adjust the location bar UI and omnibox text selection to
  // accommodate the autocompletions.
  BASE_FEATURE(kRichAutocompletion,
@@ -625,7 +610,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components
 diff --git a/components/safe_browsing/core/common/features.cc b/components/safe_browsing/core/common/features.cc
 --- a/components/safe_browsing/core/common/features.cc
 +++ b/components/safe_browsing/core/common/features.cc
-@@ -99,8 +99,8 @@ const base::FeatureParam<int> kEvaluateProtectedPasswordLengthMinimumValue{
+@@ -91,8 +91,8 @@ const base::FeatureParam<int> kEvaluateProtectedPasswordLengthMinimumValue{
      /*default_value=*/4};
  
  BASE_FEATURE(kExtensionTelemetry,
@@ -636,12 +621,12 @@ diff --git a/components/safe_browsing/core/common/features.cc b/components/safe_
  
  const base::FeatureParam<int> kExtensionTelemetryUploadIntervalSeconds{
      &kExtensionTelemetry, "UploadIntervalSeconds",
-@@ -164,8 +164,8 @@ BASE_FEATURE(kExtensionTelemetryCookiesGetSignal,
+@@ -156,8 +156,8 @@ BASE_FEATURE(kExtensionTelemetryCookiesGetSignal,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kExtensionTelemetryDeclarativeNetRequestSignal,
 -             "SafeBrowsingExtensionTelemetryDeclarativeNetRequestSignal",
--             base::FEATURE_DISABLED_BY_DEFAULT);
+-             base::FEATURE_ENABLED_BY_DEFAULT);
 +             "SafeBrowsingExtensionTelemetryDeclarativeNetRequestSignal", // disabled by default
 +             base::FEATURE_DISABLED_BY_DEFAULT);                          // in Brave, too
  
@@ -650,7 +635,7 @@ diff --git a/components/safe_browsing/core/common/features.cc b/components/safe_
 diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
 --- a/components/search/ntp_features.cc
 +++ b/components/search/ntp_features.cc
-@@ -78,19 +78,19 @@ BASE_FEATURE(kRealboxUseGoogleGIcon,
+@@ -66,19 +66,19 @@ BASE_FEATURE(kRealboxUseGoogleGIcon,
  
  // If enabled, alpha NTP backgrounds will show in Customize Chrome.
  BASE_FEATURE(kNtpAlphaBackgroundCollections,
@@ -676,7 +661,7 @@ diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.
  
  // If enabled, Comprehensive Theming color changes will be applied to the
  // Realbox on the New Tab Page.
-@@ -251,8 +251,8 @@ BASE_FEATURE(kNtpSingleRowShortcuts,
+@@ -256,8 +256,8 @@ BASE_FEATURE(kNtpSingleRowShortcuts,
  
  // If enabled, the History clusters module will be shown.
  BASE_FEATURE(kNtpHistoryClustersModule,
@@ -687,7 +672,7 @@ diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.
  
  // Dummy feature to set kNtpHistoryClustersModuleBeginTimeDurationHoursParam.
  BASE_FEATURE(kNtpHistoryClustersModuleBeginTimeDuration,
-@@ -278,8 +278,8 @@ BASE_FEATURE(kNtpHistoryClustersModuleCategories,
+@@ -283,8 +283,8 @@ BASE_FEATURE(kNtpHistoryClustersModuleCategories,
  // useful to determine if a user would have seen modules in order to
  // counterfactually log or trigger.
  BASE_FEATURE(kNtpHistoryClustersModuleLoad,
@@ -701,7 +686,7 @@ diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.
 diff --git a/components/segmentation_platform/public/features.cc b/components/segmentation_platform/public/features.cc
 --- a/components/segmentation_platform/public/features.cc
 +++ b/components/segmentation_platform/public/features.cc
-@@ -73,8 +73,8 @@ BASE_FEATURE(kSegmentationDefaultReportingSegments,
+@@ -77,8 +77,8 @@ BASE_FEATURE(kSegmentationDefaultReportingSegments,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kSegmentationPlatformDeviceTier,
@@ -729,22 +714,7 @@ diff --git a/components/send_tab_to_self/features.cc b/components/send_tab_to_se
 diff --git a/components/shared_highlighting/core/common/shared_highlighting_features.cc b/components/shared_highlighting/core/common/shared_highlighting_features.cc
 --- a/components/shared_highlighting/core/common/shared_highlighting_features.cc
 +++ b/components/shared_highlighting/core/common/shared_highlighting_features.cc
-@@ -16,12 +16,8 @@ constexpr base::FeatureParam<int> kPreemptiveLinkGenTimeoutLengthMs{
-     &kPreemptiveLinkToTextGeneration, "TimeoutLengthMs", 500};
- 
- BASE_FEATURE(kSharedHighlightingAmp,
--             "SharedHighlightingAmp",
--#if BUILDFLAG(IS_IOS)
--             base::FEATURE_DISABLED_BY_DEFAULT
--#else
--             base::FEATURE_ENABLED_BY_DEFAULT
--#endif
-+             "SharedHighlightingAmp",                  // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT         // in Brave
- );
- 
- BASE_FEATURE(kIOSSharedHighlightingV2,
-@@ -29,8 +25,8 @@ BASE_FEATURE(kIOSSharedHighlightingV2,
+@@ -26,8 +26,8 @@ BASE_FEATURE(kIOSSharedHighlightingV2,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kSharedHighlightingManager,
@@ -796,7 +766,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
  
  // Launches the audio service on the browser startup.
  BASE_FEATURE(kAudioServiceLaunchOnStartup,
-@@ -304,13 +304,8 @@ BASE_FEATURE(kDevicePosture,
+@@ -302,13 +302,8 @@ BASE_FEATURE(kDevicePosture,
  // Controls whether the Digital Goods API is enabled.
  // https://github.com/WICG/digital-goods/
  BASE_FEATURE(kDigitalGoodsApi,
@@ -812,7 +782,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
  
  // Enable document policy for configuring and restricting feature behavior.
  BASE_FEATURE(kDocumentPolicy,
-@@ -384,7 +379,9 @@ BASE_FEATURE(kExtraSafelistedRequestHeadersForOutOfBlinkCors,
+@@ -382,7 +377,9 @@ BASE_FEATURE(kExtraSafelistedRequestHeadersForOutOfBlinkCors,
  // by the flag in RuntimeEnabledFeatures on the blink side. See also
  // the use of kSetOnlyIfOverridden in content/child/runtime_features.cc.
  // We enable it here by default to support use in origin trials.
@@ -823,29 +793,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
  
  // Field trial boolean parameter which indicates whether FedCM IDP sign-out
  // is enabled.
-@@ -409,8 +406,8 @@ BASE_FEATURE(kFedCmIdPRegistration,
- 
- // Enables usage of the FedCM API with iframe support.
- BASE_FEATURE(kFedCmIframeSupport,
--             "FedCmIframeSupport",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "FedCmIframeSupport",                     // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave
- 
- // Enables usage of the FedCM API with metrics endpoint at the same time.
- BASE_FEATURE(kFedCmMetricsEndpoint,
-@@ -432,7 +429,9 @@ BASE_FEATURE(kFedCmRpContext,
- // Note that actual exposure of the FedCM API to web content is controlled
- // by the flag in RuntimeEnabledFeatures on the blink side. See also
- // the use of kSetOnlyIfOverridden in content/child/runtime_features.cc.
--BASE_FEATURE(kFedCmUserInfo, "FedCmUserInfo", base::FEATURE_ENABLED_BY_DEFAULT);
-+BASE_FEATURE(kFedCmUserInfo,
-+             "FedCmUserInfo",                          // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave
- 
- // Enables usage of the FedCM API with the Selective Disclosure API at the same
- // time.
-@@ -465,8 +464,8 @@ BASE_FEATURE(kWebIdentityMDocs,
+@@ -438,8 +435,8 @@ BASE_FEATURE(kWebIdentityMDocs,
  
  // Enables usage of First Party Sets to determine cookie availability.
  BASE_FEATURE(kFirstPartySets,
@@ -856,7 +804,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
  
  // Controls whether to clear sites data on FPS transitions.
  const base::FeatureParam<bool> kFirstPartySetsClearSiteDataOnChangedSets{
-@@ -753,8 +752,8 @@ BASE_FEATURE(kNotificationContentImage,
+@@ -715,8 +712,8 @@ BASE_FEATURE(kNotificationContentImage,
  
  // Enables the notification trigger API.
  BASE_FEATURE(kNotificationTriggers,
@@ -867,7 +815,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
  
  // Feature which holdbacks NoStatePrefetch on all surfaces.
  BASE_FEATURE(kNoStatePrefetchHoldback,
-@@ -1188,7 +1187,9 @@ BASE_FEATURE(kUserMediaCaptureOnFocus,
+@@ -1178,7 +1175,9 @@ BASE_FEATURE(kUserMediaCaptureOnFocus,
  
  // This is intended as a kill switch for the WebOTP Service feature. To enable
  // this feature, the experimental web platform features flag should be set.
@@ -878,7 +826,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
  
  // Enables WebOTP calls in cross-origin iframes if allowed by Permissions
  // Policy.
-@@ -1548,7 +1549,9 @@ BASE_FEATURE(kWarmUpNetworkProcess,
+@@ -1563,7 +1562,9 @@ BASE_FEATURE(kWarmUpNetworkProcess,
  // Kill switch for the WebNFC feature. This feature can be enabled for all sites
  // using the kEnableExperimentalWebPlatformFeatures flag.
  // https://w3c.github.io/web-nfc/
@@ -892,17 +840,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -236,20 +236,20 @@ BASE_FEATURE(kCookieSameSiteConsidersRedirectChain,
-              base::FEATURE_DISABLED_BY_DEFAULT);
- 
- BASE_FEATURE(kSamePartyAttributeEnabled,
--             "SamePartyAttributeEnabled",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "SamePartyAttributeEnabled",              // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
- 
- BASE_FEATURE(kWaitForFirstPartySetsInit,
-              "WaitForFirstPartySetsInit",
+@@ -260,12 +260,12 @@ BASE_FEATURE(kWaitForFirstPartySetsInit,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kPartitionedCookies,
@@ -922,12 +860,12 @@ diff --git a/net/base/features.cc b/net/base/features.cc
 diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
 --- a/services/network/public/cpp/features.cc
 +++ b/services/network/public/cpp/features.cc
-@@ -144,8 +144,8 @@ BASE_FEATURE(kAttributionReportingCrossAppWeb,    // in bromite
+@@ -157,8 +157,8 @@ BASE_FEATURE(kAttributionReportingCrossAppWeb,    // in bromite
  // set, and handling their responses, according to the protocol.
  // (See https://github.com/WICG/trust-token-api.)
  BASE_FEATURE(kPrivateStateTokens,
 -             "PrivateStateTokens",
--             base::FEATURE_DISABLED_BY_DEFAULT);
+-             base::FEATURE_ENABLED_BY_DEFAULT);
 +             "PrivateStateTokens",                     // disabled by default
 +             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
  
@@ -936,7 +874,7 @@ diff --git a/services/network/public/cpp/features.cc b/services/network/public/c
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -97,8 +97,8 @@ BASE_FEATURE(kAllowSyncXHRInPageDismissal,
+@@ -103,8 +103,8 @@ BASE_FEATURE(kAllowSyncXHRInPageDismissal,
  // iframes (instead of requiring fenced frames). This is only intended to be
  // enabled as part of the FLEDGE origin trial.
  BASE_FEATURE(kAllowURNsInIframes,
@@ -947,7 +885,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // Anchor Element Interaction
  BASE_FEATURE(kAnchorElementInteraction,
-@@ -214,8 +214,8 @@ BASE_FEATURE(kBackForwardCacheWithKeepaliveRequest,
+@@ -224,8 +224,8 @@ BASE_FEATURE(kBackForwardCacheWithKeepaliveRequest,
  // Enable background resource fetch in Blink. See https://crbug.com/1379780 for
  // more details.
  BASE_FEATURE(kBackgroundResourceFetch,
@@ -958,7 +896,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // Used to configure a per-origin allowlist of performance.mark events that are
  // permitted to be included in slow reports traces. See crbug.com/1181774.
-@@ -231,8 +231,8 @@ const base::FeatureParam<std::string>
+@@ -241,8 +241,8 @@ const base::FeatureParam<std::string>
  // Due to an issue in how prevWins were stored this flag should not be enabled
  // until July 2023.
  BASE_FEATURE(kBiddingAndScoringDebugReportingAPI,
@@ -969,7 +907,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  BASE_FEATURE(kAudioContextShuffleEnabled,
               "AudioContextShuffleEnabled",
-@@ -288,8 +288,8 @@ const base::FeatureParam<int> kBoostImagePriorityTightMediumLimit{
+@@ -298,8 +298,8 @@ const base::FeatureParam<int> kBoostImagePriorityTightMediumLimit{
  // https://github.com/patcg-individual-drafts/topics
  // Kill switch for the Topics API.
  BASE_FEATURE(kBrowsingTopics,
@@ -980,7 +918,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // If enabled, the check for whether the IP address is publicly routable will be
  // bypassed when determining the eligibility for a page to be included in topics
-@@ -380,8 +380,8 @@ const base::FeatureParam<std::string> kBrowsingTopicsDisabledTopicsList{
+@@ -390,8 +390,8 @@ const base::FeatureParam<std::string> kBrowsingTopicsDisabledTopicsList{
  // `kBrowsingTopics` is enabled, and, either a valid Origin Trial token exists
  // or `kPrivacySandboxAdsAPIsOverride` is enabled.)
  BASE_FEATURE(kBrowsingTopicsXHR,
@@ -991,7 +929,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // Suppresses console errors for CORS problems which report an associated
  // inspector issue anyway.
-@@ -742,7 +742,9 @@ BASE_FEATURE(kFastPathPaintPropertyUpdates,
+@@ -785,7 +785,9 @@ BASE_FEATURE(kExtendScriptResourceLifetime,
  // this feature does not automatically expose this element to the web, it only
  // allows the element to be enabled by the runtime enabled feature, for origin
  // trials.
@@ -1002,7 +940,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // File handling icons. https://crbug.com/1218213
  BASE_FEATURE(kFileHandlingIcons,
-@@ -770,23 +772,25 @@ BASE_FEATURE(kFilteringScrollPrediction,
+@@ -813,23 +815,25 @@ BASE_FEATURE(kFilteringScrollPrediction,
  
  // See https://github.com/WICG/turtledove/blob/main/FLEDGE.md
  // Enables FLEDGE implementation. See https://crbug.com/1186444.
@@ -1033,9 +971,9 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 +             "FledgeEnforceKAnonymity",                // disabled by default
 +             base::FEATURE_DISABLED_BY_DEFAULT);       // in Brave, too
  
- BASE_FEATURE(kFledgePassRecencyToGenerateBid,
-              "FledgePassRecencyToGenerateBid",
-@@ -933,8 +937,8 @@ const char kIntensiveWakeUpThrottling_GracePeriodSeconds_Name[] =
+ BASE_FEATURE(kFledgePassKAnonStatusToReportWin,
+              "FledgePassKAnonStatusToReportWin",
+@@ -984,8 +988,8 @@ const char kIntensiveWakeUpThrottling_GracePeriodSeconds_Name[] =
  // Kill switch for the Interest Group API, i.e. if disabled, the
  // API exposure will be disabled regardless of the OT config.
  BASE_FEATURE(kInterestGroupStorage,
@@ -1046,7 +984,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  // TODO(crbug.com/1197209): Adjust these limits in response to usage.
  const base::FeatureParam<int> kInterestGroupStorageMaxOwners{
      &kInterestGroupStorage, "max_owners", 1000};
-@@ -1076,8 +1080,8 @@ BASE_FEATURE(kMaxUnthrottledTimeoutNestingLevel,
+@@ -1150,8 +1154,8 @@ BASE_FEATURE(kMaxUnthrottledTimeoutNestingLevel,
  const base::FeatureParam<int> kMaxUnthrottledTimeoutNestingLevelParam{
      &kMaxUnthrottledTimeoutNestingLevel, "nesting", 15};
  BASE_FEATURE(kMixedContentAutoupgrade,
@@ -1057,7 +995,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  BASE_FEATURE(kMemoryCacheStrongReferenceFilterImages,
               "MemoryCacheStrongReferenceFilterImages",
-@@ -1339,8 +1343,8 @@ const base::FeatureParam<int> kRTCGpuCodecSupportWaiterTimeoutParam{
+@@ -1429,8 +1433,8 @@ const base::FeatureParam<int> kRTCGpuCodecSupportWaiterTimeoutParam{
  // Reduce the amount of information in the default 'referer' header for
  // cross-origin requests.
  BASE_FEATURE(kReducedReferrerGranularity,
@@ -1068,7 +1006,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  const base::FeatureParam<std::string> kUserAgentFrozenBuildVersion{
      &kReduceUserAgentMinorVersion, "build_version", "0"};
-@@ -1467,8 +1471,8 @@ BASE_FEATURE(kSetTimeoutWithoutClamp,
+@@ -1566,8 +1570,8 @@ BASE_FEATURE(kSetTimeoutWithoutClamp,
  // enabled by the runtime enabled feature, for origin trials.
  // https://github.com/pythagoraskitty/shared-storage/blob/main/README.md
  BASE_FEATURE(kSharedStorageAPI,
@@ -1079,7 +1017,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  const base::FeatureParam<int>
      kSharedStorageURLSelectionOperationInputURLSizeLimit{
          &kSharedStorageAPI, "url_selection_operation_input_url_size_limit", 8};
-@@ -1504,8 +1508,8 @@ const base::FeatureParam<int>
+@@ -1603,8 +1607,8 @@ const base::FeatureParam<int>
          "SharedStorageMaxAllowedFencedFrameDepthForSelectURL", 1};
  
  BASE_FEATURE(kSharedStorageSelectURLLimit,
@@ -1090,7 +1028,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  const base::FeatureParam<int> kSharedStorageSelectURLBitBudgetPerPageLoad = {
      &kSharedStorageSelectURLLimit, "SharedStorageSelectURLBitBudgetPerPageLoad",
      12};
-@@ -1533,12 +1537,12 @@ BASE_FEATURE(kSmallScriptStreaming,
+@@ -1636,12 +1640,12 @@ BASE_FEATURE(kSmallScriptStreaming,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kSpeculationRulesHeaderEnableThirdPartyOriginTrial,
@@ -1122,7 +1060,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        public: true,
      },
      {
-@@ -329,9 +329,9 @@
+@@ -333,9 +333,9 @@
        base_feature: "none",
      },
      {
@@ -1134,7 +1072,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        base_feature: "none",
      },
      {
-@@ -601,8 +601,8 @@
+@@ -615,8 +615,8 @@
        base_feature: "none",
      },
      {
@@ -1145,7 +1083,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      },
      {
        name: "ClientHintsMetaHTTPEquivAcceptCH",
-@@ -689,11 +689,9 @@
+@@ -699,11 +699,9 @@
      {
        // blink::features::kComputePressure is a kill switch for the API. If the
        // feature is disabled, origin trial tokens are ignored.
@@ -1159,7 +1097,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      },
      {
        name: "ConfirmationOfAction",
-@@ -1082,8 +1080,8 @@
+@@ -1049,8 +1047,8 @@
        status: "test",
      },
      {
@@ -1170,7 +1108,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        base_feature: "CssSelectorFragmentAnchor",
      },
      {
-@@ -1772,7 +1770,8 @@
+@@ -1722,7 +1720,8 @@
        status: "stable",
      },
      {
@@ -1180,7 +1118,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        base_feature: "none",
        origin_trial_feature_name: "PrivacySandboxAdsAPIs",
        origin_trial_allows_third_party: true,
-@@ -2660,7 +2659,8 @@
+@@ -2643,7 +2642,8 @@
      },
      {
        // PARAKEET ad serving runtime flag/JS API.
@@ -1201,7 +1139,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      },
      {
        name: "Presentation",
-@@ -3401,11 +3401,9 @@
+@@ -3416,11 +3416,9 @@
        origin_trial_allows_third_party: true,
      },
      {

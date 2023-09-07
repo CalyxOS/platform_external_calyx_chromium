@@ -24,7 +24,7 @@ Change-Id: I713872f2e56beb9ca412b7f6e5249832bdc497bc
 diff --git a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java b/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
 --- a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
 +++ b/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
-@@ -249,7 +249,9 @@ public class SearchEngineAdapter extends BaseAdapter
+@@ -245,7 +245,9 @@ public class SearchEngineAdapter extends BaseAdapter
                  continue;
              }
              if (recentEngineNum < MAX_RECENT_ENGINE_NUM
@@ -190,7 +190,7 @@ diff --git a/chrome/renderer/chrome_render_frame_observer.cc b/chrome/renderer/c
  #include "base/metrics/histogram_macros.h"
  #include "base/no_destructor.h"
  #include "base/strings/string_number_conversions.h"
-@@ -260,6 +261,7 @@ void ChromeRenderFrameObserver::DidFinishLoad() {
+@@ -258,6 +259,7 @@ void ChromeRenderFrameObserver::DidFinishLoad() {
  
    GURL osdd_url = frame->GetDocument().OpenSearchDescriptionURL();
    if (!osdd_url.is_empty()) {
@@ -242,19 +242,19 @@ diff --git a/components/search_engines/template_url_fetcher.cc b/components/sear
 diff --git a/components/search_engines/template_url_parser.cc b/components/search_engines/template_url_parser.cc
 --- a/components/search_engines/template_url_parser.cc
 +++ b/components/search_engines/template_url_parser.cc
-@@ -171,7 +171,7 @@ void SafeTemplateURLParser::OnXmlParseComplete(
-     data_decoder::DataDecoder::ValueOrError value_or_error) {
+@@ -173,7 +173,7 @@ void SafeTemplateURLParser::OnXmlParseComplete(
    std::move(callback_).Run([&]() -> std::unique_ptr<TemplateURL> {
-     if (!value_or_error.has_value()) {
--      DLOG(ERROR) << "Failed to parse XML: " << value_or_error.error();
-+      LOG(ERROR) << "Failed to parse XML: " << value_or_error.error();
-       return nullptr;
-     }
-     const base::Value& root = *value_or_error;
+     ASSIGN_OR_RETURN(const base::Value root, std::move(value_or_error),
+                      [](std::string error) -> std::unique_ptr<TemplateURL> {
+-                       DLOG(ERROR)
++                       LOG(ERROR)
+                            << "Failed to parse XML: " << std::move(error);
+                        return nullptr;
+                      });
 diff --git a/components/search_engines/template_url_service.h b/components/search_engines/template_url_service.h
 --- a/components/search_engines/template_url_service.h
 +++ b/components/search_engines/template_url_service.h
-@@ -264,7 +264,10 @@ class TemplateURLService : public WebDataServiceConsumer,
+@@ -271,7 +271,10 @@ class TemplateURLService : public WebDataServiceConsumer,
    void UpdateProviderFavicons(const GURL& potential_search_url,
                                const GURL& favicon_url);
  
@@ -266,7 +266,7 @@ diff --git a/components/search_engines/template_url_service.h b/components/searc
    // regardless of |url| if the default search provider is managed by policy or
    // controlled by an extension.
    bool CanMakeDefault(const TemplateURL* url) const;
-@@ -626,9 +629,6 @@ class TemplateURLService : public WebDataServiceConsumer,
+@@ -633,9 +636,6 @@ class TemplateURLService : public WebDataServiceConsumer,
    // SetKeywordSearchTermsForURL is invoked.
    void UpdateKeywordSearchTermsForURL(const URLVisitedDetails& details);
  
