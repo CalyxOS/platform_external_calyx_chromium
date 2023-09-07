@@ -1,0 +1,122 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 6 Sep 2023 10:54:17 +0000
+Subject: Build workarounds for unused functions
+
+Change-Id: Ifaa3c732a4dd62dc64fc293b44a5fe752813490a
+---
+ chrome/browser/android/tab_android.cc                       | 1 +
+ chrome/browser/download/download_ui_model.cc                | 2 ++
+ chrome/browser/usb/chrome_usb_delegate.cc                   | 2 ++
+ components/autofill/core/browser/form_structure.cc          | 2 ++
+ components/autofill/core/browser/ui/suggestion_selection.cc | 2 ++
+ components/autofill/core/browser/webdata/autofill_table.cc  | 2 ++
+ 6 files changed, 11 insertions(+)
+
+diff --git a/chrome/browser/android/tab_android.cc b/chrome/browser/android/tab_android.cc
+--- a/chrome/browser/android/tab_android.cc
++++ b/chrome/browser/android/tab_android.cc
+@@ -19,6 +19,7 @@
+ #include "base/metrics/user_metrics.h"
+ #include "base/trace_event/trace_event.h"
+ #include "cc/slim/layer.h"
++#pragma clang diagnostic ignored "-Wunused-function"
+ #include "chrome/android/chrome_jni_headers/TabImpl_jni.h"
+ #include "chrome/android/chrome_jni_headers/TabUtils_jni.h"
+ #include "chrome/browser/android/background_tab_manager.h"
+diff --git a/chrome/browser/download/download_ui_model.cc b/chrome/browser/download/download_ui_model.cc
+--- a/chrome/browser/download/download_ui_model.cc
++++ b/chrome/browser/download/download_ui_model.cc
+@@ -176,6 +176,7 @@ bool ShouldShowWarningForNoSafeBrowsing(Profile* profile) {
+ #endif
+ }
+ 
++#if 0 // unused in Bromite
+ bool CanUserTurnOnSafeBrowsing(Profile* profile) {
+ #if BUILDFLAG(FULL_SAFE_BROWSING)
+   return !safe_browsing::IsSafeBrowsingPolicyManaged(*profile->GetPrefs());
+@@ -183,6 +184,7 @@ bool CanUserTurnOnSafeBrowsing(Profile* profile) {
+   return false;
+ #endif
+ }
++#endif
+ 
+ }  // namespace
+ 
+diff --git a/chrome/browser/usb/chrome_usb_delegate.cc b/chrome/browser/usb/chrome_usb_delegate.cc
+--- a/chrome/browser/usb/chrome_usb_delegate.cc
++++ b/chrome/browser/usb/chrome_usb_delegate.cc
+@@ -46,6 +46,7 @@ UsbChooserContext* GetChooserContext(content::BrowserContext* browser_context) {
+   return profile ? UsbChooserContextFactory::GetForProfile(profile) : nullptr;
+ }
+ 
++#if 0 // unused in Bromite
+ UsbConnectionTracker* GetConnectionTracker(
+     content::BrowserContext* browser_context,
+     bool create) {
+@@ -55,6 +56,7 @@ UsbConnectionTracker* GetConnectionTracker(
+   return profile ? UsbConnectionTrackerFactory::GetForProfile(profile, create)
+                  : nullptr;
+ }
++#endif
+ 
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+ // These extensions can claim the smart card USB class and automatically gain
+diff --git a/components/autofill/core/browser/form_structure.cc b/components/autofill/core/browser/form_structure.cc
+--- a/components/autofill/core/browser/form_structure.cc
++++ b/components/autofill/core/browser/form_structure.cc
+@@ -202,6 +202,7 @@ void EncodeRandomizedValue(const RandomizedEncoder& encoder,
+                         output);
+ }
+ 
++#if 0 // unused in Bromite
+ // Merges manual and server type predictions.
+ //
+ // The logic to merge manual and server overrides (which may differ in length),
+@@ -244,6 +245,7 @@ std::deque<FieldSuggestion> MergeManualAndServerOverrides(
+ 
+   return result;
+ }
++#endif
+ 
+ void PopulateRandomizedFormMetadata(const RandomizedEncoder& encoder,
+                                     const FormStructure& form,
+diff --git a/components/autofill/core/browser/ui/suggestion_selection.cc b/components/autofill/core/browser/ui/suggestion_selection.cc
+--- a/components/autofill/core/browser/ui/suggestion_selection.cc
++++ b/components/autofill/core/browser/ui/suggestion_selection.cc
+@@ -95,6 +95,7 @@ Suggestion GetFillFullNameSuggestion(Suggestion::BackendId backend_id) {
+   return suggestion;
+ }
+ 
++#if 0 // unused in Bromite
+ // Creates the suggestion that will fill the whole form for the profile. This
+ // suggestion is displayed once the users is on group filling level or field by
+ // field level. It is used as a way to allow users to go back to filling the
+@@ -112,6 +113,7 @@ Suggestion GetFillEverythingFromAddressProfileSuggestion(
+       IDS_AUTOFILL_A11Y_ANNOUNCE_FILL_EVERYTHING_FROM_ADDRESS_PROFILE_POPUP_OPTION_SELECTED);
+   return suggestion;
+ }
++#endif
+ // Append new suggestions to `suggestions` based on the `ServerFieldType` list
+ // provided. Suggestions are not added if their info is not found in the
+ // provided `profile`. Returns true if any suggestion was added.
+diff --git a/components/autofill/core/browser/webdata/autofill_table.cc b/components/autofill/core/browser/webdata/autofill_table.cc
+--- a/components/autofill/core/browser/webdata/autofill_table.cc
++++ b/components/autofill/core/browser/webdata/autofill_table.cc
+@@ -412,6 +412,7 @@ void InsertBuilder(sql::Database* db,
+           .c_str()));
+ }
+ 
++#if 0 // unused in Bromite
+ // Renames the table `from` into `to` and returns true if successful.
+ bool RenameTable(sql::Database* db,
+                  std::string_view from,
+@@ -419,6 +420,7 @@ bool RenameTable(sql::Database* db,
+   return db->Execute(
+       base::StrCat({"ALTER TABLE ", from, " RENAME TO ", to}).c_str());
+ }
++#endif
+ 
+ // Wrapper around `sql::Database::DoesColumnExist()`, because that function
+ // only accepts const char* parameters.
+-- 
+
