@@ -9,13 +9,13 @@ Subject: Hardcode some enterprise policies
 
 Change-Id: Ic743813546cc80ae2adf7d688d9e69ddf33b0f55
 ---
- .../policy/AppRestrictionsProvider.java       | 29 ++++++++++++++++---
- 1 file changed, 25 insertions(+), 4 deletions(-)
+ .../policy/AppRestrictionsProvider.java       | 32 +++++++++++++++----
+ 1 file changed, 26 insertions(+), 6 deletions(-)
 
 diff --git a/components/policy/android/java/src/org/chromium/components/policy/AppRestrictionsProvider.java b/components/policy/android/java/src/org/chromium/components/policy/AppRestrictionsProvider.java
 --- a/components/policy/android/java/src/org/chromium/components/policy/AppRestrictionsProvider.java
 +++ b/components/policy/android/java/src/org/chromium/components/policy/AppRestrictionsProvider.java
-@@ -19,17 +19,38 @@ public class AppRestrictionsProvider extends AbstractAppRestrictionsProvider {
+@@ -23,20 +23,40 @@ public class AppRestrictionsProvider extends AbstractAppRestrictionsProvider {
       * metrics on its runtime.
       * @param userManager UserManager service from Android System service
       * @param packageName package name for target application.
@@ -27,10 +27,14 @@ diff --git a/components/policy/android/java/src/org/chromium/components/policy/A
              UserManager userManager, String packageName) {
 +        Bundle restrictions = new Bundle();
          try {
--            return userManager.getApplicationRestrictions(packageName);
+-            Bundle bundle = userManager.getApplicationRestrictions(packageName);
+-            Log.i(TAG, "#getApplicationRestrictionsFromUserManager() " + bundle);
+-            return bundle;
 +            restrictions = userManager.getApplicationRestrictions(packageName);
++            Log.i(TAG, "#getApplicationRestrictionsFromUserManager() " + restrictions);
          } catch (SecurityException e) {
              // Android bug may throw SecurityException. See crbug.com/886814.
+             Log.i(TAG, "#getApplicationRestrictionsFromUserManager() " + e.getMessage());
 -            return new Bundle();
 +            // Do nothing, because we append our own policies below
          }
