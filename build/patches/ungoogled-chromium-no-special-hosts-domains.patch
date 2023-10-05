@@ -38,7 +38,7 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  chrome/common/BUILD.gn                        |   2 -
  .../google_accounts_private_api_util.cc       |   1 +
  .../url_loader_throttle_provider_impl.cc      |  11 -
- chrome/test/BUILD.gn                          |   1 -
+ chrome/test/BUILD.gn                          | Bin 612518 -> 612476 bytes
  components/domain_reliability/BUILD.gn        |   5 +-
  .../domain_reliability/bake_in_configs.py     |   2 +-
  .../domain_reliability/context_manager.cc     |  22 +-
@@ -59,12 +59,12 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  content/public/common/content_features.cc     |  12 +-
  net/base/url_util.cc                          |  21 --
  services/network/network_context.cc           |   2 +-
- 50 files changed, 61 insertions(+), 798 deletions(-)
+ 50 files changed, 61 insertions(+), 797 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1008,10 +1008,6 @@ static_library("browser") {
+@@ -1017,10 +1017,6 @@ static_library("browser") {
      "page_load_metrics/observers/foreground_duration_ukm_observer.h",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.cc",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.h",
@@ -75,7 +75,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "page_load_metrics/observers/histogram_suffixes.cc",
      "page_load_metrics/observers/histogram_suffixes.h",
      "page_load_metrics/observers/https_engagement_metrics/https_engagement_page_load_metrics_observer.cc",
-@@ -1901,7 +1897,6 @@ static_library("browser") {
+@@ -1923,7 +1919,6 @@ static_library("browser") {
      "//chrome/browser/autofill",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -83,7 +83,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/profiling_host",
  
      # TODO(crbug.com/1335199): break this dep when favicon is in its own target
-@@ -1925,7 +1920,6 @@ static_library("browser") {
+@@ -1947,7 +1942,6 @@ static_library("browser") {
  
    public_deps = [
      "//base",
@@ -91,7 +91,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/headless",
      "//chrome/common",
      "//chrome/common:buildflags",
-@@ -7626,8 +7620,6 @@ static_library("browser") {
+@@ -7653,8 +7647,6 @@ static_library("browser") {
        "supervised_user/kids_chrome_management/kids_profile_manager.h",
        "supervised_user/supervised_user_browser_utils.cc",
        "supervised_user/supervised_user_browser_utils.h",
@@ -160,7 +160,7 @@ diff --git a/chrome/browser/android/signin/signin_manager_android.cc b/chrome/br
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1120,7 +1120,6 @@ BrowserProcessImpl::component_updater() {
+@@ -1119,7 +1119,6 @@ BrowserProcessImpl::component_updater() {
        std::make_unique<component_updater::TimerUpdateScheduler>();
  
    std::string brand;
@@ -171,7 +171,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -2939,7 +2939,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
+@@ -2918,7 +2918,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
        switches::kForcePNaClSubzero,
  #endif
        switches::kForceUIDirection,
@@ -179,7 +179,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
        switches::kJavaScriptHarmony,
        switches::kEnableExperimentalWebAssemblyFeatures,
        embedder_support::kOriginTrialDisabledFeatures,
-@@ -5058,12 +5057,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+@@ -5104,12 +5103,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
    }
  #endif
  
@@ -192,7 +192,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    if (auto* throttle_manager =
            subresource_filter::ContentSubresourceFilterThrottleManager::
                FromNavigationHandle(*handle)) {
-@@ -5584,7 +5577,8 @@ GetClientDataHeader(int frame_tree_node_id) {
+@@ -5632,7 +5625,8 @@ GetClientDataHeader(int frame_tree_node_id) {
  }
  #endif
  
@@ -202,7 +202,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  #if BUILDFLAG(IS_ANDROID)
      const std::string& client_data_header,
  #endif
-@@ -5623,7 +5617,7 @@ std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
+@@ -5671,7 +5665,7 @@ std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
        std::move(bound_session_request_throttled_listener),
  #endif
        std::move(dynamic_params));
@@ -211,7 +211,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  
  std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
  ChromeContentBrowserClient::CreateURLLoaderThrottles(
-@@ -5669,15 +5663,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
+@@ -5717,15 +5711,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
        GetClientDataHeader(frame_tree_node_id);
  #endif
  
@@ -227,7 +227,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    {
      auto* factory =
          ProtocolHandlerRegistryFactory::GetForBrowserContext(browser_context);
-@@ -5731,20 +5716,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottlesForKeepAlive(
+@@ -5779,20 +5764,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottlesForKeepAlive(
    }
  #endif
  
@@ -297,7 +297,7 @@ diff --git a/chrome/browser/domain_reliability/service_factory.cc b/chrome/brows
 diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUILD.gn
 --- a/chrome/browser/extensions/BUILD.gn
 +++ b/chrome/browser/extensions/BUILD.gn
-@@ -800,7 +800,6 @@ static_library("extensions") {
+@@ -813,7 +813,6 @@ static_library("extensions") {
      "//chrome/browser/devtools",
      "//chrome/browser/extensions:cws_item_service_proto",
      "//chrome/browser/favicon",
@@ -316,7 +316,7 @@ diff --git a/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
  constexpr char kUpdateErrorCode[] = "update_error_code";
  constexpr char kUpdateHresult[] = "update_hresult";
-@@ -602,10 +601,6 @@ void ChromeInternalLogSource::PopulateEnrolledToDomain(
+@@ -600,10 +599,6 @@ void ChromeInternalLogSource::PopulateEnrolledToDomain(
  
  void ChromeInternalLogSource::PopulateInstallerBrandCode(
      SystemLogsResponse* response) {
@@ -384,7 +384,7 @@ diff --git a/chrome/browser/long_screenshots/long_screenshots_tab_service.cc b/c
  const char kGoogleNewsPathPattern[] = "/articles/(.*)";
  
  }  // namespace
-@@ -228,26 +226,6 @@ bool LongScreenshotsTabService::IsAmpUrl(const GURL& url) {
+@@ -229,26 +227,6 @@ bool LongScreenshotsTabService::IsAmpUrl(const GURL& url) {
      return false;
    }
  
@@ -550,7 +550,7 @@ diff --git a/chrome/browser/metrics/metrics_reporting_state.cc b/chrome/browser/
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -772,7 +772,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
+@@ -801,7 +801,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
  void SystemNetworkContextManager::ConfigureDefaultNetworkContextParams(
      network::mojom::NetworkContextParams* network_context_params) {
    variations::UpdateCorsExemptHeaderForVariations(network_context_params);
@@ -668,7 +668,7 @@ diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data.cc b/chro
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -423,7 +423,6 @@ static_library("ui") {
+@@ -425,7 +425,6 @@ static_library("ui") {
      "//chrome/browser/companion/core",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -679,7 +679,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 --- a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 +++ b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
-@@ -619,11 +619,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
+@@ -623,11 +623,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
    // chrome-untrusted://new-tab-page for other external content and resources.
    // NOTE: Use caution when overriding content security policies as that cean
    // lead to subtle security bugs such as https://crbug.com/1251541.
@@ -740,7 +740,7 @@ diff --git a/chrome/renderer/google_accounts_private_api_util.cc b/chrome/render
 diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/renderer/url_loader_throttle_provider_impl.cc
 --- a/chrome/renderer/url_loader_throttle_provider_impl.cc
 +++ b/chrome/renderer/url_loader_throttle_provider_impl.cc
-@@ -187,17 +187,6 @@ URLLoaderThrottleProviderImpl::CreateThrottles(
+@@ -219,17 +219,6 @@ URLLoaderThrottleProviderImpl::CreateThrottles(
    }
  #endif
  
@@ -759,16 +759,14 @@ diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/rende
    throttles.emplace_back(std::make_unique<AshMergeSessionLoaderThrottle>(
        chrome_content_renderer_client_->GetChromeObserver()
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
---- a/chrome/test/BUILD.gn
-+++ b/chrome/test/BUILD.gn
-@@ -6351,7 +6351,6 @@ test("unit_tests") {
-     "//chrome/browser/favicon",
-     "//chrome/browser/feature_guide/notifications:unit_tests",
-     "//chrome/browser/first_party_sets",
--    "//chrome/browser/google:unit_tests",
-     "//chrome/browser/media/effects:unittests",
-     "//chrome/browser/media/router",
-     "//chrome/browser/media/router:media_router_feature",
+GIT binary patch
+delta 46
+xcmZ3sQT5LT)rJ<v7N!>F7M3lnlNF{Ph+|=EKditC#2}g-h&i?&R^WVW4gjjK5t0A^
+
+delta 62
+zcmeyfL3P<i)rJ<v7N!>F7M3lnlNDIg^YhblraP`;6P})+$;vhTfdVUE`%DE^AZ7z%
+Ob|B{1K2w47u{i+8Ruz%}
+
 diff --git a/components/domain_reliability/BUILD.gn b/components/domain_reliability/BUILD.gn
 --- a/components/domain_reliability/BUILD.gn
 +++ b/components/domain_reliability/BUILD.gn
@@ -1607,7 +1605,7 @@ diff --git a/components/url_matcher/url_util.cc b/components/url_matcher/url_uti
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -416,15 +416,15 @@ BASE_FEATURE(kFedCmSelectiveDisclosure,
+@@ -462,15 +462,15 @@ BASE_FEATURE(kFedCmSelectiveDisclosure,
  // Enables metrics collection for signin status mismatches. Also enables
  // parsing the signin status HTTP headers.
  // kFedCmIdpSigninStatusEnabled takes precedence over this feature flag.
@@ -1663,7 +1661,7 @@ diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -2734,7 +2734,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
+@@ -2783,7 +2783,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
    }
  #endif  // BUILDFLAG(IS_CT_SUPPORTED)
  
