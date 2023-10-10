@@ -24,7 +24,7 @@ Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3424,6 +3424,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -3416,6 +3416,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* source_origin,
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin) {
@@ -59,7 +59,7 @@ diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 diff --git a/components/history/core/browser/history_backend.cc b/components/history/core/browser/history_backend.cc
 --- a/components/history/core/browser/history_backend.cc
 +++ b/components/history/core/browser/history_backend.cc
-@@ -669,18 +669,7 @@ void HistoryBackend::SetBrowsingTopicsAllowed(ContextID context_id,
+@@ -679,18 +679,7 @@ void HistoryBackend::SetBrowsingTopicsAllowed(ContextID context_id,
    if (!visit_id)
      return;
  
@@ -82,8 +82,8 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
 diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
 --- a/components/privacy_sandbox/privacy_sandbox_features.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_features.cc
-@@ -7,8 +7,8 @@
- namespace privacy_sandbox {
+@@ -12,8 +12,8 @@ BASE_FEATURE(kPrivacySandboxSuppressDialogOnNonNormalBrowsers,
+              base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kPrivacySandboxSettings4,
 -             "PrivacySandboxSettings4",
@@ -93,8 +93,8 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components
  
  const char kPrivacySandboxSettings4ConsentRequiredName[] = "consent-required";
  const char kPrivacySandboxSettings4NoticeRequiredName[] = "notice-required";
-@@ -66,8 +66,8 @@ const base::FeatureParam<bool>
-         true};
+@@ -74,8 +74,8 @@ const base::FeatureParam<bool> kPrivacySandboxSettings4CloseAllPrompts{
+     &kPrivacySandboxSettings4, "close-all-prompts", true};
  
  BASE_FEATURE(kPrivacySandboxSettings3,
 -             "PrivacySandboxSettings3",
@@ -104,7 +104,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components
  const base::FeatureParam<bool> kPrivacySandboxSettings3ConsentRequired{
      &kPrivacySandboxSettings3, "consent-required", false};
  const base::FeatureParam<bool> kPrivacySandboxSettings3NoticeRequired{
-@@ -90,7 +90,7 @@ BASE_FEATURE(kOverridePrivacySandboxSettingsLocalTesting,
+@@ -98,7 +98,7 @@ BASE_FEATURE(kOverridePrivacySandboxSettingsLocalTesting,
  
  BASE_FEATURE(kDisablePrivacySandboxPrompts,
               "DisablePrivacySandboxPrompts",
@@ -116,7 +116,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components
 diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
 --- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
-@@ -11,7 +11,7 @@ namespace privacy_sandbox {
+@@ -12,7 +12,7 @@ namespace privacy_sandbox {
  
  void RegisterProfilePrefs(PrefRegistrySimple* registry) {
    registry->RegisterBooleanPref(
@@ -128,7 +128,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/pr
 diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 --- a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
-@@ -204,7 +204,8 @@ PrivacySandboxSettingsImpl::GetFinchDisabledTopics() {
+@@ -203,7 +203,8 @@ PrivacySandboxSettingsImpl::GetFinchDisabledTopics() {
    return finch_disabled_topics_;
  }
  
@@ -138,7 +138,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    // M1 specific
    if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings4)) {
      Status status = GetM1TopicAllowedStatus();
-@@ -261,7 +262,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
+@@ -260,7 +261,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
           IsPrivacySandboxEnabledForContext(top_frame_origin, url);
  }
  
@@ -148,7 +148,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    const auto& blocked_topics =
        pref_service_->GetList(prefs::kPrivacySandboxBlockedTopics);
  
-@@ -517,7 +519,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
+@@ -516,7 +518,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
  }
  
  bool PrivacySandboxSettingsImpl::IsFledgeJoiningAllowed(
@@ -158,7 +158,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
    auto& pref_data = scoped_pref_update.Get();
-@@ -672,7 +675,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationAllowed(
+@@ -671,7 +674,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationAllowed(
                                             reporting_origin.GetURL());
  }
  
@@ -168,7 +168,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
    if (!IsAllowed(status)) {
      return false;
-@@ -710,7 +714,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
+@@ -709,7 +713,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
    pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, false);
  }
  
@@ -178,7 +178,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
  }
  
-@@ -772,7 +777,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
+@@ -771,7 +776,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
        net::CookieSettingOverrides());
  }
  
@@ -190,7 +190,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    pref_service_->SetTime(prefs::kPrivacySandboxTopicsDataAccessibleSince,
                           base::Time::Now());
  
-@@ -785,6 +793,7 @@ PrivacySandboxSettingsImpl::Status
+@@ -784,6 +792,7 @@ PrivacySandboxSettingsImpl::Status
  PrivacySandboxSettingsImpl::GetSiteAccessAllowedStatus(
      const url::Origin& top_frame_origin,
      const GURL& url) const {
