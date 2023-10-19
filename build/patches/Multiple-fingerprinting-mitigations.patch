@@ -33,7 +33,7 @@ Change-Id: I5c083699db91443331e3cc4ac059e4f21ec79ca7
  content/browser/BUILD.gn                      |   1 +
  .../renderer_host/render_process_host_impl.cc |   4 +
  content/child/BUILD.gn                        |   1 +
- content/child/runtime_features.cc             |   9 +
+ content/child/runtime_features.cc             |   8 +
  .../public/platform/web_runtime_features.h    |   3 +
  .../blink/renderer/core/dom/document.cc       |  20 +++
  .../blink/renderer/core/dom/document.h        |   7 +
@@ -44,7 +44,7 @@ Change-Id: I5c083699db91443331e3cc4ac059e4f21ec79ca7
  .../renderer/core/html/canvas/text_metrics.h  |   2 +
  .../renderer/core/svg/svg_graphics_element.cc |   2 +
  .../core/svg/svg_text_content_element.cc      |  28 +++-
- .../canvas2d/base_rendering_context_2d.cc     |  13 +-
+ .../canvas2d/base_rendering_context_2d.cc     |  24 ++-
  third_party/blink/renderer/platform/BUILD.gn  |   5 +-
  .../platform/exported/web_runtime_features.cc |  12 ++
  .../platform/graphics/image_data_buffer.cc    |   7 +
@@ -54,7 +54,7 @@ Change-Id: I5c083699db91443331e3cc4ac059e4f21ec79ca7
  third_party/ungoogled/BUILD.gn                |  10 ++
  third_party/ungoogled/ungoogled_switches.cc   |  18 ++
  third_party/ungoogled/ungoogled_switches.h    |  18 ++
- 26 files changed, 378 insertions(+), 8 deletions(-)
+ 26 files changed, 388 insertions(+), 8 deletions(-)
  create mode 100644 third_party/ungoogled/BUILD.gn
  create mode 100644 third_party/ungoogled/ungoogled_switches.cc
  create mode 100644 third_party/ungoogled/ungoogled_switches.h
@@ -158,20 +158,19 @@ diff --git a/content/child/runtime_features.cc b/content/child/runtime_features.
  #if BUILDFLAG(IS_ANDROID)
  #include "base/android/build_info.h"
  #endif
-@@ -549,6 +551,13 @@ void SetCustomizedRuntimeFeaturesFromCombinedArgs(
-   // CAUTION: Only add custom enabling logic here if it cannot
-   // be covered by the other functions.
- 
+@@ -546,6 +548,12 @@ void SetRuntimeFeaturesFromCommandLine(const base::CommandLine& command_line) {
+ // as a last resort.
+ void SetCustomizedRuntimeFeaturesFromCombinedArgs(
+     const base::CommandLine& command_line) {
 +  WebRuntimeFeatures::EnableFingerprintingClientRectsNoise(
 +      !command_line.HasSwitch(switches::kFingerprintingClientRectsNoise));
 +  WebRuntimeFeatures::EnableFingerprintingCanvasMeasureTextNoise(
 +      !command_line.HasSwitch(switches::kFingerprintingCanvasMeasureTextNoise));
 +  WebRuntimeFeatures::EnableFingerprintingCanvasImageDataNoise(
 +      !command_line.HasSwitch(switches::kFingerprintingCanvasImageDataNoise));
-+
-   // These checks are custom wrappers around base::FeatureList::IsEnabled
-   // They're moved here to distinguish them from actual base checks
-   WebRuntimeFeatures::EnableOverlayScrollbars(ui::IsOverlayScrollbarEnabled());
+   // CAUTION: Only add custom enabling logic here if it cannot
+   // be covered by the other functions.
+ 
 diff --git a/third_party/blink/public/platform/web_runtime_features.h b/third_party/blink/public/platform/web_runtime_features.h
 --- a/third_party/blink/public/platform/web_runtime_features.h
 +++ b/third_party/blink/public/platform/web_runtime_features.h
@@ -243,7 +242,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/
    AtomicString visibilityState() const;
    bool IsPageVisible() const;
    bool hidden() const;
-@@ -2416,6 +2420,9 @@ class CORE_EXPORT Document : public ContainerNode,
+@@ -2418,6 +2422,9 @@ class CORE_EXPORT Document : public ContainerNode,
  
    base::ElapsedTimer start_time_;
  
@@ -478,7 +477,17 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_c
  #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
  #include "third_party/blink/renderer/platform/graphics/stroke_data.h"
  #include "third_party/blink/renderer/platform/graphics/video_frame_image_util.h"
-@@ -2188,6 +2189,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
+@@ -53,6 +54,9 @@
+ #include "ui/gfx/geometry/quad_f.h"
+ #include "ui/gfx/geometry/skia_conversions.h"
+ 
++#include "third_party/blink/renderer/core/offscreencanvas/offscreen_canvas.h"
++#include "third_party/blink/renderer/core/frame/local_dom_window.h"
++
+ namespace blink {
+ 
+ BASE_FEATURE(kDisableCanvasOverdrawOptimization,
+@@ -2188,6 +2192,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
            snapshot->PaintImageForCurrentFrame().GetSkImageInfo().bounds();
        DCHECK(!bounds.intersect(SkIRect::MakeXYWH(sx, sy, sw, sh)));
      }
@@ -489,18 +498,26 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_c
    }
  
    return image_data;
-@@ -2865,9 +2870,15 @@ TextMetrics* BaseRenderingContext2D::measureText(const String& text) {
+@@ -2865,9 +2873,23 @@ TextMetrics* BaseRenderingContext2D::measureText(const String& text) {
  
    TextDirection direction = ToTextDirection(GetState().GetDirection(), canvas);
  
 -  return MakeGarbageCollected<TextMetrics>(font, direction,
-+  TextMetrics* text_metrics = MakeGarbageCollected<TextMetrics>(font, direction,
++  auto* text_metrics = MakeGarbageCollected<TextMetrics>(font, direction,
                                             GetState().GetTextBaseline(),
                                             GetState().GetTextAlign(), text);
-+
 +  // Scale text metrics if enabled
 +  if (RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled()) {
-+    text_metrics->Shuffle(canvas->GetDocument().GetNoiseFactorX());
++    OffscreenCanvas* offscreen_canvas = HostAsOffscreenCanvas();
++    if (offscreen_canvas) {
++      ExecutionContext* execution_context = GetTopExecutionContext();
++      if (auto* window = DynamicTo<LocalDOMWindow>(execution_context)) {
++        Document* document = window->GetFrame()->GetDocument();
++        text_metrics->Shuffle(document->GetNoiseFactorX());
++      }
++    }
++    else
++      text_metrics->Shuffle(canvas->GetDocument().GetNoiseFactorX());
 +  }
 +  return text_metrics;
  }
@@ -764,9 +781,9 @@ diff --git a/third_party/blink/renderer/platform/graphics/static_bitmap_image.h 
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -2109,6 +2109,15 @@
-       name: "InsertLineBreakIfPhrasingContent",
-       status: {"Android": "test", "default": "stable"},
+@@ -3062,6 +3062,15 @@
+       status: {"Android": "", "default": "stable"},
+       base_feature: "none",
      },
 +    {
 +      name: "FingerprintingClientRectsNoise",
@@ -778,7 +795,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 +      name: "FingerprintingCanvasImageDataNoise",
 +    },
      {
-       name: "InstalledApp",
+       name: "RemotePlayback",
        public: true,
 diff --git a/third_party/ungoogled/BUILD.gn b/third_party/ungoogled/BUILD.gn
 new file mode 100644
