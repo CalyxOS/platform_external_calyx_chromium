@@ -8,22 +8,85 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: If9da4e34c5cf72ffc00e08934e72c3120b2ce27a
 ---
- .../org/chromium/chrome/browser/homepage/HomepageManager.java | 4 ----
- 1 file changed, 4 deletions(-)
+ .../chromium/chrome/browser/homepage/HomepageManager.java | 4 ----
+ chrome/browser/flags/android/chrome_feature_list.cc       | 8 ++++----
+ .../PartnerBrowserCustomizations.java                     | 2 +-
+ .../chromium/components/search_engines/TemplateUrl.java   | 1 +
+ .../android/template_url_service_android.cc               | 1 +
+ 5 files changed, 7 insertions(+), 9 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java b/chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java
-@@ -152,10 +152,6 @@ public class HomepageManager implements HomepagePolicyManager.HomepagePolicyStat
-      *         if the homepage button is force enabled via flag.
+@@ -168,10 +168,6 @@ public class HomepageManager implements HomepagePolicyManager.HomepagePolicyStat
+      *         tab page if the homepage button is force enabled via flag.
       */
-     public static String getDefaultHomepageUri() {
+     public static GURL getDefaultHomepageGurl() {
 -        if (PartnerBrowserCustomizations.getInstance().isHomepageProviderAvailableAndEnabled()) {
--            return PartnerBrowserCustomizations.getInstance().getHomePageUrl().getSpec();
+-            return PartnerBrowserCustomizations.getInstance().getHomePageUrl();
 -        }
 -
-         String homepagePartnerDefaultUri;
          String homepagePartnerDefaultGurlSerialized =
                  SharedPreferencesManager.getInstance().readString(
+                         ChromePreferenceKeys.HOMEPAGE_PARTNER_CUSTOMIZED_DEFAULT_GURL, "");
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -832,8 +832,8 @@ BASE_FEATURE(kInfobarScrollOptimization,
+ BASE_FEATURE(kInstantStart, "InstantStart", base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kNewTabSearchEngineUrlAndroid,
+-             "NewTabSearchEngineUrlAndroid",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "NewTabSearchEngineUrlAndroid",      // disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);  // by default
+ 
+ BASE_FEATURE(kNotificationPermissionVariant,
+              "NotificationPermissionVariant",
+@@ -900,8 +900,8 @@ BASE_FEATURE(kOmniboxWarmRecycledViewPool,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPartnerCustomizationsUma,
+-             "PartnerCustomizationsUma",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "PartnerCustomizationsUma",          // disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);  // by default
+ BASE_FEATURE(kProbabilisticCryptidRenderer,
+              "ProbabilisticCryptidRenderer",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+diff --git a/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java b/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
+--- a/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
++++ b/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
+@@ -214,7 +214,7 @@ public class PartnerBrowserCustomizations {
+                     boolean systemOrPreStable =
+                             (context.getApplicationInfo().flags & ApplicationInfo.FLAG_SYSTEM) == 1
+                             || !VersionInfo.isStableBuild();
+-                    if (!systemOrPreStable) {
++                    if ((true)) {
+                         // Only allow partner customization if this browser is a system package, or
+                         // is in pre-stable channels.
+                         return null;
+diff --git a/components/search_engines/android/java/src/org/chromium/components/search_engines/TemplateUrl.java b/components/search_engines/android/java/src/org/chromium/components/search_engines/TemplateUrl.java
+--- a/components/search_engines/android/java/src/org/chromium/components/search_engines/TemplateUrl.java
++++ b/components/search_engines/android/java/src/org/chromium/components/search_engines/TemplateUrl.java
+@@ -75,6 +75,7 @@ public class TemplateUrl {
+      *         prepopulated_engines.json.
+      */
+     public String getNewTabURL() {
++        if ((true)) return null;
+         return TemplateUrlJni.get().getNewTabURL(mTemplateUrlPtr);
+     }
+ 
+diff --git a/components/search_engines/android/template_url_service_android.cc b/components/search_engines/android/template_url_service_android.cc
+--- a/components/search_engines/android/template_url_service_android.cc
++++ b/components/search_engines/android/template_url_service_android.cc
+@@ -324,6 +324,7 @@ jboolean TemplateUrlServiceAndroid::SetPlayAPISearchEngine(
+     const base::android::JavaParamRef<jstring>&
+         jimage_translate_target_language_param_key,
+     jboolean set_as_default) {
++  if ((true)) return false;
+   // Check if there is already a search engine created from Play API.
+   TemplateURLService::TemplateURLVector template_urls =
+       template_url_service_->GetTemplateURLs();
 -- 
 

@@ -15,12 +15,12 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../browser_ui/site_settings/android/BUILD.gn |   3 +
  .../res/layout/time_zone_select_dialog.xml    |  36 ++++
  ...ezoneoverride_site_settings_preference.xml |  68 ++++++
- ...imezoneOverrideSiteSettingsPreference.java | 196 ++++++++++++++++++
+ ...imezoneOverrideSiteSettingsPreference.java | 194 ++++++++++++++++++
  .../WebsitePreferenceBridge.java              |  10 +
  ...BromiteTimezoneOverrideContentSetting.java | 147 +++++++++++++
  .../android/website_preference_bridge.cc      |  16 ++
  .../bromite_content_settings/timezone.grdp    |  39 ++++
- .../timezone_override.inc                     |  23 ++
+ .../timezone_override.inc                     |  23 +++
  .../browser/content_settings_pref_provider.cc |  16 ++
  .../browser/content_settings_pref_provider.h  |   4 +
  .../core/browser/content_settings_utils.cc    |   5 +
@@ -33,9 +33,9 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../common/content_settings_mojom_traits.h    |   5 +
  .../core/common/pref_names.cc                 |   3 +
  .../content_settings/core/common/pref_names.h |   2 +
- .../renderer/content_settings_agent_impl.cc   |  80 +++++++
+ .../renderer/content_settings_agent_impl.cc   |  80 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
- 23 files changed, 681 insertions(+), 1 deletion(-)
+ 23 files changed, 679 insertions(+), 1 deletion(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -47,7 +47,7 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -104,6 +104,7 @@ android_library("java") {
+@@ -105,6 +105,7 @@ android_library("java") {
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreference.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsiteRowPreference.java",
@@ -55,7 +55,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    ]
  
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -275,6 +276,8 @@ android_resources("java_resources") {
+@@ -277,6 +278,8 @@ android_resources("java_resources") {
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/site_settings_preferences_with_categories.xml",
      "java/res/xml/website_preferences.xml",
@@ -183,10 +183,10 @@ index 0000000000000000000000000000000000000000..e7570d55a1f5e8d77b9670d6754755f4
 +</LinearLayout>
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
 new file mode 100755
-index 0000000000000000000000000000000000000000..5c16064afe21eea2dd7799998f6c293c77b1329b
+index 0000000000000000000000000000000000000000..636d75e5b94e476e4551ddde61533e73b5f497ee
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
-@@ -0,0 +1,196 @@
+@@ -0,0 +1,194 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -240,8 +240,7 @@ index 0000000000000000000000000000000000000000..5c16064afe21eea2dd7799998f6c293c
 + * TimezoneOverride Preference for SiteSettings.
 + */
 +public class TimezoneOverrideSiteSettingsPreference
-+        extends Preference implements BromiteCustomTriStateSiteSettingsPreferenceImpl,
-+                                      RadioGroup.OnCheckedChangeListener,
++        extends Preference implements RadioGroup.OnCheckedChangeListener,
 +                                      RadioButtonWithEditText.OnTextChangeListener {
 +    private @ContentSettingValues int mSetting = ContentSettingValues.DEFAULT;
 +    private RadioButtonWithDescription mAllowed;
@@ -266,7 +265,6 @@ index 0000000000000000000000000000000000000000..5c16064afe21eea2dd7799998f6c293c
 +        mBrowserContextHandle = browserContextHandle;
 +    }
 +
-+    @Override
 +    public @ContentSettingValues int getCheckedSetting() {
 +        return mSetting;
 +    }
@@ -386,7 +384,7 @@ index 0000000000000000000000000000000000000000..5c16064afe21eea2dd7799998f6c293c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
-@@ -412,6 +412,14 @@ public class WebsitePreferenceBridge {
+@@ -416,6 +416,14 @@ public class WebsitePreferenceBridge {
          return WebsitePreferenceBridgeJni.get().toHostOnlyPattern(pattern);
      }
  
@@ -401,7 +399,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      @NativeMethods
      public interface Natives {
          boolean isNotificationEmbargoedForOrigin(
-@@ -481,5 +489,7 @@ public class WebsitePreferenceBridge {
+@@ -485,5 +493,7 @@ public class WebsitePreferenceBridge {
          boolean getLocationAllowedByPolicy(BrowserContextHandle browserContextHandle);
          String toDomainWildcardPattern(String pattern);
          String toHostOnlyPattern(String pattern);
@@ -754,7 +752,7 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/browser/host_content_settings_map.h b/components/content_settings/core/browser/host_content_settings_map.h
 --- a/components/content_settings/core/browser/host_content_settings_map.h
 +++ b/components/content_settings/core/browser/host_content_settings_map.h
-@@ -380,6 +380,9 @@ class HostContentSettingsMap : public content_settings::Observer,
+@@ -384,6 +384,9 @@ class HostContentSettingsMap : public content_settings::Observer,
      allow_invalid_secondary_pattern_for_testing_ = allow;
    }
  

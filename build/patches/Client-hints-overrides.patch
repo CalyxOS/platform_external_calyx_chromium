@@ -2,7 +2,7 @@ From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Thu, 22 Jul 2021 23:10:52 +0200
 Subject: Client hints overrides
 
-Disable critical client hints
+Disable critical client hints and network early hints
 Use Google Chrome branding for client hints
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
@@ -12,13 +12,14 @@ Change-Id: Ia94dbd2e88983a466e5d3c758aba3de1c5259914
  components/embedder_support/user_agent_utils.cc              | 4 +---
  content/browser/client_hints/client_hints.cc                 | 3 ++-
  content/browser/loader/navigation_url_loader_impl.cc         | 5 +++++
- content/public/common/content_features.cc                    | 4 ++--
+ content/common/features.cc                                   | 4 ++--
+ net/http/http_network_transaction.cc                         | 1 +
  services/network/public/cpp/client_hints.cc                  | 1 +
  services/network/public/cpp/features.cc                      | 2 +-
  third_party/blink/common/client_hints/client_hints.cc        | 1 +
  .../blink/common/client_hints/enabled_client_hints.cc        | 4 +++-
  .../blink/renderer/platform/runtime_enabled_features.json5   | 4 ++--
- 9 files changed, 18 insertions(+), 10 deletions(-)
+ 10 files changed, 19 insertions(+), 10 deletions(-)
 
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
 --- a/components/embedder_support/user_agent_utils.cc
@@ -50,7 +51,7 @@ diff --git a/content/browser/client_hints/client_hints.cc b/content/browser/clie
 diff --git a/content/browser/loader/navigation_url_loader_impl.cc b/content/browser/loader/navigation_url_loader_impl.cc
 --- a/content/browser/loader/navigation_url_loader_impl.cc
 +++ b/content/browser/loader/navigation_url_loader_impl.cc
-@@ -1084,6 +1084,11 @@ void NavigationURLLoaderImpl::OnAcceptCHFrameReceived(
+@@ -1063,6 +1063,11 @@ void NavigationURLLoaderImpl::OnAcceptCHFrameReceived(
      return;
    }
  
@@ -62,20 +63,31 @@ diff --git a/content/browser/loader/navigation_url_loader_impl.cc b/content/brow
    LogAcceptCHFrameStatus(AcceptCHFrameRestart::kFramePresent);
  
    // Given that this is happening in the middle of navigation, there should
-diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
---- a/content/public/common/content_features.cc
-+++ b/content/public/common/content_features.cc
-@@ -268,8 +268,8 @@ BASE_FEATURE(kCrashReporting,
+diff --git a/content/common/features.cc b/content/common/features.cc
+--- a/content/common/features.cc
++++ b/content/common/features.cc
+@@ -114,8 +114,8 @@ BASE_FEATURE(kConsolidatedMovementXY,
  // Enables support for the `Critical-CH` response header.
  // https://github.com/WICG/client-hints-infrastructure/blob/master/reliability.md#critical-ch
  BASE_FEATURE(kCriticalClientHint,
 -             "CriticalClientHint",
 -             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "CriticalClientHint",                  // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // in Bromite
++             "CriticalClientHint",               // disabled
++             base::FEATURE_DISABLED_BY_DEFAULT); // by default
  
  // Enable changing source dynamically for desktop capture.
  BASE_FEATURE(kDesktopCaptureChangeSource,
+diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
+--- a/net/http/http_network_transaction.cc
++++ b/net/http/http_network_transaction.cc
+@@ -99,6 +99,7 @@ const size_t kMaxRestarts = 32;
+ 
+ // Returns true when Early Hints are allowed on the given protocol.
+ bool EarlyHintsAreAllowedOn(HttpResponseInfo::ConnectionInfo connection_info) {
++  if ((true)) return false;
+   switch (connection_info) {
+     case HttpResponseInfo::ConnectionInfo::CONNECTION_INFO_HTTP0_9:
+     case HttpResponseInfo::ConnectionInfo::CONNECTION_INFO_HTTP1_0:
 diff --git a/services/network/public/cpp/client_hints.cc b/services/network/public/cpp/client_hints.cc
 --- a/services/network/public/cpp/client_hints.cc
 +++ b/services/network/public/cpp/client_hints.cc
@@ -90,7 +102,7 @@ diff --git a/services/network/public/cpp/client_hints.cc b/services/network/publ
 diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
 --- a/services/network/public/cpp/features.cc
 +++ b/services/network/public/cpp/features.cc
-@@ -209,7 +209,7 @@ BASE_FEATURE(kWebSocketReassembleShortMessages,
+@@ -202,7 +202,7 @@ BASE_FEATURE(kWebSocketReassembleShortMessages,
  // Enable support for ACCEPT_CH H2/3 frame as part of Client Hint Reliability.
  // See:
  // https://tools.ietf.org/html/draft-davidben-http-client-hint-reliability-02#section-4.3
@@ -141,7 +153,7 @@ diff --git a/third_party/blink/common/client_hints/enabled_client_hints.cc b/thi
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3840,8 +3840,8 @@
+@@ -3902,8 +3902,8 @@
        public: true,
      },
      {
