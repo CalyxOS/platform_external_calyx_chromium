@@ -9,14 +9,14 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I48dee27e0d0c6c263ec484fe427876fa3cdc7733
 ---
  .../java/res/xml/privacy_preferences.xml      | 13 ++++++++
- .../privacy/settings/PrivacySettings.java     | 32 +++++++++++++++++++
+ .../privacy/settings/PrivacySettings.java     | 33 +++++++++++++++++++
  .../strings/android_chrome_strings.grd        |  4 +++
- 3 files changed, 49 insertions(+)
+ 3 files changed, 50 insertions(+)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -58,6 +58,19 @@ found in the LICENSE file.
+@@ -64,6 +64,19 @@ found in the LICENSE file.
          android:key="privacy_sandbox"
          android:title="@string/prefs_privacy_sandbox"
          android:fragment="org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsFragmentV3"/>
@@ -39,7 +39,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -57,6 +57,13 @@ import org.chromium.components.user_prefs.UserPrefs;
+@@ -53,6 +53,13 @@ import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.NoUnderlineClickableSpan;
  import org.chromium.ui.text.SpanApplier;
  
@@ -53,9 +53,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  /**
   * Fragment to keep track of the all the privacy related preferences.
   */
-@@ -76,6 +83,16 @@ public class PrivacySettings extends PreferenceFragmentCompat
-     private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
+@@ -72,6 +79,16 @@ public class PrivacySettings
      private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
+     private static final String PREF_TRACKING_PROTECTION = "tracking_protection";
  
 +    // moved from SyncAndServicesSettings.java
 +    private static final String PREF_SERVICES_CATEGORY = "services_category";
@@ -68,9 +68,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +
 +    private ManagedPreferenceDelegate mManagedPreferenceDelegate;
      private IncognitoLockSettings mIncognitoLockSettings;
-     private HelpAndFeedbackLauncher mHelpAndFeedbackLauncher;
-     private Profile mProfile;
-@@ -142,6 +159,16 @@ public class PrivacySettings extends PreferenceFragmentCompat
+ 
+     @Override
+@@ -136,6 +153,16 @@ public class PrivacySettings
  
          setHasOptionsMenu(true);
  
@@ -87,21 +87,22 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -220,6 +247,9 @@ public class PrivacySettings extends PreferenceFragmentCompat
-             UserPrefs.get(mProfile).setBoolean(Pref.CAN_MAKE_PAYMENT_ENABLED, (boolean) newValue);
+@@ -223,6 +250,9 @@ public class PrivacySettings
          } else if (PREF_HTTPS_FIRST_MODE.equals(key)) {
-             UserPrefs.get(mProfile).setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
+             UserPrefs.get(getProfile())
+                     .setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
 +        } else if (PREF_SEARCH_SUGGESTIONS.equals(key)) {
-+            UserPrefs.get(Profile.getLastUsedRegularProfile())
++            UserPrefs.get(getProfile())
 +                    .setBoolean(Pref.SEARCH_SUGGEST_ENABLED, (boolean) newValue);
          }
          return true;
      }
-@@ -234,6 +264,8 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -237,6 +267,9 @@ public class PrivacySettings
       * Updates the preferences.
       */
      public void updatePreferences() {
-+        mSearchSuggestions.setChecked(UserPrefs.get(mProfile).getBoolean(Pref.SEARCH_SUGGEST_ENABLED));
++        mSearchSuggestions.setChecked(
++            UserPrefs.get(getProfile()).getBoolean(Pref.SEARCH_SUGGEST_ENABLED));
 +
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
@@ -109,7 +110,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -452,6 +452,10 @@ CHAR_LIMIT guidelines:
+@@ -464,6 +464,10 @@ CHAR_LIMIT guidelines:
          No statistics or crash reports are sent to Google
        </message>
  

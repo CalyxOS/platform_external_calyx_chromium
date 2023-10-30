@@ -1,0 +1,102 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Mon, 11 Dec 2017 22:42:11 +0100
+Subject: Add search engine
+
+Add a Google search engine that forces languages to English,
+disable from all its searches RLZ and field experiments querystring parameters.
+Add DuckDuckGo Lite
+
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+
+Squashed with: I9d05d25b51740c5df26e91be6e18a12701ede43e
+"Add DuckDuckGo Lite"
+
+Change-Id: I3d17ddba87a86200ce0b4484b9673045370f0ddc
+---
+ .../search_engines/prepopulated_engines.json  | 31 +++++++++++++++++++
+ .../search_engines/search_engine_type.h       |  2 ++
+ .../template_url_prepopulate_data.cc          |  3 ++
+ 3 files changed, 36 insertions(+)
+
+diff --git a/components/search_engines/prepopulated_engines.json b/components/search_engines/prepopulated_engines.json
+--- a/components/search_engines/prepopulated_engines.json
++++ b/components/search_engines/prepopulated_engines.json
+@@ -113,6 +113,16 @@
+       "id": 92
+     },
+ 
++    "duckduckgo_light": {
++      "name": "DuckDuckGo Light",
++      "keyword": "duckduckgo.com/lite",
++      "favicon_url": "https://duckduckgo.com/favicon.ico",
++      "search_url": "https://duckduckgo.com/lite/?q={searchTerms}",
++      "suggest_url": "https://duckduckgo.com/ac/?q={searchTerms}&type=list",
++      "type": "SEARCH_ENGINE_DUCKDUCKGOLIGHT",
++      "id": 12
++    },
++
+     "ecosia": {
+       "name": "Ecosia",
+       "keyword": "ecosia.org",
+@@ -171,6 +181,27 @@
+       "id": 111
+     },
+ 
++    "googleen": {
++      "name": "Google in English",
++      "keyword": "googleen",
++      "favicon_url": "https://www.google.com/favicon.ico",
++      "search_url": "{google:baseURL}search?q={searchTerms}&ie={inputEncoding}&hl=en",
++      "suggest_url": "{google:baseSuggestURL}search?client={google:suggestClient}&q={searchTerms}&hl=en",
++      "image_url": "{google:baseURL}searchbyimage/upload?hl=en",
++      "new_tab_url": "{google:baseURL}_/chrome/newtab?hl=en&ie={inputEncoding}",
++      "contextual_search_url": "{google:baseURL}_/contextualsearch?{google:contextualSearchVersion}{google:contextualSearchContextData}&hl=en",
++      "image_url_post_params": "encoded_image={google:imageThumbnail},image_url={google:imageURL},sbisrc={google:imageSearchSource},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight}",
++      "alternate_urls": [
++        "{google:baseURL}?hl=en#q={searchTerms}",
++        "{google:baseURL}search?hl=en#q={searchTerms}",
++        "{google:baseURL}webhp?hl=en#q={searchTerms}",
++        "{google:baseURL}s?hl=en#q={searchTerms}",
++        "{google:baseURL}s?hl=en&q={searchTerms}"
++      ],
++      "type": "SEARCH_ENGINE_GOOGLE_EN",
++      "id": 13
++    },
++
+     "mail_ru": {
+       "name": "@MAIL.RU",
+       "keyword": "mail.ru",
+diff --git a/components/search_engines/search_engine_type.h b/components/search_engines/search_engine_type.h
+--- a/components/search_engines/search_engine_type.h
++++ b/components/search_engines/search_engine_type.h
+@@ -88,6 +88,8 @@ enum SearchEngineType {
+   SEARCH_ENGINE_QUENDU = 69,
+   SEARCH_ENGINE_BRAVE = 70,
+   SEARCH_ENGINE_KARMA = 71,
++  SEARCH_ENGINE_GOOGLE_EN = 72,
++  SEARCH_ENGINE_DUCKDUCKGOLIGHT = 73,
+ 
+   SEARCH_ENGINE_MAX  // Bounding value needed for UMA histogram macro.
+ };
+diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
+--- a/components/search_engines/template_url_prepopulate_data.cc
++++ b/components/search_engines/template_url_prepopulate_data.cc
+@@ -56,6 +56,7 @@ struct EngineAndTier {
+ 
+ // Default (for countries with no better engine set)
+ constexpr EngineAndTier engines_default[] = {
++    {SearchEngineTier::kTopEngines, &googleen},
+     {SearchEngineTier::kTopEngines, &google},
+     {SearchEngineTier::kTopEngines, &bing},
+     {SearchEngineTier::kTopEngines, &yahoo},
+@@ -1608,6 +1609,8 @@ const std::vector<EngineAndTier> GetPrepopulationSetFromCountryID(
+   for (size_t i = 0; i < num_engines; i++) {
+     t_url.push_back(engines[i]);
+   }
++  t_url.push_back({SearchEngineTier::kTopEngines, &googleen});
++  t_url.push_back({SearchEngineTier::kTopEngines, &duckduckgo_light});
+   return t_url;
+ }
+ 
+-- 
+

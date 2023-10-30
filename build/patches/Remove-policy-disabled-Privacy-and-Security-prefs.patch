@@ -3,22 +3,23 @@ Date: Wed, 8 Mar 2023 13:24:32 -0500
 Subject: Remove policy-disabled Privacy and Security prefs
 
 Remove Safe Browsing, Preload pages, and Touch to Search from the
-Privacy and security settings screen.
+Privacy and security settings screen. Also remove the Google services
+text and link from the bottom.
 
 Change-Id: Ic86dc8dac25b4e9bc89ab73952ec997ce517395b
 ---
- .../android/java/res/xml/privacy_preferences.xml  | 14 --------------
- .../java/res/xml/privacy_preferences_v2.xml       | 10 ----------
- .../browser/privacy/settings/PrivacySettings.java | 15 ---------------
- 3 files changed, 39 deletions(-)
+ .../java/res/xml/privacy_preferences.xml       | 18 ------------------
+ .../java/res/xml/privacy_preferences_v2.xml    | 14 --------------
+ .../privacy/settings/PrivacySettings.java      | 18 ------------------
+ 3 files changed, 50 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -19,11 +19,6 @@ found in the LICENSE file.
-         android:title="@string/privacy_guide_pref_title"
-         android:summary="@string/privacy_guide_pref_summary"
-         android:fragment="org.chromium.chrome.browser.privacy_guide.PrivacyGuideFragment"/>
+@@ -25,11 +25,6 @@ found in the LICENSE file.
+         android:summary="@string/tracking_protection_summary"
+         android:fragment="org.chromium.components.privacy_sandbox.TrackingProtectionSettings"
+         app:isPreferenceVisible="false" />
 -    <Preference
 -        android:key="safe_browsing"
 -        android:title="@string/prefs_safe_browsing_title"
@@ -27,7 +28,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
          android:key="https_first_mode"
          android:title="@string/settings_https_first_mode_title"
-@@ -37,11 +32,6 @@ found in the LICENSE file.
+@@ -43,11 +38,6 @@ found in the LICENSE file.
          android:key="can_make_payment"
          android:title="@string/can_make_payment_title"
          android:summary="@string/settings_can_make_payment_toggle_label"/>
@@ -39,7 +40,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      <org.chromium.components.browser_ui.settings.ChromeBasePreference
          android:key="usage_stats_reporting"
          android:title="@string/usage_stats_setting_title"
-@@ -66,10 +56,6 @@ found in the LICENSE file.
+@@ -72,18 +62,10 @@ found in the LICENSE file.
            android:title="@string/improve_search_suggestions_title"
            android:summary="@string/improve_search_suggestions_summary"
            android:persistent="false"/>
@@ -50,10 +51,18 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      </PreferenceCategory>
      <Preference
          android:key="phone_as_a_security_key"
+         android:title="@string/cablev2_paask_title"
+         android:summary="@string/cablev2_paask_body"
+         android:fragment="org.chromium.chrome.browser.webauthn.PrivacySettingsFragment"/>
+-    <org.chromium.components.browser_ui.settings.TextMessagePreference
+-        android:key="sync_and_services_link"
+-        android:summary="@string/privacy_sync_and_services_link_legacy"
+-        app:allowDividerBelow="false"/>
+ </PreferenceScreen>
 diff --git a/chrome/android/java/res/xml/privacy_preferences_v2.xml b/chrome/android/java/res/xml/privacy_preferences_v2.xml
 --- a/chrome/android/java/res/xml/privacy_preferences_v2.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences_v2.xml
-@@ -34,11 +34,6 @@ found in the LICENSE file.
+@@ -40,11 +40,6 @@ found in the LICENSE file.
          android:key="do_not_track"
          android:title="@string/do_not_track_title"
          android:fragment="org.chromium.chrome.browser.privacy.settings.DoNotTrackSettings" />
@@ -65,7 +74,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences_v2.xml b/chrome/and
      <org.chromium.chrome.browser.incognito.reauth.IncognitoReauthSettingSwitchPreference
          android:key="incognito_lock"
          android:title="@string/settings_incognito_tab_lock_title"
-@@ -48,11 +43,6 @@ found in the LICENSE file.
+@@ -54,11 +49,6 @@ found in the LICENSE file.
      <PreferenceCategory
          android:key="security_section"
          android:title="@string/security_section_title" />
@@ -77,10 +86,19 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences_v2.xml b/chrome/and
      <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
          android:key="https_first_mode"
          android:title="@string/settings_https_first_mode_title"
+@@ -76,8 +66,4 @@ found in the LICENSE file.
+         android:key="can_make_payment"
+         android:title="@string/can_make_payment_title"
+         android:summary="@string/settings_can_make_payment_toggle_label" />
+-    <org.chromium.components.browser_ui.settings.TextMessagePreference
+-        android:key="sync_and_services_link"
+-        android:summary="@string/privacy_sync_and_services_link_legacy"
+-        app:allowDividerBelow="false" />
+ </PreferenceScreen>
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -148,27 +148,12 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -142,27 +142,12 @@ public class PrivacySettings
          mIncognitoLockSettings = new IncognitoLockSettings(incognitoReauthPreference);
          mIncognitoLockSettings.setUpIncognitoReauthPreference(getActivity());
  
@@ -108,5 +126,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
+@@ -198,9 +183,6 @@ public class PrivacySettings
+         Preference secureDnsPref = findPreference(PREF_SECURE_DNS);
+         secureDnsPref.setVisible(SecureDnsSettings.isUiEnabled());
+ 
+-        Preference syncAndServicesLink = findPreference(PREF_SYNC_AND_SERVICES_LINK);
+-        syncAndServicesLink.setSummary(buildSyncAndServicesLink());
+-
+         Preference thirdPartyCookies = findPreference(PREF_THIRD_PARTY_COOKIES);
+ 
+         if (showTrackingProtectionUI()) {
 -- 
 

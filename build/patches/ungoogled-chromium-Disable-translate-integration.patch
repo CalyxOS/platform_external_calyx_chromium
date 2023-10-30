@@ -8,13 +8,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I7f7a436ca02fac8c1cce5a73df3e51c5c71feb6b
 ---
- .../xml/languages_detailed_preferences.xml    | 43 -------------------
+ .../xml/languages_detailed_preferences.xml    | 43 ------------------
  .../java/res/xml/languages_preferences.xml    |  5 ---
- .../language/settings/LanguageSettings.java   | 41 +-----------------
+ .../language/settings/LanguageSettings.java   | 44 +------------------
  .../strings/android_chrome_strings.grd        |  3 --
  .../core/browser/translate_manager.cc         |  5 ++-
  .../core/browser/translate_script.cc          | 19 +++-----
- 6 files changed, 11 insertions(+), 105 deletions(-)
+ 6 files changed, 11 insertions(+), 108 deletions(-)
 
 diff --git a/chrome/browser/language/android/java/res/xml/languages_detailed_preferences.xml b/chrome/browser/language/android/java/res/xml/languages_detailed_preferences.xml
 --- a/chrome/browser/language/android/java/res/xml/languages_detailed_preferences.xml
@@ -83,7 +83,7 @@ diff --git a/chrome/browser/language/android/java/res/xml/languages_preferences.
 diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/settings/LanguageSettings.java b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/settings/LanguageSettings.java
 --- a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/settings/LanguageSettings.java
 +++ b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/settings/LanguageSettings.java
-@@ -51,12 +51,6 @@ public class LanguageSettings extends PreferenceFragmentCompat
+@@ -48,12 +48,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
      static final String APP_LANGUAGE_PREFERENCE_KEY = "app_language_preference";
      static final String PREFERRED_LANGUAGES_KEY = "preferred_languages";
      static final String CONTENT_LANGUAGES_KEY = "content_languages_preference";
@@ -96,10 +96,10 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
  
      private static final String TAG = "LanguageSettings";
  
-@@ -107,27 +101,6 @@ public class LanguageSettings extends PreferenceFragmentCompat
+@@ -98,32 +92,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
          ContentLanguagesPreference mLanguageListPref =
                  (ContentLanguagesPreference) findPreference(PREFERRED_LANGUAGES_KEY);
-         mLanguageListPref.registerActivityLauncher(this);
+         mLanguageListPref.initialize(this, getPrefService());
 -
 -        ChromeSwitchPreference translateSwitch =
 -                (ChromeSwitchPreference) findPreference(TRANSLATE_SWITCH_KEY);
@@ -119,21 +119,26 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
 -                return true;
 -            }
 -        });
--        translateSwitch.setManagedPreferenceDelegate((ChromeManagedPreferenceDelegate) preference
--                -> getPrefService().isManagedPreference(Pref.OFFER_TRANSLATE_ENABLED));
+-        translateSwitch.setManagedPreferenceDelegate(new ChromeManagedPreferenceDelegate(
+-                getProfile()) {
+-            @Override
+-            public boolean isPreferenceControlledByPolicy(Preference preference) {
+-                return getPrefService().isManagedPreference(Pref.OFFER_TRANSLATE_ENABLED);
+-            }
+-        });
      }
  
      /**
-@@ -147,8 +120,6 @@ public class LanguageSettings extends PreferenceFragmentCompat
+@@ -143,8 +111,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
          ContentLanguagesPreference mLanguageListPref =
                  (ContentLanguagesPreference) findPreference(CONTENT_LANGUAGES_KEY);
-         mLanguageListPref.registerActivityLauncher(this);
+         mLanguageListPref.initialize(this, getPrefService());
 -
 -        setupTranslateSection(mLanguageListPref);
      }
  
      /**
-@@ -178,7 +149,7 @@ public class LanguageSettings extends PreferenceFragmentCompat
+@@ -174,7 +140,7 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
       * @param contentLanguagesPreference ContentLanguagesPreference reference to update about state
       *         changes.
       */
@@ -142,18 +147,16 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
          // Setup expandable advanced settings section.
          PreferenceCategory translationAdvancedSection =
                  (PreferenceCategory) findPreference(TRANSLATION_ADVANCED_SECTION);
-@@ -240,9 +211,7 @@ public class LanguageSettings extends PreferenceFragmentCompat
-                 return true;
+@@ -243,7 +209,7 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+                 return getPrefService().isManagedPreference(Pref.OFFER_TRANSLATE_ENABLED);
              }
          });
--        translateSwitch.setManagedPreferenceDelegate((ChromeManagedPreferenceDelegate) preference
--                -> getPrefService().isManagedPreference(Pref.OFFER_TRANSLATE_ENABLED));
 -    }
 +    } */
  
      @Override
      public void onStart() {
-@@ -280,12 +249,6 @@ public class LanguageSettings extends PreferenceFragmentCompat
+@@ -281,12 +247,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
              // Set the default target language to match the new app language.
              TranslateBridge.setDefaultTargetLanguage(code);
          } else if (requestCode == REQUEST_CODE_CHANGE_TARGET_LANGUAGE) {
@@ -169,7 +172,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1895,9 +1895,6 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1930,9 +1930,6 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_LANGUAGES_LIST_DESCRIPTION" desc="Description on the Languages settings screen. Appears above a list of one or more languages that the user selects, to tell Chrome which languages they prefer to use to read website content.">
          Websites will show text in your preferred language, when possible.
        </message>
@@ -182,7 +185,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/components/translate/core/browser/translate_manager.cc b/components/translate/core/browser/translate_manager.cc
 --- a/components/translate/core/browser/translate_manager.cc
 +++ b/components/translate/core/browser/translate_manager.cc
-@@ -825,8 +825,9 @@ void TranslateManager::FilterIsTranslatePossible(
+@@ -832,8 +832,9 @@ void TranslateManager::FilterIsTranslatePossible(
          TriggerDecision::kDisabledOffline);
    }
  
