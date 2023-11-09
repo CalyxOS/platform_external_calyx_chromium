@@ -4,13 +4,15 @@ Subject: Override Cromite default site settings states
 
 Autoplay: WebView Default ON, Browser still default off
 WebGL: Default ON
+WebRTC: WebView Default ON, Browser still default off
 
 Change-Id: Ia465ef97d29c8a43f8da7be7d919ba6aad8f95bf
 ---
  .../core/browser/bromite_content_settings/webgl.inc           | 2 +-
  .../renderer/core/execution_context/execution_context.cc      | 4 ++--
  third_party/blink/renderer/core/html/media/autoplay_policy.cc | 2 +-
- 3 files changed, 4 insertions(+), 4 deletions(-)
+ .../peerconnection/peer_connection_dependency_factory.cc      | 3 ++-
+ 4 files changed, 6 insertions(+), 5 deletions(-)
 
 diff --git a/components/content_settings/core/browser/bromite_content_settings/webgl.inc b/components/content_settings/core/browser/bromite_content_settings/webgl.inc
 --- a/components/content_settings/core/browser/bromite_content_settings/webgl.inc
@@ -47,5 +49,18 @@ diff --git a/third_party/blink/renderer/core/html/media/autoplay_policy.cc b/thi
    }
    return true;
  }
+diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
+--- a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
++++ b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
+@@ -783,7 +783,8 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
+       WebRTCIPHandlingPolicy policy =
+           GetWebRTCIPHandlingPolicy(webrtc_ip_handling_policy);
+       blink::WebContentSettingsClient* settings = web_frame->GetContentSettingsClient();
+-      if (settings && settings->AllowContentSetting(ContentSettingsType::WEBRTC, false)) {
++      if (!settings || settings->AllowContentSetting(ContentSettingsType::WEBRTC,
++              /*default_value=*/true)) {
+         policy = kDefault;
+       }
+ 
 -- 
 
