@@ -9,8 +9,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I152a6713d12ebc4764e9a7bba1c101a17a88c393
 ---
  .../android/java/res/xml/main_preferences.xml | 24 -------------------
- .../chrome/browser/settings/MainSettings.java |  8 +------
- 2 files changed, 1 insertion(+), 31 deletions(-)
+ .../chrome/browser/settings/MainSettings.java | 22 +----------------
+ 2 files changed, 1 insertion(+), 45 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
@@ -49,27 +49,48 @@ diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/j
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
-@@ -226,13 +226,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -170,18 +170,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
+         ProfileDataCache profileDataCache =
+                 ProfileDataCache.createWithDefaultImageSizeAndNoBadge(getContext());
+         AccountManagerFacade accountManagerFacade = AccountManagerFacadeProvider.getInstance();
+-        SigninManager signinManager = IdentityServicesProvider.get().getSigninManager(getProfile());
+-        IdentityManager identityManager =
+-                IdentityServicesProvider.get().getIdentityManager(getProfile());
+-
+-        SyncPromoPreference syncPromoPreference = findPreference(PREF_SYNC_PROMO);
+-        syncPromoPreference.initialize(
+-                profileDataCache, accountManagerFacade, signinManager, identityManager);
+-
+-        SignInPreference signInPreference = findPreference(PREF_SIGN_IN);
+-        signInPreference.initialize(profileDataCache, accountManagerFacade,
+-                UserPrefs.get(getProfile()), SyncServiceFactory.getForProfile(getProfile()),
+-                signinManager, identityManager);
+ 
+         cachePreferences();
+ 
+@@ -253,15 +241,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
      }
  
      private void updatePreferences() {
--        if (IdentityServicesProvider.get().getSigninManager(mProfile).isSigninSupported(
--                    /*requireUpdatedPlayServices=*/false)) {
+-        if (IdentityServicesProvider.get()
+-                        .getSigninManager(getProfile())
+-                        .isSigninSupported(
+-                                /*requireUpdatedPlayServices=*/false)) {
 -            addPreferenceIfAbsent(PREF_SIGN_IN);
 -        } else {
 -            removePreferenceIfPresent(PREF_SIGN_IN);
 -        }
 -
-         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                 && ChromeFeatureList.isEnabled(
-                         ChromeFeatureList.AUTOFILL_VIRTUAL_VIEW_STRUCTURE_ANDROID)) {
-@@ -276,6 +269,7 @@ public class MainSettings extends PreferenceFragmentCompat
+         updateManageSyncPreference();
+         updateSearchEnginePreference();
+         updateAutofillPreferences();
+@@ -297,6 +276,7 @@ public class MainSettings extends ChromeBaseSettingsFragment
      }
  
      private void updateManageSyncPreference() {
 +        if (true) return;
-         String primaryAccountName = CoreAccountInfo.getEmailFrom(
-                 IdentityServicesProvider.get().getIdentityManager(mProfile).getPrimaryAccountInfo(
-                         ConsentLevel.SIGNIN));
+         String primaryAccountName =
+                 CoreAccountInfo.getEmailFrom(IdentityServicesProvider.get()
+                                                      .getIdentityManager(getProfile())
 -- 
 

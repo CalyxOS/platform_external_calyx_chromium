@@ -2,17 +2,22 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Tue, 12 Jun 2018 15:09:26 +0200
 Subject: Disable all promo dialogs
 
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+
 Change-Id: I9e71112a185671ce7aae2f836840bf949597eb0a
 ---
- .../chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java      | 1 +
- .../ui/views/user_education/browser_feature_promo_controller.cc  | 1 +
- components/user_education/common/feature_promo_registry.cc       | 1 +
- 3 files changed, 3 insertions(+)
+ .../chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java     | 1 +
+ chrome/browser/ui/browser_ui_prefs.cc                           | 2 +-
+ chrome/browser/ui/ui_features.cc                                | 2 +-
+ .../ui/views/user_education/browser_feature_promo_controller.cc | 1 +
+ .../chrome/browser/user_education/UserEducationHelper.java      | 1 +
+ components/user_education/common/feature_promo_registry.cc      | 1 +
+ 6 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
-@@ -955,6 +955,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -945,6 +945,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
      }
  
      private boolean maybeShowPromo() {
@@ -20,21 +25,56 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
          // Only one promo can be shown in one run to avoid nagging users too much.
          if (FullScreenSyncPromoUtil.launchPromoIfNeeded(mActivity,
                      SyncConsentActivityLauncherImpl.get(), VersionInfo.getProductMajorVersion())) {
+diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -144,7 +144,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+ 
+   registry->RegisterBooleanPref(prefs::kEnterpriseHardwarePlatformAPIEnabled,
+                                 false);
+-  registry->RegisterBooleanPref(prefs::kUserFeedbackAllowed, true);
++  registry->RegisterBooleanPref(prefs::kUserFeedbackAllowed, false);
+   registry->RegisterBooleanPref(
+       prefs::kExternalProtocolDialogShowAlwaysOpenCheckbox, true);
+   registry->RegisterBooleanPref(prefs::kScreenCaptureAllowed, true);
+diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
+--- a/chrome/browser/ui/ui_features.cc
++++ b/chrome/browser/ui/ui_features.cc
+@@ -30,7 +30,7 @@ BASE_FEATURE(kAllowEyeDropperWGCScreenCapture,
+ );
+ 
+ // Enables Chrome Labs menu in the toolbar. See https://crbug.com/1145666
+-BASE_FEATURE(kChromeLabs, "ChromeLabs", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kChromeLabs, "ChromeLabs", base::FEATURE_DISABLED_BY_DEFAULT);
+ const char kChromeLabsActivationParameterName[] =
+     "chrome_labs_activation_percentage";
+ const base::FeatureParam<int> kChromeLabsActivationPercentage{
 diff --git a/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc b/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
 --- a/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
 +++ b/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
-@@ -63,6 +63,7 @@ ui::ElementContext BrowserFeaturePromoController::GetAnchorContext() const {
+@@ -68,6 +68,7 @@ ui::ElementContext BrowserFeaturePromoController::GetAnchorContext() const {
  
- bool BrowserFeaturePromoController::CanShowPromo(
+ bool BrowserFeaturePromoController::CanShowPromoForElement(
      ui::TrackedElement* anchor_element) const {
 +  if ((true)) return false;
+   auto* const profile = browser_view_->GetProfile();
    // Temporarily turn off IPH in incognito as a concern was raised that
    // the IPH backend ignores incognito and writes to the parent profile.
-   // See https://bugs.chromium.org/p/chromium/issues/detail?id=1128728#c30
+diff --git a/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java b/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
+--- a/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
++++ b/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
+@@ -73,6 +73,7 @@ public class UserEducationHelper {
+     }
+ 
+     private void showIPH(Tracker tracker, IPHCommand iphCommand) {
++        if ((true)) return;
+         // Activity was destroyed; don't show IPH.
+         View anchorView = iphCommand.anchorView;
+         if (mActivity == null || mActivity.isFinishing() || mActivity.isDestroyed()
 diff --git a/components/user_education/common/feature_promo_registry.cc b/components/user_education/common/feature_promo_registry.cc
 --- a/components/user_education/common/feature_promo_registry.cc
 +++ b/components/user_education/common/feature_promo_registry.cc
-@@ -26,6 +26,7 @@ const FeaturePromoSpecification* FeaturePromoRegistry::GetParamsForFeature(
+@@ -30,6 +30,7 @@ const FeaturePromoSpecification* FeaturePromoRegistry::GetParamsForFeature(
  }
  
  void FeaturePromoRegistry::RegisterFeature(FeaturePromoSpecification spec) {

@@ -1,0 +1,40 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 5 Oct 2023 16:39:45 +0000
+Subject: Work around build error (upstream?)
+
+../../android_webview/common/aw_content_client.cc:130:27: error:
+'SetAllowOnlyDeprecationTrials' is a private member of
+'embedder_support::OriginTrialPolicyImpl'
+
+Change-Id: If53f8c7f6c950a0f932c9683694e17d6acb9bb68
+---
+ .../origin_trials/origin_trial_policy_impl.h           | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/components/embedder_support/origin_trials/origin_trial_policy_impl.h b/components/embedder_support/origin_trials/origin_trial_policy_impl.h
+--- a/components/embedder_support/origin_trials/origin_trial_policy_impl.h
++++ b/components/embedder_support/origin_trials/origin_trial_policy_impl.h
+@@ -33,16 +33,16 @@ class OriginTrialPolicyImpl : public blink::OriginTrialPolicy {
+   bool IsFeatureDisabledForUser(base::StringPiece feature) const override;
+   bool IsTokenDisabled(base::StringPiece token_signature) const override;
+   bool IsOriginSecure(const GURL& url) const override;
+-
+- private:
+-  bool SetPublicKeysFromASCIIString(const std::string& ascii_public_key);
+-  bool SetDisabledFeatures(const std::string& disabled_feature_list);
+-  bool SetDisabledTokens(const std::vector<std::string>& tokens);
+   // Disabling deprecation trial could cause potential breakage. This
+   // function allow embedder to safely disable all trials with
+   // new/experimental features. By default all trials are allowed to run.
+   void SetAllowOnlyDeprecationTrials(bool allow_only_deprecation_trials);
+   bool GetAllowOnlyDeprecationTrials() const;
++
++ private:
++  bool SetPublicKeysFromASCIIString(const std::string& ascii_public_key);
++  bool SetDisabledFeatures(const std::string& disabled_feature_list);
++  bool SetDisabledTokens(const std::vector<std::string>& tokens);
+   const std::set<std::string>* GetDisabledTokensForTesting() const override;
+ 
+   std::vector<blink::OriginTrialPublicKey> public_keys_;
+-- 
+
