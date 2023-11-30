@@ -47,7 +47,7 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -105,6 +105,7 @@ android_library("java") {
+@@ -103,6 +103,7 @@ android_library("java") {
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreference.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsiteRowPreference.java",
@@ -55,9 +55,9 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    ]
  
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -277,6 +278,8 @@ android_resources("java_resources") {
+@@ -276,6 +277,8 @@ android_resources("java_resources") {
+     "java/res/xml/single_website_preferences.xml",
      "java/res/xml/site_settings_preferences.xml",
-     "java/res/xml/site_settings_preferences_with_categories.xml",
      "java/res/xml/website_preferences.xml",
 +    "java/res/layout/timezoneoverride_site_settings_preference.xml",
 +    "java/res/layout/time_zone_select_dialog.xml",
@@ -384,7 +384,7 @@ index 0000000000000000000000000000000000000000..636d75e5b94e476e4551ddde61533e73
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
-@@ -416,6 +416,14 @@ public class WebsitePreferenceBridge {
+@@ -417,6 +417,14 @@ public class WebsitePreferenceBridge {
          return WebsitePreferenceBridgeJni.get().toHostOnlyPattern(pattern);
      }
  
@@ -399,7 +399,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      @NativeMethods
      public interface Natives {
          boolean isNotificationEmbargoedForOrigin(
-@@ -485,5 +493,7 @@ public class WebsitePreferenceBridge {
+@@ -486,5 +494,7 @@ public class WebsitePreferenceBridge {
          boolean getLocationAllowedByPolicy(BrowserContextHandle browserContextHandle);
          String toDomainWildcardPattern(String pattern);
          String toHostOnlyPattern(String pattern);
@@ -563,7 +563,7 @@ index 0000000000000000000000000000000000000000..a5c1e7085d8415ea5843ce484f9360e0
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -1103,3 +1103,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
+@@ -1104,3 +1104,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
            ContentSettingsPattern::FromString(pattern_string));
    return ConvertUTF8ToJavaString(env, host_only_pattern.ToString());
  }
@@ -680,7 +680,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
  }
  
  PrefProvider::~PrefProvider() {
-@@ -398,4 +404,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
+@@ -401,4 +407,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
    clock_ = clock;
  }
  
@@ -719,7 +719,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -159,6 +159,11 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
+@@ -158,6 +158,11 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
        map->GetSettingsForOneType(ContentSettingsType::JAVASCRIPT);
    rules->popup_redirect_rules =
        map->GetSettingsForOneType(ContentSettingsType::POPUPS);
@@ -734,7 +734,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/browser/host_content_settings_map.cc b/components/content_settings/core/browser/host_content_settings_map.cc
 --- a/components/content_settings/core/browser/host_content_settings_map.cc
 +++ b/components/content_settings/core/browser/host_content_settings_map.cc
-@@ -660,6 +660,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
+@@ -668,6 +668,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
      provider->SetClockForTesting(clock);
  }
  
@@ -752,7 +752,7 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/browser/host_content_settings_map.h b/components/content_settings/core/browser/host_content_settings_map.h
 --- a/components/content_settings/core/browser/host_content_settings_map.h
 +++ b/components/content_settings/core/browser/host_content_settings_map.h
-@@ -384,6 +384,9 @@ class HostContentSettingsMap : public content_settings::Observer,
+@@ -386,6 +386,9 @@ class HostContentSettingsMap : public content_settings::Observer,
      allow_invalid_secondary_pattern_for_testing_ = allow;
    }
  
@@ -784,7 +784,7 @@ diff --git a/components/content_settings/core/common/content_settings.h b/compon
 diff --git a/components/content_settings/core/common/content_settings.mojom b/components/content_settings/core/common/content_settings.mojom
 --- a/components/content_settings/core/common/content_settings.mojom
 +++ b/components/content_settings/core/common/content_settings.mojom
-@@ -102,4 +102,5 @@ struct RendererContentSettingRules {
+@@ -103,4 +103,5 @@ struct RendererContentSettingRules {
    array<ContentSettingPatternSource> popup_redirect_rules;
    array<ContentSettingPatternSource> mixed_content_rules;
    array<ContentSettingPatternSource> auto_dark_content_rules;

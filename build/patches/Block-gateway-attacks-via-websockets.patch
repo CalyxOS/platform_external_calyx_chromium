@@ -26,8 +26,8 @@ Change-Id: Iaa6823daecc7fbe6f3592b03674b20d99387ad6b
 diff --git a/third_party/blink/renderer/core/execution_context/execution_context.cc b/third_party/blink/renderer/core/execution_context/execution_context.cc
 --- a/third_party/blink/renderer/core/execution_context/execution_context.cc
 +++ b/third_party/blink/renderer/core/execution_context/execution_context.cc
-@@ -713,4 +713,20 @@ void ExecutionContext::WriteIntoTrace(
-   proto->set_world_type(GetWorldType(*this));
+@@ -715,4 +715,20 @@ bool ExecutionContext::CrossOriginIsolatedCapabilityOrDisabledWebSecurity()
+   return Agent::IsWebSecurityDisabled() || CrossOriginIsolatedCapability();
  }
  
 +String ExecutionContext::addressSpaceForBindings() const {
@@ -61,7 +61,7 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
 diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third_party/blink/renderer/core/loader/base_fetch_context.h
 --- a/third_party/blink/renderer/core/loader/base_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/base_fetch_context.h
-@@ -89,6 +89,7 @@ class CORE_EXPORT BaseFetchContext : public FetchContext {
+@@ -85,6 +85,7 @@ class CORE_EXPORT BaseFetchContext : public FetchContext {
  
    virtual SubresourceFilter* GetSubresourceFilter() const = 0;
    virtual bool ShouldBlockWebSocketByMixedContentCheck(const KURL&) const = 0;
@@ -72,7 +72,7 @@ diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
-@@ -588,6 +588,26 @@ bool FrameFetchContext::ShouldBlockRequestByInspector(const KURL& url) const {
+@@ -592,6 +592,26 @@ bool FrameFetchContext::ShouldBlockRequestByInspector(const KURL& url) const {
    return should_block_request;
  }
  
@@ -102,7 +102,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/third_party/blink/renderer/core/loader/frame_fetch_context.h
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.h
-@@ -175,6 +175,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
+@@ -176,6 +176,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
    bool ShouldBlockWebSocketByMixedContentCheck(const KURL&) const override;
    std::unique_ptr<WebSocketHandshakeThrottle> CreateWebSocketHandshakeThrottle()
        override;
@@ -151,7 +151,7 @@ diff --git a/third_party/blink/renderer/core/loader/worker_fetch_context.cc b/th
 diff --git a/third_party/blink/renderer/core/loader/worker_fetch_context.h b/third_party/blink/renderer/core/loader/worker_fetch_context.h
 --- a/third_party/blink/renderer/core/loader/worker_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/worker_fetch_context.h
-@@ -64,6 +64,7 @@ class WorkerFetchContext final : public BaseFetchContext {
+@@ -62,6 +62,7 @@ class WorkerFetchContext final : public BaseFetchContext {
    bool ShouldBlockWebSocketByMixedContentCheck(const KURL&) const override;
    std::unique_ptr<WebSocketHandshakeThrottle> CreateWebSocketHandshakeThrottle()
        override;
@@ -208,7 +208,7 @@ diff --git a/third_party/blink/renderer/modules/background_fetch/background_fetc
  scoped_refptr<BlobDataHandle> ExtractBlobHandle(
      Request* request,
      ExceptionState& exception_state) {
-@@ -187,6 +211,13 @@ ScriptPromise BackgroundFetchManager::fetch(
+@@ -188,6 +212,13 @@ ScriptPromise BackgroundFetchManager::fetch(
                                   exception_state);
      }
  

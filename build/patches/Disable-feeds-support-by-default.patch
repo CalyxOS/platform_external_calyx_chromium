@@ -6,34 +6,35 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I59cfe031bfb2b8c55d19e4449a4280ec2bb9daa6
 ---
- .../chromium/chrome/browser/feed/FeedFeatures.java  |  8 +-------
+ .../chromium/chrome/browser/feed/FeedFeatures.java  |  9 +--------
  chrome/browser/prefs/browser_prefs.cc               |  4 ++--
  components/feed/core/common/pref_names.cc           | 13 +------------
  components/feed/feed_feature_list.cc                |  4 ++--
- 4 files changed, 6 insertions(+), 23 deletions(-)
+ 4 files changed, 6 insertions(+), 24 deletions(-)
 
 diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
 --- a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
 +++ b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
-@@ -46,13 +46,7 @@ public final class FeedFeatures {
+@@ -44,14 +44,7 @@ public final class FeedFeatures {
       *         the user is signed in and confirms it's not a child profile.
       */
      public static boolean isWebFeedUIEnabled() {
 -        // TODO(b/197354832, b/188188861): change consent check to SIGNIN.
 -        return ChromeFeatureList.isEnabled(ChromeFeatureList.WEB_FEED)
 -                && IdentityServicesProvider.get()
--                           .getSigninManager(Profile.getLastUsedRegularProfile())
--                           .getIdentityManager()
--                           .hasPrimaryAccount(ConsentLevel.SIGNIN)
--                && !Profile.getLastUsedRegularProfile().isChild();
+-                        .getSigninManager(Profile.getLastUsedRegularProfile())
+-                        .getIdentityManager()
+-                        .hasPrimaryAccount(ConsentLevel.SIGNIN)
+-                && !Profile.getLastUsedRegularProfile().isChild()
+-                && isFeedEnabledByDSE();
 +        return false;
      }
  
-     public static boolean shouldUseWebFeedAwarenessIPH() {
+     private static boolean isFeedEnabledByDSE() {
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1760,10 +1760,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+@@ -1759,10 +1759,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
    supervised_user::SupervisedUserService::RegisterProfilePrefs(registry);
  #endif
  
@@ -72,7 +73,7 @@ diff --git a/components/feed/core/common/pref_names.cc b/components/feed/core/co
 diff --git a/components/feed/feed_feature_list.cc b/components/feed/feed_feature_list.cc
 --- a/components/feed/feed_feature_list.cc
 +++ b/components/feed/feed_feature_list.cc
-@@ -20,8 +20,8 @@ namespace feed {
+@@ -22,8 +22,8 @@ namespace feed {
  // InterestFeedV2 is cached in ChromeCachedFlags. If the default value here is
  // changed, please update the cached one's default value in CachedFeatureFlags.
  BASE_FEATURE(kInterestFeedV2,

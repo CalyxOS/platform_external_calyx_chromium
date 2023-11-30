@@ -2,7 +2,7 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Sat, 13 Nov 2021 09:17:06 +0000
 Subject: Disable FLoC and privacy sandbox
 
-Remove UI from the settings and set the flags to inactive
+Set the flags to inactive
 Permanently removes FLoC support, disabling the download of LSH clusters,
 the marking the history navigation and the javascript API and permission policies.
 Also added the disabling of blink features through the DisabledForBromite tag
@@ -13,7 +13,6 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
 ---
  .../browser/chrome_content_browser_client.cc  |  3 +++
- .../PrivacySandboxSettingsFragmentV3.java     |  1 +
  .../privacy_sandbox_settings_delegate.cc      |  1 +
  .../privacy_sandbox/privacy_sandbox_prompt.cc |  1 +
  .../history/core/browser/history_backend.cc   | 13 +---------
@@ -21,36 +20,25 @@ Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
  .../privacy_sandbox_features.cc               | 14 +++++------
  .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
  .../privacy_sandbox_settings_impl.cc          | 24 +++++++++++++------
- 9 files changed, 33 insertions(+), 27 deletions(-)
+ 8 files changed, 32 insertions(+), 27 deletions(-)
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3430,6 +3430,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
-     const url::Origin* source_origin,
+@@ -3432,6 +3432,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
-     const url::Origin* reporting_origin) {
+     const url::Origin* reporting_origin,
+     bool* can_bypass) {
 +  // make sure that this is always disabled in Bromite even if privacy sandbox is already disabled in the prefs
 +  if ((true))
 +    return false;
    Profile* profile = Profile::FromBrowserContext(browser_context);
  
    auto* privacy_sandbox_settings =
-diff --git a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java b/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
---- a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
-+++ b/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
-@@ -47,6 +47,7 @@ public class PrivacySandboxSettingsFragmentV3 extends PrivacySandboxSettingsBase
-         privacySandboxToggle.setOnPreferenceChangeListener(this);
-         privacySandboxToggle.setManagedPreferenceDelegate(createManagedPreferenceDelegate());
-         privacySandboxToggle.setChecked(PrivacySandboxBridge.isPrivacySandboxEnabled());
-+        privacySandboxToggle.setEnabled(false);
- 
-         ChromeBasePreference learnMorePreference = findPreference(LEARN_MORE_PREFERENCE);
-         SpannableString spannableString = new SpannableString(
 diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 --- a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 +++ b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
-@@ -150,6 +150,7 @@ bool PrivacySandboxSettingsDelegate::HasAppropriateTopicsConsent() const {
+@@ -159,6 +159,7 @@ bool PrivacySandboxSettingsDelegate::HasAppropriateTopicsConsent() const {
  
  bool PrivacySandboxSettingsDelegate::PrivacySandboxRestrictedNoticeRequired()
      const {
@@ -95,14 +83,14 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
 diff --git a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 --- a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
-@@ -339,6 +339,7 @@ void PrivacySandboxAttestations::LoadAttestationsInternal(
- void PrivacySandboxAttestations::SetParsedAttestations(
-     base::Version version,
-     PrivacySandboxAttestationsMap attestations_map) {
-+  if ((true)) return;
-   file_version_ = std::move(version);
-   attestations_map_ = std::move(attestations_map);
- 
+@@ -109,6 +109,7 @@ class SentinelFile {
+ // enabled. `installed_file_path` is the path to the attestations list file.
+ absl::optional<PrivacySandboxAttestationsMap> LoadAttestationsInternal(
+     base::FilePath installed_file_path) {
++  if ((true)) return absl::nullopt;
+   // This function should only be called when the feature is enabled.
+   CHECK(base::FeatureList::IsEnabled(
+       privacy_sandbox::kEnforcePrivacySandboxAttestations));
 diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
 --- a/components/privacy_sandbox/privacy_sandbox_features.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_features.cc
@@ -146,8 +134,8 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components
 +             "EnforcePrivacySandboxAttestations",  // if enabled
 +             base::FEATURE_ENABLED_BY_DEFAULT);    // log to console
  
- const char kPrivacySandboxEnrollmentOverrides[] =
-     "privacy-sandbox-enrollment-overrides";
+ BASE_FEATURE(kDefaultAllowPrivacySandboxAttestations,
+              "DefaultAllowPrivacySandboxAttestations",
 diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
 --- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
@@ -163,7 +151,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/pr
 diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 --- a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
-@@ -120,7 +120,7 @@ std::set<browsing_topics::Topic> GetTopicsSetFromString(
+@@ -121,7 +121,7 @@ std::set<browsing_topics::Topic> GetTopicsSetFromString(
  
  // static
  bool PrivacySandboxSettingsImpl::IsAllowed(Status status) {
@@ -172,7 +160,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
  }
  
  // static
-@@ -229,7 +229,8 @@ PrivacySandboxSettingsImpl::GetFinchPrioritizedTopics() {
+@@ -230,7 +230,8 @@ PrivacySandboxSettingsImpl::GetFinchPrioritizedTopics() {
    return finch_prioritized_topics_;
  }
  
@@ -182,7 +170,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    // M1 specific
    if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings4)) {
      Status status = GetM1TopicAllowedStatus();
-@@ -286,7 +287,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
+@@ -287,7 +288,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
           IsPrivacySandboxEnabledForContext(top_frame_origin, url);
  }
  
@@ -192,7 +180,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    const auto& blocked_topics =
        pref_service_->GetList(prefs::kPrivacySandboxBlockedTopics);
  
-@@ -488,6 +490,7 @@ bool PrivacySandboxSettingsImpl::MaySendAttributionReport(
+@@ -513,6 +515,7 @@ bool PrivacySandboxSettingsImpl::
  void PrivacySandboxSettingsImpl::SetFledgeJoiningAllowed(
      const std::string& top_frame_etld_plus1,
      bool allowed) {
@@ -200,7 +188,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
  
-@@ -558,7 +561,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
+@@ -583,7 +586,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
  }
  
  bool PrivacySandboxSettingsImpl::IsFledgeJoiningAllowed(
@@ -210,7 +198,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
    auto& pref_data = scoped_pref_update.Get();
-@@ -727,7 +731,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationDebugModeAllowed(
+@@ -752,7 +756,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationDebugModeAllowed(
        net::CookieSettingOverrides());
  }
  
@@ -220,7 +208,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
    if (!IsAllowed(status)) {
      return false;
-@@ -765,7 +770,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
+@@ -790,7 +795,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
    pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, false);
  }
  
@@ -230,7 +218,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
  }
  
-@@ -826,7 +832,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
+@@ -851,7 +857,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
        net::CookieSettingOverrides());
  }
  
@@ -242,7 +230,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    pref_service_->SetTime(prefs::kPrivacySandboxTopicsDataAccessibleSince,
                           base::Time::Now());
  
-@@ -839,6 +848,7 @@ PrivacySandboxSettingsImpl::Status
+@@ -864,6 +873,7 @@ PrivacySandboxSettingsImpl::Status
  PrivacySandboxSettingsImpl::GetSiteAccessAllowedStatus(
      const url::Origin& top_frame_origin,
      const GURL& url) const {
