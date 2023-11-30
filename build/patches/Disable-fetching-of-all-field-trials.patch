@@ -83,7 +83,7 @@ diff --git a/chrome/browser/metrics/chrome_browser_sampling_trials.cc b/chrome/b
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -818,7 +818,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
+@@ -827,7 +827,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
  
  void SystemNetworkContextManager::ConfigureDefaultNetworkContextParams(
      network::mojom::NetworkContextParams* network_context_params) {
@@ -107,7 +107,7 @@ diff --git a/components/ukm/ukm_recorder_impl.cc b/components/ukm/ukm_recorder_i
 diff --git a/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedBridge.java b/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedBridge.java
 --- a/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedBridge.java
 +++ b/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedBridge.java
-@@ -51,7 +51,7 @@ public class VariationsSeedBridge {
+@@ -52,7 +52,7 @@ public class VariationsSeedBridge {
      }
  
      @CalledByNative
@@ -210,10 +210,10 @@ diff --git a/components/variations/net/variations_http_headers.cc b/components/v
 diff --git a/components/variations/service/variations_field_trial_creator_base.cc b/components/variations/service/variations_field_trial_creator_base.cc
 --- a/components/variations/service/variations_field_trial_creator_base.cc
 +++ b/components/variations/service/variations_field_trial_creator_base.cc
-@@ -129,7 +129,8 @@ Study::CpuArchitecture GetCurrentCpuArchitecture() {
- // "--variations-server-url" switches are passed. It is however possible to
- // apply the testing config as well as specify additional field trials (using
- // "--force-fieldtrials") by using the "--enable-field-trial-config" switch.
+@@ -128,7 +128,8 @@ Study::CpuArchitecture GetCurrentCpuArchitecture() {
+ // "--disable-field-trial-config" and/or "--variations-server-url" switches are
+ // passed. It is however possible to apply the testing config by using the
+ // "--enable-field-trial-config" switch.
 -bool ShouldUseFieldTrialTestingConfig(const base::CommandLine* command_line) {
 +bool ShouldUseFieldTrialTestingConfig(const base::CommandLine* command_line) { // disabled in Bromite
 +  if ((true)) return false;
@@ -223,7 +223,7 @@ diff --git a/components/variations/service/variations_field_trial_creator_base.c
 diff --git a/components/variations/service/variations_service.cc b/components/variations/service/variations_service.cc
 --- a/components/variations/service/variations_service.cc
 +++ b/components/variations/service/variations_service.cc
-@@ -220,17 +220,8 @@ bool GetInstanceManipulations(const net::HttpResponseHeaders* headers,
+@@ -221,17 +221,8 @@ bool GetInstanceManipulations(const net::HttpResponseHeaders* headers,
  // Variations seed fetching is only enabled in official Chrome builds, if a URL
  // is specified on the command line, and for testing.
  bool IsFetchingEnabled() {
@@ -243,7 +243,7 @@ diff --git a/components/variations/service/variations_service.cc b/components/va
  }
  
  // Returns the already downloaded first run seed, and clear the seed from the
-@@ -599,7 +590,7 @@ bool VariationsService::DoFetchFromURL(const GURL& url, bool is_http_retry) {
+@@ -601,7 +592,7 @@ bool VariationsService::DoFetchFromURL(const GURL& url, bool is_http_retry) {
    // debugger or if the machine was suspended) and OnURLFetchComplete() hasn't
    // had a chance to run yet from the previous request. In this case, don't
    // start a new request and just let the previous one finish.
@@ -255,7 +255,7 @@ diff --git a/components/variations/service/variations_service.cc b/components/va
 diff --git a/content/browser/loader/url_loader_throttles.cc b/content/browser/loader/url_loader_throttles.cc
 --- a/content/browser/loader/url_loader_throttles.cc
 +++ b/content/browser/loader/url_loader_throttles.cc
-@@ -49,8 +49,6 @@ CreateContentBrowserURLLoaderThrottles(
+@@ -50,8 +50,6 @@ CreateContentBrowserURLLoaderThrottles(
    // TODO(crbug.com/1094303): Consider whether we want to use the WebContents to
    // determine the value for variations::Owner. Alternatively, this is the
    // browser side, and we might be fine with Owner::kUnknown.
@@ -264,7 +264,7 @@ diff --git a/content/browser/loader/url_loader_throttles.cc b/content/browser/lo
  
    ClientHintsControllerDelegate* client_hint_delegate =
        browser_context->GetClientHintsControllerDelegate();
-@@ -128,11 +126,6 @@ CreateContentBrowserURLLoaderThrottlesForKeepAlive(
+@@ -130,11 +128,6 @@ CreateContentBrowserURLLoaderThrottlesForKeepAlive(
        GetContentClient()->browser()->CreateURLLoaderThrottlesForKeepAlive(
            request, browser_context, wc_getter, frame_tree_node_id);
    variations::OmniboxURLLoaderThrottle::AppendThrottleIfNeeded(&throttles);
@@ -274,8 +274,8 @@ diff --git a/content/browser/loader/url_loader_throttles.cc b/content/browser/lo
 -  variations::VariationsURLLoaderThrottle::AppendThrottleIfNeeded(
 -      browser_context->GetVariationsClient(), &throttles);
  
-   return throttles;
- }
+   auto throttle = MaybeCreateIdentityUrlLoaderThrottle(base::BindRepeating(
+       webid::SetIdpSigninStatus, browser_context, frame_tree_node_id));
 diff --git a/content/browser/origin_trials/origin_trials_utils.cc b/content/browser/origin_trials/origin_trials_utils.cc
 --- a/content/browser/origin_trials/origin_trials_utils.cc
 +++ b/content/browser/origin_trials/origin_trials_utils.cc
@@ -291,7 +291,7 @@ diff --git a/content/browser/origin_trials/origin_trials_utils.cc b/content/brow
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -630,8 +630,8 @@ BASE_FEATURE(kPepperCrossOriginRedirectRestriction,
+@@ -664,8 +664,8 @@ BASE_FEATURE(kPepperCrossOriginRedirectRestriction,
  // things before receiving the response, for instance it can affect the next
  // navigation's network request.
  BASE_FEATURE(kPersistentOriginTrials,
@@ -324,9 +324,9 @@ diff --git a/content/renderer/variations_render_thread_observer.cc b/content/ren
 diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_party/blink/renderer/core/loader/document_loader.cc
 --- a/third_party/blink/renderer/core/loader/document_loader.cc
 +++ b/third_party/blink/renderer/core/loader/document_loader.cc
-@@ -187,13 +187,6 @@ Vector<OriginTrialFeature> CopyInitiatorOriginTrials(
- WebVector<int> CopyInitiatorOriginTrials(
-     const Vector<OriginTrialFeature>& initiator_origin_trial_features) {
+@@ -194,13 +194,6 @@ WebVector<int> CopyInitiatorOriginTrials(
+     const Vector<mojom::blink::OriginTrialFeature>&
+         initiator_origin_trial_features) {
    WebVector<int> result;
 -  for (auto feature : initiator_origin_trial_features) {
 -    // Convert from OriginTrialFeature to int. These values are passed between

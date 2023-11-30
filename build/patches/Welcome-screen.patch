@@ -16,15 +16,15 @@ Change-Id: I4a722acfabcd9a4da886d2d164e69ac36e734813
  .../android/java/res/layout/fre_tosanduma.xml | 151 ++++++++
  chrome/android/java/res/values/dimens.xml     |  10 +
  chrome/android/java/res/values/styles.xml     |  24 ++
- .../firstrun/ChildAccountStatusSupplier.java  |   8 -
+ .../firstrun/ChildAccountStatusSupplier.java  |  13 -
  .../browser/firstrun/FirstRunActivity.java    |  21 +-
  .../firstrun/FirstRunActivityBase.java        |   6 +-
- .../firstrun/FirstRunFlowSequencer.java       |  52 +--
- .../browser/firstrun/FirstRunUtils.java       |  16 +-
+ .../firstrun/FirstRunFlowSequencer.java       |  60 +---
+ .../browser/firstrun/FirstRunUtils.java       |  15 +-
  .../firstrun/ToSAndUMAFirstRunFragment.java   | 307 ++++++++++++++++
  .../firstrun/TosAndUmaFragmentView.java       | 336 ++++++++++++++++++
  .../strings/android_chrome_strings.grd        |  17 +-
- 13 files changed, 865 insertions(+), 86 deletions(-)
+ 13 files changed, 866 insertions(+), 97 deletions(-)
  create mode 100644 chrome/android/java/res/layout/fre_tosanduma.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/firstrun/TosAndUmaFragmentView.java
@@ -32,7 +32,7 @@ Change-Id: I4a722acfabcd9a4da886d2d164e69ac36e734813
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -523,6 +523,7 @@ chrome_java_resources = [
+@@ -526,6 +526,7 @@ chrome_java_resources = [
    "java/res/layout/find_in_page.xml",
    "java/res/layout/find_toolbar.xml",
    "java/res/layout/fre_tos_privacy_disclaimer.xml",
@@ -43,7 +43,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -649,6 +649,8 @@ chrome_java_sources = [
+@@ -652,6 +652,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/firstrun/SyncConsentFirstRunFragment.java",
    "java/src/org/chromium/chrome/browser/firstrun/TabbedModeFirstRunActivity.java",
    "java/src/org/chromium/chrome/browser/firstrun/TosDialogBehaviorSharedPrefInvalidator.java",
@@ -274,17 +274,22 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildA
  
  /**
   * Fetches the child account status to be used by other FRE components.
-@@ -41,13 +40,6 @@ public class ChildAccountStatusSupplier implements OneshotSupplier<Boolean> {
+@@ -41,18 +40,6 @@ public class ChildAccountStatusSupplier implements OneshotSupplier<Boolean> {
      public ChildAccountStatusSupplier(AccountManagerFacade accountManagerFacade,
              FirstRunAppRestrictionInfo appRestrictionInfo) {
          mChildAccountStatusStartTime = SystemClock.elapsedRealtime();
 -
 -        appRestrictionInfo.getHasAppRestriction(this::onAppRestrictionDetected);
 -
--        accountManagerFacade.getAccounts().then(accounts -> {
--            AccountUtils.checkChildAccountStatusLegacy(accountManagerFacade, accounts,
--                    (isChild, account) -> onChildAccountStatusReady(isChild));
--        });
+-        accountManagerFacade
+-                .getCoreAccountInfos()
+-                .then(
+-                        coreAccountInfos -> {
+-                            AccountUtils.checkChildAccountStatus(
+-                                    accountManagerFacade,
+-                                    coreAccountInfos,
+-                                    (isChild, account) -> onChildAccountStatusReady(isChild));
+-                        });
      }
  
      @Override
@@ -362,8 +367,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
-@@ -33,8 +33,6 @@ import org.chromium.chrome.browser.profiles.Profile;
- import org.chromium.chrome.browser.profiles.ProfileManagerUtils;
+@@ -36,8 +36,6 @@ import org.chromium.chrome.browser.profiles.ProfileManagerUtils;
+ import org.chromium.chrome.browser.ui.system.StatusBarColorController;
  import org.chromium.components.browser_ui.widget.gesture.BackPressHandler;
  import org.chromium.components.policy.PolicyService;
 -import org.chromium.components.signin.AccountManagerFacade;
@@ -371,7 +376,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  /** Base class for First Run Experience. */
  public abstract class FirstRunActivityBase
-@@ -104,9 +102,7 @@ public abstract class FirstRunActivityBase
+@@ -107,9 +105,7 @@ public abstract class FirstRunActivityBase
      @Override
      @CallSuper
      public void triggerLayoutInflation() {
@@ -379,13 +384,13 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -        mChildAccountStatusSupplier =
 -                new ChildAccountStatusSupplier(accountManagerFacade, mFirstRunAppRestrictionInfo);
 +        mChildAccountStatusSupplier = new ChildAccountStatusSupplier(null, null);
-     }
  
-     @Override
+         if (BuildInfo.getInstance().isAutomotive) {
+             StatusBarColorController.setStatusBarColor(getWindow(), Color.BLACK);
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
-@@ -27,14 +27,9 @@ import org.chromium.chrome.browser.locale.LocaleManager;
+@@ -26,14 +26,9 @@ import org.chromium.chrome.browser.locale.LocaleManager;
  import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.SearchEnginePromoType;
@@ -398,12 +403,12 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -import org.chromium.components.signin.identitymanager.ConsentLevel;
 -import org.chromium.components.signin.identitymanager.IdentityManager;
  
- import java.util.List;
+ /**
+  * A helper to determine what should be the sequence of First Run Experience screens, and whether
+@@ -61,38 +56,19 @@ public abstract class FirstRunFlowSequencer  {
  
-@@ -65,38 +60,19 @@ public abstract class FirstRunFlowSequencer  {
          /** Returns true if the sync consent promo page should be shown. */
-         boolean shouldShowSyncConsentPage(
-                 Activity activity, List<Account> accounts, boolean isChild) {
+         boolean shouldShowSyncConsentPage(boolean isChild) {
 -            if (isChild) {
 -                // Always show the sync consent page for child account.
 -                return true;
@@ -414,10 +419,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -            if (identityManager.hasPrimaryAccount(ConsentLevel.SYNC) || !isSyncAllowed()) {
 -                // No need to show the sync consent page if users already consented to sync or
 -                // if sync is not allowed.
-                 return false;
+-                return false;
 -            }
 -                // Show the sync consent page only to the signed-in users.
 -            return identityManager.hasPrimaryAccount(ConsentLevel.SIGNIN);
++            return false;
          }
  
          /** @return true if the Search Engine promo page should be shown. */
@@ -441,27 +447,33 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          }
      }
  
-@@ -147,12 +123,8 @@ public abstract class FirstRunFlowSequencer  {
+@@ -143,18 +119,8 @@ public abstract class FirstRunFlowSequencer  {
       *                                  method.
       */
      void start() {
--        AccountManagerFacadeProvider.getInstance().getAccounts().then(accounts -> {
--            RecordHistogram.recordCount1MHistogram(
--                    "Signin.AndroidDeviceAccountsNumberWhenEnteringFRE",
--                    Math.min(accounts.size(), 2));
--            setAccountList(accounts);
--        });
+-        AccountManagerFacadeProvider.getInstance()
+-                .getCoreAccountInfos()
+-                .then(
+-                        coreAccountInfos -> {
+-                            RecordHistogram.recordCount1MHistogram(
+-                                    "Signin.AndroidDeviceAccountsNumberWhenEnteringFRE",
+-                                    Math.min(coreAccountInfos.size(), 2));
+-
+-                            assert !mAccountsAvailable;
+-                            mAccountsAvailable = true;
+-                            maybeProcessFreEnvironmentPreNative();
+-                        });
 +        mIsChild = false;
 +        maybeProcessFreEnvironmentPreNative();
      }
  
      @VisibleForTesting
-@@ -177,14 +149,10 @@ public abstract class FirstRunFlowSequencer  {
+@@ -173,14 +139,10 @@ public abstract class FirstRunFlowSequencer  {
      }
  
      private void maybeProcessFreEnvironmentPreNative() {
 -        // Wait till both child account status and the list of accounts are available.
--        if (mIsChild == null || mGoogleAccounts == null) return;
+-        if (mIsChild == null || !mAccountsAvailable) return;
 -
          if (mIsFlowKnown) return;
          mIsFlowKnown = true;
@@ -471,7 +483,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          onFlowIsKnown(freProperties);
      }
-@@ -195,8 +163,8 @@ public abstract class FirstRunFlowSequencer  {
+@@ -191,8 +153,8 @@ public abstract class FirstRunFlowSequencer  {
       * @param freProperties Resulting FRE properties bundle.
       */
      public void updateFirstRunProperties(Bundle freProperties) {
@@ -482,7 +494,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          freProperties.putBoolean(
                  FirstRunActivity.SHOW_SEARCH_ENGINE_PAGE, shouldShowSearchEnginePage());
      }
-@@ -297,13 +265,17 @@ public abstract class FirstRunFlowSequencer  {
+@@ -293,13 +255,17 @@ public abstract class FirstRunFlowSequencer  {
              if (!(caller instanceof Activity)) {
                  freIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
              }
@@ -505,17 +517,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
-@@ -18,9 +18,6 @@ import org.chromium.chrome.browser.metrics.ChangeMetricsReportingStateCalledFrom
+@@ -20,9 +20,6 @@ import org.chromium.chrome.browser.metrics.ChangeMetricsReportingStateCalledFrom
  import org.chromium.chrome.browser.metrics.UmaSessionStats;
  import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
- import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
+ import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 -import org.chromium.components.signin.AccountManagerFacade;
 -import org.chromium.components.signin.AccountManagerFacadeProvider;
 -import org.chromium.components.signin.AccountUtils;
  import org.chromium.ui.accessibility.AccessibilityState;
  
  /** Provides first run related utility functions. */
-@@ -83,16 +80,12 @@ public class FirstRunUtils {
+@@ -85,16 +82,12 @@ public class FirstRunUtils {
       * @return Whether or not sync is allowed on this device.
       */
      static boolean canAllowSync() {
@@ -534,14 +546,13 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @VisibleForTesting
-@@ -102,10 +95,7 @@ public class FirstRunUtils {
+@@ -104,9 +97,7 @@ public class FirstRunUtils {
  
      @VisibleForTesting
      static boolean hasGoogleAccounts() {
--        return !AccountUtils
--                        .getAccountsIfFulfilledOrEmpty(
--                                AccountManagerFacadeProvider.getInstance().getAccounts())
--                        .isEmpty();
+-        return !AccountUtils.getCoreAccountInfosIfFulfilledOrEmpty(
+-                        AccountManagerFacadeProvider.getInstance().getCoreAccountInfos())
+-                .isEmpty();
 +        return false;
      }
  
@@ -1204,7 +1215,7 @@ index 0000000000000000000000000000000000000000..74887df1139e07cf113f8ce7e0c69c3c
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3173,7 +3173,22 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3060,7 +3060,22 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
          <ph name="APP_NAME">%1$s<ex>Google Maps</ex></ph> will open in Chrome. By continuing, you agree to the <ph name="BEGIN_LINK1">&lt;LINK1&gt;</ph>Google Terms of Service<ph name="END_LINK1">&lt;/LINK1&gt;</ph>, and the <ph name="BEGIN_LINK2">&lt;LINK2&gt;</ph>Google Chrome and ChromeOS Additional Terms of Service<ph name="END_LINK2">&lt;/LINK2&gt;</ph>. The <ph name="BEGIN_LINK3">&lt;LINK3&gt;</ph>Privacy Policy<ph name="END_LINK3">&lt;/LINK3&gt;</ph> also applies.
        </message>
        <message name="IDS_FRE_ACCEPT_CONTINUE" desc="Text for first page accept and continue button [CHAR_LIMIT=20]">
