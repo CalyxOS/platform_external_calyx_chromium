@@ -8,18 +8,19 @@ Disable metrics collection for NTP tiles
 Fix startup crash for debug builds (uazo)
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: I6a0b0fe3c16fde5349ed2bb90dc7ff4cd7821efb
 ---
  .../browser/firstrun/FirstRunActivityBase.java  |  2 +-
  .../android/ntp/most_visited_sites_bridge.cc    | 17 -----------------
  chrome/browser/browser_process_impl.cc          |  2 +-
  chrome/browser/chrome_content_browser_client.cc | 15 ---------------
- .../chrome_metrics_services_manager_client.cc   |  8 ++++----
+ .../chrome_metrics_services_manager_client.cc   |  4 ++++
+ .../browser/ui/search/ntp_user_data_logger.cc   |  4 ----
  components/ntp_tiles/BUILD.gn                   |  3 ---
+ .../ntp_tiles/custom_links_manager_impl.cc      |  1 -
  components/ntp_tiles/most_visited_sites.cc      |  2 --
- services/metrics/public/cpp/ukm_recorder.cc     |  2 +-
- 8 files changed, 7 insertions(+), 44 deletions(-)
+ services/metrics/public/cpp/ukm_recorder.cc     |  1 +
+ 10 files changed, 7 insertions(+), 44 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
@@ -142,28 +143,40 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
-@@ -73,8 +73,8 @@ namespace internal {
- // recording and reporting are enabled. If the feature is enabled, but no
- // consent is given, then there will be no recording or reporting.
- BASE_FEATURE(kMetricsReportingFeature,
--             "MetricsReporting",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "MetricsReporting",                  // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
- 
- #if BUILDFLAG(IS_ANDROID)
- // Same as |kMetricsReportingFeature|, but this feature is associated with a
-@@ -83,8 +83,8 @@ BASE_FEATURE(kMetricsReportingFeature,
- // the fix to not affect the overall sampling rate, this new feature was
- // created. See crbug/1306481.
- BASE_FEATURE(kPostFREFixMetricsReportingFeature,
--             "PostFREFixMetricsReporting",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "PostFREFixMetricsReporting",        // disabled by deault
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
- #endif  // BUILDFLAG(IS_ANDROID)
- 
+@@ -90,6 +90,10 @@ BASE_FEATURE(kPostFREFixMetricsReportingFeature,
  // Name of the variations param that defines the sampling rate.
+ const char kRateParamName[] = "sampling_rate_per_mille";
+ 
++SET_CROMITE_FEATURE_DISABLED(kMetricsReportingFeature);
++#if BUILDFLAG(IS_ANDROID)
++SET_CROMITE_FEATURE_DISABLED(kPostFREFixMetricsReportingFeature);
++#endif  // BUILDFLAG(IS_ANDROID)
+ }  // namespace internal
+ }  // namespace metrics
+ 
+diff --git a/chrome/browser/ui/search/ntp_user_data_logger.cc b/chrome/browser/ui/search/ntp_user_data_logger.cc
+--- a/chrome/browser/ui/search/ntp_user_data_logger.cc
++++ b/chrome/browser/ui/search/ntp_user_data_logger.cc
+@@ -394,8 +394,6 @@ void NTPUserDataLogger::LogMostVisitedImpression(
+ 
+ void NTPUserDataLogger::LogMostVisitedNavigation(
+     const ntp_tiles::NTPTileImpression& impression) {
+-  ntp_tiles::metrics::RecordTileClick(impression);
+-
+   // Records the action. This will be available as a time-stamped stream
+   // server-side and can be used to compute time-to-long-dwell.
+   base::RecordAction(base::UserMetricsAction("MostVisited_Clicked"));
+@@ -424,10 +422,8 @@ void NTPUserDataLogger::EmitNtpStatistics(base::TimeDelta load_time,
+     if (!impression.has_value()) {
+       break;
+     }
+-    ntp_tiles::metrics::RecordTileImpression(*impression);
+     ++tiles_count;
+   }
+-  ntp_tiles::metrics::RecordPageImpression(tiles_count);
+ 
+   DVLOG(1) << "Emitting NTP load time: " << load_time << ", "
+            << "number of tiles: " << tiles_count;
 diff --git a/components/ntp_tiles/BUILD.gn b/components/ntp_tiles/BUILD.gn
 --- a/components/ntp_tiles/BUILD.gn
 +++ b/components/ntp_tiles/BUILD.gn
@@ -184,6 +197,17 @@ diff --git a/components/ntp_tiles/BUILD.gn b/components/ntp_tiles/BUILD.gn
      "most_visited_sites_unittest.cc",
      "popular_sites_impl_unittest.cc",
    ]
+diff --git a/components/ntp_tiles/custom_links_manager_impl.cc b/components/ntp_tiles/custom_links_manager_impl.cc
+--- a/components/ntp_tiles/custom_links_manager_impl.cc
++++ b/components/ntp_tiles/custom_links_manager_impl.cc
+@@ -203,7 +203,6 @@ void CustomLinksManagerImpl::RemoveCustomLinksForPreinstalledApps() {
+       }
+     }
+     if (default_app_links_deleted) {
+-      metrics::RecordsMigratedDefaultAppDeleted(DeletedTileType::kCustomLink);
+       prefs_->SetBoolean(prefs::kCustomLinksForPreinstalledAppsRemoved, true);
+     }
+   }
 diff --git a/components/ntp_tiles/most_visited_sites.cc b/components/ntp_tiles/most_visited_sites.cc
 --- a/components/ntp_tiles/most_visited_sites.cc
 +++ b/components/ntp_tiles/most_visited_sites.cc
@@ -199,14 +223,11 @@ diff --git a/components/ntp_tiles/most_visited_sites.cc b/components/ntp_tiles/m
 diff --git a/services/metrics/public/cpp/ukm_recorder.cc b/services/metrics/public/cpp/ukm_recorder.cc
 --- a/services/metrics/public/cpp/ukm_recorder.cc
 +++ b/services/metrics/public/cpp/ukm_recorder.cc
-@@ -14,7 +14,7 @@
+@@ -116,4 +116,5 @@ ukm::SourceId UkmRecorder::GetSourceIdFromScopeImpl(const GURL& scope_url,
+   return source_id;
+ }
  
- namespace ukm {
- 
--BASE_FEATURE(kUkmFeature, "Ukm", base::FEATURE_ENABLED_BY_DEFAULT);
-+BASE_FEATURE(kUkmFeature, "Ukm", base::FEATURE_DISABLED_BY_DEFAULT); // disabled in Bromite
- 
- BASE_FEATURE(kUkmReduceAddEntryIPC,
-              "UkmReduceAddEntryIPC",
++SET_CROMITE_FEATURE_DISABLED(kUkmFeature);
+ }  // namespace ukm
 -- 
 
