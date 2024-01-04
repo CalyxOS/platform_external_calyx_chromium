@@ -1,0 +1,113 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 4 Jan 2024 16:56:58 +0000
+Subject: CalyxOS Chromium Branding
+
+Adapted from the "Override Cromite Branding" change from uazo/cromite,
+including the minimum Android-relevant changes to replace the browser
+name and to add a fork details section to the About page, which credits
+Cromite and links to a page describing CalyxOS Chromium.
+
+uazo/cromite: v120.0.6099.144-932cfc6f1e6ed1d9133fb648e5d12cd60fb3004d
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+Change-Id: I76af7607d16e0948c6ad441d7a99c4e6dfe6f67c
+
+Change-Id: Ia5f5cc88b8630e775e94cd30daa5853d717f66df
+---
+ .../java/res/xml/about_chrome_preferences.xml |  9 ++++-
+ .../strings/android_chrome_strings.grd        |  9 +++++
+ tools/grit/grit/grd_reader.py                 | 33 +++++++++++++++++++
+ 3 files changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/android/java/res/xml/about_chrome_preferences.xml b/chrome/android/java/res/xml/about_chrome_preferences.xml
+--- a/chrome/android/java/res/xml/about_chrome_preferences.xml
++++ b/chrome/android/java/res/xml/about_chrome_preferences.xml
+@@ -5,10 +5,17 @@ Use of this source code is governed by a BSD-style license that can be
+ found in the LICENSE file.
+ -->
+ 
+-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
++<PreferenceScreen
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto">
+     <org.chromium.chrome.browser.about_settings.LongClickCopySummaryPreference
+         android:key="application_version"
+         android:title="@string/application_version_title" />
++    <org.chromium.chrome.browser.about_settings.HyperlinkPreference
++        android:key="fork_details"
++        android:title="@string/fork_details_title"
++        android:summary="@string/fork_details_summary"
++        app:url="@string/fork_details_url" />
+     <org.chromium.chrome.browser.about_settings.AboutChromePreferenceOSVersion
+         android:key="os_version"
+         android:title="@string/os_version_title" />
+diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
+--- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
++++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
+@@ -2028,6 +2028,15 @@ Your Google account may have other forms of browsing history like searches and a
+       <message name="IDS_PREFS_ABOUT_CHROME" desc="Title for the About Chrome page. [CHAR_LIMIT=32]">
+         About Chrome
+       </message>
++      <message name="IDS_FORK_DETAILS_TITLE" desc="Title for fork details - a name to distinguish the browser fork">
++        CalyxOS Chromium
++      </message>
++      <message name="IDS_FORK_DETAILS_SUMMARY" desc="Summary for fork details, including information about the fork">
++        This is CalyxOS's Chromium, which is based on Cromite. Tap for more info.
++      </message>
++      <message name="IDS_FORK_DETAILS_URL" desc="URL to navigate to when tapping the fork details segment">
++        https://calyxos.org/docs/guide/apps/#calyxos-chromium
++      </message>
+       <message name="IDS_LEGAL_INFORMATION_SUMMARY" desc="Summary for legal information" meaning="Android">
+         Copyright <ph name="year">%1$d<ex>2014</ex></ph> Google LLC. All rights reserved.
+       </message>
+diff --git a/tools/grit/grit/grd_reader.py b/tools/grit/grit/grd_reader.py
+--- a/tools/grit/grit/grd_reader.py
++++ b/tools/grit/grit/grd_reader.py
+@@ -126,6 +126,7 @@ class GrdContentHandler(xml.sax.handler.ContentHandler):
+   def characters(self, content):
+     if self.ignore_depth == 0:
+       if self.stack[-1]:
++        content = self.replace_browser(content)
+         self.stack[-1].AppendContent(content)
+ 
+   def ignorableWhitespace(self, whitespace):
+@@ -133,6 +134,38 @@ class GrdContentHandler(xml.sax.handler.ContentHandler):
+     # parser?
+     pass
+ 
++  def replace_browser(self, content_orig):
++    content = content_orig.replace("Chromiumdontreplace", "zzzyyyyxxxx1")
++    content = content.replace("Chromedontreplace", "zzzyyyyxxxx2")
++    content = content.replace("chromedontreplace", "zzzyyyyxxxx3")
++    content = content.replace("//chrome", "zzzyyyyxxxx4")
++    content = content.replace("chrome://", "zzzyyyyxxxx5")
++    content = content.replace("/chrome/", "zzzyyyyxxxx6")
++    content = content.replace("chrome_", "zzzyyyyxxxx7")
++    content = content.replace(".chromium.org", "zzzyyyyxxxx8")
++    content = content.replace("chromebook", "zzzyyyyxxxx9")
++    content = content.replace("chromeos", "zzzyyyyxxxxA")
++
++    content = content.replace("google chrome", "chromium")
++    content = content.replace("Chrome", "Chromium")
++    content = content.replace("Bromite", "Cromite")
++    content = content.replace("chrome", "chromium")
++    content = content.replace("bromite", "cromite")
++
++    content = content.replace("zzzyyyyxxxx1", "Chromium")
++    content = content.replace("zzzyyyyxxxx2", "Chrome")
++    content = content.replace("zzzyyyyxxxx3", "chrome")
++    content = content.replace("zzzyyyyxxxx4", "//chrome")
++    content = content.replace("zzzyyyyxxxx5", "chrome://")
++    content = content.replace("zzzyyyyxxxx6", "/chrome/")
++    content = content.replace("zzzyyyyxxxx7", "chrome_")
++    content = content.replace("zzzyyyyxxxx8", ".chromium.org")
++    content = content.replace("zzzyyyyxxxx9", "chromebook")
++    content = content.replace("zzzyyyyxxxxA", "chromeos")
++    # if "dontreplace" in content_orig:
++    #   raise exception.MissingElement("stop")
++    #   print(content + " <-- " + content_orig)
++    return content
+ 
+ class GrdPartContentHandler(xml.sax.handler.ContentHandler):
+   def __init__(self, parent):
+-- 
+
