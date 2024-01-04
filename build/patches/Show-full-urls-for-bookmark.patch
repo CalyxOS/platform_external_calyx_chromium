@@ -1,0 +1,39 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 20 Oct 2023 12:36:07 +0000
+Subject: Show full urls for bookmark
+
+Restore omnibox-bookmark-paths flag and show full urls
+in android bookmark page
+See https://source.chromium.org/chromium/chromium/src/+/4a9dd5ab3709d60f40beb2f801a0185ab2ba992a
+
+Change-Id: Id33ff458650df83e92e06f8ded018a482b7b2604
+---
+ .../src/org/chromium/components/bookmarks/BookmarkItem.java     | 1 +
+ components/omnibox/browser/titled_url_match_utils.cc            | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkItem.java b/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkItem.java
+--- a/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkItem.java
++++ b/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkItem.java
+@@ -51,6 +51,7 @@ public class BookmarkItem {
+ 
+     /** Returns the string to display for the item's url. */
+     public String getUrlForDisplay() {
++        if ((true)) return getUrl().getSpec();
+         return UrlFormatter.formatUrlForSecurityDisplay(
+                 getUrl(), SchemeDisplay.OMIT_HTTP_AND_HTTPS);
+     }
+diff --git a/components/omnibox/browser/titled_url_match_utils.cc b/components/omnibox/browser/titled_url_match_utils.cc
+--- a/components/omnibox/browser/titled_url_match_utils.cc
++++ b/components/omnibox/browser/titled_url_match_utils.cc
+@@ -80,7 +80,7 @@ AutocompleteMatch TitledUrlMatchToAutocompleteMatch(
+   // Otherwise, display the path, even if the input matches both or neither.
+   bool show_path = titled_url_match.has_ancestor_match ||
+                    titled_url_match.url_match_positions.empty();
+-  match.contents = show_path ? path : formatted_url;
++  match.contents = /*show_path ? path :*/ formatted_url;
+   // The path can become stale (when the bookmark is moved). So persist the URL
+   // instead when creating shortcuts.
+   if (show_path)
+-- 
+
