@@ -4,38 +4,18 @@ Subject: Fix build after "Disable fetching of all field trials"
 
 Change-Id: Iaa1b158db2ea418b011cc1ae640107716fbd1ad7
 ---
- .../NonEmbeddedFastVariationsSeedSafeModeAction.java   |  2 --
- .../SafeModeVariationsSeedContentProvider.java         | 10 +---------
- build/android/gyp/proguard.py                          |  2 ++
- 3 files changed, 3 insertions(+), 11 deletions(-)
+ .../services/SafeModeVariationsSeedContentProvider.java   | 8 +-------
+ build/android/gyp/proguard.py                             | 2 ++
+ 2 files changed, 3 insertions(+), 7 deletions(-)
 
-diff --git a/android_webview/nonembedded/java/src/org/chromium/android_webview/services/NonEmbeddedFastVariationsSeedSafeModeAction.java b/android_webview/nonembedded/java/src/org/chromium/android_webview/services/NonEmbeddedFastVariationsSeedSafeModeAction.java
---- a/android_webview/nonembedded/java/src/org/chromium/android_webview/services/NonEmbeddedFastVariationsSeedSafeModeAction.java
-+++ b/android_webview/nonembedded/java/src/org/chromium/android_webview/services/NonEmbeddedFastVariationsSeedSafeModeAction.java
-@@ -27,13 +27,11 @@ public class NonEmbeddedFastVariationsSeedSafeModeAction implements NonEmbeddedS
- 
-     @Override
-     public boolean onActivate() {
--        AwVariationsSeedFetcher.scheduleIfNeeded(/*requireFastMode=*/true);
-         return true;
-     }
- 
-     @Override
-     public boolean onDeactivate() {
--        AwVariationsSeedFetcher.cancelSafeModeSeedFetchSchedulerJob();
-         return true;
-     }
- }
 diff --git a/android_webview/nonembedded/java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java b/android_webview/nonembedded/java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java
 --- a/android_webview/nonembedded/java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java
 +++ b/android_webview/nonembedded/java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java
-@@ -82,15 +82,7 @@ public class SafeModeVariationsSeedContentProvider extends ContentProvider {
+@@ -82,13 +82,7 @@ public class SafeModeVariationsSeedContentProvider extends ContentProvider {
      }
  
      private Boolean awaitSeedResults() {
 -        CountDownLatch countDownLatch = new CountDownLatch(1);
--        VariationsSeedHolder.getInstance().hasSeedUpdateCompletedAsync(
--                () -> { countDownLatch.countDown(); });
 -        try {
 -            return countDownLatch.await(TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS);
 -        } catch (InterruptedException e) {

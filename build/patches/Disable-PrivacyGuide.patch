@@ -3,12 +3,12 @@ Date: Sun, 31 Jul 2022 22:13:11 +0200
 Subject: Disable PrivacyGuide
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: I6c5fa2baf41f43c017857ba660029c7844664aa2
 ---
- .../browser/ui/webui/settings/settings_ui.cc  |  2 +-
- chrome/common/chrome_features.cc              | 20 +++++++++----------
- 2 files changed, 11 insertions(+), 11 deletions(-)
+ chrome/browser/ui/webui/settings/settings_ui.cc        |  2 +-
+ .../common/chrome_features_cc/Disable-PrivacyGuide.inc | 10 ++++++++++
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+ create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-PrivacyGuide.inc
 
 diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui/webui/settings/settings_ui.cc
 --- a/chrome/browser/ui/webui/settings/settings_ui.cc
@@ -22,54 +22,20 @@ diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui
    html_source->AddBoolean("showPrivacyGuide", show_privacy_guide);
  
    html_source->AddBoolean("enablePrivacyGuide3", base::FeatureList::IsEnabled(
-diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
---- a/chrome/common/chrome_features.cc
-+++ b/chrome/common/chrome_features.cc
-@@ -472,26 +472,26 @@ BASE_FEATURE(kGeoLanguage, "GeoLanguage", base::FEATURE_DISABLED_BY_DEFAULT);
- // Enables or disables the Privacy Guide v3 update of the Privacy Guide feature
- // in Chrome Settings.
- BASE_FEATURE(kPrivacyGuide3,
--             "PrivacyGuide3",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "PrivacyGuide3",                     // always disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
- 
- // Enables or disables the Privacy Guide preload card update of the Privacy
- // Guide feature in Chrome Settings. Also, this requires the PrivacyGuide3
- // feature to be enabled as well.
- BASE_FEATURE(kPrivacyGuidePreload,
--             "PrivacyGuidePreload",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "PrivacyGuidePreload",               // always disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
- 
- #if BUILDFLAG(IS_ANDROID)
- BASE_FEATURE(kPrivacyGuideAndroid3,
--             "PrivacyGuideAndroid3",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "PrivacyGuideAndroid3",              // always disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
- #endif
- 
- #if BUILDFLAG(IS_ANDROID)
- BASE_FEATURE(kPrivacyGuidePreloadAndroid,
--             "PrivacyGuidePreloadAndroid",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "PrivacyGuidePreloadAndroid",       // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT); // by default
- #endif
- 
- #if !BUILDFLAG(IS_ANDROID)
-@@ -1073,8 +1073,8 @@ BASE_FEATURE(kLocalPrinterObserving,
- 
- #if BUILDFLAG(IS_ANDROID)
- BASE_FEATURE(kPrivacyGuideAndroid,
--             "PrivacyGuideAndroid",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "PrivacyGuideAndroid",              // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT); // by default
- 
- BASE_FEATURE(kPrivacyGuideAndroidPostMVP,
-              "PrivacyGuideAndroidPostMVP",
+diff --git a/cromite_flags/chrome/common/chrome_features_cc/Disable-PrivacyGuide.inc b/cromite_flags/chrome/common/chrome_features_cc/Disable-PrivacyGuide.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/chrome/common/chrome_features_cc/Disable-PrivacyGuide.inc
+@@ -0,0 +1,10 @@
++SET_CROMITE_FEATURE_DISABLED(kPrivacyGuide3);
++SET_CROMITE_FEATURE_DISABLED(kPrivacyGuidePreload);
++
++#if BUILDFLAG(IS_ANDROID)
++
++SET_CROMITE_FEATURE_DISABLED(kPrivacyGuideAndroid3);
++SET_CROMITE_FEATURE_DISABLED(kPrivacyGuidePreloadAndroid);
++SET_CROMITE_FEATURE_DISABLED(kPrivacyGuideAndroid);
++
++#endif
 -- 
 
