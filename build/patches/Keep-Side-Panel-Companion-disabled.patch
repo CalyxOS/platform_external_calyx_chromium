@@ -1,0 +1,74 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 17 Jul 2023 15:24:16 +0000
+Subject: Keep Side Panel Companion disabled
+
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+Change-Id: I1ac17290f58079af0488cc772095c8af94ee8a20
+---
+ chrome/browser/companion/core/features.cc          | 6 ++++++
+ chrome/browser/ui/side_search/side_search_prefs.cc | 2 +-
+ chrome/browser/ui/ui_features.cc                   | 2 +-
+ components/search_engines/template_url.cc          | 2 +-
+ 4 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/chrome/browser/companion/core/features.cc b/chrome/browser/companion/core/features.cc
+--- a/chrome/browser/companion/core/features.cc
++++ b/chrome/browser/companion/core/features.cc
+@@ -55,6 +55,11 @@ BASE_FEATURE(kCompanionEnableNewBadgesInContextMenu,
+ BASE_FEATURE(kCompanionEnablePageContent,
+              "CompanionEnablePageContent",
+              base::FEATURE_DISABLED_BY_DEFAULT);
++
++SET_CROMITE_FEATURE_DISABLED_W_NAMESPACE(internal, kSidePanelCompanion);
++SET_CROMITE_FEATURE_DISABLED_W_NAMESPACE(internal, kSidePanelCompanion2);
++SET_CROMITE_FEATURE_DISABLED_W_NAMESPACE(internal, kCompanionEnabledByObservingExpsNavigations);
++SET_CROMITE_FEATURE_DISABLED(kCompanionEnablePageContent);
+ }  // namespace features
+ 
+ namespace switches {
+@@ -65,6 +70,7 @@ const char kDisableCheckUserPermissionsForCompanion[] =
+ const char kForceCompanionPinnedState[] = "force-companion-pinned-state";
+ 
+ bool ShouldOverrideCheckingUserPermissionsForCompanion() {
++  if ((true)) return false;
+   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+   return command_line->HasSwitch(kDisableCheckUserPermissionsForCompanion);
+ }
+diff --git a/chrome/browser/ui/side_search/side_search_prefs.cc b/chrome/browser/ui/side_search/side_search_prefs.cc
+--- a/chrome/browser/ui/side_search/side_search_prefs.cc
++++ b/chrome/browser/ui/side_search/side_search_prefs.cc
+@@ -13,7 +13,7 @@ namespace side_search_prefs {
+ const char kSideSearchEnabled[] = "side_search.enabled";
+ 
+ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+-  registry->RegisterBooleanPref(kSideSearchEnabled, true);
++  registry->RegisterBooleanPref(kSideSearchEnabled, false);
+ }
+ 
+ }  // namespace side_search_prefs
+diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
+--- a/chrome/browser/ui/ui_features.cc
++++ b/chrome/browser/ui/ui_features.cc
+@@ -106,7 +106,7 @@ BASE_FEATURE(kResponsiveToolbar,
+ 
+ // Enables the side search feature for Google Search. Presents recent Google
+ // search results in a browser side panel.
+-BASE_FEATURE(kSideSearch, "SideSearch", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kSideSearch, "SideSearch", base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kSideSearchFeedback,
+              "SideSearchFeedback",
+diff --git a/components/search_engines/template_url.cc b/components/search_engines/template_url.cc
+--- a/components/search_engines/template_url.cc
++++ b/components/search_engines/template_url.cc
+@@ -1830,7 +1830,7 @@ GURL TemplateURL::GenerateSuggestionURL(
+ }
+ 
+ bool TemplateURL::IsSideSearchSupported() const {
+-  return !side_search_param().empty();
++  return false;
+ }
+ 
+ bool TemplateURL::IsSideImageSearchSupported() const {
+-- 
+
