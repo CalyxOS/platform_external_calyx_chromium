@@ -3,34 +3,14 @@ Date: Thu, 19 Dec 2019 22:52:53 +0100
 Subject: Disable feeds support by default
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: I59cfe031bfb2b8c55d19e4449a4280ec2bb9daa6
 ---
- .../chromium/chrome/browser/feed/FeedFeatures.java  |  9 +--------
- chrome/browser/prefs/browser_prefs.cc               |  4 ++--
- components/feed/core/common/pref_names.cc           | 13 +------------
- components/feed/feed_feature_list.cc                |  4 ++--
- 4 files changed, 6 insertions(+), 24 deletions(-)
+ chrome/browser/prefs/browser_prefs.cc           |  4 ++--
+ components/feed/core/common/pref_names.cc       | 13 +------------
+ components/feed/core/shared_prefs/pref_names.cc |  2 +-
+ components/feed/feed_feature_list.cc            |  2 ++
+ 4 files changed, 6 insertions(+), 15 deletions(-)
 
-diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
---- a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
-+++ b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
-@@ -44,14 +44,7 @@ public final class FeedFeatures {
-      *         the user is signed in and confirms it's not a child profile.
-      */
-     public static boolean isWebFeedUIEnabled() {
--        // TODO(b/197354832, b/188188861): change consent check to SIGNIN.
--        return ChromeFeatureList.isEnabled(ChromeFeatureList.WEB_FEED)
--                && IdentityServicesProvider.get()
--                        .getSigninManager(Profile.getLastUsedRegularProfile())
--                        .getIdentityManager()
--                        .hasPrimaryAccount(ConsentLevel.SIGNIN)
--                && !Profile.getLastUsedRegularProfile().isChild()
--                && isFeedEnabledByDSE();
-+        return false;
-     }
- 
-     private static boolean isFeedEnabledByDSE() {
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
@@ -70,19 +50,27 @@ diff --git a/components/feed/core/common/pref_names.cc b/components/feed/core/co
    prefs->ClearPref(prefs::kExperimentsDeprecated);
  }
  
+diff --git a/components/feed/core/shared_prefs/pref_names.cc b/components/feed/core/shared_prefs/pref_names.cc
+--- a/components/feed/core/shared_prefs/pref_names.cc
++++ b/components/feed/core/shared_prefs/pref_names.cc
+@@ -26,7 +26,7 @@ const char kEnableSnippetsByDse[] = "ntp_snippets_by_dse.enable";
+ void RegisterFeedSharedProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterBooleanPref(kEnableSnippets, true);
+   registry->RegisterBooleanPref(kArticlesListVisible, true);
+-  registry->RegisterBooleanPref(kEnableSnippetsByDse, true);
++  registry->RegisterBooleanPref(kEnableSnippetsByDse, false);
+ }
+ 
+ }  // namespace prefs
 diff --git a/components/feed/feed_feature_list.cc b/components/feed/feed_feature_list.cc
 --- a/components/feed/feed_feature_list.cc
 +++ b/components/feed/feed_feature_list.cc
-@@ -22,8 +22,8 @@ namespace feed {
- // InterestFeedV2 is cached in ChromeCachedFlags. If the default value here is
- // changed, please update the cached one's default value in CachedFeatureFlags.
- BASE_FEATURE(kInterestFeedV2,
--             "InterestFeedV2",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "InterestFeedV2",                          // must be disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);        // by default in Bromite
+@@ -169,4 +169,6 @@ BASE_FEATURE(kFeedSportsCard,
+              "FeedSportsCard",
+              base::FEATURE_DISABLED_BY_DEFAULT);
  
- BASE_FEATURE(kInterestFeedV2Autoplay,
-              "InterestFeedV2Autoplay",
++SET_CROMITE_FEATURE_DISABLED(kInterestFeedV2);
++SET_CROMITE_FEATURE_DISABLED(kWebFeed);
+ }  // namespace feed
 -- 
 

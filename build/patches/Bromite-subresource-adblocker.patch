@@ -11,7 +11,6 @@ Fix RestoreForeignSessionTab by recreating the tab (issue #681)
 Enable AutomaticLazyFrameLoadingToAds and AutomaticLazyFrameLoadingToEmbeds features
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 ---
  chrome/android/BUILD.gn                       |   1 +
@@ -19,30 +18,31 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  chrome/android/chrome_java_sources.gni        |   2 +
  .../java/res/layout/adblock_editor.xml        |  67 +++++
  chrome/android/java/res/values/styles.xml     |  18 ++
- chrome/android/java/res/values/values.xml     |   2 +
+ chrome/android/java/res/values/values.xml     |   5 +
  .../java/res/xml/adblock_preferences.xml      |  25 ++
  .../android/java/res/xml/main_preferences.xml |   5 +
  .../browser/settings/AdBlockEditor.java       |  91 ++++++
- .../browser/settings/AdBlockPreferences.java  |  61 ++++
+ .../browser/settings/AdBlockPreferences.java  |  58 ++++
  .../chrome/browser/tabmodel/TabModelImpl.java |   2 +-
  chrome/app/generated_resources.grd            |  10 +
  chrome/browser/after_startup_task_utils.cc    |   4 +
  chrome/browser/browser_process.h              |   6 +
- chrome/browser/browser_process_impl.cc        |  20 ++
+ chrome/browser/browser_process_impl.cc        |  21 ++
  chrome/browser/browser_process_impl.h         |   2 +
  chrome/browser/chrome_browser_main.cc         |   3 +
  chrome/browser/flags/BUILD.gn                 |   3 +
- .../flags/android/adblock_native_gateway.cc   |  21 ++
- .../browser/flags/AdBlockNativeGateway.java   |  20 ++
- .../net/system_network_context_manager.cc     |   3 +
+ .../flags/android/adblock_native_gateway.cc   |  31 ++
+ .../browser/flags/AdBlockNativeGateway.java   |  30 ++
+ .../net/system_network_context_manager.cc     |   8 +
  .../sessions/session_restore_android.cc       |   6 +-
  .../strings/android_chrome_strings.grd        |  14 +
- chrome/common/pref_names.h                    |   3 +
+ chrome/common/pref_names.h                    |   5 +
+ .../strings/android/site_settings.grdp        |   3 +
  components/component_updater/BUILD.gn         |   7 +
- .../adblock_updater_service.cc                | 268 ++++++++++++++++++
- .../adblock_updater_service.h                 |  98 +++++++
- .../download_filters_task.cc                  | 239 ++++++++++++++++
- .../component_updater/download_filters_task.h | 129 +++++++++
+ .../adblock_updater_service.cc                | 281 ++++++++++++++++++
+ .../adblock_updater_service.h                 | 103 +++++++
+ .../download_filters_task.cc                  | 239 +++++++++++++++
+ .../component_updater/download_filters_task.h | 129 ++++++++
  ...ent_subresource_filter_throttle_manager.cc |  15 +
  ...tent_subresource_filter_throttle_manager.h |   2 +
  .../content/browser/ruleset_service.cc        |  42 ++-
@@ -52,8 +52,8 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../browser/verified_ruleset_dealer.cc        |   4 +
  .../browser/subresource_filter_features.cc    | 116 +-------
  .../core/common/indexed_ruleset.cc            |   5 +-
- third_party/blink/common/features.cc          |  12 +-
- 39 files changed, 1209 insertions(+), 133 deletions(-)
+ .../Bromite-subresource-adblocker.inc         |   3 +
+ 40 files changed, 1255 insertions(+), 127 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -64,6 +64,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  create mode 100644 components/component_updater/adblock_updater_service.h
  create mode 100644 components/component_updater/download_filters_task.cc
  create mode 100644 components/component_updater/download_filters_task.h
+ create mode 100644 cromite_flags/third_party/blink/common/features_cc/Bromite-subresource-adblocker.inc
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -210,10 +211,13 @@ diff --git a/chrome/android/java/res/values/styles.xml b/chrome/android/java/res
 diff --git a/chrome/android/java/res/values/values.xml b/chrome/android/java/res/values/values.xml
 --- a/chrome/android/java/res/values/values.xml
 +++ b/chrome/android/java/res/values/values.xml
-@@ -27,6 +27,8 @@ found in the LICENSE file.
+@@ -27,6 +27,11 @@ found in the LICENSE file.
      <!-- Compositor Tab Title Text -->
      <bool name="compositor_tab_title_fake_bold_text">true</bool>
  
++    <string name="adblock_on">Autoupdate enabled</string>
++    <string name="adblock_off">Autoupdate disabled</string>
++
 +    <string name="adblock_help_url">https://www.bromite.org/custom-filters</string>
 +
      <!-- Download InfoBar animation. -->
@@ -235,18 +239,18 @@ new file mode 100644
 +
 +    <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
 +        android:key="adblock_switch"
-+        android:summaryOn="@string/text_on"
-+        android:summaryOff="@string/text_off" />
-+
-+    <org.chromium.chrome.browser.about_settings.HyperlinkPreference
-+        android:key="adblock_help"
-+        android:title="@string/adblock_help"
-+        app:url="@string/adblock_help_url" />
++        android:summaryOn="@string/adblock_on"
++        android:summaryOff="@string/adblock_off" />
 +
 +    <Preference
 +        android:key="adblock_edit"
 +        android:title="@string/options_adblock_edit_label"
 +        android:fragment="org.chromium.chrome.browser.settings.AdBlockEditor" />
++
++    <org.chromium.chrome.browser.about_settings.HyperlinkPreference
++        android:key="adblock_help"
++        android:title="@string/adblock_help"
++        app:url="@string/adblock_help_url" />
 +
 +</PreferenceScreen>
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
@@ -323,7 +327,7 @@ new file mode 100644
 +
 +    @Override
 +    public void onTextChanged(CharSequence s, int start, int before, int count) {
-+        mSaveButton.setEnabled(s.length() != 0);
++        mSaveButton.setEnabled(true); // was (s.length() != 0);
 +        mResetButton.setEnabled(true);
 +    }
 +
@@ -364,7 +368,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBloc
 new file mode 100644
 --- /dev/null
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockPreferences.java
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,58 @@
 +// Copyright 2015 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -400,15 +404,12 @@ new file mode 100644
 +        getActivity().setTitle(R.string.options_adblock_title);
 +        SettingsUtils.addPreferencesFromResource(this, R.xml.adblock_preferences);
 +
-+        BrowserContextHandle browserContextHandle =
-+                getSiteSettingsDelegate().getBrowserContextHandle();
-+
 +        ChromeSwitchPreference mAdBlockSwitch =
 +                (ChromeSwitchPreference) findPreference(PREF_ADBLOCK_SWITCH);
-+        boolean isAdBlockEnabled = !WebsitePreferenceBridge.isCategoryEnabled(browserContextHandle, ContentSettingsType.ADS);
++        boolean isAdBlockEnabled = AdBlockNativeGateway.getAdBlockEnabled();
 +        mAdBlockSwitch.setChecked(isAdBlockEnabled);
 +        mAdBlockSwitch.setOnPreferenceChangeListener((preference, newValue) -> {
-+            WebsitePreferenceBridge.setCategoryEnabled(browserContextHandle, ContentSettingsType.ADS, !(boolean) newValue);
++            AdBlockNativeGateway.setAdBlockEnabled((boolean) newValue);
 +            return true;
 +        });
 +
@@ -512,7 +513,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1134,6 +1134,26 @@ BrowserProcessImpl::component_updater() {
+@@ -1134,6 +1134,27 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -531,6 +532,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 +          g_browser_process->system_network_context_manager()->GetSharedURLLoaderFactory(),
 +          std::move(scheduler),
 +          g_browser_process->subresource_filter_ruleset_service(),
++          local_state()->GetBoolean(prefs::kAdBlockEnabled),
 +          local_state()->GetString(prefs::kAdBlockFiltersURL));
 +
 +  return adblock_updater_.get();
@@ -574,7 +576,7 @@ diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_brows
 diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
 --- a/chrome/browser/flags/BUILD.gn
 +++ b/chrome/browser/flags/BUILD.gn
-@@ -23,6 +23,7 @@ android_library("java") {
+@@ -24,6 +24,7 @@ android_library("java") {
      "android/java/src/org/chromium/chrome/browser/flags/StringCachedFieldTrialParameter.java",
      "android/java/src/org/chromium/chrome/browser/flags/ValuesOverridden.java",
      "android/java/src/org/chromium/chrome/browser/flags/ValuesReturned.java",
@@ -582,15 +584,15 @@ diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
    ]
    deps = [
      "//base:base_java",
-@@ -43,6 +44,7 @@ android_library("java") {
- 
+@@ -45,6 +46,7 @@ android_library("java") {
  generate_jni("jni_headers") {
-   sources = [
+   sources = [ "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java" ]
+   sources += [
 +    "android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
    ]
-@@ -53,6 +55,7 @@ static_library("flags_android") {
+@@ -59,6 +61,7 @@ static_library("flags_android") {
      "android/chrome_session_state.cc",
      "android/chrome_session_state.h",
    ]
@@ -602,7 +604,7 @@ diff --git a/chrome/browser/flags/android/adblock_native_gateway.cc b/chrome/bro
 new file mode 100755
 --- /dev/null
 +++ b/chrome/browser/flags/android/adblock_native_gateway.cc
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,31 @@
 +#include "chrome/browser/flags/jni_headers/AdBlockNativeGateway_jni.h"
 +
 +#include "base/android/jni_string.h"
@@ -624,11 +626,21 @@ new file mode 100755
 +  g_browser_process->local_state()->SetString(prefs::kAdBlockFiltersURL,
 +      base::android::ConvertJavaStringToUTF8(env, url));
 +}
++
++static jboolean JNI_AdBlockNativeGateway_GetAdBlockEnabled(
++    JNIEnv* env) {
++  return g_browser_process->local_state()->GetBoolean(prefs::kAdBlockEnabled);
++}
++
++static void JNI_AdBlockNativeGateway_SetAdBlockEnabled(
++    JNIEnv* env, jboolean enabled) {
++  g_browser_process->local_state()->SetBoolean(prefs::kAdBlockEnabled, enabled);
++}
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java
 new file mode 100755
 --- /dev/null
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,30 @@
 +package org.chromium.chrome.browser.flags;
 +
 +import org.jni_zero.CalledByNative;
@@ -643,19 +655,34 @@ new file mode 100755
 +        return AdBlockNativeGatewayJni.get().getAdBlockFiltersURL();
 +    }
 +
++    public static void setAdBlockEnabled(boolean enabled) {
++        AdBlockNativeGatewayJni.get().setAdBlockEnabled(enabled);
++    }
++
++    public static boolean getAdBlockEnabled() {
++        return AdBlockNativeGatewayJni.get().getAdBlockEnabled();
++    }
++
 +    @NativeMethods
 +    interface Natives {
 +        void setAdBlockFiltersURL(String url);
 +        String getAdBlockFiltersURL();
++        void setAdBlockEnabled(boolean enabled);
++        boolean getAdBlockEnabled();
 +    }
 +}
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -609,6 +609,9 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
+@@ -609,6 +609,14 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
  void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    StubResolverConfigReader::RegisterPrefs(registry);
  
++#if BUILDFLAG(IS_ANDROID)
++  registry->RegisterBooleanPref(prefs::kAdBlockEnabled, true);
++#else
++  registry->RegisterBooleanPref(prefs::kAdBlockEnabled, false);
++#endif
 +  registry->RegisterStringPref(prefs::kAdBlockFiltersURL,
 +    "https://www.bromite.org/filters/filters.dat");
 +
@@ -705,16 +732,31 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -2625,6 +2625,9 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2625,6 +2625,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  inline constexpr char kAudioCaptureAllowedUrls[] =
      "hardware.audio_capture_allowed_urls";
  
 +// Holds the URL to an indexed subresource filters file.
 +inline constexpr char kAdBlockFiltersURL[] = "adblock.filters_url";
 +
++inline constexpr char kAdBlockEnabled[] = "adblock.enabled";
++
  // A pref holding the value of the policy used to explicitly allow or deny
  // access to video capture devices.  When enabled or not set, the user is
  // prompted for device access.  When disabled, access to video capture devices
+diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
+--- a/components/browser_ui/strings/android/site_settings.grdp
++++ b/components/browser_ui/strings/android/site_settings.grdp
+@@ -371,6 +371,9 @@
+   <message name="IDS_INTRUSIVE_ADS_INFORMATION" desc="The extra information at the top of the Site Details page when the site tends to show intrusive ads">
+     This site shows intrusive or misleading ads
+   </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_ADS_BLOCKED" desc="A setting that, if turned on, will block ads.">
++    Block ads based on the current filters
++  </message>
+   <message name="IDS_WEBSITE_SETTINGS_CATEGORY_ADS_BLOCKED_LIST" desc="Summary text explaining that the Ads permission is set to block ads on some sites. To be shown in the list of permission categories.">
+     Blocked on some sites
+   </message>
 diff --git a/components/component_updater/BUILD.gn b/components/component_updater/BUILD.gn
 --- a/components/component_updater/BUILD.gn
 +++ b/components/component_updater/BUILD.gn
@@ -743,7 +785,7 @@ diff --git a/components/component_updater/adblock_updater_service.cc b/component
 new file mode 100644
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.cc
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,281 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -787,9 +829,16 @@ new file mode 100644
 +      next_check_delay = 60*60*24*7, // 1 week
 +      on_demand_check_delay = 60; // minimum 1 minute between each on-demand check
 +
-+AdBlockUpdaterService::AdBlockUpdaterService(scoped_refptr<network::SharedURLLoaderFactory> shared_url_network_factory, std::unique_ptr<component_updater::UpdateScheduler> scheduler,
-+   subresource_filter::RulesetService* ruleset_service, std::string filters_url)
-+ : ruleset_service_(ruleset_service), shared_url_network_factory_(shared_url_network_factory), scheduler_(std::move(scheduler)) {
++AdBlockUpdaterService::AdBlockUpdaterService(
++    scoped_refptr<network::SharedURLLoaderFactory> shared_url_network_factory,
++    std::unique_ptr<component_updater::UpdateScheduler> scheduler,
++    subresource_filter::RulesetService* ruleset_service,
++    bool enabled,
++    std::string filters_url)
++    : ruleset_service_(ruleset_service),
++      shared_url_network_factory_(shared_url_network_factory),
++      scheduler_(std::move(scheduler)),
++      enabled_(enabled) {
 +  DCHECK(ruleset_service);
 +
 +  filters_url_ = filters_url;
@@ -847,6 +896,11 @@ new file mode 100644
 +
 +bool AdBlockUpdaterService::OnDemandUpdateAsNeeded(bool is_foreground, Callback on_finished) {
 +  DCHECK(thread_checker_.CalledOnValidThread());
++
++  if (!enabled_) {
++    LOG(INFO) << "AdBlockUpdaterService: update is disabled.";
++    return false;
++  }
 +
 +  // Check if the request is too early
 +  if (!last_update_.is_null()) {
@@ -927,22 +981,23 @@ new file mode 100644
 +  }
 +
 +  last_update_ = base::TimeTicks::Now();
-+  auto task = base::MakeRefCounted<DownloadFiltersTask>(
-+      shared_url_network_factory_,
-+      is_foreground, filters_url_,
-+      min_last_modified,
-+      base::BindOnce(&AdBlockUpdaterService::OnUpdateComplete, base::Unretained(this),
-+                     std::move(on_finished)));
++  if (!filters_url_.empty()) {
++    auto task = base::MakeRefCounted<DownloadFiltersTask>(
++        shared_url_network_factory_,
++        is_foreground, filters_url_,
++        min_last_modified,
++        base::BindOnce(&AdBlockUpdaterService::OnUpdateComplete, base::Unretained(this),
++                      std::move(on_finished)));
 +
-+  // run task now; task is responsible for downloading the filters (if Last-Modified header is more recent)
-+  // and then clearing the 'is_updating' status
-+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
-+      base::BindOnce(&DownloadFiltersTask::Run, base::Unretained(task.get())));
-+  tasks_.insert(task);
++    // run task now; task is responsible for downloading the filters (if Last-Modified header is more recent)
++    // and then clearing the 'is_updating' status
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
++        base::BindOnce(&DownloadFiltersTask::Run, base::Unretained(task.get())));
++    tasks_.insert(task);
 +
-+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
-+      FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_DOWNLOADING));
-+
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_DOWNLOADING));
++  }
 +  return true;
 +}
 +
@@ -1016,7 +1071,7 @@ diff --git a/components/component_updater/adblock_updater_service.h b/components
 new file mode 100644
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.h
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,103 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1072,8 +1127,12 @@ new file mode 100644
 +// All methods are safe to call ONLY from the browser's main thread.
 +class AdBlockUpdaterService {
 + public:
-+  AdBlockUpdaterService(scoped_refptr<network::SharedURLLoaderFactory> shared_url_network_factory, std::unique_ptr<component_updater::UpdateScheduler> scheduler,
-+                        subresource_filter::RulesetService* ruleset_service, std::string filters_url);
++  AdBlockUpdaterService(
++    scoped_refptr<network::SharedURLLoaderFactory> shared_url_network_factory,
++    std::unique_ptr<component_updater::UpdateScheduler> scheduler,
++    subresource_filter::RulesetService* ruleset_service,
++    bool enabled,
++    std::string filters_url);
 +  ~AdBlockUpdaterService();
 +
 +  // Adds an observer for this class. An observer should not be added more
@@ -1107,6 +1166,7 @@ new file mode 100644
 +  scoped_refptr<network::SharedURLLoaderFactory> shared_url_network_factory_;
 +  std::unique_ptr<component_updater::UpdateScheduler> scheduler_;
 +
++  bool enabled_;
 +  bool is_updating_ = false;
 +  bool scheduled_ = false;
 +  std::set<scoped_refptr<DownloadFiltersTask>> tasks_;
@@ -1932,41 +1992,13 @@ diff --git a/components/subresource_filter/core/common/indexed_ruleset.cc b/comp
      return flat::VerifyIndexedRulesetBuffer(verifier)
                 ? VerifyStatus::kChecksumFailVerifierPass
                 : VerifyStatus::kChecksumFailVerifierFail;
-diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
---- a/third_party/blink/common/features.cc
-+++ b/third_party/blink/common/features.cc
-@@ -158,8 +158,8 @@ BASE_FEATURE(kAutofillUseDomNodeIdForRendererId,
- // Apply lazy-loading to ad frames which have embeds likely impacting Core Web
- // Vitals.
- BASE_FEATURE(kAutomaticLazyFrameLoadingToAds,
--             "AutomaticLazyFrameLoadingToAds",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "AutomaticLazyFrameLoadingToAds",       // must be enabled
-+             base::FEATURE_ENABLED_BY_DEFAULT);      // in Bromite
- 
- // https://crbug.com/1472970
- BASE_FEATURE(kAutoSpeculationRules,
-@@ -186,8 +186,8 @@ const base::FeatureParam<int> kSkipFrameCountForLazyAds(
- // Apply lazy-loading to frames which have embeds likely impacting Core Web
- // Vitals.
- BASE_FEATURE(kAutomaticLazyFrameLoadingToEmbeds,
--             "AutomaticLazyFrameLoadingToEmbeds",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "AutomaticLazyFrameLoadingToEmbeds",    // must be enabled
-+             base::FEATURE_ENABLED_BY_DEFAULT);      // in Bromite
- 
- // The timeout value that forces loading iframes that are lazy loaded by
- // LazyEmbeds. After this timeout, the frame loading is triggered even when the
-@@ -209,8 +209,8 @@ const base::FeatureParam<int> kSkipFrameCountForLazyEmbeds(
- // to gather Blink.AutomaticLazyLoadFrame.LazyEmbedFrameCount UKM data even when
- // kAutomaticLazyFrameLoadingToEmbeds is disabled.
- BASE_FEATURE(kAutomaticLazyFrameLoadingToEmbedUrls,
--             "AutomaticLazyFrameLoadingToEmbedUrls",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "AutomaticLazyFrameLoadingToEmbedUrls",    // must be disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);        // in Bromite
- 
- // Define the strategy for LazyEmbeds to decide which frames we apply
- // lazy-loading or not. If the loading strategy is kAllowList, the detection
+diff --git a/cromite_flags/third_party/blink/common/features_cc/Bromite-subresource-adblocker.inc b/cromite_flags/third_party/blink/common/features_cc/Bromite-subresource-adblocker.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/Bromite-subresource-adblocker.inc
+@@ -0,0 +1,3 @@
++SET_CROMITE_FEATURE_ENABLED(kAutomaticLazyFrameLoadingToAds);
++SET_CROMITE_FEATURE_DISABLED(kAutomaticLazyFrameLoadingToEmbeds);
++SET_CROMITE_FEATURE_DISABLED(kAutomaticLazyFrameLoadingToEmbedUrls);
 -- 
 
