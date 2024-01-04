@@ -6,13 +6,13 @@ Disables various detections of Google hosts and functionality specific to them
 Disable domain reliability detection
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
 ---
  chrome/browser/BUILD.gn                       |   8 -
  .../android/metrics/uma_session_stats.cc      |  10 -
  .../android/signin/signin_manager_android.cc  |  27 +-
  chrome/browser/browser_process_impl.cc        |   1 -
+ chrome/browser/chrome_browser_main.cc         |  10 -
  .../browser/chrome_content_browser_client.cc  |  35 +-
  .../domain_reliability/service_factory.cc     |  33 +-
  chrome/browser/extensions/BUILD.gn            |   1 -
@@ -56,11 +56,13 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  components/search_provider_logos/BUILD.gn     |   2 -
  .../logo_service_impl.cc                      |  16 +-
  components/url_matcher/url_util.cc            |  83 -----
- content/common/features.cc                    |   4 +-
- content/public/common/content_features.cc     |   6 +-
- net/base/url_util.cc                          |  21 --
+ ...gled-chromium-no-special-hosts-domains.inc |   1 +
+ ...gled-chromium-no-special-hosts-domains.inc |   1 +
+ net/base/url_util.cc                          |  24 +-
  services/network/network_context.cc           |   2 +-
- 51 files changed, 60 insertions(+), 791 deletions(-)
+ 52 files changed, 58 insertions(+), 798 deletions(-)
+ create mode 100644 cromite_flags/content/common/features_cc/ungoogled-chromium-no-special-hosts-domains.inc
+ create mode 100644 cromite_flags/content/public/common/content_features_cc/ungoogled-chromium-no-special-hosts-domains.inc
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -169,6 +171,33 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
    component_updater_ = component_updater::ComponentUpdateServiceFactory(
        component_updater::MakeChromeComponentUpdaterConfigurator(
            base::CommandLine::ForCurrentProcess(),
+diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -511,11 +511,6 @@ void ProcessSingletonNotificationCallbackImpl(
+ 
+   StartupBrowserCreator::ProcessCommandLineAlreadyRunning(
+       command_line, current_directory, startup_profile_path_info);
+-
+-  // Record now as the last successful chrome start.
+-  if constexpr (kShouldRecordActiveUse) {
+-    GoogleUpdateSettings::SetLastRunTime();
+-  }
+ }
+ #endif  // BUILDFLAG(ENABLE_PROCESS_SINGLETON)
+ 
+@@ -1737,11 +1732,6 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
+     upgrade_util::SaveLastModifiedTimeOfExe();
+ #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
+ 
+-    // Record now as the last successful chrome start.
+-    if constexpr (kShouldRecordActiveUse) {
+-      GoogleUpdateSettings::SetLastRunTime();
+-    }
+-
+     // Create the RunLoop for MainMessageLoopRun() to use and transfer
+     // ownership of the browser's lifetime to the BrowserProcess.
+     DCHECK(!GetMainRunLoopInstance());
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
@@ -1599,40 +1628,22 @@ diff --git a/components/url_matcher/url_util.cc b/components/url_matcher/url_uti
      return GURL();
    }
  
-diff --git a/content/common/features.cc b/content/common/features.cc
---- a/content/common/features.cc
-+++ b/content/common/features.cc
-@@ -190,8 +190,8 @@ BASE_FEATURE(kFedCmIdAssertionCORS,
- // parsing the signin status HTTP headers.
- // kFedCmIdpSigninStatusEnabled takes precedence over this feature flag.
- BASE_FEATURE(kFedCmIdpSigninStatusMetrics,
--             "FedCmIdpSigninStatusMetrics",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "FedCmIdpSigninStatusMetrics",      // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT); // by default
- 
- // If enabled, limits the number of FLEDGE auctions that can be run between page
- // load and unload -- any attempt to run more than this number of auctions will
-diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
---- a/content/public/common/content_features.cc
-+++ b/content/public/common/content_features.cc
-@@ -404,9 +404,9 @@ BASE_FEATURE(kFedCmSelectiveDisclosure,
- 
- // Enables the IDP signin status API for use with FedCM, including avoiding
- // network requests when not signed in and mismatch handling.
--BASE_FEATURE(kFedCmIdpSigninStatusEnabled,
--             "FedCmIdpSigninStatusEnabled",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+BASE_FEATURE(kFedCmIdpSigninStatusEnabled,          // disabled
-+             "FedCmIdpSigninStatusEnabled",         // by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // on bromite
- 
- // Enables bypassing the well-known file enforcement.
- BASE_FEATURE(kFedCmWithoutWellKnownEnforcement,
+diff --git a/cromite_flags/content/common/features_cc/ungoogled-chromium-no-special-hosts-domains.inc b/cromite_flags/content/common/features_cc/ungoogled-chromium-no-special-hosts-domains.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/content/common/features_cc/ungoogled-chromium-no-special-hosts-domains.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kFedCmIdpSigninStatusMetrics);
+diff --git a/cromite_flags/content/public/common/content_features_cc/ungoogled-chromium-no-special-hosts-domains.inc b/cromite_flags/content/public/common/content_features_cc/ungoogled-chromium-no-special-hosts-domains.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/content/public/common/content_features_cc/ungoogled-chromium-no-special-hosts-domains.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kFedCmIdpSigninStatusEnabled);
 diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 --- a/net/base/url_util.cc
 +++ b/net/base/url_util.cc
-@@ -489,27 +489,6 @@ bool HasGoogleHost(const GURL& url) {
+@@ -489,33 +489,11 @@ bool HasGoogleHost(const GURL& url) {
  }
  
  bool IsGoogleHost(base::StringPiece host) {
@@ -1660,6 +1671,13 @@ diff --git a/net/base/url_util.cc b/net/base/url_util.cc
    return false;
  }
  
+ bool IsGoogleHostWithAlpnH3(base::StringPiece host) {
+-  return base::EqualsCaseInsensitiveASCII(host, "google.com") ||
+-         base::EqualsCaseInsensitiveASCII(host, "www.google.com");
++  return false;
+ }
+ 
+ bool IsLocalHostname(base::StringPiece host) {
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc

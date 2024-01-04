@@ -9,18 +9,17 @@ See also: https://github.com/bromite/bromite/wiki/TimezoneOverride
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Require: Content-settings-infrastructure.patch
-
 Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
 ---
  .../browser_ui/site_settings/android/BUILD.gn |   3 +
  .../res/layout/time_zone_select_dialog.xml    |  36 ++++
  ...ezoneoverride_site_settings_preference.xml |  68 ++++++
- ...imezoneOverrideSiteSettingsPreference.java | 194 ++++++++++++++++++
+ ...imezoneOverrideSiteSettingsPreference.java | 196 ++++++++++++++++++
  .../WebsitePreferenceBridge.java              |  10 +
  ...BromiteTimezoneOverrideContentSetting.java | 147 +++++++++++++
  .../android/website_preference_bridge.cc      |  16 ++
  .../bromite_content_settings/timezone.grdp    |  39 ++++
- .../timezone_override.inc                     |  23 +++
+ .../timezone_override.inc                     |  23 ++
  .../browser/content_settings_pref_provider.cc |  16 ++
  .../browser/content_settings_pref_provider.h  |   4 +
  .../core/browser/content_settings_utils.cc    |   5 +
@@ -33,9 +32,9 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../common/content_settings_mojom_traits.h    |   5 +
  .../core/common/pref_names.cc                 |   3 +
  .../content_settings/core/common/pref_names.h |   2 +
- .../renderer/content_settings_agent_impl.cc   |  80 ++++++++
+ .../renderer/content_settings_agent_impl.cc   |  80 +++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
- 23 files changed, 679 insertions(+), 1 deletion(-)
+ 23 files changed, 681 insertions(+), 1 deletion(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -55,7 +54,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    ]
  
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -276,6 +277,8 @@ android_resources("java_resources") {
+@@ -278,6 +279,8 @@ android_resources("java_resources") {
      "java/res/xml/single_website_preferences.xml",
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/website_preferences.xml",
@@ -183,7 +182,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100755
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
-@@ -0,0 +1,194 @@
+@@ -0,0 +1,196 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -237,7 +236,8 @@ new file mode 100755
 + * TimezoneOverride Preference for SiteSettings.
 + */
 +public class TimezoneOverrideSiteSettingsPreference
-+        extends Preference implements RadioGroup.OnCheckedChangeListener,
++        extends Preference implements BromiteCustomTriStateSiteSettingsPreferenceImpl,
++                                      RadioGroup.OnCheckedChangeListener,
 +                                      RadioButtonWithEditText.OnTextChangeListener {
 +    private @ContentSettingValues int mSetting = ContentSettingValues.DEFAULT;
 +    private RadioButtonWithDescription mAllowed;
@@ -262,6 +262,7 @@ new file mode 100755
 +        mBrowserContextHandle = browserContextHandle;
 +    }
 +
++    @Override
 +    public @ContentSettingValues int getCheckedSetting() {
 +        return mSetting;
 +    }

@@ -16,17 +16,16 @@ This reverts commit 11f6a3e29bee9a6590a4fd56b28e8048200c18d0.
 
 Original License: BSD-3-Clause - https://spdx.org/licenses/BSD-3-Clause.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: I68466e09bf3e643f2362e67c8af614a9bba45a06
 ---
- content/public/common/content_features.cc     |  2 +-
+ ...val-of-execution-context-address-space.inc |  2 ++
  .../execution_context/execution_context.cc    |  9 +++++
  .../execution_context/execution_context.h     |  4 +++
  .../core/exported/web_shared_worker_impl.cc   |  1 +
  .../renderer/core/frame/policy_container.cc   | 10 ++++++
  .../renderer/core/frame/policy_container.h    | 11 ++++++
  .../renderer/core/frame/web_frame_test.cc     | 34 +++++++++++++++++++
- .../layout_worklet_global_scope_proxy.cc      |  2 +-
+ .../layout_worklet_global_scope_proxy.cc      |  1 +
  ...ed_service_worker_module_script_fetcher.cc |  1 +
  .../modulescript/module_script_loader_test.cc |  1 +
  .../worker_module_script_fetcher.cc           |  3 +-
@@ -55,20 +54,16 @@ Change-Id: I68466e09bf3e643f2362e67c8af614a9bba45a06
  .../audio_worklet_global_scope_test.cc        |  1 +
  .../webaudio/audio_worklet_thread_test.cc     |  1 +
  .../worklet/worklet_thread_test_common.cc     |  2 +-
- 36 files changed, 191 insertions(+), 26 deletions(-)
+ 36 files changed, 192 insertions(+), 24 deletions(-)
+ create mode 100644 cromite_flags/content/public/common/content_features_cc/Revert-removal-of-execution-context-address-space.inc
 
-diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
---- a/content/public/common/content_features.cc
-+++ b/content/public/common/content_features.cc
-@@ -125,7 +125,7 @@ BASE_FEATURE(kBlockInsecurePrivateNetworkRequests,
- //  - kBlockInsecurePrivateNetworkRequests
- BASE_FEATURE(kBlockInsecurePrivateNetworkRequestsFromPrivate,
-              "BlockInsecurePrivateNetworkRequestsFromPrivate",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             base::FEATURE_ENABLED_BY_DEFAULT);
- 
- // Enables use of the PrivateNetworkAccessNonSecureContextsAllowed deprecation
- // trial. This is a necessary yet insufficient condition: documents that wish to
+diff --git a/cromite_flags/content/public/common/content_features_cc/Revert-removal-of-execution-context-address-space.inc b/cromite_flags/content/public/common/content_features_cc/Revert-removal-of-execution-context-address-space.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/content/public/common/content_features_cc/Revert-removal-of-execution-context-address-space.inc
+@@ -0,0 +1,2 @@
++SET_CROMITE_FEATURE_ENABLED(kBlockInsecurePrivateNetworkRequests);
++SET_CROMITE_FEATURE_ENABLED(kBlockInsecurePrivateNetworkRequestsFromPrivate);
 diff --git a/third_party/blink/renderer/core/execution_context/execution_context.cc b/third_party/blink/renderer/core/execution_context/execution_context.cc
 --- a/third_party/blink/renderer/core/execution_context/execution_context.cc
 +++ b/third_party/blink/renderer/core/execution_context/execution_context.cc
@@ -221,12 +216,11 @@ diff --git a/third_party/blink/renderer/core/frame/web_frame_test.cc b/third_par
 diff --git a/third_party/blink/renderer/core/layout/custom/layout_worklet_global_scope_proxy.cc b/third_party/blink/renderer/core/layout/custom/layout_worklet_global_scope_proxy.cc
 --- a/third_party/blink/renderer/core/layout/custom/layout_worklet_global_scope_proxy.cc
 +++ b/third_party/blink/renderer/core/layout/custom/layout_worklet_global_scope_proxy.cc
-@@ -48,7 +48,7 @@ LayoutWorkletGlobalScopeProxy::LayoutWorkletGlobalScopeProxy(
-       window->GetReferrerPolicy(), window->GetSecurityOrigin(),
+@@ -49,6 +49,7 @@ LayoutWorkletGlobalScopeProxy::LayoutWorkletGlobalScopeProxy(
        window->IsSecureContext(), window->GetHttpsState(),
        nullptr /* worker_clients */,
--      frame_client->CreateWorkerContentSettingsClient(),
-+      frame_client->CreateWorkerContentSettingsClient(), window->AddressSpace(),
+       frame_client->CreateWorkerContentSettingsClient(),
++      window->AddressSpace(),
        OriginTrialContext::GetInheritedTrialFeatures(window).get(),
        base::UnguessableToken::Create(), nullptr /* worker_settings */,
        mojom::blink::V8CacheOptions::kDefault, module_responses_map,
