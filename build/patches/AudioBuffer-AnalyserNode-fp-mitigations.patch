@@ -5,14 +5,11 @@ Subject: AudioBuffer, AnalyserNode: fp mitigations
 Truncate base latency precision to two digits
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: Ic9f8cdd7619ebc2646c8b1fb87f0d22757f21fa0
 ---
- chrome/browser/about_flags.cc                      |  4 ++++
- chrome/browser/flag_descriptions.cc                |  5 +++++
- chrome/browser/flag_descriptions.h                 |  3 +++
- third_party/blink/common/features.cc               |  4 ++++
- third_party/blink/public/common/features.h         |  2 ++
+ .../AudioBuffer-AnalyserNode-fp-mitigations.inc    |  8 ++++++++
+ .../AudioBuffer-AnalyserNode-fp-mitigations.inc    |  3 +++
+ .../AudioBuffer-AnalyserNode-fp-mitigations.inc    |  1 +
  .../renderer/modules/webaudio/audio_buffer.cc      | 14 ++++++++++++++
  .../blink/renderer/modules/webaudio/audio_buffer.h |  2 ++
  .../renderer/modules/webaudio/audio_context.cc     |  5 ++++-
@@ -20,76 +17,41 @@ Change-Id: Ic9f8cdd7619ebc2646c8b1fb87f0d22757f21fa0
  .../renderer/modules/webaudio/base_audio_context.h |  2 ++
  .../modules/webaudio/offline_audio_context.cc      |  1 +
  .../renderer/modules/webaudio/realtime_analyser.cc |  7 +++++++
- 12 files changed, 60 insertions(+), 1 deletion(-)
+ 10 files changed, 54 insertions(+), 1 deletion(-)
+ create mode 100644 cromite_flags/chrome/browser/about_flags_cc/AudioBuffer-AnalyserNode-fp-mitigations.inc
+ create mode 100644 cromite_flags/third_party/blink/common/features_cc/AudioBuffer-AnalyserNode-fp-mitigations.inc
+ create mode 100644 cromite_flags/third_party/blink/common/features_h/AudioBuffer-AnalyserNode-fp-mitigations.inc
 
-diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
---- a/chrome/browser/about_flags.cc
-+++ b/chrome/browser/about_flags.cc
-@@ -4128,6 +4128,10 @@ const FeatureEntry kFeatureEntries[] = {
-      flag_descriptions::kKioskEnableAppServiceDescription, kOsCrOS,
-      FEATURE_VALUE_TYPE(features::kKioskEnableAppService)},
- #endif  // BUILDFLAG(IS_CHROMEOS)
+diff --git a/cromite_flags/chrome/browser/about_flags_cc/AudioBuffer-AnalyserNode-fp-mitigations.inc b/cromite_flags/chrome/browser/about_flags_cc/AudioBuffer-AnalyserNode-fp-mitigations.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..b855c7e5c383f74a289a1c5b3efd50dec243e72e
+--- /dev/null
++++ b/cromite_flags/chrome/browser/about_flags_cc/AudioBuffer-AnalyserNode-fp-mitigations.inc
+@@ -0,0 +1,8 @@
++#ifdef FLAG_SECTION
++
 +    {"fingerprinting-audio-context-data-noise",
-+     flag_descriptions::kAudioContextShuffleEnabledName,
-+     flag_descriptions::kAudioContextShuffleEnabledDescription, kOsAll,
++     "Enable Audio Context fingerprint deception",
++     "Scale the output values of rendered data with a randomly selected factor.", kOsAll,
 +     FEATURE_VALUE_TYPE(blink::features::kAudioContextShuffleEnabled)},
- #if !BUILDFLAG(IS_ANDROID)
-     {"enable-webrtc-remote-event-log",
-      flag_descriptions::kWebRtcRemoteEventLogName,
-diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
---- a/chrome/browser/flag_descriptions.cc
-+++ b/chrome/browser/flag_descriptions.cc
-@@ -3701,6 +3701,11 @@ const char kWebTransportDeveloperModeDescription[] =
-     "When enabled, removes the requirement that all certificates used for "
-     "WebTransport over HTTP/3 are issued by a known certificate root.";
- 
-+const char kAudioContextShuffleEnabledName[] =
-+    "Enable Audio Context fingerprint deception";
-+const char kAudioContextShuffleEnabledDescription[] =
-+    "Scale the output values of rendered data with a randomly selected factor.";
 +
- const char kWebUsbDeviceDetectionName[] =
-     "Automatic detection of WebUSB-compatible devices";
- const char kWebUsbDeviceDetectionDescription[] =
-diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
---- a/chrome/browser/flag_descriptions.h
-+++ b/chrome/browser/flag_descriptions.h
-@@ -2148,6 +2148,9 @@ extern const char kWebrtcUseMinMaxVEADimensionsDescription[];
- extern const char kWebTransportDeveloperModeName[];
- extern const char kWebTransportDeveloperModeDescription[];
- 
-+extern const char kAudioContextShuffleEnabledName[];
-+extern const char kAudioContextShuffleEnabledDescription[];
-+
- extern const char kWebUsbDeviceDetectionName[];
- extern const char kWebUsbDeviceDetectionDescription[];
- 
-diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
---- a/third_party/blink/common/features.cc
-+++ b/third_party/blink/common/features.cc
-@@ -265,6 +265,10 @@ BASE_FEATURE(kBiddingAndScoringDebugReportingAPI,
-              "BiddingAndScoringDebugReportingAPI",
-              base::FEATURE_DISABLED_BY_DEFAULT);
- 
-+BASE_FEATURE(kAudioContextShuffleEnabled,
-+             "AudioContextShuffleEnabled",
-+             base::FEATURE_ENABLED_BY_DEFAULT);
-+
- // Blink garbage collection.
- // Enables compaction of backing stores on Blink's heap.
- BASE_FEATURE(kBlinkHeapCompaction,
-diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
---- a/third_party/blink/public/common/features.h
-+++ b/third_party/blink/public/common/features.h
-@@ -163,6 +163,8 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBlinkHeapConcurrentSweeping);
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBlinkHeapIncrementalMarking);
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBlinkHeapIncrementalMarkingStress);
- 
++#endif
+diff --git a/cromite_flags/third_party/blink/common/features_cc/AudioBuffer-AnalyserNode-fp-mitigations.inc b/cromite_flags/third_party/blink/common/features_cc/AudioBuffer-AnalyserNode-fp-mitigations.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..9123451764754cfb9c749c50e34f97a0953f8d52
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/AudioBuffer-AnalyserNode-fp-mitigations.inc
+@@ -0,0 +1,3 @@
++CROMITE_FEATURE(kAudioContextShuffleEnabled,
++                "AudioContextShuffleEnabled",
++                base::FEATURE_ENABLED_BY_DEFAULT);
+diff --git a/cromite_flags/third_party/blink/common/features_h/AudioBuffer-AnalyserNode-fp-mitigations.inc b/cromite_flags/third_party/blink/common/features_h/AudioBuffer-AnalyserNode-fp-mitigations.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..2b29f5895070cabe7fe4ba56a61d56d1255bcd85
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_h/AudioBuffer-AnalyserNode-fp-mitigations.inc
+@@ -0,0 +1 @@
 +BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kAudioContextShuffleEnabled);
-+
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
-     kBlockingDownloadsInAdFrameWithoutUserActivation);
- 
 diff --git a/third_party/blink/renderer/modules/webaudio/audio_buffer.cc b/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
 --- a/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
 +++ b/third_party/blink/renderer/modules/webaudio/audio_buffer.cc

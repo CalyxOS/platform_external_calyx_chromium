@@ -51,17 +51,13 @@ See also: https://github.com/bromite/bromite/issues/1549
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: Ic8a115d5b45b5768bec1f2fda45a8bf19da96e48
 ---
  .../permissions/last_tab_standing_tracker.cc  | 32 ++++++++
  .../one_time_permissions_tracker.cc           | 33 +++++++-
  .../one_time_permissions_tracker.h            |  5 +-
  .../one_time_permissions_tracker_factory.cc   |  2 +-
- .../permissions/embedded_permission_prompt.cc |  5 ++
- .../permissions/embedded_permission_prompt.h  |  1 +
- .../embedded_permission_prompt_ask_view.cc    |  2 +-
- .../embedded_permission_prompt_base_view.h    |  1 +
+ .../permissions/embedded_permission_prompt.cc |  2 +-
  .../permission_prompt_bubble_base_view.cc     |  2 +-
  .../site_settings/PermissionInfo.java         | 14 +++-
  .../site_settings/SingleWebsiteSettings.java  | 10 +++
@@ -93,7 +89,7 @@ Change-Id: Ic8a115d5b45b5768bec1f2fda45a8bf19da96e48
  components/permissions/permission_request.h   | 16 +++-
  .../permissions/permission_request_manager.cc | 45 ++++++----
  .../permissions/permission_request_manager.h  | 11 ++-
- 39 files changed, 518 insertions(+), 61 deletions(-)
+ 36 files changed, 511 insertions(+), 61 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -235,52 +231,15 @@ diff --git a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc 
 diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 --- a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 +++ b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
-@@ -181,6 +181,11 @@ void EmbeddedPermissionPrompt::AllowThisTime() {
+@@ -177,7 +177,7 @@ void EmbeddedPermissionPrompt::Allow() {
+ }
+ 
+ void EmbeddedPermissionPrompt::AllowThisTime() {
+-  delegate_->AcceptThisTime();
++  delegate_->AcceptThisTime(content_settings::LifetimeMode::OnlyThisTime);
    CloseCurrentViewAndMaybeShowNext(/*first_prompt=*/false);
  }
  
-+void EmbeddedPermissionPrompt::AllowThisTime(content_settings::LifetimeMode lifetimeOption) {
-+  delegate_->AcceptThisTime(lifetimeOption);
-+  CloseCurrentViewAndMaybeShowNext(/*first_prompt=*/false);
-+}
-+
- void EmbeddedPermissionPrompt::Dismiss() {
-   delegate_->Dismiss();
-   delegate_->FinalizeCurrentRequests();
-diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt.h b/chrome/browser/ui/views/permissions/embedded_permission_prompt.h
---- a/chrome/browser/ui/views/permissions/embedded_permission_prompt.h
-+++ b/chrome/browser/ui/views/permissions/embedded_permission_prompt.h
-@@ -67,6 +67,7 @@ class EmbeddedPermissionPrompt
-   // EmbeddedPermissionPromptBaseView::Delegate
-   void Allow() override;
-   void AllowThisTime() override;
-+  void AllowThisTime(content_settings::LifetimeMode lifetimeOption) override;
-   void Dismiss() override;
-   void Acknowledge() override;
-   void StopAllowing() override;
-diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt_ask_view.cc b/chrome/browser/ui/views/permissions/embedded_permission_prompt_ask_view.cc
---- a/chrome/browser/ui/views/permissions/embedded_permission_prompt_ask_view.cc
-+++ b/chrome/browser/ui/views/permissions/embedded_permission_prompt_ask_view.cc
-@@ -33,7 +33,7 @@ void EmbeddedPermissionPromptAskView::RunButtonCallback(int button_id) {
- 
-   if (delegate()) {
-     if (button == ButtonType::kAllowThisTime) {
--      delegate()->AllowThisTime();
-+      delegate()->AllowThisTime(content_settings::LifetimeMode::OnlyThisTime);
-     } else if (button == ButtonType::kAllow) {
-       delegate()->Allow();
-     }
-diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt_base_view.h b/chrome/browser/ui/views/permissions/embedded_permission_prompt_base_view.h
---- a/chrome/browser/ui/views/permissions/embedded_permission_prompt_base_view.h
-+++ b/chrome/browser/ui/views/permissions/embedded_permission_prompt_base_view.h
-@@ -45,6 +45,7 @@ class EmbeddedPermissionPromptBaseView : public PermissionPromptBaseView {
-    public:
-     virtual void Allow() = 0;
-     virtual void AllowThisTime() = 0;
-+    virtual void AllowThisTime(content_settings::LifetimeMode lifetimeOption) = 0;
-     virtual void Dismiss() = 0;
-     virtual void Acknowledge() = 0;
-     virtual void StopAllowing() = 0;
 diff --git a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
 --- a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
 +++ b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
@@ -762,29 +721,29 @@ diff --git a/components/permissions/android/java/src/org/chromium/components/per
 +            // Create radio buttons with lifetime options.
 +            RadioGroup radioGroup = new RadioGroup(context);
 +
-+            RadioButton radioButon = new RadioButton(context);
-+            radioButon.setText(context.getString(
++            RadioButton radioButton = new RadioButton(context);
++            radioButton.setText(context.getString(
 +                        org.chromium.components.permissions.R.string.session_permissions_only_this_this));
-+            radioButon.setId(LifetimeMode.ONLY_THIS_TIME);
-+            radioGroup.addView(radioButon);
++            radioButton.setId(LifetimeMode.ONLY_THIS_TIME);
++            radioGroup.addView(radioButton);
 +
-+            radioButon = new RadioButton(context);
-+            radioButon.setText(context.getString(
++            radioButton = new RadioButton(context);
++            radioButton.setText(context.getString(
 +                        org.chromium.components.permissions.R.string.session_permissions_until_page_close));
-+            radioButon.setId(LifetimeMode.UNTIL_ORIGIN_CLOSED);
-+            radioGroup.addView(radioButon);
++            radioButton.setId(LifetimeMode.UNTIL_ORIGIN_CLOSED);
++            radioGroup.addView(radioButton);
 +
-+            radioButon = new RadioButton(context);
-+            radioButon.setText(context.getString(
++            radioButton = new RadioButton(context);
++            radioButton.setText(context.getString(
 +                        org.chromium.components.permissions.R.string.session_permissions_until_browser_close));
-+            radioButon.setId(LifetimeMode.UNTIL_BROWSER_CLOSED);
-+            radioGroup.addView(radioButon);
++            radioButton.setId(LifetimeMode.UNTIL_BROWSER_CLOSED);
++            radioGroup.addView(radioButton);
 +
-+            radioButon = new RadioButton(context);
-+            radioButon.setText(context.getString(
++            radioButton = new RadioButton(context);
++            radioButton.setText(context.getString(
 +                        org.chromium.components.permissions.R.string.session_permissions_forever));
-+            radioButon.setId(LifetimeMode.ALWAYS);
-+            radioGroup.addView(radioButon);
++            radioButton.setId(LifetimeMode.ALWAYS);
++            radioGroup.addView(radioButton);
 +
 +            radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
 +                @Override
