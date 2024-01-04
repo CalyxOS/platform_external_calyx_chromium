@@ -25,15 +25,14 @@ Added flag --fingerprinting-canvas-image-data-noise to disable Canvas image data
 Add noise also to SVGs (credits to uazo)
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I5c083699db91443331e3cc4ac059e4f21ec79ca7
 ---
  chrome/browser/BUILD.gn                       |   1 +
- chrome/browser/about_flags.cc                 |  16 ++
+ chrome/browser/about_flags.cc                 |   2 +
  content/browser/BUILD.gn                      |   1 +
  .../renderer_host/render_process_host_impl.cc |   4 +
  content/child/BUILD.gn                        |   1 +
  content/child/runtime_features.cc             |   8 +
+ .../Multiple-fingerprinting-mitigations.inc   |  16 ++
  .../public/platform/web_runtime_features.h    |   3 +
  .../blink/renderer/core/dom/document.cc       |  20 +++
  .../blink/renderer/core/dom/document.h        |   7 +
@@ -54,7 +53,8 @@ Change-Id: I5c083699db91443331e3cc4ac059e4f21ec79ca7
  third_party/ungoogled/BUILD.gn                |  10 ++
  third_party/ungoogled/ungoogled_switches.cc   |  18 ++
  third_party/ungoogled/ungoogled_switches.h    |  18 ++
- 26 files changed, 389 insertions(+), 8 deletions(-)
+ 27 files changed, 391 insertions(+), 8 deletions(-)
+ create mode 100755 cromite_flags/chrome/browser/about_flags_cc/Multiple-fingerprinting-mitigations.inc
  create mode 100644 third_party/ungoogled/BUILD.gn
  create mode 100644 third_party/ungoogled/ungoogled_switches.cc
  create mode 100644 third_party/ungoogled/ungoogled_switches.h
@@ -82,27 +82,6 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
  #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
  #include "base/allocator/buildflags.h"
  #endif
-@@ -4148,6 +4150,20 @@ const FeatureEntry kFeatureEntries[] = {
-      flag_descriptions::kWebrtcUseMinMaxVEADimensionsName,
-      flag_descriptions::kWebrtcUseMinMaxVEADimensionsDescription, kOsAll,
-      FEATURE_VALUE_TYPE(blink::features::kWebRtcUseMinMaxVEADimensions)},
-+
-+    {"fingerprinting-canvas-image-data-noise",
-+     "Disable Canvas image data fingerprint deception",
-+     "Slightly modifies at most 20 pixels in Canvas image data extracted via JS APIs",
-+     kOsAll, SINGLE_DISABLE_VALUE_TYPE(switches::kFingerprintingCanvasImageDataNoise)},
-+    {"fingerprinting-client-rects-noise",
-+     "Disable get*ClientRects() fingerprint deception",
-+     "Scale the output values of Range::getClientRects() and Element::getBoundingClientRect() with a randomly selected factor in the range -0.0003% to 0.0003%, which are recomputed on every document initialization.",
-+     kOsAll, SINGLE_DISABLE_VALUE_TYPE(switches::kFingerprintingClientRectsNoise)},
-+    {"fingerprinting-canvas-measuretext-noise",
-+     "Disable Canvas::measureText() fingerprint deception",
-+     "Scale the output values of Canvas::measureText() with a randomly selected factor in the range -0.0003% to 0.0003%, which are recomputed on every document initialization.",
-+     kOsAll, SINGLE_DISABLE_VALUE_TYPE(switches::kFingerprintingCanvasMeasureTextNoise)},
-+
- #if BUILDFLAG(ENABLE_NACL)
-     {"enable-nacl", flag_descriptions::kNaclName,
-      flag_descriptions::kNaclDescription, kOsAll,
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
@@ -171,6 +150,28 @@ diff --git a/content/child/runtime_features.cc b/content/child/runtime_features.
    // CAUTION: Only add custom enabling logic here if it cannot
    // be covered by the other functions.
  
+diff --git a/cromite_flags/chrome/browser/about_flags_cc/Multiple-fingerprinting-mitigations.inc b/cromite_flags/chrome/browser/about_flags_cc/Multiple-fingerprinting-mitigations.inc
+new file mode 100755
+index 0000000000000000000000000000000000000000..87efb07cec8409c623d0e513ad1b366c5eda3cf1
+--- /dev/null
++++ b/cromite_flags/chrome/browser/about_flags_cc/Multiple-fingerprinting-mitigations.inc
+@@ -0,0 +1,16 @@
++#ifdef FLAG_SECTION
++
++    {"fingerprinting-canvas-image-data-noise",
++     "Disable Canvas image data fingerprint deception",
++     "Slightly modifies at most 20 pixels in Canvas image data extracted via JS APIs",
++     kOsAll, SINGLE_DISABLE_VALUE_TYPE(switches::kFingerprintingCanvasImageDataNoise)},
++    {"fingerprinting-client-rects-noise",
++     "Disable get*ClientRects() fingerprint deception",
++     "Scale the output values of Range::getClientRects() and Element::getBoundingClientRect() with a randomly selected factor in the range -0.0003% to 0.0003%, which are recomputed on every document initialization.",
++     kOsAll, SINGLE_DISABLE_VALUE_TYPE(switches::kFingerprintingClientRectsNoise)},
++    {"fingerprinting-canvas-measuretext-noise",
++     "Disable Canvas::measureText() fingerprint deception",
++     "Scale the output values of Canvas::measureText() with a randomly selected factor in the range -0.0003% to 0.0003%, which are recomputed on every document initialization.",
++     kOsAll, SINGLE_DISABLE_VALUE_TYPE(switches::kFingerprintingCanvasMeasureTextNoise)},
++
++#endif
 diff --git a/third_party/blink/public/platform/web_runtime_features.h b/third_party/blink/public/platform/web_runtime_features.h
 --- a/third_party/blink/public/platform/web_runtime_features.h
 +++ b/third_party/blink/public/platform/web_runtime_features.h

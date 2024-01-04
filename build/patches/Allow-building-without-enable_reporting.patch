@@ -3,8 +3,6 @@ Date: Fri, 22 May 2020 22:43:27 -0400
 Subject: Allow building without enable_reporting
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I80bdf53df8e93dc0dd36e516b3bdc2e215b4481b
 ---
  chrome/browser/net/chrome_report_sender.cc       |  1 +
  .../browser/devtools/protocol/network_handler.cc |  2 ++
@@ -14,10 +12,10 @@ Change-Id: I80bdf53df8e93dc0dd36e516b3bdc2e215b4481b
  .../renderer_host/render_frame_host_impl.cc      |  6 ------
  .../web_package/signed_exchange_reporter.cc      |  2 ++
  ...content_switch_dependent_feature_overrides.cc |  1 +
- net/base/features.cc                             |  2 +-
+ .../Allow-building-without-enable_reporting.inc  |  2 ++
+ net/base/features.cc                             |  1 +
  net/reporting/reporting_service.cc               |  6 ++++++
  services/network/network_context.h               |  4 ++--
- services/network/public/cpp/features.cc          |  6 +++---
  services/network/public/mojom/BUILD.gn           |  1 -
  .../network/public/mojom/network_context.mojom   |  2 ++
  .../core/frame/csp/content_security_policy.cc    |  3 +++
@@ -26,7 +24,8 @@ Change-Id: I80bdf53df8e93dc0dd36e516b3bdc2e215b4481b
  .../renderer/core/frame/reporting_context.cc     |  9 +++++++++
  .../renderer/core/frame/reporting_context.h      |  7 +++++--
  .../renderer/core/frame/reporting_observer.cc    |  3 +--
- 20 files changed, 59 insertions(+), 31 deletions(-)
+ 20 files changed, 58 insertions(+), 27 deletions(-)
+ create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Allow-building-without-enable_reporting.inc
 
 diff --git a/chrome/browser/net/chrome_report_sender.cc b/chrome/browser/net/chrome_report_sender.cc
 --- a/chrome/browser/net/chrome_report_sender.cc
@@ -245,18 +244,25 @@ diff --git a/content/public/common/content_switch_dependent_feature_overrides.cc
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/cpp/network_switches.h"
  #include "third_party/blink/public/common/features.h"
+diff --git a/cromite_flags/services/network/public/cpp/features_cc/Allow-building-without-enable_reporting.inc b/cromite_flags/services/network/public/cpp/features_cc/Allow-building-without-enable_reporting.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..2951f3d90e691f6103ed3509b2b82fa39193ecbb
+--- /dev/null
++++ b/cromite_flags/services/network/public/cpp/features_cc/Allow-building-without-enable_reporting.inc
+@@ -0,0 +1,2 @@
++SET_CROMITE_FEATURE_DISABLED(kNetworkErrorLogging);
++SET_CROMITE_FEATURE_DISABLED(kReporting);
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -230,7 +230,7 @@ extern const base::FeatureParam<base::TimeDelta> kTimeoutTcpConnectAttemptMax(
+@@ -228,6 +228,7 @@ extern const base::FeatureParam<base::TimeDelta> kTimeoutTcpConnectAttemptMax(
+     base::Seconds(30));
+ 
  #if BUILDFLAG(ENABLE_REPORTING)
++#error Attempting to build with enable_reporting
  BASE_FEATURE(kDocumentReporting,
               "DocumentReporting",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             base::FEATURE_DISABLED_BY_DEFAULT);
- #endif  // BUILDFLAG(ENABLE_REPORTING)
- 
- #if BUILDFLAG(IS_POSIX) || BUILDFLAG(IS_FUCHSIA)
+              base::FEATURE_ENABLED_BY_DEFAULT);
 diff --git a/net/reporting/reporting_service.cc b/net/reporting/reporting_service.cc
 --- a/net/reporting/reporting_service.cc
 +++ b/net/reporting/reporting_service.cc
@@ -289,23 +295,6 @@ diff --git a/services/network/network_context.h b/services/network/network_conte
    void AddDomainReliabilityContextForTesting(
        const url::Origin& origin,
        const GURL& upload_url,
-diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
---- a/services/network/public/cpp/features.cc
-+++ b/services/network/public/cpp/features.cc
-@@ -16,10 +16,10 @@
- namespace network::features {
- 
- BASE_FEATURE(kNetworkErrorLogging,
--             "NetworkErrorLogging",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "NetworkErrorLogging",              // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
- 
--BASE_FEATURE(kReporting, "Reporting", base::FEATURE_ENABLED_BY_DEFAULT);
-+BASE_FEATURE(kReporting, "Reporting", base::FEATURE_DISABLED_BY_DEFAULT); // disabled by default
- 
- // Based on the field trial parameters, this feature will override the value of
- // the maximum number of delayable requests allowed in flight. The number of
 diff --git a/services/network/public/mojom/BUILD.gn b/services/network/public/mojom/BUILD.gn
 --- a/services/network/public/mojom/BUILD.gn
 +++ b/services/network/public/mojom/BUILD.gn

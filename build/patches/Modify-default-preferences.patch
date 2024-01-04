@@ -3,31 +3,30 @@ Date: Sat, 2 May 2020 00:25:25 +0200
 Subject: Modify default preferences
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I73b8c04221d5b4bc2bbf7958dd85ebe3c17c2aa8
 ---
- chrome/browser/about_flags.cc                  |  6 ++++++
+ chrome/browser/about_flags.cc                  |  1 +
  .../background/background_mode_manager.cc      |  2 +-
  .../browser/chrome_content_browser_client.cc   |  2 +-
- chrome/browser/flag_descriptions.cc            |  5 +++++
- chrome/browser/flag_descriptions.h             |  4 ++++
  chrome/browser/preloading/preloading_prefs.h   |  2 +-
  chrome/browser/profiles/profile.cc             |  2 +-
  .../reset_page/reset_profile_dialog.html       |  2 +-
  chrome/browser/ui/browser_ui_prefs.cc          |  4 ++--
  components/bookmarks/browser/BUILD.gn          |  2 ++
  components/bookmarks/browser/bookmark_utils.cc |  7 +++++--
- components/bookmarks/browser/features.cc       | 16 ++++++++++++++++
+ components/bookmarks/browser/features.cc       | 17 +++++++++++++++++
  components/bookmarks/browser/features.h        | 18 ++++++++++++++++++
  .../core/browser/content_settings_registry.cc  |  4 ++--
  .../core/browser/cookie_settings.cc            |  2 +-
  components/payments/core/payment_prefs.cc      |  2 +-
  .../core/common/safe_browsing_prefs.cc         |  4 ++--
  .../primary_account_manager.cc                 |  4 ++--
- third_party/blink/common/features.cc           |  4 ++--
- 19 files changed, 73 insertions(+), 19 deletions(-)
+ .../Modify-default-preferences.inc             |  8 ++++++++
+ .../features_cc/Modify-default-preferences.inc |  1 +
+ 18 files changed, 67 insertions(+), 17 deletions(-)
  create mode 100644 components/bookmarks/browser/features.cc
  create mode 100644 components/bookmarks/browser/features.h
+ create mode 100755 cromite_flags/chrome/browser/about_flags_cc/Modify-default-preferences.inc
+ create mode 100755 cromite_flags/third_party/blink/common/features_cc/Modify-default-preferences.inc
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -40,18 +39,6 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
  #include "components/browser_sync/browser_sync_switches.h"
  #include "components/browsing_data/core/features.h"
  #include "components/commerce/core/commerce_feature_list.h"
-@@ -6724,6 +6725,11 @@ const FeatureEntry kFeatureEntries[] = {
-      FEATURE_VALUE_TYPE(features::kQuickSettingsPWANotifications)},
- #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
- 
-+    {flag_descriptions::kAppsShortcutDefaultOffId,
-+     flag_descriptions::kAppsShortcutDefaultOffName,
-+     flag_descriptions::kAppsShortcutDefaultOffDescription, kOsDesktop,
-+     FEATURE_VALUE_TYPE(bookmarks::features::kAppsShortcutDefaultOff)},
-+
-     {flag_descriptions::kTabGroupsSaveId, flag_descriptions::kTabGroupsSaveName,
-      flag_descriptions::kTabGroupsSaveDescription, kOsDesktop,
-      FEATURE_VALUE_TYPE(features::kTabGroupsSave)},
 diff --git a/chrome/browser/background/background_mode_manager.cc b/chrome/browser/background/background_mode_manager.cc
 --- a/chrome/browser/background/background_mode_manager.cc
 +++ b/chrome/browser/background/background_mode_manager.cc
@@ -76,35 +63,6 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    // Register user prefs for mapping SitePerProcess and IsolateOrigins in
    // user policy in addition to the same named ones in Local State (which are
    // used for mapping the command-line flags).
-diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
---- a/chrome/browser/flag_descriptions.cc
-+++ b/chrome/browser/flag_descriptions.cc
-@@ -3298,6 +3298,11 @@ const char kCommerceMerchantViewerAndroidName[] = "Merchant Viewer";
- const char kCommerceMerchantViewerAndroidDescription[] =
-     "Allows users to view merchant trust signals on eligible pages.";
- 
-+const char kAppsShortcutDefaultOffId[] = "apps-shortcut-default-off";
-+const char kAppsShortcutDefaultOffName[] = "Apps Shortcut Default Off";
-+const char kAppsShortcutDefaultOffDescription[] =
-+    "Changes the apps shortcut on the bookmarks bar to default to off.";
-+
- const char kTabGroupsSaveId[] = "tab-groups-save";
- const char kTabGroupsSaveName[] = "Tab Groups Save and Sync";
- const char kTabGroupsSaveDescription[] =
-diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
---- a/chrome/browser/flag_descriptions.h
-+++ b/chrome/browser/flag_descriptions.h
-@@ -1910,6 +1910,10 @@ extern const char kCommerceDeveloperDescription[];
- extern const char kCommerceMerchantViewerAndroidName[];
- extern const char kCommerceMerchantViewerAndroidDescription[];
- 
-+extern const char kAppsShortcutDefaultOffId[];
-+extern const char kAppsShortcutDefaultOffName[];
-+extern const char kAppsShortcutDefaultOffDescription[];
-+
- extern const char kTabGroupsSaveId[];
- extern const char kTabGroupsSaveName[];
- extern const char kTabGroupsSaveDescription[];
 diff --git a/chrome/browser/preloading/preloading_prefs.h b/chrome/browser/preloading/preloading_prefs.h
 --- a/chrome/browser/preloading/preloading_prefs.h
 +++ b/chrome/browser/preloading/preloading_prefs.h
@@ -205,10 +163,10 @@ diff --git a/components/bookmarks/browser/bookmark_utils.cc b/components/bookmar
        prefs::kShowManagedBookmarksInBookmarkBar, true,
 diff --git a/components/bookmarks/browser/features.cc b/components/bookmarks/browser/features.cc
 new file mode 100644
-index 0000000000000000000000000000000000000000..59094046f1dcf0b353dc116ae9f7c92b45300aa8
+index 0000000000000000000000000000000000000000..66f00bf72cd04195146f57ca3234e561c2609dcd
 --- /dev/null
 +++ b/components/bookmarks/browser/features.cc
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,17 @@
 +// Copyright 2021 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -220,14 +178,15 @@ index 0000000000000000000000000000000000000000..59094046f1dcf0b353dc116ae9f7c92b
 +
 +// Changes the apps shortcut on the bookmarks bar to default to off.
 +// https://crbug.com/1236793
-+const base::Feature kAppsShortcutDefaultOff{"AppsShortcutDefaultOff",
-+                                            base::FEATURE_ENABLED_BY_DEFAULT};
++CROMITE_FEATURE(kAppsShortcutDefaultOff,
++                "AppsShortcutDefaultOff",
++                base::FEATURE_ENABLED_BY_DEFAULT);
 +
 +}  // namespace features
 +}  // namespace bookmarks
 diff --git a/components/bookmarks/browser/features.h b/components/bookmarks/browser/features.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..5aa1e1ffce6247650bc5faa27d647a343fb7f13e
+index 0000000000000000000000000000000000000000..b19f9f0385141e0432db36d43192163e50c06df5
 --- /dev/null
 +++ b/components/bookmarks/browser/features.h
 @@ -0,0 +1,18 @@
@@ -243,7 +202,7 @@ index 0000000000000000000000000000000000000000..5aa1e1ffce6247650bc5faa27d647a34
 +namespace bookmarks {
 +namespace features {
 +
-+extern const base::Feature kAppsShortcutDefaultOff;
++BASE_DECLARE_FEATURE(kAppsShortcutDefaultOff);
 +
 +}  // namespace features
 +}  // namespace bookmarks
@@ -328,19 +287,26 @@ diff --git a/components/signin/internal/identity_manager/primary_account_manager
    registry->RegisterBooleanPref(prefs::kSignedInWithCredentialProvider, false);
  }
  
-diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
---- a/third_party/blink/common/features.cc
-+++ b/third_party/blink/common/features.cc
-@@ -1021,8 +1021,8 @@ const base::FeatureParam<int> kInterestGroupStorageMaxOpsBeforeMaintenance{
- // the attribute. Note: At present, only iframes with origin-restricted
- // sandboxes are isolated.
- BASE_FEATURE(kIsolateSandboxedIframes,
--             "IsolateSandboxedIframes",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "IsolateSandboxedIframes",          // enabled by default
-+             base::FEATURE_ENABLED_BY_DEFAULT);  // in Bromite
- const base::FeatureParam<IsolateSandboxedIframesGrouping>::Option
-     isolated_sandboxed_iframes_grouping_types[] = {
-         {IsolateSandboxedIframesGrouping::kPerSite, "per-site"},
+diff --git a/cromite_flags/chrome/browser/about_flags_cc/Modify-default-preferences.inc b/cromite_flags/chrome/browser/about_flags_cc/Modify-default-preferences.inc
+new file mode 100755
+index 0000000000000000000000000000000000000000..3312057c1423c03521e6837c9e35f467b6d917be
+--- /dev/null
++++ b/cromite_flags/chrome/browser/about_flags_cc/Modify-default-preferences.inc
+@@ -0,0 +1,8 @@
++#ifdef FLAG_SECTION
++
++    {"apps-shortcut-default-off",
++     "Apps Shortcut Default Off",
++     "Changes the apps shortcut on the bookmarks bar to default to off.", kOsDesktop,
++     FEATURE_VALUE_TYPE(bookmarks::features::kAppsShortcutDefaultOff)},
++
++#endif
+diff --git a/cromite_flags/third_party/blink/common/features_cc/Modify-default-preferences.inc b/cromite_flags/third_party/blink/common/features_cc/Modify-default-preferences.inc
+new file mode 100755
+index 0000000000000000000000000000000000000000..646aeeaddd927814ae7f7ebe0140c690e838d665
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/Modify-default-preferences.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_ENABLED(kIsolateSandboxedIframes);
 -- 
 

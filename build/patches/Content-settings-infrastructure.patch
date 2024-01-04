@@ -10,8 +10,6 @@ See BromiteCustomContentSetting_README.md for more information.
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Require: bromite-build-utils.patch
-
-Change-Id: I425b424f5cedb3f7219305595fa72fe10404a26d
 ---
  .../ChromeSiteSettingsDelegate.java           |  17 +-
  .../installable/installed_webapp_bridge.cc    |   2 +-
@@ -27,7 +25,7 @@ Change-Id: I425b424f5cedb3f7219305595fa72fe10404a26d
  .../views/page_info/page_info_view_factory.cc |  13 +
  .../settings_localized_strings_provider.cc    |  39 +++
  .../ui/webui/settings/site_settings_helper.cc |  34 +-
- .../browser_ui/site_settings/android/BUILD.gn |  16 +
+ .../browser_ui/site_settings/android/BUILD.gn |  18 +
  .../site_settings/AllSiteSettings.java        |   5 +-
  .../BromiteCustomContentSetting.java          | 139 ++++++++
  .../BromiteCustomContentSettingImpl.java      | 307 ++++++++++++++++++
@@ -74,7 +72,7 @@ Change-Id: I425b424f5cedb3f7219305595fa72fe10404a26d
  .../platform/web_content_settings_client.h    |   5 +
  .../execution_context/execution_context.cc    |  16 +
  .../execution_context/execution_context.h     |   5 +
- 61 files changed, 1193 insertions(+), 44 deletions(-)
+ 61 files changed, 1195 insertions(+), 44 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSetting.java
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomTriStateSiteSettingsPreferenceImpl.java
@@ -589,7 +587,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -148,6 +148,21 @@ android_library("java") {
+@@ -148,6 +148,23 @@ android_library("java") {
      ":site_settings_jni_headers",
      "//components/content_settings/android:java_pref_names_srcjar",
    ]
@@ -607,11 +605,13 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
 +
 +java_bromite_impl("java_bromite_content_settings") {
 +  inputs = [ "java/src/org/chromium/components/browser_ui/site_settings/impl/include_all_directory.java" ]
++  namespace = "org.chromium.components.browser_ui.site_settings.impl"
 +  template = "java/src/org/chromium/components/browser_ui/site_settings/impl/java_template/BromiteCustomContentSettingImplBase.java.tmpl"
++  static_classes = false
  }
  
  android_library("javatests") {
-@@ -193,6 +208,7 @@ robolectric_library("junit") {
+@@ -193,6 +210,7 @@ robolectric_library("junit") {
  }
  
  android_resources("java_resources") {

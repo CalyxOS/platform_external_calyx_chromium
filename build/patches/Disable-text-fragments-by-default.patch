@@ -6,78 +6,19 @@ Revert "[Text Fragment] Unflag fragment directive removal."
 
 Original License: BSD-3-Clause - https://spdx.org/licenses/BSD-3-Clause.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I145be3cf3de31f7c92fc97c74fede22addf8621a
 ---
- chrome/browser/about_flags.cc                                | 5 +++++
- chrome/browser/flag-metadata.json                            | 5 +++++
- chrome/browser/flag_descriptions.cc                          | 4 ++++
- chrome/browser/flag_descriptions.h                           | 3 +++
- chrome/browser/ui/prefs/prefs_tab_helper.cc                  | 2 +-
- content/child/runtime_features.cc                            | 2 ++
- third_party/blink/common/features.cc                         | 5 +++++
- third_party/blink/public/common/features.h                   | 1 +
- third_party/blink/renderer/core/dom/document.cc              | 5 +++++
- .../blink/renderer/platform/runtime_enabled_features.json5   | 5 ++---
- 10 files changed, 33 insertions(+), 4 deletions(-)
+ chrome/browser/ui/prefs/prefs_tab_helper.cc               | 2 +-
+ content/child/runtime_features.cc                         | 2 ++
+ .../about_flags_cc/Disable-text-fragments-by-default.inc  | 8 ++++++++
+ .../features_cc/Disable-text-fragments-by-default.inc     | 4 ++++
+ .../features_h/Disable-text-fragments-by-default.inc      | 1 +
+ third_party/blink/renderer/core/dom/document.cc           | 5 +++++
+ .../renderer/platform/runtime_enabled_features.json5      | 5 ++---
+ 7 files changed, 23 insertions(+), 4 deletions(-)
+ create mode 100644 cromite_flags/chrome/browser/about_flags_cc/Disable-text-fragments-by-default.inc
+ create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-text-fragments-by-default.inc
+ create mode 100644 cromite_flags/third_party/blink/common/features_h/Disable-text-fragments-by-default.inc
 
-diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
---- a/chrome/browser/about_flags.cc
-+++ b/chrome/browser/about_flags.cc
-@@ -7180,6 +7180,11 @@ const FeatureEntry kFeatureEntries[] = {
-      flag_descriptions::kLegacyTechReportTopLevelUrlDescription, kOsAll,
-      FEATURE_VALUE_TYPE(features::kLegacyTechReportTopLevelUrl)},
- 
-+    {"enable-text-fragment-anchor",
-+     flag_descriptions::kEnableTextFragmentAnchorName,
-+     flag_descriptions::kEnableTextFragmentAnchorDescription, kOsAll,
-+     FEATURE_VALUE_TYPE(blink::features::kTextFragmentAnchor)},
-+
- #if BUILDFLAG(IS_CHROMEOS_ASH)
-     {"enable-web-authentication-chromeos-authenticator",
-      flag_descriptions::kEnableWebAuthenticationChromeOSAuthenticatorName,
-diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
---- a/chrome/browser/flag-metadata.json
-+++ b/chrome/browser/flag-metadata.json
-@@ -3055,6 +3055,11 @@
-     "owners": [ "robsc@chromium.org", "napper@chromium.org", "alanlxl@chromium.org" ],
-     "expiry_milestone": 130
-   },
-+  {
-+    "name": "enable-text-fragment-anchor",
-+    "owners": [ "bokan", "input-dev" ],
-+    "expiry_milestone": -1
-+  },
-   {
-     "name": "enable-neural-stylus-palm-rejection",
-     "owners": [ "robsc@chromium.org", "napper@chromium.org", "adlr@chromium.org" ],
-diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
---- a/chrome/browser/flag_descriptions.cc
-+++ b/chrome/browser/flag_descriptions.cc
-@@ -1458,6 +1458,10 @@ const char kDropInputEventsBeforeFirstPaintDescription[] =
-     "intentionally interact with elements on that page. By dropping the events "
-     "we prevent accidental interaction with a page the user has not seen yet.";
- 
-+const char kEnableTextFragmentAnchorName[] = "Enable Text Fragment Anchor.";
-+const char kEnableTextFragmentAnchorDescription[] =
-+    "Enables scrolling to text specified in URL's fragment.";
-+
- const char kEnableCssSelectorFragmentAnchorName[] =
-     "Enables CSS selector fragment anchors";
- const char kEnableCssSelectorFragmentAnchorDescription[] =
-diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
---- a/chrome/browser/flag_descriptions.h
-+++ b/chrome/browser/flag_descriptions.h
-@@ -829,6 +829,9 @@ extern const char kExperimentalRgbKeyboardPatternsDescription[];
- 
- extern const char kRetailCouponsName[];
- extern const char kRetailCouponsDescription[];
-+extern const char kEnableTextFragmentAnchorName[];
-+extern const char kEnableTextFragmentAnchorDescription[];
-+
- 
- extern const char kDropInputEventsBeforeFirstPaintName[];
- extern const char kDropInputEventsBeforeFirstPaintDescription[];
 diff --git a/chrome/browser/ui/prefs/prefs_tab_helper.cc b/chrome/browser/ui/prefs/prefs_tab_helper.cc
 --- a/chrome/browser/ui/prefs/prefs_tab_helper.cc
 +++ b/chrome/browser/ui/prefs/prefs_tab_helper.cc
@@ -102,32 +43,37 @@ diff --git a/content/child/runtime_features.cc b/content/child/runtime_features.
      {wf::EnableUserActivationSameOriginVisibility,
       raw_ref(features::kUserActivationSameOriginVisibility)},
      {wf::EnableVideoPlaybackQuality, raw_ref(features::kVideoPlaybackQuality)},
-diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
---- a/third_party/blink/common/features.cc
-+++ b/third_party/blink/common/features.cc
-@@ -799,6 +799,11 @@ BASE_FEATURE(kFencedFramesAutomaticBeaconCredentials,
-              "FencedFramesAutomaticBeaconCredentials",
-              base::FEATURE_DISABLED_BY_DEFAULT);
- 
-+// Enable text snippets in URL fragments. https://crbug.com/919204.
-+BASE_FEATURE(kTextFragmentAnchor,
-+             "TextFragmentAnchor",
-+             base::FEATURE_DISABLED_BY_DEFAULT);
+diff --git a/cromite_flags/chrome/browser/about_flags_cc/Disable-text-fragments-by-default.inc b/cromite_flags/chrome/browser/about_flags_cc/Disable-text-fragments-by-default.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..f61725b405a3753998a370733b3a271a49890358
+--- /dev/null
++++ b/cromite_flags/chrome/browser/about_flags_cc/Disable-text-fragments-by-default.inc
+@@ -0,0 +1,8 @@
++#ifdef FLAG_SECTION
 +
- // File handling icons. https://crbug.com/1218213
- BASE_FEATURE(kFileHandlingIcons,
-              "FileHandlingIcons",
-diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
---- a/third_party/blink/public/common/features.h
-+++ b/third_party/blink/public/common/features.h
-@@ -356,6 +356,7 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDispatchBeforeUnloadOnFreeze);
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDisplayLocking);
- 
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDropInputEventsBeforeFirstPaint);
++    {"enable-text-fragment-anchor",
++     "Enable Text Fragment Anchor.",
++     "Enables scrolling to text specified in URL's fragment.", kOsAll,
++     FEATURE_VALUE_TYPE(blink::features::kTextFragmentAnchor)},
++
++#endif
+diff --git a/cromite_flags/third_party/blink/common/features_cc/Disable-text-fragments-by-default.inc b/cromite_flags/third_party/blink/common/features_cc/Disable-text-fragments-by-default.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..2b15f792a86105b9ede415bbeb3bd00637403f7a
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/Disable-text-fragments-by-default.inc
+@@ -0,0 +1,4 @@
++// Enable text snippets in URL fragments. https://crbug.com/919204.
++CROMITE_FEATURE(kTextFragmentAnchor,
++                "TextFragmentAnchor",
++                base::FEATURE_DISABLED_BY_DEFAULT);
+diff --git a/cromite_flags/third_party/blink/common/features_h/Disable-text-fragments-by-default.inc b/cromite_flags/third_party/blink/common/features_h/Disable-text-fragments-by-default.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..9287147398256280cf1312ba605cee5faa59a49a
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_h/Disable-text-fragments-by-default.inc
+@@ -0,0 +1 @@
 +BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kTextFragmentAnchor);
- 
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDroppedTouchSequenceIncludesTouchEnd);
- 
 diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
 --- a/third_party/blink/renderer/core/dom/document.cc
 +++ b/third_party/blink/renderer/core/dom/document.cc

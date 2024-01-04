@@ -8,17 +8,15 @@ Set proper injection script nonce
 Send a random key press to circumvent idle status detection
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I6f153e83d1c9953378289ea59686587b176b2ab6
 ---
  third_party/blink/renderer/core/dom/build.gni |  2 +
- .../blink/renderer/core/dom/document.cc       | 65 +++++++++++++++++++
+ .../blink/renderer/core/dom/document.cc       | 64 +++++++++++++++++++
  .../blink/renderer/core/dom/document.h        |  3 +
  .../core/dom/extensions/anti_amp_cure.h       |  6 ++
  .../core/dom/extensions/video_bg_play.h       |  6 ++
  .../renderer/core/html/html_script_element.cc |  5 ++
  .../renderer/core/html/html_script_element.h  |  1 +
- 7 files changed, 88 insertions(+)
+ 7 files changed, 87 insertions(+)
  create mode 100644 third_party/blink/renderer/core/dom/extensions/anti_amp_cure.h
  create mode 100644 third_party/blink/renderer/core/dom/extensions/video_bg_play.h
 
@@ -119,17 +117,16 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  void Document::FinishedParsing() {
    DCHECK(!GetScriptableDocumentParser() || !parser_->IsParsing());
    DCHECK(!GetScriptableDocumentParser() || ready_state_ != kLoading);
-@@ -7486,6 +7547,10 @@ void Document::FinishedParsing() {
+@@ -7491,6 +7552,9 @@ void Document::FinishedParsing() {
+     }
  
-     frame->GetIdlenessDetector()->DomContentLoadedEventFired();
- 
+     frame->Loader().FinishedParsing();
 +    if (!IsPrefetchOnly()) {
 +       injectScripts();
 +    }
-+
-     if (ShouldMarkFontPerformance()) {
-       FontPerformance::MarkDomContentLoaded();
-     }
+   }
+ 
+   // Schedule dropping of the ElementDataCache. We keep it alive for a while
 diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/renderer/core/dom/document.h
 --- a/third_party/blink/renderer/core/dom/document.h
 +++ b/third_party/blink/renderer/core/dom/document.h

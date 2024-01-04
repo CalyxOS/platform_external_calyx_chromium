@@ -10,36 +10,35 @@ being sent and being saved to disk, although it is currently in uncalled code.
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
 ---
  .../browser/aw_content_browser_client.cc      |   1 +
  chrome/android/java/AndroidManifest.xml       |   1 -
- components/attribution_reporting/features.cc  |   4 +-
- .../origin_trials/features.cc                 |   8 +-
+ components/attribution_reporting/features.cc  |   1 +
+ .../origin_trials/features.cc                 |   2 +
  .../render_view_context_menu_base.cc          |   3 -
  .../aggregatable_report_sender.cc             |  15 +-
- .../aggregation_service_features.cc           |   4 +-
- .../attribution_data_host_manager_impl.cc     |   6 +
+ .../aggregation_service_features.cc           |   1 +
+ .../attribution_data_host_manager_impl.cc     |   1 +
  .../attribution_reporting/attribution_host.cc |   1 +
- .../attribution_os_level_manager.cc           |   6 +-
+ .../attribution_os_level_manager.cc           |   3 +-
  .../attribution_report_network_sender.cc      |   9 +
- .../attribution_storage_delegate_impl.cc      |   2 +
  .../attribution_storage_sql.cc                |   8 +-
  content/browser/storage_partition_impl.cc     |   9 -
  content/public/android/BUILD.gn               |   2 -
  .../browser/AttributionOsLevelManager.java    | 229 +-----------------
- .../public/browser/content_browser_client.cc  |  11 +-
+ .../public/browser/content_browser_client.cc  |   7 +-
  .../public/browser/navigation_controller.cc   |   1 -
- content/public/common/content_features.cc     |   4 +-
+ .../Disable-conversion-measurement-api.inc    |   1 +
+ .../Disable-conversion-measurement-api.inc    |   1 +
+ .../Disable-conversion-measurement-api.inc    |   9 +
  .../attribution/request_headers_internal.cc   |   1 +
  .../network/public/cpp/attribution_utils.cc   |   2 +
- services/network/public/cpp/features.cc       |   6 +-
- third_party/blink/common/features.cc          |  38 +--
- .../platform/runtime_enabled_features.json5   |   7 +
- ui/base/ui_base_features.cc                   |   2 +-
+ third_party/blink/renderer/core/page/page.cc  |   2 +-
  ui/events/android/motion_event_android.cc     |   6 +-
- 26 files changed, 94 insertions(+), 292 deletions(-)
+ 24 files changed, 63 insertions(+), 253 deletions(-)
+ create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc
+ create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc
+ create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-conversion-measurement-api.inc
 
 diff --git a/android_webview/browser/aw_content_browser_client.cc b/android_webview/browser/aw_content_browser_client.cc
 --- a/android_webview/browser/aw_content_browser_client.cc
@@ -66,35 +65,21 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
 diff --git a/components/attribution_reporting/features.cc b/components/attribution_reporting/features.cc
 --- a/components/attribution_reporting/features.cc
 +++ b/components/attribution_reporting/features.cc
-@@ -10,8 +10,8 @@ namespace attribution_reporting::features {
- 
- // Controls whether the Conversion Measurement API infrastructure is enabled.
- BASE_FEATURE(kConversionMeasurement,
--             "ConversionMeasurement",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "ConversionMeasurement",            // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT); // by default
- 
- BASE_FEATURE(kAttributionReportingTriggerConfig,
+@@ -17,4 +17,5 @@ BASE_FEATURE(kAttributionReportingTriggerConfig,
               "AttributionReportingTriggerConfig",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
++SET_CROMITE_FEATURE_DISABLED(kConversionMeasurement);
+ }  // namespace attribution_reporting::features
 diff --git a/components/embedder_support/origin_trials/features.cc b/components/embedder_support/origin_trials/features.cc
 --- a/components/embedder_support/origin_trials/features.cc
 +++ b/components/embedder_support/origin_trials/features.cc
-@@ -14,11 +14,11 @@ namespace embedder_support {
- // Users from control group will have the feature disabled, excluding them
- // from the origin trial.
- BASE_FEATURE(kOriginTrialsSampleAPIThirdPartyAlternativeUsage,
--             "OriginTrialsSampleAPIThirdPartyAlternativeUsage",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "OriginTrialsSampleAPIThirdPartyAlternativeUsage",   // must be disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);                  // in Bromite
+@@ -21,4 +21,6 @@ BASE_FEATURE(kConversionMeasurementAPIAlternativeUsage,
+              "ConversionMeasurementAPIAlternativeUsage",
+              base::FEATURE_ENABLED_BY_DEFAULT);
  
- BASE_FEATURE(kConversionMeasurementAPIAlternativeUsage,
--             "ConversionMeasurementAPIAlternativeUsage",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "ConversionMeasurementAPIAlternativeUsage",          // must be disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);                  // in Bromite
- 
++SET_CROMITE_FEATURE_DISABLED(kOriginTrialsSampleAPIThirdPartyAlternativeUsage);
++SET_CROMITE_FEATURE_DISABLED(kConversionMeasurementAPIAlternativeUsage);
  }  // namespace embedder_support
 diff --git a/components/renderer_context_menu/render_view_context_menu_base.cc b/components/renderer_context_menu/render_view_context_menu_base.cc
 --- a/components/renderer_context_menu/render_view_context_menu_base.cc
@@ -142,37 +127,23 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
 diff --git a/content/browser/aggregation_service/aggregation_service_features.cc b/content/browser/aggregation_service/aggregation_service_features.cc
 --- a/content/browser/aggregation_service/aggregation_service_features.cc
 +++ b/content/browser/aggregation_service/aggregation_service_features.cc
-@@ -7,8 +7,8 @@
- namespace content {
+@@ -20,4 +20,5 @@ BASE_FEATURE(kPrivacySandboxAggregationServiceReportPadding,
+              "PrivacySandboxAggregationServiceReportPadding",
+              base::FEATURE_ENABLED_BY_DEFAULT);
  
- BASE_FEATURE(kPrivacySandboxAggregationService,
--             "PrivacySandboxAggregationService",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "PrivacySandboxAggregationService",   // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);   // in bromite
- 
- const base::FeatureParam<std::string>
-     kPrivacySandboxAggregationServiceTrustedServerUrlAwsParam{
++SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxAggregationService);
+ }  // namespace content
 diff --git a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
 --- a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
 +++ b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
-@@ -508,10 +508,16 @@ void AttributionDataHostManagerImpl::ParseSource(
+@@ -507,6 +507,7 @@ void AttributionDataHostManagerImpl::ParseSource(
+     HeaderPendingDecode pending_decode,
      Registrar registrar) {
    DCHECK(it != registrations_.end());
++  if ((true)) return;
  
-+  if ((true)) {
-+    MaybeOnRegistrationsFinished(it);
-+    return;
-+  }
-+
    network::mojom::AttributionSupport attribution_support =
        AttributionManager::GetAttributionSupport(
-           content::WebContents::FromRenderFrameHost(
-               RenderFrameHost::FromID(it->render_frame_id())));
-+
-   switch (registrar) {
-     case Registrar::kWeb:
-       if (!network::HasAttributionWebSupport(attribution_support)) {
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
@@ -187,32 +158,23 @@ diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content
 diff --git a/content/browser/attribution_reporting/attribution_os_level_manager.cc b/content/browser/attribution_reporting/attribution_os_level_manager.cc
 --- a/content/browser/attribution_reporting/attribution_os_level_manager.cc
 +++ b/content/browser/attribution_reporting/attribution_os_level_manager.cc
-@@ -67,14 +67,14 @@ bool AttributionOsLevelManager::ShouldInitializeApiState() {
-   if (g_state.has_value()) {
-     return false;
-   }
--  g_state.emplace(ApiState::kDisabled);
-+  g_state.emplace(ApiState::kDisabled);  // Must be disabled in Cromite
-   return true;
- }
- 
+@@ -46,6 +46,7 @@ absl::optional<ApiState> g_state GUARDED_BY_CONTEXT(GetSequenceChecker());
+ // static
+ bool AttributionOsLevelManager::ShouldUseOsWebSource(
+     GlobalRenderFrameHostId render_frame_id) {
++  if ((true)) return false;
+   return GetContentClient()
+       ->browser()
+       ->ShouldUseOsWebSourceAttributionReporting(
+@@ -74,7 +75,7 @@ bool AttributionOsLevelManager::ShouldInitializeApiState() {
  // static
  ApiState AttributionOsLevelManager::GetApiState() {
    DCHECK_CALLED_ON_VALID_SEQUENCE(GetSequenceChecker());
 -  return g_state.value_or(ApiState::kDisabled);
-+  return g_state.value_or(ApiState::kDisabled);  // Must default disabled in Cromite
++  return ApiState::kDisabled;
  }
  
  // static
-@@ -82,7 +82,7 @@ void AttributionOsLevelManager::SetApiState(absl::optional<ApiState> state) {
-   DCHECK_CALLED_ON_VALID_SEQUENCE(GetSequenceChecker());
- 
-   ApiState old_state = GetApiState();
--  g_state = state;
-+  g_state = ApiState::kDisabled;  // Must only set disabled in Cromite
-   ApiState new_state = GetApiState();
- 
-   base::UmaHistogramEnumeration("Conversions.AttributionOsLevelApiState",
 diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
 --- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
 +++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
@@ -239,18 +201,6 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
    network::SimpleURLLoader* loader = it->get();
  
    // Consider a non-200 HTTP code as a non-internal error.
-diff --git a/content/browser/attribution_reporting/attribution_storage_delegate_impl.cc b/content/browser/attribution_reporting/attribution_storage_delegate_impl.cc
---- a/content/browser/attribution_reporting/attribution_storage_delegate_impl.cc
-+++ b/content/browser/attribution_reporting/attribution_storage_delegate_impl.cc
-@@ -238,6 +238,8 @@ AttributionStorageDelegateImpl::GetNullAggregatableReports(
-     absl::optional<base::Time> attributed_source_time) const {
-   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
- 
-+  if ((true)) return {};
-+
-   switch (noise_mode_) {
-     case AttributionNoiseMode::kDefault:
-       return GetNullAggregatableReportsImpl(trigger, trigger_time,
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
@@ -620,21 +570,21 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
 diff --git a/content/public/browser/content_browser_client.cc b/content/public/browser/content_browser_client.cc
 --- a/content/public/browser/content_browser_client.cc
 +++ b/content/public/browser/content_browser_client.cc
-@@ -553,12 +553,7 @@ void ContentBrowserClient::OnAuctionComplete(
+@@ -553,6 +553,7 @@ void ContentBrowserClient::OnAuctionComplete(
  network::mojom::AttributionSupport ContentBrowserClient::GetAttributionSupport(
      AttributionReportingOsApiState state,
      content::WebContents* web_contents) {
--  switch (state) {
--    case AttributionReportingOsApiState::kDisabled:
--      return network::mojom::AttributionSupport::kWeb;
--    case AttributionReportingOsApiState::kEnabled:
--      return network::mojom::AttributionSupport::kWebAndOs;
--  }
-+  return network::mojom::AttributionSupport::kNone;
++  if ((true)) return network::mojom::AttributionSupport::kNone;
+   switch (state) {
+     case AttributionReportingOsApiState::kDisabled:
+       return network::mojom::AttributionSupport::kWeb;
+@@ -569,17 +570,17 @@ bool ContentBrowserClient::IsAttributionReportingOperationAllowed(
+     const url::Origin* destination_origin,
+     const url::Origin* reporting_origin,
+     bool* can_bypass) {
+-  return true;
++  return false;
  }
- 
- bool ContentBrowserClient::IsAttributionReportingOperationAllowed(
-@@ -574,12 +569,12 @@ bool ContentBrowserClient::IsAttributionReportingOperationAllowed(
  
  bool ContentBrowserClient::ShouldUseOsWebSourceAttributionReporting(
      content::RenderFrameHost* rfh) {
@@ -660,20 +610,35 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
        is_pdf(input.is_pdf) {
  #if DCHECK_IS_ON()
    DCHECK(input.Valid());
-diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
---- a/content/public/common/content_features.cc
-+++ b/content/public/common/content_features.cc
-@@ -677,8 +677,8 @@ BASE_FEATURE(kPrefetchNewLimits,
- // FLEDGE, Topics, along with a number of other features actively in development
- // within these APIs.
- BASE_FEATURE(kPrivacySandboxAdsAPIsOverride,
--             "PrivacySandboxAdsAPIsOverride",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "PrivacySandboxAdsAPIsOverride",       // must be disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
- 
- // Enables Private Network Access checks for all types of web workers.
- //
+diff --git a/cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc b/cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..1098fb520ad63f821bc66d8a3ad23f47b8c578fb
+--- /dev/null
++++ b/cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxAdsAPIsOverride);
+diff --git a/cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc b/cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..56c0bcf0616251899d8c67e41b643143e09fef47
+--- /dev/null
++++ b/cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kAttributionReportingCrossAppWeb);
+diff --git a/cromite_flags/third_party/blink/common/features_cc/Disable-conversion-measurement-api.inc b/cromite_flags/third_party/blink/common/features_cc/Disable-conversion-measurement-api.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..abc499d24b5765cd6dff86f860280f37c4630aa7
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/Disable-conversion-measurement-api.inc
+@@ -0,0 +1,9 @@
++SET_CROMITE_FEATURE_DISABLED(kAdAuctionReportingWithMacroApi);
++SET_CROMITE_FEATURE_DISABLED(kAdAuctionSignals);
++SET_CROMITE_FEATURE_DISABLED(kBrowsingTopics);
++SET_CROMITE_FEATURE_DISABLED(kBrowsingTopicsDocumentAPI);
++SET_CROMITE_FEATURE_DISABLED(kBrowsingTopicsParameters);
++SET_CROMITE_FEATURE_DISABLED(kFledgeBiddingAndAuctionServer);
++SET_CROMITE_FEATURE_DISABLED(kInterestGroupStorage);
++SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxAdsAPIs);
++SET_CROMITE_FEATURE_DISABLED(kPrivateAggregationApi);
 diff --git a/services/network/attribution/request_headers_internal.cc b/services/network/attribution/request_headers_internal.cc
 --- a/services/network/attribution/request_headers_internal.cc
 +++ b/services/network/attribution/request_headers_internal.cc
@@ -704,147 +669,18 @@ diff --git a/services/network/public/cpp/attribution_utils.cc b/services/network
    switch (attribution_support) {
      case mojom::AttributionSupport::kWeb:
      case mojom::AttributionSupport::kWebAndOs:
-diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
---- a/services/network/public/cpp/features.cc
-+++ b/services/network/public/cpp/features.cc
-@@ -151,9 +151,9 @@ BASE_FEATURE(kAttributionReportingReportVerification,
+diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
+--- a/third_party/blink/renderer/core/page/page.cc
++++ b/third_party/blink/renderer/core/page/page.cc
+@@ -1223,7 +1223,7 @@ void Page::UpdateBrowsingContextGroup(
  
- // Gate access to Attribution Reporting cross app and web APIs that allow
- // registering with a native attribution API.
--BASE_FEATURE(kAttributionReportingCrossAppWeb,
--             "AttributionReportingCrossAppWeb",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+BASE_FEATURE(kAttributionReportingCrossAppWeb,    // in bromite
-+             "AttributionReportingCrossAppWeb",   // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // by default
+ void Page::SetAttributionSupport(
+     network::mojom::AttributionSupport attribution_support) {
+-  attribution_support_ = attribution_support;
++  attribution_support_ = network::mojom::AttributionSupport::kNone;
+ }
  
- // Enables preprocessing requests with the Private State Tokens API Fetch flags
- // set, and handling their responses, according to the protocol.
-diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
---- a/third_party/blink/common/features.cc
-+++ b/third_party/blink/common/features.cc
-@@ -36,14 +36,14 @@ BASE_FEATURE(kAcceleratedStaticBitmapImageSerialization,
- 
- // Enable the Protected Audience's reporting with ad macro API.
- BASE_FEATURE(kAdAuctionReportingWithMacroApi,
--             "AdAuctionReportingWithMacroApi",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "AdAuctionReportingWithMacroApi",   // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT); // by default
- 
- // Controls the capturing of the Ad-Auction-Signals header, and the maximum
- // allowed Ad-Auction-Signals header value.
- BASE_FEATURE(kAdAuctionSignals,
--             "AdAuctionSignals",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "AdAuctionSignals",                 // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT); // by default
- const base::FeatureParam<int> kAdAuctionSignalsMaxSizeBytes{
-     &kAdAuctionSignals, "ad-auction-signals-max-size-bytes", 10000};
- 
-@@ -315,8 +315,8 @@ const base::FeatureParam<int> kBoostImagePriorityTightMediumLimit{
- // https://github.com/patcg-individual-drafts/topics
- // Kill switch for the Topics API.
- BASE_FEATURE(kBrowsingTopics,
--             "BrowsingTopics",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "BrowsingTopics",                      // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // by default
- 
- // If enabled, the check for whether the IP address is publicly routable will be
- // bypassed when determining the eligibility for a page to be included in topics
-@@ -331,14 +331,14 @@ BASE_FEATURE(kBrowsingTopicsBypassIPIsPubliclyRoutableCheck,
- // either a valid Origin Trial token exists or `kPrivacySandboxAdsAPIsOverride`
- // is enabled.)
- BASE_FEATURE(kBrowsingTopicsDocumentAPI,
--             "BrowsingTopicsDocumentAPI",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "BrowsingTopicsDocumentAPI",           // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // by default
- 
- // Decoupled with the main `kBrowsingTopics` feature, so it allows us to
- // decouple the server side configs.
- BASE_FEATURE(kBrowsingTopicsParameters,
--             "BrowsingTopicsParameters",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "BrowsingTopicsParameters",            // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // by default
- // The number of epochs from where to calculate the topics to give to a
- // requesting contexts.
- const base::FeatureParam<int> kBrowsingTopicsNumberOfEpochsToExpose{
-@@ -839,8 +839,8 @@ BASE_FEATURE(kFledge, "Fledge", base::FEATURE_DISABLED_BY_DEFAULT);
- // See
- // https://github.com/WICG/turtledove/blob/main/FLEDGE_browser_bidding_and_auction_API.md
- BASE_FEATURE(kFledgeBiddingAndAuctionServer,
--             "FledgeBiddingAndAuctionServer",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "FledgeBiddingAndAuctionServer",       // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // by default
- const base::FeatureParam<std::string> kFledgeBiddingAndAuctionKeyURL{
-     &kFledgeBiddingAndAuctionServer, "FledgeBiddingAndAuctionKeyURL", ""};
- const base::FeatureParam<std::string> kFledgeBiddingAndAuctionKeyConfig{
-@@ -1007,8 +1007,8 @@ const char kIntensiveWakeUpThrottling_GracePeriodSeconds_Name[] =
- // Kill switch for the Interest Group API, i.e. if disabled, the
- // API exposure will be disabled regardless of the OT config.
- BASE_FEATURE(kInterestGroupStorage,
--             "InterestGroupStorage",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "InterestGroupStorage",              // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // by default
- // TODO(crbug.com/1197209): Adjust these limits in response to usage.
- const base::FeatureParam<int> kInterestGroupStorageMaxOwners{
-     &kInterestGroupStorage, "max_owners", 1000};
-@@ -1458,16 +1458,16 @@ const base::FeatureParam<bool> kPrewarmFantasy = {&kPrewarmDefaultFontFamilies,
-                                                   "prewarm_fantasy", false};
- #endif
- 
--BASE_FEATURE(kPrivacySandboxAdsAPIs,
--             "PrivacySandboxAdsAPIs",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+BASE_FEATURE(kPrivacySandboxAdsAPIs,                // disabled
-+             "PrivacySandboxAdsAPIs",               // by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
- 
- // Enables the Private Aggregation API. Note that this API also requires the
- // `kPrivacySandboxAggregationService` to be enabled to successfully send
- // reports.
- BASE_FEATURE(kPrivateAggregationApi,
--             "PrivateAggregationApi",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "PrivateAggregationApi",               // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
- 
- // Selectively allows the JavaScript API to be disabled in just one of the
- // contexts. The Protected Audience param's name has not been updated (from
-diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
---- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
-+++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -198,6 +198,13 @@
-   },
- 
-   data: [
-+    {
-+      // disable by default features by marking as
-+      // depends_on: ["DisabledForBromite"]
-+      // to work is needed to remove "origin_trial_feature_name"
-+      // and "origin_trial_allows_third_party"
-+      name: "DisabledForBromite",
-+    },
-     {
-       name: "AbortSignalAny",
-       status: "stable",
-diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
---- a/ui/base/ui_base_features.cc
-+++ b/ui/base/ui_base_features.cc
-@@ -648,7 +648,7 @@ BASE_FEATURE(kMacClipboardWriteImageWithPng,
- // We want to experiment with disabling it to align with CR2023 designs.
- BASE_FEATURE(kCr2023MacFontSmoothing,
-              "Cr2023MacFontSmoothing",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             base::FEATURE_DISABLED_BY_DEFAULT);
- #endif
- 
- }  // namespace features
+ template class CORE_TEMPLATE_EXPORT Supplement<Page>;
 diff --git a/ui/events/android/motion_event_android.cc b/ui/events/android/motion_event_android.cc
 --- a/ui/events/android/motion_event_android.cc
 +++ b/ui/events/android/motion_event_android.cc

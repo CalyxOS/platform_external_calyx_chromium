@@ -7,102 +7,259 @@ prevent coordinate-based fingerprinting scripts.
 The factor is changed at each change of origin.
 The feature is controlled by a feature flag (default enabled)
 
-Change-Id: If2b917e8aeb7d818922a97f71e12f02803aa9158
+Require: Content-settings-infrastructure.patch
 ---
- chrome/browser/about_flags.cc                 |  5 ++
- chrome/browser/flag_descriptions.cc           |  6 ++
- chrome/browser/flag_descriptions.h            |  3 +
- third_party/blink/common/features.cc          |  4 +
- third_party/blink/public/common/features.h    |  3 +
+ .../impl/BromiteViewportContentSetting.java   | 93 +++++++++++++++++++
+ .../bromite_content_settings/viewport.grdp    | 27 ++++++
+ .../bromite_content_settings/viewport.inc     | 22 +++++
+ .../bromite_content_settings/VIEWPORT.inc     |  1 +
+ .../guest_view/browser/guest_view_base.cc     |  8 ++
+ .../Viewport-Protection-flag.inc              | 10 ++
+ .../features_cc/Viewport-Protection-flag.inc  |  3 +
+ .../features_h/Viewport-Protection-flag.inc   |  2 +
  .../common/widget/device_emulation_params.h   |  6 +-
  .../blink/renderer/core/css/media_values.cc   |  2 +-
  .../core/css/resolver/style_resolver.cc       |  7 +-
- .../blink/renderer/core/events/mouse_event.h  | 19 ++++-
+ .../blink/renderer/core/events/mouse_event.h  | 19 +++-
  .../renderer/core/events/pointer_event.h      | 11 +++
  .../renderer/core/exported/web_view_impl.cc   |  2 +-
- .../renderer/core/frame/local_dom_window.cc   | 41 +++++++++-
- .../blink/renderer/core/frame/local_frame.cc  | 12 ++-
+ .../renderer/core/frame/local_dom_window.cc   | 43 ++++++++-
+ .../blink/renderer/core/frame/local_frame.cc  | 17 +++-
  .../blink/renderer/core/frame/local_frame.h   |  6 +-
- .../core/frame/screen_metrics_emulator.cc     | 18 ++++-
- .../core/frame/screen_metrics_emulator.h      | 14 ++++
+ .../core/frame/screen_metrics_emulator.cc     | 18 +++-
+ .../core/frame/screen_metrics_emulator.h      | 14 +++
  .../core/frame/web_frame_widget_impl.cc       |  8 ++
  .../core/frame/web_remote_frame_impl.cc       |  3 +-
- .../blink/renderer/core/input/touch.cc        | 17 ++++-
- third_party/blink/renderer/core/page/page.cc  | 76 +++++++++++++++++++
- third_party/blink/renderer/core/page/page.h   |  7 ++
- 21 files changed, 251 insertions(+), 19 deletions(-)
+ .../blink/renderer/core/input/touch.cc        | 17 +++-
+ third_party/blink/renderer/core/page/page.cc  | 92 ++++++++++++++++++
+ third_party/blink/renderer/core/page/page.h   |  9 ++
+ 24 files changed, 421 insertions(+), 19 deletions(-)
+ create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/viewport.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/viewport.inc
+ create mode 100644 components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
+ create mode 100644 cromite_flags/chrome/browser/about_flags_cc/Viewport-Protection-flag.inc
+ create mode 100644 cromite_flags/third_party/blink/common/features_cc/Viewport-Protection-flag.inc
+ create mode 100644 cromite_flags/third_party/blink/common/features_h/Viewport-Protection-flag.inc
 
-diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
---- a/chrome/browser/about_flags.cc
-+++ b/chrome/browser/about_flags.cc
-@@ -10277,6 +10277,11 @@ const FeatureEntry kFeatureEntries[] = {
-          kServiceWorkerSkipIgnorableFetchHandlerVariations,
-          "ServiceWorkerSkipIgnorableFetchHandler")},
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8c97216440908c4e40b6d948044c4abf5b8079b5
+--- /dev/null
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
+@@ -0,0 +1,93 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++package org.chromium.components.browser_ui.site_settings.impl;
++
++import org.chromium.components.browser_ui.site_settings.R;
++
++import org.chromium.components.browser_ui.site_settings.BromiteCustomContentSetting;
++import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
++import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
++import org.chromium.components.content_settings.ContentSettingValues;
++import org.chromium.components.content_settings.ContentSettingsType;
++import org.chromium.content_public.browser.BrowserContextHandle;
++
++import androidx.annotation.Nullable;
++import androidx.preference.Preference;
++import androidx.preference.PreferenceScreen;
++
++import java.util.ArrayList;
++
++public class BromiteViewportContentSetting extends BromiteCustomContentSetting {
++    public BromiteViewportContentSetting() {
++        super(/*contentSettingsType*/ ContentSettingsType.VIEWPORT,
++              /*defaultEnabledValue*/ ContentSettingValues.ALLOW,
++              /*defaultDisabledValue*/ ContentSettingValues.BLOCK,
++              /*allowException*/ true,
++              /*preferenceKey*/ "viewport",
++              /*profilePrefKey*/ "viewport");
++    }
++
++    @Override
++    public ContentSettingsResources.ResourceItem getResourceItem() {
++        return new ContentSettingsResources.ResourceItem(
++            /*icon*/ R.drawable.web_asset,
++            /*title*/ R.string.viewport_permission_title,
++            /*defaultEnabledValue*/ getDefaultEnabledValue(),
++            /*defaultDisabledValue*/ getDefaultDisabledValue(),
++            /*enabledSummary*/ R.string.website_settings_category_viewport_enabled,
++            /*disabledSummary*/ R.string.website_settings_category_viewport_disabled);
++    }
++
++    @Override
++    public int getCategorySummary(@Nullable @ContentSettingValues int value) {
++        switch (value) {
++            case ContentSettingValues.ALLOW:
++                return R.string.website_settings_category_viewport_enabled;
++            case ContentSettingValues.BLOCK:
++                return R.string.website_settings_category_viewport_disabled;
++            default:
++                // this will cause a runtime exception
++                return 0;
++        }
++    }
++
++    @Override
++    public int getCategoryDescription() {
++        return R.string.settings_site_settings_viewport_protection_description;
++    }
++
++    @Override
++    public boolean requiresTriStateContentSetting() {
++        return false;
++    }
++
++    @Override
++    public boolean showOnlyDescriptions() {
++        return true;
++    }
++
++    @Override
++    public int getAddExceptionDialogMessage() {
++        return R.string.website_settings_category_viewport_enabled;
++    }
++
++    @Override
++    public @Nullable Boolean considerException(SiteSettingsCategory category, @ContentSettingValues int value) {
++        return value != ContentSettingValues.BLOCK;
++    }
++}
+diff --git a/components/browser_ui/strings/bromite_content_settings/viewport.grdp b/components/browser_ui/strings/bromite_content_settings/viewport.grdp
+new file mode 100644
+index 0000000000000000000000000000000000000000..103a00dc3a141e5c61dab6d67b4de2ee4a141538
+--- /dev/null
++++ b/components/browser_ui/strings/bromite_content_settings/viewport.grdp
+@@ -0,0 +1,27 @@
++<?xml version="1.0" encoding="utf-8"?>
++<grit-part>
++  <message name="IDS_SITE_SETTINGS_TYPE_VIEWPORT" desc="The label used for viewport size change site settings controls." formatter_data="android_java">
++    Viewport Size Protection
++  </message>
++  <message name="IDS_VIEWPORT_PERMISSION_TITLE" desc="Title of the permission to use viewport size change [CHAR-LIMIT=32]" formatter_data="android_java">
++    Viewport Size Protection
++  </message>
++  <message name="IDS_SITE_SETTINGS_TYPE_VIEWPORT_MID_SENTENCE" desc="The label used for viewport size change site settings controls when used mid-sentence." formatter_data="android_java">
++    Viewport Size Protection
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_DESCRIPTION" desc="Description of the viewport protection content setting." formatter_data="android_java">
++    Hides the screen size by randomly changing the values for each website
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_ENABLED" desc="Summary text explaining that viewport size change is full enabled." formatter_data="android_java">
++    Enabled
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_DISABLED" desc="Summary text explaining that viewport size change is full disabled." formatter_data="android_java">
++    Disabled
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the viewport protection setting.">
++    Viewport Protection is enabled with these websites
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_BLOCKED_EXCEPTIONS" desc="Label for the blocked exceptions site list of the viewport protection setting.">
++    Not allowed to use Viewport Protection
++  </message>
++</grit-part>
+diff --git a/components/content_settings/core/browser/bromite_content_settings/viewport.inc b/components/content_settings/core/browser/bromite_content_settings/viewport.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..bc95bd60039864992debf0d442f210e76dedd08f
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/viewport.inc
+@@ -0,0 +1,22 @@
++  Register(ContentSettingsType::VIEWPORT, "viewport", CONTENT_SETTING_ALLOW,
++           WebsiteSettingsInfo::SYNCABLE,
++           /*allowlisted_schemes=*/{},
++           /*valid_settings=*/{CONTENT_SETTING_ALLOW,
++                               CONTENT_SETTING_BLOCK},
++           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
++           WebsiteSettingsRegistry::ALL_PLATFORMS,
++           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
++           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
++
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::VIEWPORT)
++    ->set_show_into_info_page()
++    .set_desktop_ui()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_SITE_SETTINGS_TYPE_VIEWPORT)
++    .set_description_ui(IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_DESCRIPTION)
++    .set_allowed_ui(IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_ENABLED)
++    .set_blocked_ui(IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_DISABLED)
++    .set_allowed_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_ALLOWED_EXCEPTIONS)
++    .set_blocked_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_BLOCKED_EXCEPTIONS)
++    .set_mid_sentence_ui(IDS_SITE_SETTINGS_TYPE_VIEWPORT_MID_SENTENCE);
+diff --git a/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc b/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..0b0cfdd5be09efde37ad430a1d46ffc9ab90b415
+--- /dev/null
++++ b/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
+@@ -0,0 +1 @@
++  VIEWPORT,
+diff --git a/components/guest_view/browser/guest_view_base.cc b/components/guest_view/browser/guest_view_base.cc
+--- a/components/guest_view/browser/guest_view_base.cc
++++ b/components/guest_view/browser/guest_view_base.cc
+@@ -497,6 +497,14 @@ void GuestViewBase::AttachToOuterWebContentsFrame(
+   if (attachment_callback)
+     std::move(attachment_callback).Run();
  
++  // Disable viewport protection
++  // I use this hack, i.e. I reuse the SetPageScale method for my own purposes,
++  // so that I do not have to enter a new call in mojo and thus edit
++  // so many files.
++  // the chromium code never uses negative values, so there is no
++  // danger of inserting problems
++  embedder_web_contents->SetPageScale(-999);
++
+   // Completing attachment will resume suspended resource loads and then send
+   // queued events.
+   SignalWhenReady(base::BindOnce(&GuestViewBase::DidAttach,
+diff --git a/cromite_flags/chrome/browser/about_flags_cc/Viewport-Protection-flag.inc b/cromite_flags/chrome/browser/about_flags_cc/Viewport-Protection-flag.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..d7c9435f82d9e398a38254206c57aeff5fe51c9c
+--- /dev/null
++++ b/cromite_flags/chrome/browser/about_flags_cc/Viewport-Protection-flag.inc
+@@ -0,0 +1,10 @@
++#ifdef FLAG_SECTION
++
 +    {"viewport-protection",
-+     flag_descriptions::kViewportProtectionName,
-+     flag_descriptions::kViewportProtectionDescription, kOsAll,
++     "Viewport Protection",
++     "Scale the viewport and the screen by a random factor to prevent "
++     "coordinate-based fingerprinting scripts. The factor is changed at each "
++     "change of origin.", kOsAll,
 +     FEATURE_VALUE_TYPE(blink::features::kViewportProtection)},
 +
- #if BUILDFLAG(IS_ANDROID)
-     {"block-external-form-redirects-no-gesture",
-      flag_descriptions::kIntentBlockExternalFormRedirectsNoGestureName,
-diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
---- a/chrome/browser/flag_descriptions.cc
-+++ b/chrome/browser/flag_descriptions.cc
-@@ -7679,6 +7679,12 @@ const char kWebXrInternalsDescription[] =
-     "debug issues with the WebXR Device API.";
- #endif  // #if defined(ENABLE_VR)
- 
-+const char kViewportProtectionName[] = "Viewport Protection";
-+const char kViewportProtectionDescription[] =
-+    "Scale the viewport and the screen by a random factor to prevent "
-+    "coordinate-based fingerprinting scripts. The factor is changed at each "
-+    "change of origin.";
-+
- #if BUILDFLAG(ENABLE_WEBUI_TAB_STRIP)
- const char kWebUITabStripFlagId[] = "webui-tab-strip";
- const char kWebUITabStripName[] = "WebUI tab strip";
-diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
---- a/chrome/browser/flag_descriptions.h
-+++ b/chrome/browser/flag_descriptions.h
-@@ -4435,6 +4435,9 @@ extern const char kPaintPreviewDemoName[];
- extern const char kPaintPreviewDemoDescription[];
- #endif  // ENABLE_PAINT_PREVIEW && BUILDFLAG(IS_ANDROID)
- 
-+extern const char kViewportProtectionName[];
-+extern const char kViewportProtectionDescription[];
-+
- #if BUILDFLAG(ENABLE_VR)
- extern const char kWebXrInternalsName[];
- extern const char kWebXrInternalsDescription[];
-diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
---- a/third_party/blink/common/features.cc
-+++ b/third_party/blink/common/features.cc
-@@ -1500,6 +1500,10 @@ BASE_FEATURE(kPrivateAggregationApiMultipleCloudProviders,
-              "PrivateAggregationApiMultipleCloudProviders",
-              base::FEATURE_DISABLED_BY_DEFAULT);
- 
-+BASE_FEATURE(kViewportProtection,
-+             "ViewportProtection",
-+             base::FEATURE_ENABLED_BY_DEFAULT);
-+
- BASE_FEATURE(kProcessHtmlDataImmediately,
-              "ProcessHtmlDataImmediately",
-              base::FEATURE_DISABLED_BY_DEFAULT);
-diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
---- a/third_party/blink/public/common/features.h
-+++ b/third_party/blink/public/common/features.h
-@@ -1397,6 +1397,9 @@ BLINK_COMMON_EXPORT bool IsFencedFramesEnabled();
- 
- BLINK_COMMON_EXPORT bool IsMaxUnthrottledTimeoutNestingLevelEnabled();
- 
++#endif
+diff --git a/cromite_flags/third_party/blink/common/features_cc/Viewport-Protection-flag.inc b/cromite_flags/third_party/blink/common/features_cc/Viewport-Protection-flag.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..9f29a984bb7175298141b0b6ac8eb46790461c51
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/Viewport-Protection-flag.inc
+@@ -0,0 +1,3 @@
++CROMITE_FEATURE(kViewportProtection,
++                "ViewportProtection",
++                base::FEATURE_DISABLED_BY_DEFAULT);
+diff --git a/cromite_flags/third_party/blink/common/features_h/Viewport-Protection-flag.inc b/cromite_flags/third_party/blink/common/features_h/Viewport-Protection-flag.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..135cbfdc5bf358d7664b6a7c159a9f9fc50737d1
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_h/Viewport-Protection-flag.inc
+@@ -0,0 +1,2 @@
 +// Enable blink viewport protection
 +BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kViewportProtection);
-+
- // This function checks both kNewBaseUrlInheritanceBehavior and
- // kIsolateSandboxedIframes and returns true if either is enabled.
- BLINK_COMMON_EXPORT bool IsNewBaseUrlInheritanceBehaviorEnabled();
 diff --git a/third_party/blink/public/common/widget/device_emulation_params.h b/third_party/blink/public/common/widget/device_emulation_params.h
 --- a/third_party/blink/public/common/widget/device_emulation_params.h
 +++ b/third_party/blink/public/common/widget/device_emulation_params.h
@@ -277,7 +434,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
  }
  
  void LocalDOMWindow::scrollBy(double x, double y) const {
-@@ -2264,6 +2275,21 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
+@@ -2264,6 +2275,23 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
    if (!completed_url.IsEmpty() || result.new_window)
      result.frame->Navigate(frame_request, WebFrameLoadType::kStandard);
  
@@ -291,6 +448,8 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
 +    //     var w = window.open()
 +    //     var not_emulated_screen_info = w.screen
 +    bool protection_enabled = base::FeatureList::IsEnabled(features::kViewportProtection);
++    protection_enabled |= GetFrame()->GetContentSettingsClient()->AllowContentSetting(
++        ContentSettingsType::VIEWPORT, false);
 +    result.frame->GetPage()->CalculateEmulatedScreenSetting(
 +      To<LocalFrame>(result.frame),
 +      /*force*/ protection_enabled);
@@ -299,7 +458,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
    // TODO(japhet): window-open-noopener.html?_top and several tests in
    // html/browsers/windows/browsing-context-names/ appear to require that
    // the special case target names (_top, _parent, _self) ignore opener
-@@ -2320,6 +2346,15 @@ DOMWindow* LocalDOMWindow::openPictureInPictureWindow(
+@@ -2320,6 +2348,15 @@ DOMWindow* LocalDOMWindow::openPictureInPictureWindow(
    DCHECK(result.new_window);
  
    result.frame->Navigate(frame_request, WebFrameLoadType::kStandard);
@@ -348,6 +507,18 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
    return ratio;
  }
  
+@@ -3073,6 +3081,11 @@ void LocalFrame::SetScaleFactor(float scale_factor) {
+   DCHECK(!GetDocument() || !GetDocument()->Printing());
+   DCHECK(IsMainFrame());
+ 
++  if (scale_factor <= -999) {
++    GetPage()->DisableScreenEmulated();
++    return;
++  }
++
+   const PageScaleConstraints& constraints =
+       GetPage()->GetPageScaleConstraintsSet().FinalConstraints();
+   scale_factor = constraints.ClampToConstraints(scale_factor);
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
@@ -554,9 +725,11 @@ diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/re
  #include "third_party/blink/public/common/features.h"
  #include "third_party/blink/public/mojom/frame/lifecycle.mojom-blink-forward.h"
  #include "third_party/blink/public/platform/platform.h"
-@@ -92,6 +93,9 @@
+@@ -91,7 +92,11 @@
+ #include "third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h"
  #include "third_party/blink/renderer/platform/scheduler/public/agent_group_scheduler.h"
  #include "third_party/blink/renderer/platform/scheduler/public/frame_scheduler.h"
++#include "third_party/blink/renderer/platform/weborigin/scheme_registry.h"
  #include "third_party/skia/include/core/SkColor.h"
 +#include "base/rand_util.h"
 +#include "third_party/blink/public/common/widget/device_emulation_params.h"
@@ -564,12 +737,20 @@ diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/re
  
  namespace blink {
  
-@@ -902,7 +906,79 @@ void Page::UpdateAcceleratedCompositingSettings() {
+@@ -902,7 +907,94 @@ void Page::UpdateAcceleratedCompositingSettings() {
    }
  }
  
 +void Page::CalculateEmulatedScreenSetting(LocalFrame* frame, bool force) {
 +  bool isEnabled = base::FeatureList::IsEnabled(features::kViewportProtection);
++  blink::WebContentSettingsClient* settings = frame->GetContentSettingsClient();
++  isEnabled |= (settings && settings->AllowContentSetting(
++        ContentSettingsType::VIEWPORT, /*default_value*/ false));
++  String protocol =
++    frame->GetSecurityContext()->GetSecurityOrigin()->Protocol();
++  if (SchemeRegistry::IsWebUIScheme(protocol) || disable_screen_emulated_) {
++    isEnabled = false;
++  }
 +  if (isEnabled || force) {
 +    // this is the maximum (and minimum) value which in percentage
 +    // corresponds to +- 0.03%
@@ -629,14 +810,21 @@ diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/re
 +
 +      frame->SetPageZoomFactorBaseValue(zoom_factor);
 +    }
-+    is_screen_emulated = true;
++    is_screen_emulated_ = true;
 +  } else {
-+    if (is_screen_emulated && main_frame_ == frame) {
++    if (is_screen_emulated_ && main_frame_ == frame) {
 +      GetChromeClient().GetWebView()->DisableDeviceEmulation();
 +      frame->SetPageZoomFactorBaseValue(0);
 +    }
-+    is_screen_emulated = false;
++    is_screen_emulated_ = false;
 +  }
++}
++
++void Page::DisableScreenEmulated() {
++  disable_screen_emulated_ = true;
++  GetChromeClient().GetWebView()->DisableDeviceEmulation();
++  DeprecatedLocalMainFrame()->SetPageZoomFactorBaseValue(0);
++  is_screen_emulated_ = false;
 +}
 +
  void Page::DidCommitLoad(LocalFrame* frame) {
@@ -647,21 +835,23 @@ diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/re
 diff --git a/third_party/blink/renderer/core/page/page.h b/third_party/blink/renderer/core/page/page.h
 --- a/third_party/blink/renderer/core/page/page.h
 +++ b/third_party/blink/renderer/core/page/page.h
-@@ -460,6 +460,9 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
+@@ -460,6 +460,10 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
      return attribution_support_;
    }
  
 +  void CalculateEmulatedScreenSetting(LocalFrame* frame, bool force = false);
-+  bool IsScreenEmulated() { return is_screen_emulated; }
++  bool IsScreenEmulated() { return is_screen_emulated_; }
++  void DisableScreenEmulated();
 +
   private:
    friend class ScopedPagePauser;
  
-@@ -605,6 +608,10 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
+@@ -605,6 +609,11 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
    // browser side FrameTree has the FrameTree::Type of kFencedFrame.
    bool is_fenced_frame_tree_ = false;
  
-+  bool is_screen_emulated = false;
++  bool is_screen_emulated_ = false;
++  bool disable_screen_emulated_ = false;
 +  double override_window_scale_factor_ = 0;
 +  double override_zoom_factor_ = 0;
 +
