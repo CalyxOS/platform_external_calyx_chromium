@@ -1,0 +1,43 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 17 Feb 2023 16:23:20 +0000
+Subject: Improve the browser sandbox
+
+by enabling network service sandbox and CIG in windows and
+using the new flags on android
+
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+Change-Id: Icccc9b31ecfac9b9f7aa91b0f719ebd8456dd607
+---
+ chrome/browser/chrome_content_browser_client.cc | 2 +-
+ sandbox/policy/features.cc                      | 7 +++++++
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -767,7 +767,7 @@ namespace {
+ // https://blogs.windows.com/blog/tag/code-integrity-guard/.
+ BASE_FEATURE(kNetworkServiceCodeIntegrity,
+              "NetworkServiceCodeIntegrity",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ #endif  // BUILDFLAG(IS_WIN) && !defined(COMPONENT_BUILD) &&
+         // !defined(ADDRESS_SANITIZER)
+diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
+--- a/sandbox/policy/features.cc
++++ b/sandbox/policy/features.cc
+@@ -194,4 +194,11 @@ bool IsNetworkSandboxEnabled() {
+ #endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_FUCHSIA)
+ }
+ 
++#if BUILDFLAG(IS_ANDROID)
++SET_CROMITE_FEATURE_ENABLED(kUseRendererProcessPolicy);
++SET_CROMITE_FEATURE_ENABLED(kRestrictRendererPoliciesInBaseline);
++#endif
++#if BUILDFLAG(IS_WIN)
++SET_CROMITE_FEATURE_ENABLED(kNetworkServiceSandbox);
++#endif
+ }  // namespace sandbox::policy::features
+-- 
+
