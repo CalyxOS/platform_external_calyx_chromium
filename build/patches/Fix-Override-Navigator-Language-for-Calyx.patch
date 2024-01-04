@@ -1,0 +1,53 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 3 Jan 2024 12:32:44 +0000
+Subject: Fix Override Navigator Language for Calyx
+
+We do not incorporate Remove-SMS-integration.patch, so we do not need
+an equivalent setAppLanguagePref to be added to AppLocaleUtils.java;
+it was never removed. Having this as a separate patch makes porting
+from Cromite a bit easier.
+
+Change-Id: I99a28cdd61ac76a996a6562374a9f4ac32ba2c86
+---
+ .../browser/language/AppLocaleUtils.java      | 20 -------------------
+ 1 file changed, 20 deletions(-)
+
+diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java
+--- a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java
++++ b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java
+@@ -34,10 +34,6 @@ import java.util.Locale;
+ public class AppLocaleUtils {
+     private AppLocaleUtils(){};
+ 
+-    public interface InstallListener {
+-        void onComplete(boolean success);
+-    }
+-
+     // Value of AppLocale preference when the system language is used.
+     public static final String APP_LOCALE_USE_SYSTEM_LANGUAGE = null;
+ 
+@@ -102,22 +98,6 @@ public class AppLocaleUtils {
+         return locale.toLanguageTag();
+     }
+ 
+-    public static void setAppLanguagePref(
+-            String languageName, InstallListener listener) {
+-        InstallListener wrappedListener = (success) -> {
+-            if (success) {
+-                if (shouldUseSystemManagedLocale()) {
+-                    setSystemManagedAppLanguage(languageName);
+-                } else {
+-                    ChromeSharedPreferences.getInstance().writeString(
+-                            ChromePreferenceKeys.APPLICATION_OVERRIDE_LANGUAGE, languageName);
+-                }
+-            }
+-            listener.onComplete(success);
+-        };
+-        wrappedListener.onComplete(true);
+-    }
+-
+     /**
+      * Gets the first original system locale from {@link LocaleManager}. This is the language that
+      * Chrome would use if there was no override set. If there are no possible UI languages en-US is
+-- 
+
