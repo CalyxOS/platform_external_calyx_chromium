@@ -1,0 +1,52 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Thu, 28 Sep 2023 07:56:11 +0000
+Subject: Partition MediaDeviceId by default
+
+and, in windows, hide the presence of the webcam if the user has not given permission
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+
+Change-Id: I7fe280deea7a4fae79b7099cc602f49cad81991c
+---
+ components/media_device_salt/media_device_salt_service.cc    | 3 +++
+ content/browser/renderer_host/media/media_devices_manager.cc | 5 +++++
+ .../features_cc/Partition-MediaDeviceId-by-default.inc       | 1 +
+ 3 files changed, 9 insertions(+)
+ create mode 100644 cromite_flags/content/common/features_cc/Partition-MediaDeviceId-by-default.inc
+
+diff --git a/components/media_device_salt/media_device_salt_service.cc b/components/media_device_salt/media_device_salt_service.cc
+--- a/components/media_device_salt/media_device_salt_service.cc
++++ b/components/media_device_salt/media_device_salt_service.cc
+@@ -29,6 +29,9 @@ BASE_FEATURE(kMediaDeviceIdRandomSaltsPerStorageKey,
+              "MediaDeviceIdRandomSaltsPerStorageKey",
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
++SET_CROMITE_FEATURE_ENABLED(kMediaDeviceIdPartitioning);
++SET_CROMITE_FEATURE_ENABLED(kMediaDeviceIdRandomSaltsPerStorageKey);
++
+ namespace {
+ 
+ scoped_refptr<base::SequencedTaskRunner> CreateDatabaseTaskRunner() {
+diff --git a/content/browser/renderer_host/media/media_devices_manager.cc b/content/browser/renderer_host/media/media_devices_manager.cc
+--- a/content/browser/renderer_host/media/media_devices_manager.cc
++++ b/content/browser/renderer_host/media/media_devices_manager.cc
+@@ -763,6 +763,11 @@ void MediaDevicesManager::OnDevicesEnumerated(
+           has_permissions[i], salt_and_origin, device_info));
+     }
+   }
++#if !BUILDFLAG(IS_ANDROID)
++  int video_input_index = static_cast<size_t>(MediaDeviceType::kMediaVideoInput);
++  if (requested_types[video_input_index] && !has_permissions[video_input_index])
++    translation[video_input_index].clear();
++#endif
+ 
+   GetAudioInputCapabilities(video_input_capabilities_requested,
+                             audio_input_capabilities_requested,
+diff --git a/cromite_flags/content/common/features_cc/Partition-MediaDeviceId-by-default.inc b/cromite_flags/content/common/features_cc/Partition-MediaDeviceId-by-default.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..e0e5950a2789f9aaca40d93b999367c796ecc2e9
+--- /dev/null
++++ b/cromite_flags/content/common/features_cc/Partition-MediaDeviceId-by-default.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_ENABLED(kEnumerateDevicesHideDeviceIDs);
+-- 
+
