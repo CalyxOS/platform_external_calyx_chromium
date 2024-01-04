@@ -6,20 +6,21 @@ Disable critical client hints and network early hints
 Use Google Chrome branding for client hints
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: Ia94dbd2e88983a466e5d3c758aba3de1c5259914
 ---
  components/embedder_support/user_agent_utils.cc              | 4 +---
  content/browser/client_hints/client_hints.cc                 | 3 ++-
  content/browser/loader/navigation_url_loader_impl.cc         | 5 +++++
- content/common/features.cc                                   | 4 ++--
+ .../content/common/features_cc/Client-hints-overrides.inc    | 1 +
+ .../public/cpp/features_cc/Client-hints-overrides.inc        | 1 +
  net/http/http_network_transaction.cc                         | 1 +
  services/network/public/cpp/client_hints.cc                  | 1 +
- services/network/public/cpp/features.cc                      | 2 +-
  third_party/blink/common/client_hints/client_hints.cc        | 1 +
  .../blink/common/client_hints/enabled_client_hints.cc        | 4 +++-
  .../blink/renderer/platform/runtime_enabled_features.json5   | 4 ++--
- 10 files changed, 19 insertions(+), 10 deletions(-)
+ 10 files changed, 18 insertions(+), 7 deletions(-)
+ create mode 100644 cromite_flags/content/common/features_cc/Client-hints-overrides.inc
+ create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Client-hints-overrides.inc
 
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
 --- a/components/embedder_support/user_agent_utils.cc
@@ -63,20 +64,20 @@ diff --git a/content/browser/loader/navigation_url_loader_impl.cc b/content/brow
    LogAcceptCHFrameStatus(AcceptCHFrameRestart::kFramePresent);
  
    // Given that this is happening in the middle of navigation, there should
-diff --git a/content/common/features.cc b/content/common/features.cc
---- a/content/common/features.cc
-+++ b/content/common/features.cc
-@@ -121,8 +121,8 @@ BASE_FEATURE(kConsolidatedMovementXY,
- // Enables support for the `Critical-CH` response header.
- // https://github.com/WICG/client-hints-infrastructure/blob/master/reliability.md#critical-ch
- BASE_FEATURE(kCriticalClientHint,
--             "CriticalClientHint",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "CriticalClientHint",               // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT); // by default
- 
- // Enable changing source dynamically for desktop capture.
- BASE_FEATURE(kDesktopCaptureChangeSource,
+diff --git a/cromite_flags/content/common/features_cc/Client-hints-overrides.inc b/cromite_flags/content/common/features_cc/Client-hints-overrides.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..5b63fa0665697d0a555c853226a18fc8e0f7eba2
+--- /dev/null
++++ b/cromite_flags/content/common/features_cc/Client-hints-overrides.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kCriticalClientHint);
+diff --git a/cromite_flags/services/network/public/cpp/features_cc/Client-hints-overrides.inc b/cromite_flags/services/network/public/cpp/features_cc/Client-hints-overrides.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..e23b2a805f804fba825d2725ea98655de69e46de
+--- /dev/null
++++ b/cromite_flags/services/network/public/cpp/features_cc/Client-hints-overrides.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kAcceptCHFrame);
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
@@ -99,18 +100,6 @@ diff --git a/services/network/public/cpp/client_hints.cc b/services/network/publ
    // Accept-CH is an sh-list of tokens; see:
    // https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-header-structure-19#section-3.1
    absl::optional<net::structured_headers::List> maybe_list =
-diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
---- a/services/network/public/cpp/features.cc
-+++ b/services/network/public/cpp/features.cc
-@@ -203,7 +203,7 @@ BASE_FEATURE(kWebSocketReassembleShortMessages,
- // Enable support for ACCEPT_CH H2/3 frame as part of Client Hint Reliability.
- // See:
- // https://tools.ietf.org/html/draft-davidben-http-client-hint-reliability-02#section-4.3
--BASE_FEATURE(kAcceptCHFrame, "AcceptCHFrame", base::FEATURE_ENABLED_BY_DEFAULT);
-+BASE_FEATURE(kAcceptCHFrame, "AcceptCHFrame", base::FEATURE_DISABLED_BY_DEFAULT);  // disabled by default in Bromite
- 
- // Enable
- BASE_FEATURE(kGetCookiesStringUma,
 diff --git a/third_party/blink/common/client_hints/client_hints.cc b/third_party/blink/common/client_hints/client_hints.cc
 --- a/third_party/blink/common/client_hints/client_hints.cc
 +++ b/third_party/blink/common/client_hints/client_hints.cc

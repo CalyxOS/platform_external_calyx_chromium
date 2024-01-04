@@ -5,15 +5,15 @@ Subject: Always use new tab page for default home page
 Ignore any partner-provided home page.
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: If9da4e34c5cf72ffc00e08934e72c3120b2ce27a
 ---
- .../chromium/chrome/browser/homepage/HomepageManager.java | 4 ----
- chrome/browser/flags/android/chrome_feature_list.cc       | 8 ++++----
- .../PartnerBrowserCustomizations.java                     | 2 +-
- .../chromium/components/search_engines/TemplateUrl.java   | 1 +
- .../android/template_url_service_android.cc               | 1 +
- 5 files changed, 7 insertions(+), 9 deletions(-)
+ .../org/chromium/chrome/browser/homepage/HomepageManager.java | 4 ----
+ .../partnercustomizations/PartnerBrowserCustomizations.java   | 2 +-
+ .../org/chromium/components/search_engines/TemplateUrl.java   | 1 +
+ .../search_engines/android/template_url_service_android.cc    | 1 +
+ .../always-use-new-tab-page-for-default-home-page.inc         | 2 ++
+ 5 files changed, 5 insertions(+), 5 deletions(-)
+ create mode 100755 cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/always-use-new-tab-page-for-default-home-page.inc
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java b/chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/homepage/HomepageManager.java
@@ -29,31 +29,6 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/homepage/Homepa
          String homepagePartnerDefaultGurlSerialized =
                  ChromeSharedPreferences.getInstance().readString(
                          ChromePreferenceKeys.HOMEPAGE_PARTNER_CUSTOMIZED_DEFAULT_GURL, "");
-diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
---- a/chrome/browser/flags/android/chrome_feature_list.cc
-+++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -830,8 +830,8 @@ BASE_FEATURE(kInfobarScrollOptimization,
- BASE_FEATURE(kInstantStart, "InstantStart", base::FEATURE_DISABLED_BY_DEFAULT);
- 
- BASE_FEATURE(kNewTabSearchEngineUrlAndroid,
--             "NewTabSearchEngineUrlAndroid",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "NewTabSearchEngineUrlAndroid",      // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // by default
- 
- BASE_FEATURE(kNotificationPermissionVariant,
-              "NotificationPermissionVariant",
-@@ -902,8 +902,8 @@ BASE_FEATURE(kOmniboxWarmRecycledViewPool,
-              base::FEATURE_ENABLED_BY_DEFAULT);
- 
- BASE_FEATURE(kPartnerCustomizationsUma,
--             "PartnerCustomizationsUma",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "PartnerCustomizationsUma",          // disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // by default
- BASE_FEATURE(kProbabilisticCryptidRenderer,
-              "ProbabilisticCryptidRenderer",
-              base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java b/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
 --- a/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
 +++ b/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
@@ -88,5 +63,13 @@ diff --git a/components/search_engines/android/template_url_service_android.cc b
    // Check if there is already a search engine created from Play API.
    TemplateURLService::TemplateURLVector template_urls =
        template_url_service_->GetTemplateURLs();
+diff --git a/cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/always-use-new-tab-page-for-default-home-page.inc b/cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/always-use-new-tab-page-for-default-home-page.inc
+new file mode 100755
+index 0000000000000000000000000000000000000000..61b0a046c4a78b53e9978eb0b6658ed46161c350
+--- /dev/null
++++ b/cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/always-use-new-tab-page-for-default-home-page.inc
+@@ -0,0 +1,2 @@
++SET_CROMITE_FEATURE_DISABLED(kNewTabSearchEngineUrlAndroid);
++SET_CROMITE_FEATURE_DISABLED(kPartnerCustomizationsUma);
 -- 
 
