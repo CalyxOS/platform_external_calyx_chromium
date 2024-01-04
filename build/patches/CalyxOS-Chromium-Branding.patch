@@ -1,0 +1,193 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 4 Jan 2024 16:56:58 +0000
+Subject: CalyxOS Chromium Branding
+
+Adapted from "Override Cromite Branding" change from uazo/cromite.
+
+Modifications:
+- chrome/browser/ui/android/strings/android_chrome_strings.grd, our info
+  and a reference to Cromite.
+- chrome/common/url_constants.h, our URLs.
+- tools/grit/grit/grd_reader.py, leave Chromium, and replace Chrome with
+  Chromium instead of Cromite.
+
+Exclude:
+- build/
+- chrome/android/java/AndroidManifest.xml
+- chrome/android/java/res/xml/main_preferences.xml
+- chrome/android/java/src/org/chromium/chrome/browser/omaha/
+- chrome/app/theme/chromium/BRANDING
+- chrome/browser/BUILD.gn
+- chrome/browser/prefs/
+- chrome/browser/profiles/
+- components/browser_ui/strings/android/browser_ui_strings.grd
+- All images, and icons, including drawable/themed_app_icon.xml.
+
+uazo/cromite: v120.0.6099.144-932cfc6f1e6ed1d9133fb648e5d12cd60fb3004d
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+Change-Id: I76af7607d16e0948c6ad441d7a99c4e6dfe6f67c
+---
+ .../res/xml/legal_information_preferences.xml | 12 -------
+ chrome/app/extensions_strings.grdp            |  4 +--
+ chrome/app/settings_strings.grdp              |  2 +-
+ .../settings/settings_menu/settings_menu.html |  5 +--
+ .../strings/android_chrome_strings.grd        |  2 +-
+ chrome/common/url_constants.h                 |  5 +--
+ tools/grit/grit/grd_reader.py                 | 33 +++++++++++++++++++
+ 7 files changed, 43 insertions(+), 20 deletions(-)
+
+diff --git a/chrome/android/java/res/xml/legal_information_preferences.xml b/chrome/android/java/res/xml/legal_information_preferences.xml
+--- a/chrome/android/java/res/xml/legal_information_preferences.xml
++++ b/chrome/android/java/res/xml/legal_information_preferences.xml
+@@ -12,16 +12,4 @@ found in the LICENSE file.
+         android:key="open_source_license"
+         android:title="@string/open_source_license_title"
+         app:url="@string/open_source_license_url" />
+-    <org.chromium.chrome.browser.about_settings.HyperlinkPreference
+-        android:key="google_terms_of_service"
+-        android:title="@string/google_terms_of_service_title"
+-        app:url="@string/google_terms_of_service_url" />
+-    <org.chromium.chrome.browser.about_settings.HyperlinkPreference
+-        android:key="chrome_additional_terms_of_service"
+-        android:title="@string/chrome_additional_terms_of_service_title"
+-        app:url="@string/chrome_additional_terms_of_service_url" />
+-    <org.chromium.chrome.browser.about_settings.HyperlinkPreference
+-        android:key="privacy_policy"
+-        android:title="@string/privacy_policy_title"
+-        app:url="@string/google_privacy_policy_url" />
+ </PreferenceScreen>
+diff --git a/chrome/app/extensions_strings.grdp b/chrome/app/extensions_strings.grdp
+--- a/chrome/app/extensions_strings.grdp
++++ b/chrome/app/extensions_strings.grdp
+@@ -380,7 +380,7 @@
+     No recent activities
+   </message>
+   <message name="IDS_EXTENSIONS_NO_INSTALLED_ITEMS" desc="The message shown to the user on the Extensions settings page when there are no extensions or apps installed.">
+-    Find extensions and themes in the <ph name="BEGIN_LINK">&lt;a target="_blank" href="https://chrome.google.com/webstore/category/extensions"&gt;</ph>Chrome Web Store<ph name="END_LINK">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
++    Find extensions and themes in the <ph name="BEGIN_LINK">&lt;a target="_blank" href="https://chrome.google.com/webstore/category/extensions"&gt;</ph>Chromedontreplace Web Store<ph name="END_LINK">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
+   </message>
+   <message name="IDS_EXTENSIONS_NO_DESCRIPTION" desc="The message shown to the user when an extension does not have any description.">
+     No description provided
+@@ -515,7 +515,7 @@
+     My extensions
+   </message>
+   <message name="IDS_EXTENSIONS_SIDEBAR_DISCOVER_MORE" desc="The text displayed in the sidebar to open the Chrome Web Store to get more extensions.">
+-    Discover more extensions and themes on the <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Chrome Web Store<ph name="END_LINK">&lt;/a&gt; <ex>&lt;/a&gt;</ex> </ph>
++    Discover more extensions and themes on the <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Chromedontreplace Web Store<ph name="END_LINK">&lt;/a&gt; <ex>&lt;/a&gt;</ex> </ph>
+   </message>
+   <message name="IDS_EXTENSIONS_SIDEBAR_KEYBOARD_SHORTCUTS" desc="The text for the link to manage keyboard shortcuts for extensions.">
+     Keyboard shortcuts
+diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
+--- a/chrome/app/settings_strings.grdp
++++ b/chrome/app/settings_strings.grdp
+@@ -278,7 +278,7 @@
+     Change
+   </message>
+   <message name="IDS_SETTINGS_WEB_STORE" desc="Sub-label about choosing something from the Chrome Web Store.">
+-    Open Chrome Web Store
++    Open Chromedontreplace Web Store
+   </message>
+   <if expr="is_macosx">
+     <message name="IDS_SETTINGS_TABS_TO_LINKS_PREF" desc="The documentation string of the 'Tabs to Links' preference">
+diff --git a/chrome/browser/resources/settings/settings_menu/settings_menu.html b/chrome/browser/resources/settings/settings_menu/settings_menu.html
+--- a/chrome/browser/resources/settings/settings_menu/settings_menu.html
++++ b/chrome/browser/resources/settings/settings_menu/settings_menu.html
+@@ -31,9 +31,10 @@
+       }
+ 
+       #aboutIcon {
+-        --cr-icon-image: url(//resources/images/chrome_logo_dark.svg);
++        background: url('chrome://theme/current-channel-logo@1x');
++        background-size: 20px 20px;
++        filter: grayscale();
+         -webkit-mask-size: 18px;
+-        background-color: var(--iron-icon-fill-color);
+         display: block;
+         height: var(--cr-icon-size);
+         margin-inline-end: 20px;
+diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
+--- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
++++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
+@@ -2029,7 +2029,7 @@ Your Google account may have other forms of browsing history like searches and a
+         About Chrome
+       </message>
+       <message name="IDS_LEGAL_INFORMATION_SUMMARY" desc="Summary for legal information" meaning="Android">
+-        Copyright <ph name="year">%1$d<ex>2014</ex></ph> Google LLC. All rights reserved.
++        <ph name="year">%1$d<ex>2014</ex></ph> The Calyx Institute. Based on Cromite! See Cromite.org.
+       </message>
+       <message name="IDS_APPLICATION_VERSION_TITLE" desc="Title for application version">
+         Application version
+diff --git a/chrome/common/url_constants.h b/chrome/common/url_constants.h
+--- a/chrome/common/url_constants.h
++++ b/chrome/common/url_constants.h
+@@ -114,7 +114,7 @@ inline constexpr char kChromeHelpViaMenuURL[] =
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+ 
+ inline constexpr char kChromeHelpViaWebUIURL[] =
+-    "https://support.google.com/chrome?p=help&ctx=settings";
++    "https://gitlab.com/CalyxOS/calyxos/-/issues";
+ #if BUILDFLAG(IS_CHROMEOS_ASH)
+ inline constexpr char kChromeOsHelpViaWebUIURL[] =
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+@@ -180,7 +180,8 @@ inline constexpr char kChromeUIUntrustedNewTabPageUrl[] =
+     "chrome-untrusted://new-tab-page/";
+ 
+ // The URL for the Chromium project used in the About dialog.
+-inline constexpr char16_t kChromiumProjectURL[] = u"https://www.chromium.org/";
++inline constexpr char16_t kChromiumProjectURL[] =
++    u"https://calyxos.org/docs/guide/apps/#calyxos-chromium";
+ 
+ inline constexpr char16_t kContentSettingsExceptionsLearnMoreURL[] =
+     u"https://support.google.com/chrome?p=settings_manage_exceptions";
+diff --git a/tools/grit/grit/grd_reader.py b/tools/grit/grit/grd_reader.py
+--- a/tools/grit/grit/grd_reader.py
++++ b/tools/grit/grit/grd_reader.py
+@@ -126,6 +126,7 @@ class GrdContentHandler(xml.sax.handler.ContentHandler):
+   def characters(self, content):
+     if self.ignore_depth == 0:
+       if self.stack[-1]:
++        content = self.replace_browser(content)
+         self.stack[-1].AppendContent(content)
+ 
+   def ignorableWhitespace(self, whitespace):
+@@ -133,6 +134,38 @@ class GrdContentHandler(xml.sax.handler.ContentHandler):
+     # parser?
+     pass
+ 
++  def replace_browser(self, content_orig):
++    content = content_orig.replace("Chromiumdontreplace", "zzzyyyyxxxx1")
++    content = content.replace("Chromedontreplace", "zzzyyyyxxxx2")
++    content = content.replace("chromedontreplace", "zzzyyyyxxxx3")
++    content = content.replace("//chrome", "zzzyyyyxxxx4")
++    content = content.replace("chrome://", "zzzyyyyxxxx5")
++    content = content.replace("/chrome/", "zzzyyyyxxxx6")
++    content = content.replace("chrome_", "zzzyyyyxxxx7")
++    content = content.replace(".chromium.org", "zzzyyyyxxxx8")
++    content = content.replace("chromebook", "zzzyyyyxxxx9")
++    content = content.replace("chromeos", "zzzyyyyxxxxA")
++
++    content = content.replace("google chrome", "chromium")
++    content = content.replace("Chrome", "Chromium")
++    content = content.replace("Bromite", "Cromite")
++    content = content.replace("chrome", "chromium")
++    content = content.replace("bromite", "cromite")
++
++    content = content.replace("zzzyyyyxxxx1", "Chromium")
++    content = content.replace("zzzyyyyxxxx2", "Chrome")
++    content = content.replace("zzzyyyyxxxx3", "chrome")
++    content = content.replace("zzzyyyyxxxx4", "//chrome")
++    content = content.replace("zzzyyyyxxxx5", "chrome://")
++    content = content.replace("zzzyyyyxxxx6", "/chrome/")
++    content = content.replace("zzzyyyyxxxx7", "chrome_")
++    content = content.replace("zzzyyyyxxxx8", ".chromium.org")
++    content = content.replace("zzzyyyyxxxx9", "chromebook")
++    content = content.replace("zzzyyyyxxxxA", "chromeos")
++    # if "dontreplace" in content_orig:
++    #   raise exception.MissingElement("stop")
++    #   print(content + " <-- " + content_orig)
++    return content
+ 
+ class GrdPartContentHandler(xml.sax.handler.ContentHandler):
+   def __init__(self, parent):
+-- 
+
