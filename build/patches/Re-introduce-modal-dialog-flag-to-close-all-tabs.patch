@@ -32,9 +32,9 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  import org.chromium.chrome.browser.tabmodel.TabModelSelector;
  import org.chromium.ui.modaldialog.DialogDismissalCause;
 @@ -35,6 +36,11 @@ public class CloseAllTabsDialog {
-     public static void show(Context context,
              Supplier<ModalDialogManager> modalDialogManagerSupplier,
-             @NonNull TabModelSelector tabModelSelector, Runnable onCloseAll) {
+             @NonNull TabModelSelector tabModelSelector,
+             Runnable onCloseAll) {
 +        if (!ChromeFeatureList.isEnabled(ChromeFeatureList.CLOSE_ALL_TABS_MODAL_DIALOG)) {
 +            onCloseAll.run();
 +            return;
@@ -46,7 +46,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -183,6 +183,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -182,6 +182,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kBackGestureActivityTabProvider,
      &kBackGestureRefactorActivityAndroid,
      &kBackGestureRefactorAndroid,
@@ -57,10 +57,10 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -197,6 +197,7 @@ public abstract class ChromeFeatureList {
-     public static final String CCT_RESIZABLE_90_MAXIMUM_HEIGHT = "CCTResizable90MaximumHeight";
-     public static final String CCT_RESIZABLE_ALLOW_RESIZE_BY_USER_GESTURE =
-             "CCTResizableAllowResizeByUserGesture";
+@@ -202,6 +202,7 @@ public abstract class ChromeFeatureList {
+     public static final String CCT_REMOVE_REMOTE_VIEW_IDS = "CCTRemoveRemoteViewIds";
+     public static final String CCT_REPORT_PARALLEL_REQUEST_STATUS =
+             "CCTReportParallelRequestStatus";
 +    public static final String CLOSE_ALL_TABS_MODAL_DIALOG = "CloseAllTabsModalDialog";
      public static final String CCT_RESIZABLE_FOR_THIRD_PARTIES = "CCTResizableForThirdParties";
      public static final String CCT_RESIZABLE_SIDE_SHEET = "CCTResizableSideSheet";

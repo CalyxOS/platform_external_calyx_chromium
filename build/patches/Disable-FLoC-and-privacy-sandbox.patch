@@ -9,6 +9,8 @@ the marking the history navigation and the javascript API and permission policie
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
+
+Change-Id: Id845db35bc170673c2e728b56da84599aca72506
 ---
  .../browser/chrome_content_browser_client.cc  |  3 +++
  .../privacy_sandbox_settings_delegate.cc      |  1 +
@@ -23,7 +25,7 @@ Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3432,6 +3432,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -3381,6 +3381,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin,
      bool* can_bypass) {
@@ -47,14 +49,13 @@ diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 diff --git a/chrome/browser/ui/privacy_sandbox/privacy_sandbox_prompt.cc b/chrome/browser/ui/privacy_sandbox/privacy_sandbox_prompt.cc
 --- a/chrome/browser/ui/privacy_sandbox/privacy_sandbox_prompt.cc
 +++ b/chrome/browser/ui/privacy_sandbox/privacy_sandbox_prompt.cc
-@@ -8,6 +8,7 @@
+@@ -8,5 +8,6 @@
  
  void ShowPrivacySandboxPrompt(Browser* browser,
                                PrivacySandboxService::PromptType prompt_type) {
-+  if ((true)) return;
-   if (prompt_type == PrivacySandboxService::PromptType::kNotice) {
-     ShowPrivacySandboxNoticeBubble(browser);
-   } else {
++    if ((true)) return;
+     ShowPrivacySandboxDialog(browser, prompt_type);
+ }
 diff --git a/components/history/core/browser/history_backend.cc b/components/history/core/browser/history_backend.cc
 --- a/components/history/core/browser/history_backend.cc
 +++ b/components/history/core/browser/history_backend.cc
@@ -81,19 +82,19 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
 diff --git a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 --- a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
-@@ -389,8 +389,6 @@ void PrivacySandboxAttestations::OnAttestationsParsed(
+@@ -405,8 +405,6 @@ void PrivacySandboxAttestations::OnAttestationsParsed(
    if (attestations_map.has_value() &&
        (!file_version_.IsValid() || file_version_.CompareTo(version) < 0)) {
      // Parsing succeeded and the attestations file has newer version.
 -    file_version_ = std::move(version);
--    attestations_map_ = std::move(attestations_map);
+-    attestations_map_ = std::move(attestations_map.value());
    }
  
    attestations_parse_progress_ = Progress::kFinished;
 diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
 --- a/components/privacy_sandbox/privacy_sandbox_features.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_features.cc
-@@ -144,4 +144,9 @@ BASE_FEATURE(kAttributionDebugReportingCookieDeprecationTesting,
+@@ -141,4 +141,9 @@ BASE_FEATURE(kAttributionDebugReportingCookieDeprecationTesting,
               "AttributionDebugReportingCookieDeprecationTesting",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
@@ -143,11 +144,11 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
 -bool PrivacySandboxSettingsImpl::IsTopicsAllowed() const {
 +bool PrivacySandboxSettingsImpl::IsTopicsAllowed() const { // disabled in Bromite
 +  if ((true)) return false;
-   // M1 specific
-   if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings4)) {
-     Status status = GetM1TopicAllowedStatus();
-@@ -287,7 +288,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
-          IsPrivacySandboxEnabledForContext(top_frame_origin, url);
+   Status status = GetM1TopicAllowedStatus();
+   JoinHistogram(kIsTopicsAllowedHistogram, status);
+   return IsAllowed(status);
+@@ -262,7 +263,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
+   return IsAllowed(status);
  }
  
 -bool PrivacySandboxSettingsImpl::IsTopicAllowed(const CanonicalTopic& topic) {
@@ -156,7 +157,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    const auto& blocked_topics =
        pref_service_->GetList(prefs::kPrivacySandboxBlockedTopics);
  
-@@ -513,6 +515,7 @@ bool PrivacySandboxSettingsImpl::
+@@ -464,6 +466,7 @@ bool PrivacySandboxSettingsImpl::
  void PrivacySandboxSettingsImpl::SetFledgeJoiningAllowed(
      const std::string& top_frame_etld_plus1,
      bool allowed) {
@@ -164,7 +165,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
  
-@@ -583,7 +586,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
+@@ -534,7 +537,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
  }
  
  bool PrivacySandboxSettingsImpl::IsFledgeJoiningAllowed(
@@ -174,7 +175,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
    auto& pref_data = scoped_pref_update.Get();
-@@ -752,7 +756,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationDebugModeAllowed(
+@@ -681,7 +685,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationDebugModeAllowed(
        net::CookieSettingOverrides());
  }
  
@@ -184,8 +185,8 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
    if (!IsAllowed(status)) {
      return false;
-@@ -790,7 +795,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
-   pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, false);
+@@ -708,7 +713,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
+   pref_service_->SetBoolean(prefs::kPrivacySandboxM1TopicsEnabled, false);
  }
  
 -void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) {
@@ -194,8 +195,8 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
  }
  
-@@ -851,7 +857,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
-       net::CookieSettingOverrides());
+@@ -755,7 +761,10 @@ void PrivacySandboxSettingsImpl::SetDelegateForTesting(
+   delegate_ = std::move(delegate);
  }
  
 -void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const {
@@ -206,7 +207,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    pref_service_->SetTime(prefs::kPrivacySandboxTopicsDataAccessibleSince,
                           base::Time::Now());
  
-@@ -864,6 +873,7 @@ PrivacySandboxSettingsImpl::Status
+@@ -768,6 +777,7 @@ PrivacySandboxSettingsImpl::Status
  PrivacySandboxSettingsImpl::GetSiteAccessAllowedStatus(
      const url::Origin& top_frame_origin,
      const GURL& url) const {
