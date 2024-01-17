@@ -5,6 +5,7 @@ Subject: Add autoplay site setting
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Require: Content-settings-infrastructure.patch
+
 Change-Id: I0800ab1fc452d0a57932b7e0653a353c3fdf464c
 ---
  .../res/drawable-hdpi/settings_autoplay.png   | Bin 0 -> 456 bytes
@@ -12,13 +13,13 @@ Change-Id: I0800ab1fc452d0a57932b7e0653a353c3fdf464c
  .../res/drawable-xhdpi/settings_autoplay.png  | Bin 0 -> 551 bytes
  .../res/drawable-xxhdpi/settings_autoplay.png | Bin 0 -> 792 bytes
  .../drawable-xxxhdpi/settings_autoplay.png    | Bin 0 -> 1064 bytes
- .../impl/BromiteAutoplayContentSetting.java   |  92 ++++++++++++++++++
- .../bromite_content_settings/autoplay.grdp    |  21 ++++
+ .../impl/BromiteAutoplayContentSetting.java   |  93 ++++++++++++++++++
+ .../bromite_content_settings/autoplay.grdp    |  24 +++++
  .../bromite_content_settings/autoplay.inc     |  12 +++
  .../core/browser/content_settings_registry.cc |   2 +-
  .../core/html/media/autoplay_policy.cc        |  14 +++
  .../core/html/media/autoplay_policy.h         |   4 +
- 11 files changed, 144 insertions(+), 1 deletion(-)
+ 11 files changed, 148 insertions(+), 1 deletion(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/settings_autoplay.png
@@ -140,7 +141,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteAutoplayContentSetting.java
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,93 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -193,7 +194,8 @@ new file mode 100644
 +            /*defaultEnabledValue*/ getDefaultEnabledValue(),
 +            /*defaultDisabledValue*/ getDefaultDisabledValue(),
 +            /*enabledSummary*/ R.string.website_settings_category_autoplay_enabled,
-+            /*disabledSummary*/ R.string.website_settings_category_autoplay_disabled);
++            /*disabledSummary*/ R.string.website_settings_category_autoplay_disabled,
++            /*summaryOverrideForScreenReader*/ R.string.website_settings_category_autoplay_a11y);
 +    }
 +
 +    @Override
@@ -237,7 +239,7 @@ diff --git a/components/browser_ui/strings/bromite_content_settings/autoplay.grd
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/strings/bromite_content_settings/autoplay.grdp
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,24 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
 +  <message name="IDS_AUTOPLAY_PERMISSION_TITLE" desc='Title for the Autoplay settings screen [CHAR-LIMIT=32]' formatter_data="android_java">
@@ -246,11 +248,14 @@ new file mode 100644
 +  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_AUTOPLAY" desc="The description for the allow autoplay of muted videos for website dialog." formatter_data="android_java">
 +    Allow autoplay for a specific site.
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_ENABLED" desc="Summary text explaining that sites are allowed to compile JavaScript in JIT mode." formatter_data="android_java">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_ENABLED" desc="Summary text explaining that sites are allowed to automatically play muted videos." formatter_data="android_java">
 +    Allow sites to automatically play muted videos
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_DISABLED" desc="Summary text explaining that sites are running JavaScript in JITless mode." formatter_data="android_java">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_DISABLED" desc="Summary text explaining that sites are not allowed to automatically play muted videos.." formatter_data="android_java">
 +    Autoplay disabled
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_A11Y" desc="The screen reader announcement describing a toggle with two states, controlling whether sites can automatically play muted videos. It is important to keep this string as two full sentences terminated by a period." formatter_data="android_java">
++    When on, sites can automatically play muted videos. When off, sites can't automatically play muted videos.
 +  </message>
 +  <message name="IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the autoplay setting.">
 +    Allowed to autoplay
@@ -279,13 +284,13 @@ new file mode 100644
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -246,7 +246,7 @@ void ContentSettingsRegistry::Init() {
+@@ -250,7 +250,7 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
 -  Register(ContentSettingsType::AUTOPLAY, "autoplay", CONTENT_SETTING_ALLOW,
 +  Register(ContentSettingsType::AUTOPLAY, "autoplay", CONTENT_SETTING_BLOCK,
-            WebsiteSettingsInfo::UNSYNCABLE, /*allowlisted_schemes=*/{},
+            WebsiteSettingsInfo::UNSYNCABLE, /*allowlisted_primary_schemes=*/{},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
 diff --git a/third_party/blink/renderer/core/html/media/autoplay_policy.cc b/third_party/blink/renderer/core/html/media/autoplay_policy.cc
@@ -299,7 +304,7 @@ diff --git a/third_party/blink/renderer/core/html/media/autoplay_policy.cc b/thi
  #include "third_party/blink/public/platform/web_media_player.h"
  #include "third_party/blink/public/web/web_local_frame.h"
  #include "third_party/blink/public/web/web_local_frame_client.h"
-@@ -310,6 +311,8 @@ void AutoplayPolicy::TryUnlockingUserGesture() {
+@@ -332,6 +333,8 @@ void AutoplayPolicy::TryUnlockingUserGesture() {
  }
  
  bool AutoplayPolicy::IsGestureNeededForPlayback() const {
@@ -308,7 +313,7 @@ diff --git a/third_party/blink/renderer/core/html/media/autoplay_policy.cc b/thi
    if (!IsLockedPendingUserGesture())
      return false;
  
-@@ -408,6 +411,17 @@ void AutoplayPolicy::MaybeSetAutoplayInitiated() {
+@@ -430,6 +433,17 @@ void AutoplayPolicy::MaybeSetAutoplayInitiated() {
    }
  }
  
@@ -329,7 +334,7 @@ diff --git a/third_party/blink/renderer/core/html/media/autoplay_policy.cc b/thi
 diff --git a/third_party/blink/renderer/core/html/media/autoplay_policy.h b/third_party/blink/renderer/core/html/media/autoplay_policy.h
 --- a/third_party/blink/renderer/core/html/media/autoplay_policy.h
 +++ b/third_party/blink/renderer/core/html/media/autoplay_policy.h
-@@ -133,6 +133,10 @@ class CORE_EXPORT AutoplayPolicy final
+@@ -137,6 +137,10 @@ class CORE_EXPORT AutoplayPolicy final
    // should use, if checking to see if an action is allowed.
    bool IsLockedPendingUserGesture() const;
  

@@ -5,13 +5,13 @@ Subject: Restore classic new tab page
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: Ic8fd01a150e3641d9bc9819970d4b05862d6bace
 ---
- chrome/browser/search/search.cc | 51 +--------------------------------
- 1 file changed, 1 insertion(+), 50 deletions(-)
+ chrome/browser/search/search.cc | 55 +--------------------------------
+ 1 file changed, 1 insertion(+), 54 deletions(-)
 
 diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
 --- a/chrome/browser/search/search.cc
 +++ b/chrome/browser/search/search.cc
-@@ -95,16 +95,6 @@ enum NewTabURLState {
+@@ -98,17 +98,6 @@ enum NewTabURLState {
    NEW_TAB_URL_MAX
  };
  
@@ -19,32 +19,31 @@ diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
 -  if (profile) {
 -    TemplateURLService* template_url_service =
 -        TemplateURLServiceFactory::GetForProfile(profile);
--    if (template_url_service)
+-    if (template_url_service) {
 -      return template_url_service->GetDefaultSearchProvider();
+-    }
 -  }
 -  return nullptr;
 -}
 -
  bool IsMatchingServiceWorker(const GURL& my_url, const GURL& document_url) {
    // The origin should match.
-   if (!MatchesOrigin(my_url, document_url))
-@@ -138,25 +128,6 @@ bool IsNTPOrRelatedURLHelper(const GURL& url, Profile* profile) {
+   if (!MatchesOrigin(my_url, document_url)) {
+@@ -145,23 +134,6 @@ bool IsNTPOrRelatedURLHelper(const GURL& url, Profile* profile) {
                                      IsMatchingServiceWorker(url, new_tab_url));
  }
  
--bool IsURLAllowedForSupervisedUser(const GURL& url, Profile* profile) {
+-bool IsURLAllowedForSupervisedUser(const GURL& url, Profile& profile) {
 -#if BUILDFLAG(ENABLE_SUPERVISED_USERS)
--  supervised_user::SupervisedUserService* supervised_user_service =
--      SupervisedUserServiceFactory::GetForProfile(profile);
--  if (!supervised_user_service ||
--      !supervised_user_service->IsURLFilteringEnabled()) {
+-  if (!supervised_user::IsUrlFilteringEnabled(*profile.GetPrefs())) {
 -    return true;
 -  }
--
+-  supervised_user::SupervisedUserService* supervised_user_service =
+-      SupervisedUserServiceFactory::GetForProfile(&profile);
 -  supervised_user::SupervisedUserURLFilter* url_filter =
 -      supervised_user_service->GetURLFilter();
 -  if (url_filter->GetFilteringBehaviorForURL(url) ==
--      supervised_user::SupervisedUserURLFilter::BLOCK) {
+-      supervised_user::FilteringBehavior::kBlock) {
 -    return false;
 -  }
 -#endif
@@ -54,7 +53,7 @@ diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
  // Used to look up the URL to use for the New Tab page. Also tracks how we
  // arrived at that URL so it can be logged with UMA.
  struct NewTabURLDetails {
-@@ -178,28 +149,8 @@ struct NewTabURLDetails {
+@@ -184,33 +156,8 @@ struct NewTabURLDetails {
      const GURL local_url(default_is_google
                               ? chrome::kChromeUINewTabPageURL
                               : chrome::kChromeUINewTabPageThirdPartyURL);
@@ -65,19 +64,24 @@ diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
 -
 -    const TemplateURL* template_url =
 -        GetDefaultSearchProviderTemplateURL(profile);
--    if (!profile || !template_url)
+-    if (!profile || !template_url) {
 -      return NewTabURLDetails(local_url, NEW_TAB_URL_BAD);
+-    }
 -
 -    GURL search_provider_url(template_url->new_tab_url_ref().ReplaceSearchTerms(
 -        TemplateURLRef::SearchTermsArgs(std::u16string()),
 -        UIThreadSearchTermsData()));
 -
--    if (!search_provider_url.is_valid())
+-    if (!search_provider_url.is_valid()) {
 -      return NewTabURLDetails(local_url, NEW_TAB_URL_NOT_SET);
--    if (!search_provider_url.SchemeIsCryptographic())
+-    }
+-    if (!search_provider_url.SchemeIsCryptographic()) {
 -      return NewTabURLDetails(local_url, NEW_TAB_URL_INSECURE);
--    if (!IsURLAllowedForSupervisedUser(search_provider_url, profile))
+-    }
+-    if (!IsURLAllowedForSupervisedUser(search_provider_url,
+-                                       CHECK_DEREF(profile))) {
 -      return NewTabURLDetails(local_url, NEW_TAB_URL_BLOCKED);
+-    }
 -
 -    return NewTabURLDetails(search_provider_url, NEW_TAB_URL_VALID);
 +    return NewTabURLDetails(local_url, NEW_TAB_URL_VALID);
