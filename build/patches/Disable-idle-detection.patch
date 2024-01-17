@@ -2,36 +2,45 @@ From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Sat, 19 Feb 2022 12:01:33 +0100
 Subject: Disable idle detection
 
+Updated for cr121 as done in brave-core commit:
+90b6c7b5a926e8a8c555a720cb2054ba6f4e9cc3
+
+Just use the content setting and set it to BLOCK by default.
+
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I56b99c5e4793eb9c41179b22ff7ea24cb44c56ff
 ---
- .../common/content_features_cc/Disable-idle-detection.inc  | 1 +
- .../blink/renderer/platform/runtime_enabled_features.json5 | 7 +++----
- 2 files changed, 4 insertions(+), 4 deletions(-)
- create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-idle-detection.inc
+ .../browser/idle/idle_detection_permission_context_unittest.cc  | 2 ++
+ .../content_settings/core/browser/content_settings_registry.cc  | 2 +-
+ 2 files changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/cromite_flags/content/public/common/content_features_cc/Disable-idle-detection.inc b/cromite_flags/content/public/common/content_features_cc/Disable-idle-detection.inc
-new file mode 100644
---- /dev/null
-+++ b/cromite_flags/content/public/common/content_features_cc/Disable-idle-detection.inc
-@@ -0,0 +1 @@
-+SET_CROMITE_FEATURE_DISABLED(kIdleDetection);
-diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
---- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
-+++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -2157,10 +2157,9 @@
-       status: "experimental",
-     },
-     {
--      name: "IdleDetection",
--      public: true,
--      status: "stable",
--      base_feature: "none",
-+      name: "IdleDetection",  // disabled
-+      public: true,           // by
-+      base_feature: "none",   // default
-     },
-     {
-       name: "ImplicitRootScroller",
+diff --git a/chrome/browser/idle/idle_detection_permission_context_unittest.cc b/chrome/browser/idle/idle_detection_permission_context_unittest.cc
+--- a/chrome/browser/idle/idle_detection_permission_context_unittest.cc
++++ b/chrome/browser/idle/idle_detection_permission_context_unittest.cc
+@@ -72,6 +72,7 @@ class IdleDetectionPermissionContextTest
+             base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
+ };
+ 
++#if false   // idle detection blocked by default in cromite
+ // Tests auto-denial after a time delay in incognito.
+ TEST_F(IdleDetectionPermissionContextTest, TestDenyInIncognitoAfterDelay) {
+   TestIdleDetectionPermissionContext permission_context(
+@@ -197,3 +198,4 @@ TEST_F(IdleDetectionPermissionContextTest, TestParallelDenyInIncognito) {
+   EXPECT_EQ(CONTENT_SETTING_BLOCK,
+             permission_context.GetContentSettingFromMap(url, url));
+ }
++#endif   // idle detection blocked by default in cromite
+diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
+--- a/components/content_settings/core/browser/content_settings_registry.cc
++++ b/components/content_settings/core/browser/content_settings_registry.cc
+@@ -551,7 +551,7 @@ void ContentSettingsRegistry::Init() {
+            ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
+ 
+   Register(ContentSettingsType::IDLE_DETECTION, "idle-detection",
+-           CONTENT_SETTING_ASK, WebsiteSettingsInfo::UNSYNCABLE,
++           CONTENT_SETTING_BLOCK, WebsiteSettingsInfo::UNSYNCABLE,
+            /*allowlisted_primary_schemes=*/{},
+            /*valid_settings=*/
+            {CONTENT_SETTING_ALLOW, CONTENT_SETTING_ASK, CONTENT_SETTING_BLOCK},
 -- 
 

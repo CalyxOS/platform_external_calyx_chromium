@@ -1,0 +1,25 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Fri, 19 Jan 2024 14:05:03 +0000
+Subject: Fix WebView after "Disable fetching of all field trials"
+
+Revert a single line removal.
+
+Change-Id: I11965ec78594376fd4ae15245e6b5d63d6e6f13f
+---
+ .../variations/service/variations_field_trial_creator_base.cc   | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/components/variations/service/variations_field_trial_creator_base.cc b/components/variations/service/variations_field_trial_creator_base.cc
+--- a/components/variations/service/variations_field_trial_creator_base.cc
++++ b/components/variations/service/variations_field_trial_creator_base.cc
+@@ -301,6 +301,8 @@ bool VariationsFieldTrialCreatorBase::SetUpFieldTrials(
+                                      safe_seed_manager);
+   }
+ 
++  platform_field_trials->RegisterFeatureOverrides(feature_list.get());
++
+   base::FeatureList::SetInstance(std::move(feature_list));
+ 
+   // For testing Variations Safe Mode, maybe crash here.
+-- 
+

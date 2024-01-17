@@ -4,6 +4,7 @@ Subject: Disable all predictors code
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 ---
  chrome/browser/BUILD.gn                       |  2 --
@@ -29,8 +30,9 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  .../Disable-all-predictors-code.inc           |  7 +++++
  .../Disable-all-predictors-code.inc           |  4 +++
  .../Disable-all-predictors-code.inc           |  2 ++
- .../platform/runtime_enabled_features.json5   |  6 ++--
- 24 files changed, 78 insertions(+), 43 deletions(-)
+ .../document_speculation_rules.cc             |  1 +
+ .../platform/runtime_enabled_features.json5   |  2 +-
+ 25 files changed, 77 insertions(+), 41 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/components/permissions/features_cc/Disable-all-predictors-code.inc
@@ -39,7 +41,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -877,8 +877,6 @@ static_library("browser") {
+@@ -838,8 +838,6 @@ static_library("browser") {
      "navigation_predictor/navigation_predictor_keyed_service_factory.h",
      "navigation_predictor/navigation_predictor_metrics_document_data.cc",
      "navigation_predictor/navigation_predictor_metrics_document_data.h",
@@ -85,7 +87,7 @@ diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -347,7 +347,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -517,7 +517,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
@@ -96,7 +98,7 @@ diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.
 diff --git a/chrome/browser/predictors/loading_predictor.cc b/chrome/browser/predictors/loading_predictor.cc
 --- a/chrome/browser/predictors/loading_predictor.cc
 +++ b/chrome/browser/predictors/loading_predictor.cc
-@@ -211,7 +211,7 @@ ResourcePrefetchPredictor* LoadingPredictor::resource_prefetch_predictor() {
+@@ -212,7 +212,7 @@ ResourcePrefetchPredictor* LoadingPredictor::resource_prefetch_predictor() {
  }
  
  PreconnectManager* LoadingPredictor::preconnect_manager() {
@@ -105,7 +107,7 @@ diff --git a/chrome/browser/predictors/loading_predictor.cc b/chrome/browser/pre
      return nullptr;
    }
  
-@@ -227,7 +227,7 @@ PrefetchManager* LoadingPredictor::prefetch_manager() {
+@@ -228,7 +228,7 @@ PrefetchManager* LoadingPredictor::prefetch_manager() {
    if (!base::FeatureList::IsEnabled(features::kLoadingPredictorPrefetch))
      return nullptr;
  
@@ -165,8 +167,8 @@ diff --git a/chrome/browser/predictors/predictors_features.cc b/chrome/browser/p
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -400,7 +400,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
-       web_contents);
+@@ -404,7 +404,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+   }
    MixedContentSettingsTabHelper::CreateForWebContents(web_contents);
    NavigationMetricsRecorder::CreateForWebContents(web_contents);
 -  NavigationPredictorPreconnectClient::CreateForWebContents(web_contents);
@@ -209,7 +211,7 @@ diff --git a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc b/chrome/br
    if (auto* service = GetMlService()) {
      AutocompleteMatch::ScoringSignals signals =
          mojo::ConvertTo<AutocompleteMatch::ScoringSignals>(mojom_signals);
-@@ -525,6 +532,9 @@ void OmniboxPageHandler::StartMl(mojom::SignalsPtr mojom_signals,
+@@ -526,6 +533,9 @@ void OmniboxPageHandler::StartMl(mojom::SignalsPtr mojom_signals,
    } else {
      std::move(callback).Run(-1);
    }
@@ -219,7 +221,7 @@ diff --git a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc b/chrome/br
  }
  
  std::unique_ptr<AutocompleteController> OmniboxPageHandler::CreateController(
-@@ -549,8 +559,12 @@ OmniboxPageHandler::GetAutocompleteControllerType(
+@@ -550,8 +560,12 @@ OmniboxPageHandler::GetAutocompleteControllerType(
  }
  
  AutocompleteScoringModelService* OmniboxPageHandler::GetMlService() {
@@ -343,7 +345,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  // Returns whether |locale| is a supported locale for |feature|.
  //
-@@ -560,8 +548,7 @@ size_t MaxURLKeyedHintCacheSize() {
+@@ -582,8 +570,7 @@ size_t MaxURLKeyedHintCacheSize() {
  }
  
  bool ShouldPersistHintsToDisk() {
@@ -353,8 +355,8 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  }
  
  bool ShouldEnablePersonalizedMetadata(proto::RequestContext request_context) {
-@@ -899,5 +886,19 @@ std::set<std::string> GetOAuthScopesForModelExecution() {
-   return GetOauthScopesForFeature(kOptimizationGuideModelExecution);
+@@ -1002,5 +989,19 @@ bool CanLaunchOnDeviceModelService() {
+          base::FeatureList::IsEnabled(kLogOnDeviceMetricsOnStartup);
  }
  
 +SET_CROMITE_FEATURE_DISABLED(kOptimizationHints);
@@ -437,7 +439,7 @@ diff --git a/components/optimization_guide/features.gni b/components/optimizatio
 diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
 --- a/components/search/ntp_features.cc
 +++ b/components/search/ntp_features.cc
-@@ -460,4 +460,7 @@ std::vector<std::string> GetModulesOrder() {
+@@ -499,4 +499,7 @@ std::vector<std::string> GetModulesOrder() {
                             base::SplitResult::SPLIT_WANT_NONEMPTY);
  }
  
@@ -482,10 +484,21 @@ new file mode 100644
 @@ -0,0 +1,2 @@
 +SET_CROMITE_FEATURE_DISABLED(kNavigationPredictor);
 +SET_CROMITE_FEATURE_DISABLED(kPreloadingHeuristicsMLModel);
+diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
+--- a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
++++ b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
+@@ -584,6 +584,7 @@ void DocumentSpeculationRules::UpdateSpeculationCandidates() {
+     return;
+   }
+ 
++  if ((true)) return;
+   HeapVector<Member<SpeculationCandidate>> candidates;
+   auto push_candidates = [&candidates, &execution_context](
+                              mojom::blink::SpeculationAction action,
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3083,7 +3083,7 @@
+@@ -2960,7 +2960,7 @@
      {
        // https://crbug.com/1126305
        name: "Prerender2",
@@ -494,17 +507,5 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      },
      {
        name: "Presentation",
-@@ -3694,9 +3694,9 @@
-       origin_trial_allows_third_party: true,
-     },
-     {
--      name: "SpeculationRulesPrefetchProxy",
-+      name: "SpeculationRulesPrefetchProxy",  // disabled
-+      status: "test",                         // by default
-       origin_trial_feature_name: "SpeculationRulesPrefetch",
--      status: "stable",
-       copied_from_base_feature_if: "overridden",
-       implied_by: ["SpeculationRulesPrefetchFuture", "NoVarySearchPrefetch"],
-     },
 -- 
 
