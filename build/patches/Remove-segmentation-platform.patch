@@ -7,6 +7,8 @@ Also fixes a crash on startup.
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: Ief303535f95c44b1bfaa56973fe37e0f01dbc61f
+
+Change-Id: Ie3a1a10da8665b4d6ebf39f1fc438d2e8a0be97c
 ---
  .../chrome_browser_main_extra_parts_segmentation_platform.cc  | 4 ++++
  components/segmentation_platform/public/features.cc           | 2 ++
@@ -15,7 +17,7 @@ Change-Id: Ief303535f95c44b1bfaa56973fe37e0f01dbc61f
 diff --git a/chrome/browser/segmentation_platform/chrome_browser_main_extra_parts_segmentation_platform.cc b/chrome/browser/segmentation_platform/chrome_browser_main_extra_parts_segmentation_platform.cc
 --- a/chrome/browser/segmentation_platform/chrome_browser_main_extra_parts_segmentation_platform.cc
 +++ b/chrome/browser/segmentation_platform/chrome_browser_main_extra_parts_segmentation_platform.cc
-@@ -12,17 +12,20 @@
+@@ -12,11 +12,13 @@
  #include "components/segmentation_platform/public/segmentation_platform_service.h"
  
  void ChromeBrowserMainExtraPartsSegmentationPlatform::PreCreateThreads() {
@@ -26,9 +28,10 @@ diff --git a/chrome/browser/segmentation_platform/chrome_browser_main_extra_part
  
  void ChromeBrowserMainExtraPartsSegmentationPlatform::PreProfileInit() {
 +  if ((true)) return;
-   segmentation_platform::UkmDatabaseClient::GetInstance().PreProfileInit();
- }
- 
+   segmentation_platform::UkmDatabaseClientHolder::GetClientInstance(nullptr)
+       .PreProfileInit(
+           /*in_memory_database=*/false);
+@@ -25,6 +27,7 @@ void ChromeBrowserMainExtraPartsSegmentationPlatform::PreProfileInit() {
  void ChromeBrowserMainExtraPartsSegmentationPlatform::PostProfileInit(
      Profile* profile,
      bool is_initial_profile) {
@@ -36,12 +39,13 @@ diff --git a/chrome/browser/segmentation_platform/chrome_browser_main_extra_part
    if (!profile || profile->IsOffTheRecord())
      return;
  
-@@ -34,5 +37,6 @@ void ChromeBrowserMainExtraPartsSegmentationPlatform::PostProfileInit(
+@@ -36,6 +39,7 @@ void ChromeBrowserMainExtraPartsSegmentationPlatform::PostProfileInit(
  }
  
  void ChromeBrowserMainExtraPartsSegmentationPlatform::PostMainMessageLoopRun() {
 +  if ((true)) return;
-   segmentation_platform::UkmDatabaseClient::GetInstance().PostMessageLoopRun();
+   segmentation_platform::UkmDatabaseClientHolder::GetClientInstance(nullptr)
+       .PostMessageLoopRun();
  }
 diff --git a/components/segmentation_platform/public/features.cc b/components/segmentation_platform/public/features.cc
 --- a/components/segmentation_platform/public/features.cc
