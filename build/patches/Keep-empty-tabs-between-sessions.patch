@@ -4,28 +4,33 @@ Subject: Keep empty tabs between sessions
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: I170ffd473248041f776dd87c3bcae825c4b6113f
 ---
- .../chrome/browser/tabmodel/TabPersistentStore.java       | 8 --------
- 1 file changed, 8 deletions(-)
+ .../chrome/browser/tabmodel/TabPersistentStore.java  | 12 ------------
+ 1 file changed, 12 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
-@@ -688,14 +688,6 @@ public class TabPersistentStore {
-                     mTabCreatorManager.getTabCreator(isIncognito)
-                             .createFrozenTab(tabState, tabToRestore.id, isIncognito, restoredIndex);
+@@ -713,18 +713,6 @@ public class TabPersistentStore {
+                             .getTabCreator(isIncognito)
+                             .createFrozenTab(tabState, tabToRestore.id, restoredIndex);
          } else {
--            if (!mSkipSavingNonActiveNtps && UrlUtilities.isNTPUrl(tabToRestore.url) && !setAsActive
+-            if (!mSkipSavingNonActiveNtps
+-                    && UrlUtilities.isNtpUrl(tabToRestore.url)
+-                    && !setAsActive
 -                    && !tabToRestore.fromMerge) {
 -                Log.i(TAG, "Skipping restore of non-selected NTP.");
--                RecordHistogram.recordEnumeratedHistogram("Tabs.TabRestoreMethod",
--                        TabRestoreMethod.SKIPPED_NTP, TabRestoreMethod.NUM_ENTRIES);
+-                RecordHistogram.recordEnumeratedHistogram(
+-                        "Tabs.TabRestoreMethod",
+-                        TabRestoreMethod.SKIPPED_NTP,
+-                        TabRestoreMethod.NUM_ENTRIES);
 -                return;
 -            }
 -
              Log.w(TAG, "Failed to restore TabState; creating Tab with last known URL.");
-             Tab fallbackTab = mTabCreatorManager.getTabCreator(isIncognito)
-                                       .createNewTab(new LoadUrlParams(tabToRestore.url),
+             Tab fallbackTab =
+                     mTabCreatorManager
 -- 
 
