@@ -10,7 +10,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I743519ccda7c357578c23b0a074292649b3afb3d
 ---
  chrome/browser/browser_features.h                        | 1 +
- chrome/browser/net/system_network_context_manager.cc     | 6 +-----
+ chrome/browser/net/system_network_context_manager.cc     | 2 +-
  chrome/browser/ssl/sct_reporting_service.cc              | 5 +++++
  .../about_flags_cc/Enable-Certificate-Transparency.inc   | 9 +++++++++
  .../Enable-Certificate-Transparency.inc                  | 6 ++++++
@@ -19,7 +19,7 @@ Change-Id: I743519ccda7c357578c23b0a074292649b3afb3d
  net/url_request/report_sender.cc                         | 3 ++-
  services/network/network_context.cc                      | 2 +-
  services/network/sct_auditing/sct_auditing_handler.cc    | 2 ++
- 10 files changed, 32 insertions(+), 9 deletions(-)
+ 10 files changed, 32 insertions(+), 5 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/about_flags_cc/Enable-Certificate-Transparency.inc
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Enable-Certificate-Transparency.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Enable-Certificate-Transparency.inc
@@ -27,7 +27,7 @@ Change-Id: I743519ccda7c357578c23b0a074292649b3afb3d
 diff --git a/chrome/browser/browser_features.h b/chrome/browser/browser_features.h
 --- a/chrome/browser/browser_features.h
 +++ b/chrome/browser/browser_features.h
-@@ -54,6 +54,7 @@ BASE_DECLARE_FEATURE(kTabCaptureBlueBorderCrOS);
+@@ -62,6 +62,7 @@ BASE_DECLARE_FEATURE(kTabCaptureBlueBorderCrOS);
  
  BASE_DECLARE_FEATURE(kWebUsbDeviceDetection);
  
@@ -38,22 +38,11 @@ diff --git a/chrome/browser/browser_features.h b/chrome/browser/browser_features
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -986,7 +986,6 @@ void SystemNetworkContextManager::SetEnableCertificateTransparencyForTesting(
- bool SystemNetworkContextManager::IsCertificateTransparencyEnabled() {
-   if (certificate_transparency_enabled_for_testing_.has_value())
-     return certificate_transparency_enabled_for_testing_.value();
--#if defined(OFFICIAL_BUILD)
- // TODO(carlosil): Figure out if we can/should remove the OFFICIAL_BUILD
- // check now that enforcement does not rely on build dates.
- //    Certificate Transparency is enabled:
-@@ -994,10 +993,7 @@ bool SystemNetworkContextManager::IsCertificateTransparencyEnabled() {
- //   - on an opt-in basis for other builds and embedders, controlled with the
- //     kCertificateTransparencyAskBeforeEnabling flag
+@@ -982,7 +982,7 @@ bool SystemNetworkContextManager::IsCertificateTransparencyEnabled() {
+   //   - on an opt-in basis for other builds and embedders, controlled with the
+   //     kCertificateTransparencyAskBeforeEnabling flag
    return base::FeatureList::IsEnabled(
 -      features::kCertificateTransparencyAskBeforeEnabling);
--#else
--  return false;
--#endif  // defined(OFFICIAL_BUILD)
 +      features::kCertificateTransparency);
  }
  
@@ -61,8 +50,8 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
 diff --git a/chrome/browser/ssl/sct_reporting_service.cc b/chrome/browser/ssl/sct_reporting_service.cc
 --- a/chrome/browser/ssl/sct_reporting_service.cc
 +++ b/chrome/browser/ssl/sct_reporting_service.cc
-@@ -211,6 +211,11 @@ void SetSCTAuditingEnabledForStoragePartition(
- }  // namespace
+@@ -203,6 +203,11 @@ SCTReportingService::SCTReportingService(
+ SCTReportingService::~SCTReportingService() = default;
  
  network::mojom::SCTAuditingMode SCTReportingService::GetReportingMode() {
 +  if ((true)) {
@@ -108,7 +97,7 @@ new file mode 100644
 diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_state.cc
 --- a/net/http/transport_security_state.cc
 +++ b/net/http/transport_security_state.cc
-@@ -329,6 +329,7 @@ class HSTSPreloadDecoder : public net::extras::PreloadDecoder {
+@@ -327,6 +327,7 @@ class HSTSPreloadDecoder : public net::extras::PreloadDecoder {
  
  bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
  #if !BUILDFLAG(INCLUDE_TRANSPORT_SECURITY_STATE_PRELOAD_LIST)
@@ -116,7 +105,7 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
    if (g_hsts_source == nullptr)
      return false;
  #endif
-@@ -374,8 +375,8 @@ bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
+@@ -372,8 +373,8 @@ bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
  
  // static
  BASE_FEATURE(kCertificateTransparencyEnforcement,
@@ -143,7 +132,7 @@ diff --git a/net/url_request/report_sender.cc b/net/url_request/report_sender.cc
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -2821,7 +2821,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
+@@ -2797,7 +2797,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
    // TransportSecurityState.  Since no requests have been made yet, safe to do
    // this even after the call to Build().
  
