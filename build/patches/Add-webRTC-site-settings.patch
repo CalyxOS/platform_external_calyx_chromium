@@ -8,14 +8,14 @@ Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I5310d06c287f8a0dab28756e54a4d63a7229ae15
 ---
- .../impl/BromiteWebRTCContentSetting.java     | 93 +++++++++++++++++++
- .../bromite_content_settings/webrtc.grdp      | 27 ++++++
+ .../impl/BromiteWebRTCContentSetting.java     | 94 +++++++++++++++++++
+ .../bromite_content_settings/webrtc.grdp      | 30 ++++++
  .../bromite_content_settings/webrtc.inc       | 22 +++++
  .../bromite_content_settings/WEBRTC.inc       |  1 +
  .../peer_connection_dependency_factory.cc     |  6 ++
  .../peerconnection/rtc_rtp_receiver.cc        | 10 ++
  .../modules/peerconnection/rtc_rtp_sender.cc  | 10 ++
- 7 files changed, 169 insertions(+)
+ 7 files changed, 173 insertions(+)
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java
  create mode 100644 components/browser_ui/strings/bromite_content_settings/webrtc.grdp
  create mode 100644 components/content_settings/core/browser/bromite_content_settings/webrtc.inc
@@ -25,7 +25,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java
-@@ -0,0 +1,93 @@
+@@ -0,0 +1,94 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -78,7 +78,8 @@ new file mode 100644
 +            /*defaultEnabledValue*/ getDefaultEnabledValue(),
 +            /*defaultDisabledValue*/ getDefaultDisabledValue(),
 +            /*enabledSummary*/ R.string.website_settings_category_webrtc_enabled,
-+            /*disabledSummary*/ R.string.website_settings_category_webrtc_disabled);
++            /*disabledSummary*/ R.string.website_settings_category_webrtc_disabled,
++            /*summaryOverrideForScreenReader*/ R.string.website_settings_category_webrtc_a11y);
 +    }
 +
 +    @Override
@@ -123,26 +124,29 @@ diff --git a/components/browser_ui/strings/bromite_content_settings/webrtc.grdp 
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/strings/bromite_content_settings/webrtc.grdp
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,30 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
-+  <message name="IDS_SITE_SETTINGS_TYPE_WEBRTC" desc="The label used for webrtc site settings controls." formatter_data="android_java">
++  <message name="IDS_SITE_SETTINGS_TYPE_WEBRTC" desc="The label used for WebRTC site settings controls." formatter_data="android_java">
 +    WebRTC
 +  </message>
-+  <message name="IDS_SITE_SETTINGS_TYPE_WEBRTC_MID_SENTENCE" desc="The label used for webrtc site settings controls when used mid-sentence." formatter_data="android_java">
-+    webRTC
++  <message name="IDS_SITE_SETTINGS_TYPE_WEBRTC_MID_SENTENCE" desc="The label used for WebRTC site settings controls when used mid-sentence." formatter_data="android_java">
++    WebRTC
 +  </message>
 +  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBRTC_DESCRIPTION" desc="Description of the WebRTC content setting." formatter_data="android_java">
 +    Enable WebRTC, a JavaScript API for real-time communication and direct peer-to-peer communication
 +  </message>
-+  <message name="IDS_WEBRTC_PERMISSION_TITLE" desc="Title of the permission to use webrtc [CHAR-LIMIT=32]" formatter_data="android_java">
++  <message name="IDS_WEBRTC_PERMISSION_TITLE" desc="Title of the permission to use WebRTC [CHAR-LIMIT=32]" formatter_data="android_java">
 +    WebRTC
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_ENABLED" desc="Summary text explaining that webrtc is full enabled." formatter_data="android_java">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_ENABLED" desc="Summary text explaining that WebRTC is fully enabled." formatter_data="android_java">
 +    Enabled
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_DISABLED" desc="Summary text explaining that webrtc is full disabled." formatter_data="android_java">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_DISABLED" desc="Summary text explaining that WebRTC is fully disabled." formatter_data="android_java">
 +    Disabled
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_A11Y" desc="The screen reader announcement describing a toggle with two states, controlling whether sites can use WebRTC. It is important to keep this string as two full sentences terminated by a period." formatter_data="android_java">
++    When on, sites can use WebRTC. When off, sites can't use WebRTC.
 +  </message>
 +  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBRTC_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the WebRTC setting.">
 +    Allowed to use WebRTC
@@ -195,7 +199,7 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_d
  #include "third_party/blink/public/platform/web_url.h"
  #include "third_party/blink/public/web/modules/mediastream/media_stream_video_source.h"
  #include "third_party/blink/public/web/web_document.h"
-@@ -781,6 +782,11 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
+@@ -774,6 +775,11 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
        // origin.
        WebRTCIPHandlingPolicy policy =
            GetWebRTCIPHandlingPolicy(webrtc_ip_handling_policy);
@@ -219,7 +223,7 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.
  #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_insertable_streams.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_rtcp_parameters.h"
-@@ -255,6 +257,14 @@ RTCRtpCapabilities* RTCRtpReceiver::getCapabilities(ScriptState* state,
+@@ -287,6 +289,14 @@ RTCRtpCapabilities* RTCRtpReceiver::getCapabilities(ScriptState* state,
    if (kind != "audio" && kind != "video")
      return nullptr;
  
@@ -246,7 +250,7 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
  #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_insertable_streams.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_rtcp_parameters.h"
-@@ -1004,6 +1006,14 @@ RTCRtpCapabilities* RTCRtpSender::getCapabilities(ScriptState* state,
+@@ -1034,6 +1036,14 @@ RTCRtpCapabilities* RTCRtpSender::getCapabilities(ScriptState* state,
    if (kind != "audio" && kind != "video")
      return nullptr;
  

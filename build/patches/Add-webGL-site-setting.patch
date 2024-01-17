@@ -8,17 +8,18 @@ Requires patch: Content-settings-infrastructure.patch
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: I07f8332bda840e93246cfb3444bfb96893e01b51
 ---
- .../impl/BromiteWebGLContentSetting.java      | 92 +++++++++++++++++++
- .../bromite_content_settings/webgl.grdp       | 27 ++++++
+ .../impl/BromiteWebGLContentSetting.java      | 93 +++++++++++++++++++
+ .../bromite_content_settings/webgl.grdp       | 30 ++++++
  .../bromite_content_settings/webgl.inc        | 22 +++++
  .../common/bromite_content_settings/WEBGL.inc |  1 +
  .../execution_context/execution_context.cc    |  7 ++
  .../execution_context/execution_context.h     |  2 +
  .../webgl/webgl_rendering_context_base.cc     | 32 +++----
  .../webgl/webgl_rendering_context_base.h      |  2 +
- 8 files changed, 166 insertions(+), 19 deletions(-)
+ 8 files changed, 170 insertions(+), 19 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebGLContentSetting.java
  create mode 100644 components/browser_ui/strings/bromite_content_settings/webgl.grdp
  create mode 100644 components/content_settings/core/browser/bromite_content_settings/webgl.inc
@@ -28,7 +29,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebGLContentSetting.java
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,93 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -81,7 +82,8 @@ new file mode 100644
 +            /*defaultEnabledValue*/ getDefaultEnabledValue(),
 +            /*defaultDisabledValue*/ getDefaultDisabledValue(),
 +            /*enabledSummary*/ R.string.website_settings_category_webgl_enabled,
-+            /*disabledSummary*/ R.string.website_settings_category_webgl_disabled);
++            /*disabledSummary*/ R.string.website_settings_category_webgl_disabled,
++            /*summaryOverrideForScreenReader*/ R.string.website_settings_category_webgl_a11y);
 +    }
 +
 +    @Override
@@ -125,32 +127,35 @@ diff --git a/components/browser_ui/strings/bromite_content_settings/webgl.grdp b
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/strings/bromite_content_settings/webgl.grdp
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,30 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
-+  <message name="IDS_SITE_SETTINGS_TYPE_WEBGL" desc="The label used for webgl site settings controls." formatter_data="android_java">
-+    Webgl
++  <message name="IDS_SITE_SETTINGS_TYPE_WEBGL" desc="The label used for WebGL site settings controls." formatter_data="android_java">
++    WebGL
 +  </message>
-+  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_DESCRIPTION" desc="Description of the webgl content setting." formatter_data="android_java">
-+    Enable Webgl, a JavaScript API for rendering high-performance interactive 3D and 2D graphics
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_DESCRIPTION" desc="Description of the WebGL content setting." formatter_data="android_java">
++    Enable WebGL, a JavaScript API for rendering high-performance interactive 3D and 2D graphics
 +  </message>
-+  <message name="IDS_SITE_SETTINGS_TYPE_WEBGL_MID_SENTENCE" desc="The label used for webgl site settings controls when used mid-sentence." formatter_data="android_java">
-+    webgl
++  <message name="IDS_SITE_SETTINGS_TYPE_WEBGL_MID_SENTENCE" desc="The label used for WebGL site settings controls when used mid-sentence." formatter_data="android_java">
++    WebGL
 +  </message>
-+  <message name="IDS_WEBGL_PERMISSION_TITLE" desc="Title of the permission to use webgl [CHAR-LIMIT=32]" formatter_data="android_java">
-+    Webgl
++  <message name="IDS_WEBGL_PERMISSION_TITLE" desc="Title of the permission to use WebGL [CHAR-LIMIT=32]" formatter_data="android_java">
++    WebGL
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_ENABLED" desc="Summary text explaining that webgl is full enabled." formatter_data="android_java">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_ENABLED" desc="Summary text explaining that WebGL is fully enabled." formatter_data="android_java">
 +    Enabled
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_DISABLED" desc="Summary text explaining that webgl is full disabled." formatter_data="android_java">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_DISABLED" desc="Summary text explaining that WebGL is fully disabled." formatter_data="android_java">
 +    Disabled
 +  </message>
-+  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the webgl setting.">
-+    Allowed to use webgl
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_A11Y" desc="The screen reader announcement describing a toggle with two states, controlling whether sites can use WebGL. It is important to keep this string as two full sentences terminated by a period." formatter_data="android_java">
++    When on, sites can use WebGL. When off, sites can't use WebGL.
 +  </message>
-+  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_BLOCKED_EXCEPTIONS" desc="Label for the blocked exceptions site list of the webgl setting.">
-+    Not allowed to use webgl
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the WebGL setting.">
++    Allowed to use WebGL
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_BLOCKED_EXCEPTIONS" desc="Label for the blocked exceptions site list of the WebGL setting.">
++    Not allowed to use WebGL
 +  </message>
 +</grit-part>
 diff --git a/components/content_settings/core/browser/bromite_content_settings/webgl.inc b/components/content_settings/core/browser/bromite_content_settings/webgl.inc
@@ -218,7 +223,7 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
 diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
 --- a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
 +++ b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
-@@ -271,6 +271,13 @@ void WebGLRenderingContextBase::InitializeWebGLContextLimits(
+@@ -309,6 +309,13 @@ void WebGLRenderingContextBase::InitializeWebGLContextLimits(
    }
  }
  
@@ -232,7 +237,7 @@ diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_ba
  unsigned WebGLRenderingContextBase::CurrentMaxGLContexts() {
    base::AutoLock locker(WebGLContextLimitLock());
    DCHECK(webgl_context_limits_initialized_);
-@@ -544,25 +551,6 @@ static String ExtractWebGLContextCreationError(
+@@ -582,25 +589,6 @@ static String ExtractWebGLContextCreationError(
      const Platform::GraphicsInfo& info) {
    StringBuilder builder;
    builder.Append("Could not create a WebGL context");
@@ -258,7 +263,7 @@ diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_ba
    FormatWebGLStatusString("ErrorMessage", info.error_message.Utf8().c_str(),
                            builder);
    builder.Append('.');
-@@ -622,6 +610,12 @@ WebGLRenderingContextBase::CreateWebGraphicsContext3DProvider(
+@@ -660,6 +648,12 @@ WebGLRenderingContextBase::CreateWebGraphicsContext3DProvider(
      const CanvasContextCreationAttributesCore& attributes,
      Platform::ContextType context_type,
      Platform::GraphicsInfo* graphics_info) {
@@ -274,14 +279,14 @@ diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_ba
 diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.h b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.h
 --- a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.h
 +++ b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.h
-@@ -1944,6 +1944,8 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
+@@ -1952,6 +1952,8 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
                          DOMArrayBufferView* pixels,
                          int64_t offset);
  
 +  static bool AllowWebglForHost(blink::CanvasRenderingContextHost* host);
 +
-   // Record Canvas/OffscreenCanvas.RenderingContextDrawnTo at the first draw
-   // call.
-   void RecordUKMCanvasDrawnToAtFirstDrawCall();
+   void RecordANGLEImplementation();
+ 
+  private:
 -- 
 
