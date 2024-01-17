@@ -12,12 +12,12 @@ Change-Id: Icd829f513d0d8ef8a63402edb20d8fe6bb06032c
  .../res/drawable-xhdpi/permission_images.png  | Bin 0 -> 316 bytes
  .../res/drawable-xxhdpi/permission_images.png | Bin 0 -> 449 bytes
  .../drawable-xxxhdpi/permission_images.png    | Bin 0 -> 532 bytes
- .../impl/BromiteImagesContentSetting.java     |  92 ++++++++++++++++++
- .../bromite_content_settings/images.grdp      |  23 +++++
+ .../impl/BromiteImagesContentSetting.java     |  93 ++++++++++++++++++
+ .../bromite_content_settings/images.grdp      |  26 +++++
  .../bromite_content_settings/images.inc       |   6 ++
  .../core/browser/content_settings_registry.cc |   2 +-
  .../core/browser/content_settings_utils.cc    |   7 +-
- 10 files changed, 123 insertions(+), 7 deletions(-)
+ 10 files changed, 127 insertions(+), 7 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_images.png
@@ -113,7 +113,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteImagesContentSetting.java
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,93 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -166,7 +166,8 @@ new file mode 100644
 +            /*defaultEnabledValue*/ getDefaultEnabledValue(),
 +            /*defaultDisabledValue*/ getDefaultDisabledValue(),
 +            /*enabledSummary*/ R.string.website_settings_category_images_enabled,
-+            /*disabledSummary*/ R.string.website_settings_category_images_disabled);
++            /*disabledSummary*/ R.string.website_settings_category_images_disabled,
++            /*summaryOverrideForScreenReader*/ R.string.website_settings_category_images_a11y);
 +    }
 +
 +    @Override
@@ -210,7 +211,7 @@ diff --git a/components/browser_ui/strings/bromite_content_settings/images.grdp 
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/strings/bromite_content_settings/images.grdp
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,26 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
 +<if expr="is_android">
@@ -233,6 +234,9 @@ new file mode 100644
 +  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_DISABLED" desc="Summary text explaining that sites are not allowed to load images." formatter_data="android_java">
 +    Disallow sites to load images
 +  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_A11Y" desc="The screen reader announcement describing a toggle with two states, controlling whether sites can load images. It is important to keep this string as two full sentences terminated by a period." formatter_data="android_java">
++    When on, sites can load images. When off, sites can't load images.
++  </message>
 +</grit-part>
 diff --git a/components/content_settings/core/browser/bromite_content_settings/images.inc b/components/content_settings/core/browser/bromite_content_settings/images.inc
 new file mode 100644
@@ -248,7 +252,7 @@ new file mode 100644
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -96,7 +96,7 @@ void ContentSettingsRegistry::Init() {
+@@ -98,7 +98,7 @@ void ContentSettingsRegistry::Init() {
             {kChromeUIScheme, kChromeDevToolsScheme, kExtensionScheme},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_WITH_RESOURCE_EXCEPTIONS_SCOPE,
