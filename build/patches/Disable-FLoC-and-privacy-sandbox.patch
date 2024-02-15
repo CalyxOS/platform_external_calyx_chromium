@@ -12,20 +12,20 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
 ---
- .../browser/chrome_content_browser_client.cc  |  3 +++
- .../privacy_sandbox_settings_delegate.cc      |  1 +
- .../privacy_sandbox/privacy_sandbox_prompt.cc |  1 +
- .../history/core/browser/history_backend.cc   | 13 +-----------
- .../privacy_sandbox_attestations.cc           |  1 +
- .../privacy_sandbox_features.cc               | 10 +++++-----
- .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
- .../privacy_sandbox_settings_impl.cc          | 20 +++++++++++++------
- 8 files changed, 27 insertions(+), 24 deletions(-)
+ chrome/browser/chrome_content_browser_client.cc    |  3 +++
+ .../privacy_sandbox_settings_delegate.cc           |  1 +
+ .../ui/privacy_sandbox/privacy_sandbox_prompt.cc   |  1 +
+ components/history/core/browser/history_backend.cc | 13 +------------
+ .../privacy_sandbox_attestations.cc                |  1 +
+ .../privacy_sandbox/privacy_sandbox_features.cc    | 10 +++++-----
+ .../privacy_sandbox/privacy_sandbox_prefs.cc       |  2 +-
+ .../privacy_sandbox_settings_impl.cc               | 14 ++++++++++----
+ 8 files changed, 23 insertions(+), 22 deletions(-)
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3381,6 +3381,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -3240,6 +3240,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin,
      bool* can_bypass) {
@@ -82,10 +82,10 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
 diff --git a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 --- a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
-@@ -114,6 +114,7 @@ void RecordParsingStatusHistogram(ParsingStatus status) {
- // `installed_file_path` is the path to the attestations list file.
+@@ -177,6 +177,7 @@ int ConvertVersionToInt(const base::Version version) {
  base::expected<PrivacySandboxAttestationsMap, ParsingStatus>
- LoadAttestationsInternal(base::FilePath installed_file_path) {
+ LoadAttestationsInternal(base::FilePath installed_file_path,
+                          base::Version version) {
 +  if ((true)) return base::unexpected(ParsingStatus::kFileNotExist);
    // This function should only be called when the feature is enabled.
    CHECK(base::FeatureList::IsEnabled(
@@ -134,8 +134,8 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/pr
 -      prefs::kPrivacySandboxApisEnabled, true,
 +      prefs::kPrivacySandboxApisEnabled, false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
-   registry->RegisterBooleanPref(prefs::kPrivacySandboxApisEnabledV2, false);
    registry->RegisterBooleanPref(prefs::kPrivacySandboxM1ConsentDecisionMade,
+                                 false);
 diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 --- a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
@@ -186,27 +186,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
    auto& pref_data = scoped_pref_update.Get();
-@@ -693,7 +697,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationDebugModeAllowed(
-          delegate_->AreThirdPartyCookiesBlockedByCookieDeprecationExperiment();
- }
- 
--bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const {
-+bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const { // disabled in Bromite
-+  if ((true)) return false;
-   PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
-   if (!IsAllowed(status)) {
-     return false;
-@@ -720,7 +725,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
-   pref_service_->SetBoolean(prefs::kPrivacySandboxM1TopicsEnabled, false);
- }
- 
--void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) {
-+void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) { // disabled in Bromite
-+  enabled = false;
-   pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
- }
- 
-@@ -768,6 +774,7 @@ void PrivacySandboxSettingsImpl::SetDelegateForTesting(
+@@ -743,6 +747,7 @@ void PrivacySandboxSettingsImpl::SetDelegateForTesting(
  }
  
  void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const {
@@ -214,7 +194,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    pref_service_->SetTime(prefs::kPrivacySandboxTopicsDataAccessibleSince,
                           base::Time::Now());
  
-@@ -780,6 +787,7 @@ PrivacySandboxSettingsImpl::Status
+@@ -755,6 +760,7 @@ PrivacySandboxSettingsImpl::Status
  PrivacySandboxSettingsImpl::GetSiteAccessAllowedStatus(
      const url::Origin& top_frame_origin,
      const GURL& url) const {

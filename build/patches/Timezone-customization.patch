@@ -10,6 +10,8 @@ Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Require: Content-settings-infrastructure.patch
 Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
+
+Change-Id: I5e641df1b190908eb968fe4e61b56526f93e2b09
 ---
  .../browser_ui/site_settings/android/BUILD.gn |   3 +
  .../res/layout/time_zone_select_dialog.xml    |  36 ++++
@@ -30,11 +32,10 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../core/common/content_settings.mojom        |   1 +
  .../common/content_settings_mojom_traits.cc   |   3 +-
  .../common/content_settings_mojom_traits.h    |   5 +
- .../core/common/pref_names.cc                 |   3 +
- .../content_settings/core/common/pref_names.h |   2 +
+ .../content_settings/core/common/pref_names.h |   3 +
  .../renderer/content_settings_agent_impl.cc   |  80 +++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
- 23 files changed, 685 insertions(+), 1 deletion(-)
+ 22 files changed, 683 insertions(+), 1 deletion(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -46,7 +47,7 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -104,6 +104,7 @@ android_library("java") {
+@@ -96,6 +96,7 @@ android_library("java") {
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreference.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsiteRowPreference.java",
@@ -54,7 +55,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    ]
  
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -278,6 +279,8 @@ android_resources("java_resources") {
+@@ -270,6 +271,8 @@ android_resources("java_resources") {
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/storage_access_settings.xml",
      "java/res/xml/website_preferences.xml",
@@ -382,8 +383,8 @@ new file mode 100755
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
-@@ -454,6 +454,14 @@ public class WebsitePreferenceBridge {
-         return WebsitePreferenceBridgeJni.get().toHostOnlyPattern(pattern);
+@@ -471,6 +471,14 @@ public class WebsitePreferenceBridge {
+                 .toHostOnlyPattern(pattern);
      }
  
 +    public static String getCustomTimezone(BrowserContextHandle browserContextHandle) {
@@ -397,7 +398,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      @NativeMethods
      public interface Natives {
          boolean isNotificationEmbargoedForOrigin(
-@@ -599,5 +607,7 @@ public class WebsitePreferenceBridge {
+@@ -622,5 +630,7 @@ public class WebsitePreferenceBridge {
          String toDomainWildcardPattern(String pattern);
  
          String toHostOnlyPattern(String pattern);
@@ -561,7 +562,7 @@ new file mode 100644
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -1104,3 +1104,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
+@@ -1123,3 +1123,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
            ContentSettingsPattern::FromString(pattern_string));
    return ConvertUTF8ToJavaString(env, host_only_pattern.ToString());
  }
@@ -659,7 +660,7 @@ new file mode 100644
 diff --git a/components/content_settings/core/browser/content_settings_pref_provider.cc b/components/content_settings/core/browser/content_settings_pref_provider.cc
 --- a/components/content_settings/core/browser/content_settings_pref_provider.cc
 +++ b/components/content_settings/core/browser/content_settings_pref_provider.cc
-@@ -74,6 +74,8 @@ void PrefProvider::RegisterProfilePrefs(
+@@ -80,6 +80,8 @@ void PrefProvider::RegisterProfilePrefs(
                                       info->GetPrefRegistrationFlags());
    }
  
@@ -668,7 +669,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
    // Obsolete prefs ----------------------------------------------------------
  
    // These prefs have been removed, but need to be registered so they can
-@@ -141,6 +143,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
+@@ -149,6 +151,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
      event_args->set_number_of_exceptions(
          num_exceptions);  // PrefProvider::PrefProvider.
    });
@@ -679,7 +680,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
  }
  
  PrefProvider::~PrefProvider() {
-@@ -410,4 +416,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
+@@ -435,4 +441,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
    clock_ = clock;
  }
  
@@ -697,7 +698,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_pref_provider.h b/components/content_settings/core/browser/content_settings_pref_provider.h
 --- a/components/content_settings/core/browser/content_settings_pref_provider.h
 +++ b/components/content_settings/core/browser/content_settings_pref_provider.h
-@@ -83,6 +83,9 @@ class PrefProvider : public UserModifiableProvider {
+@@ -91,6 +91,9 @@ class PrefProvider : public UserModifiableProvider {
  
    ContentSettingsPref* GetPref(ContentSettingsType type) const;
  
@@ -707,7 +708,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
   private:
    friend class DeadlockCheckerObserver;  // For testing.
  
-@@ -127,6 +130,7 @@ class PrefProvider : public UserModifiableProvider {
+@@ -138,6 +141,7 @@ class PrefProvider : public UserModifiableProvider {
    base::ThreadChecker thread_checker_;
  
    raw_ptr<base::Clock> clock_;
@@ -718,7 +719,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -158,6 +158,11 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
+@@ -159,6 +159,11 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
        map->GetSettingsForOneType(ContentSettingsType::JAVASCRIPT);
    rules->popup_redirect_rules =
        map->GetSettingsForOneType(ContentSettingsType::POPUPS);
@@ -733,8 +734,8 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/browser/host_content_settings_map.cc b/components/content_settings/core/browser/host_content_settings_map.cc
 --- a/components/content_settings/core/browser/host_content_settings_map.cc
 +++ b/components/content_settings/core/browser/host_content_settings_map.cc
-@@ -668,6 +668,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
-     provider->SetClockForTesting(clock);
+@@ -674,6 +674,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
+   }
  }
  
 +void HostContentSettingsMap::GetTimezoneOverrideValue(std::string& custom_timezone) const {
@@ -751,7 +752,7 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/browser/host_content_settings_map.h b/components/content_settings/core/browser/host_content_settings_map.h
 --- a/components/content_settings/core/browser/host_content_settings_map.h
 +++ b/components/content_settings/core/browser/host_content_settings_map.h
-@@ -386,6 +386,9 @@ class HostContentSettingsMap : public content_settings::Observer,
+@@ -393,6 +393,9 @@ class HostContentSettingsMap : public content_settings::Observer,
      allow_invalid_secondary_pattern_for_testing_ = allow;
    }
  
@@ -771,7 +772,7 @@ new file mode 100644
 diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
 --- a/components/content_settings/core/common/content_settings.h
 +++ b/components/content_settings/core/common/content_settings.h
-@@ -102,6 +102,7 @@ struct RendererContentSettingRules {
+@@ -110,6 +110,7 @@ struct RendererContentSettingRules {
    ContentSettingsForOneType popup_redirect_rules;
    ContentSettingsForOneType mixed_content_rules;
    ContentSettingsForOneType auto_dark_content_rules;
@@ -782,7 +783,7 @@ diff --git a/components/content_settings/core/common/content_settings.h b/compon
 diff --git a/components/content_settings/core/common/content_settings.mojom b/components/content_settings/core/common/content_settings.mojom
 --- a/components/content_settings/core/common/content_settings.mojom
 +++ b/components/content_settings/core/common/content_settings.mojom
-@@ -103,4 +103,5 @@ struct RendererContentSettingRules {
+@@ -100,4 +100,5 @@ struct RendererContentSettingRules {
    array<ContentSettingPatternSource> popup_redirect_rules;
    array<ContentSettingPatternSource> mixed_content_rules;
    array<ContentSettingPatternSource> auto_dark_content_rules;
@@ -816,25 +817,15 @@ diff --git a/components/content_settings/core/common/content_settings_mojom_trai
    static bool Read(
        content_settings::mojom::RendererContentSettingRulesDataView data,
        RendererContentSettingRules* out);
-diff --git a/components/content_settings/core/common/pref_names.cc b/components/content_settings/core/common/pref_names.cc
---- a/components/content_settings/core/common/pref_names.cc
-+++ b/components/content_settings/core/common/pref_names.cc
-@@ -218,4 +218,7 @@ const char kDesktopSiteDisplaySettingEnabled[] = "desktop_site.display_setting";
- const char kDesktopSiteWindowSettingEnabled[] = "desktop_site.window_setting";
- #endif
- 
-+const char kContentSettingsCustomTimezone[] =
-+    "profile.content_settings.custom_timezone";
-+
- }  // namespace prefs
 diff --git a/components/content_settings/core/common/pref_names.h b/components/content_settings/core/common/pref_names.h
 --- a/components/content_settings/core/common/pref_names.h
 +++ b/components/content_settings/core/common/pref_names.h
-@@ -102,6 +102,8 @@ extern const char kDesktopSiteDisplaySettingEnabled[];
- extern const char kDesktopSiteWindowSettingEnabled[];
+@@ -224,6 +224,9 @@ inline constexpr char kDesktopSiteWindowSettingEnabled[] =
+     "desktop_site.window_setting";
  #endif
  
-+extern const char kContentSettingsCustomTimezone[];
++inline constexpr char kContentSettingsCustomTimezone[] =
++    "profile.content_settings.custom_timezone";
 +
  }  // namespace prefs
  
@@ -853,7 +844,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
  #include "components/content_settings/core/common/content_settings.h"
  #include "components/content_settings/core/common/content_settings.mojom.h"
  #include "components/content_settings/core/common/content_settings_pattern.h"
-@@ -355,6 +357,10 @@ bool ContentSettingsAgentImpl::AllowScript(bool enabled_per_settings) {
+@@ -353,6 +355,10 @@ bool ContentSettingsAgentImpl::AllowScript(bool enabled_per_settings) {
    allow = allow || IsAllowlistedForContentSettings();
  
    cached_script_permissions_[frame] = allow;
@@ -864,7 +855,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
    return allow;
  }
  
-@@ -470,4 +476,78 @@ bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
+@@ -468,4 +474,78 @@ bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
    return false;
  }
  
@@ -958,7 +949,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
  namespace blink {
  class WebFrame;
  class WebURL;
-@@ -171,6 +176,12 @@ class ContentSettingsAgentImpl
+@@ -172,6 +177,12 @@ class ContentSettingsAgentImpl
    std::unique_ptr<Delegate> delegate_;
  
    mojo::AssociatedReceiverSet<mojom::ContentSettingsAgent> receivers_;

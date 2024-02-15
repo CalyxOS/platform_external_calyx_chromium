@@ -162,15 +162,15 @@ diff --git a/third_party/blink/renderer/modules/webaudio/offline_audio_context.c
 diff --git a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc b/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc
 --- a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc
 +++ b/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc
-@@ -29,6 +29,7 @@
- #include <algorithm>
+@@ -31,6 +31,7 @@
+ #include <bit>
  #include <complex>
  
 +#include "third_party/blink/renderer/modules/webaudio/base_audio_context.h"
  #include "third_party/blink/renderer/platform/audio/audio_bus.h"
  #include "third_party/blink/renderer/platform/audio/audio_utilities.h"
  #include "third_party/blink/renderer/platform/audio/vector_math.h"
-@@ -154,6 +155,7 @@ void RealtimeAnalyser::GetFloatTimeDomainData(
+@@ -155,6 +156,7 @@ void RealtimeAnalyser::GetFloatTimeDomainData(
            input_buffer[(i + write_index - fft_size + kInputBufferSize) %
                         kInputBufferSize];
  
@@ -178,7 +178,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc b/
        destination[i] = value;
      }
    }
-@@ -181,6 +183,8 @@ void RealtimeAnalyser::GetByteTimeDomainData(DOMUint8Array* destination_array) {
+@@ -182,6 +184,8 @@ void RealtimeAnalyser::GetByteTimeDomainData(DOMUint8Array* destination_array) {
            input_buffer[(i + write_index - fft_size + kInputBufferSize) %
                         kInputBufferSize];
  
@@ -187,7 +187,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc b/
        // Scale from nominal -1 -> +1 to unsigned byte.
        double scaled_value = 128 * (value + 1);
  
-@@ -300,6 +304,8 @@ void RealtimeAnalyser::ConvertToByteData(DOMUint8Array* destination_array) {
+@@ -301,6 +305,8 @@ void RealtimeAnalyser::ConvertToByteData(DOMUint8Array* destination_array) {
        double scaled_value =
            UCHAR_MAX * (db_mag - min_decibels) * range_scale_factor;
  
@@ -196,7 +196,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc b/
        // Clip to valid range.
        destination[i] =
            static_cast<unsigned char>(ClampTo(scaled_value, 0, UCHAR_MAX));
-@@ -319,6 +325,7 @@ void RealtimeAnalyser::ConvertFloatToDb(DOMFloat32Array* destination_array) {
+@@ -320,6 +326,7 @@ void RealtimeAnalyser::ConvertFloatToDb(DOMFloat32Array* destination_array) {
        float linear_value = source[i];
        double db_mag = audio_utilities::LinearToDecibels(linear_value);
        destination[i] = static_cast<float>(db_mag);
