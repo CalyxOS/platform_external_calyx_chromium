@@ -1,0 +1,57 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 15 Feb 2024 19:37:05 +0000
+Subject: Fix build re model validator keyed service
+
+Change-Id: I209cf9fe2db8037540dc6ab4bb5ef95b82fe30ff
+---
+ .../model_validator_keyed_service.cc              | 15 ++++-----------
+ 1 file changed, 4 insertions(+), 11 deletions(-)
+
+diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc b/chrome/browser/optimization_guide/model_validator_keyed_service.cc
+--- a/chrome/browser/optimization_guide/model_validator_keyed_service.cc
++++ b/chrome/browser/optimization_guide/model_validator_keyed_service.cc
+@@ -34,12 +34,7 @@ namespace optimization_guide {
+ ModelValidatorKeyedService::ModelValidatorKeyedService(Profile* profile)
+     : profile_(profile) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  DCHECK(ShouldStartModelValidator());
+-  auto* opt_guide_service =
+-      OptimizationGuideKeyedServiceFactory::GetForProfile(profile);
+-  if (!opt_guide_service) {
+-    return;
+-  }
++#if false
+ #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   if (switches::ShouldValidateModel()) {
+     // Create the validator object which will get destroyed when the model
+@@ -66,6 +61,7 @@ ModelValidatorKeyedService::ModelValidatorKeyedService(Profile* profile)
+             weak_ptr_factory_.GetWeakPtr()),
+         kModelExecutionValidationStartupDelay);
+   }
++#endif
+ }
+ 
+ ModelValidatorKeyedService::~ModelValidatorKeyedService() = default;
+@@ -93,11 +89,7 @@ void ModelValidatorKeyedService::OnPrimaryAccountChanged(
+ 
+ void ModelValidatorKeyedService::StartModelExecutionValidation() {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  auto* opt_guide_service =
+-      OptimizationGuideKeyedServiceFactory::GetForProfile(profile_);
+-  if (!opt_guide_service) {
+-    return;
+-  }
++#if false
+   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+   std::string model_execution_input =
+       command_line->GetSwitchValueASCII(switches::kModelExecutionValidate);
+@@ -110,6 +102,7 @@ void ModelValidatorKeyedService::StartModelExecutionValidation() {
+       proto::ModelExecutionFeature::MODEL_EXECUTION_FEATURE_TEST, request,
+       base::BindOnce(&ModelValidatorKeyedService::OnModelExecuteResponse,
+                      weak_ptr_factory_.GetWeakPtr()));
++#endif
+ }
+ 
+ void ModelValidatorKeyedService::OnModelExecuteResponse(
+-- 
+

@@ -10,20 +10,21 @@ Change-Id: I9afc6e66b4ab03ccf33ec9b73dcb4e821906da07
  BUILD.gn                                           |  1 -
  .../navigation_predictor_metrics_document_data.h   |  2 ++
  chrome/browser/safe_browsing/BUILD.gn              |  1 +
- .../browser/metrics/shadow_prediction_metrics.cc   |  1 +
+ .../browser/metrics/shadow_prediction_metrics.cc   |  3 ++-
  .../omnibox/browser/autocomplete_classifier.cc     |  4 ++--
  components/omnibox/browser/omnibox_field_trial.cc  |  4 ++--
+ .../phishing_classifier/phishing_classifier.cc     |  2 +-
  .../phishing_classifier/phishing_image_embedder.cc | 14 +++-----------
  content/browser/browser_interface_binders.cc       |  1 +
  crypto/BUILD.gn                                    |  3 +++
  net/BUILD.gn                                       |  1 +
  third_party/libevent/BUILD.gn                      |  2 ++
- 11 files changed, 18 insertions(+), 16 deletions(-)
+ 12 files changed, 20 insertions(+), 18 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -399,7 +399,6 @@ group("gn_all") {
+@@ -407,7 +407,6 @@ group("gn_all") {
            "//android_webview:empty_group",
            "//android_webview/test",
            "//android_webview/tools/automated_ui_tests:webview_ui_test_app",
@@ -46,7 +47,7 @@ diff --git a/chrome/browser/navigation_predictor/navigation_predictor_metrics_do
 diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsing/BUILD.gn
 --- a/chrome/browser/safe_browsing/BUILD.gn
 +++ b/chrome/browser/safe_browsing/BUILD.gn
-@@ -185,6 +185,7 @@ static_library("safe_browsing") {
+@@ -182,6 +182,7 @@ static_library("safe_browsing") {
        "//components/version_info",
        "//content/public/browser",
        "//services/preferences/public/mojom:mojom",
@@ -57,18 +58,24 @@ diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsin
 diff --git a/components/autofill/core/browser/metrics/shadow_prediction_metrics.cc b/components/autofill/core/browser/metrics/shadow_prediction_metrics.cc
 --- a/components/autofill/core/browser/metrics/shadow_prediction_metrics.cc
 +++ b/components/autofill/core/browser/metrics/shadow_prediction_metrics.cc
-@@ -61,6 +61,7 @@ int GetShadowPrediction(ServerFieldType current,
- }
+@@ -74,11 +74,12 @@ void LogRegexShadowPredictions(const AutofillField& field) {
  
- void LogShadowPredictionComparison(const AutofillField& field) {
+ void LogMlShadowPredictions(const AutofillField& field) {
+ #if !BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+-  return;
++  if ((true)) return;
+ #endif
+   if (!base::FeatureList::IsEnabled(features::kAutofillModelPredictions)) {
+     return;
+   }
 +#pragma clang diagnostic ignored "-Wunused-variable"
-   const auto& submitted_types = field.possible_types();
- 
- #if BUILDFLAG(USE_INTERNAL_AUTOFILL_PATTERNS)
+   const FieldTypeSet& submitted_types = field.possible_types();
+   base::UmaHistogramSparse(
+       "Autofill.ShadowPredictions.DefaultServerToMLModel",
 diff --git a/components/omnibox/browser/autocomplete_classifier.cc b/components/omnibox/browser/autocomplete_classifier.cc
 --- a/components/omnibox/browser/autocomplete_classifier.cc
 +++ b/components/omnibox/browser/autocomplete_classifier.cc
-@@ -95,8 +95,8 @@ void AutocompleteClassifier::Classify(
+@@ -97,8 +97,8 @@ void AutocompleteClassifier::Classify(
      metrics::OmniboxEventProto::PageClassification page_classification,
      AutocompleteMatch* match,
      GURL* alternate_nav_url) {
@@ -82,7 +89,7 @@ diff --git a/components/omnibox/browser/autocomplete_classifier.cc b/components/
 diff --git a/components/omnibox/browser/omnibox_field_trial.cc b/components/omnibox/browser/omnibox_field_trial.cc
 --- a/components/omnibox/browser/omnibox_field_trial.cc
 +++ b/components/omnibox/browser/omnibox_field_trial.cc
-@@ -1067,11 +1067,11 @@ MLConfig& MLConfig::operator=(const MLConfig& other) = default;
+@@ -1079,11 +1079,11 @@ MLConfig& MLConfig::operator=(const MLConfig& other) = default;
  
  ScopedMLConfigForTesting::ScopedMLConfigForTesting()
      : original_config_(std::make_unique<MLConfig>(GetMLConfig())) {
@@ -96,6 +103,18 @@ diff --git a/components/omnibox/browser/omnibox_field_trial.cc b/components/omni
  }
  
  MLConfig& ScopedMLConfigForTesting::GetMLConfig() {
+diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phishing_classifier.cc b/components/safe_browsing/content/renderer/phishing_classifier/phishing_classifier.cc
+--- a/components/safe_browsing/content/renderer/phishing_classifier/phishing_classifier.cc
++++ b/components/safe_browsing/content/renderer/phishing_classifier/phishing_classifier.cc
+@@ -234,7 +234,7 @@ void PhishingClassifier::VisualExtractionFinished(bool success) {
+       *bitmap_, base::BindOnce(&PhishingClassifier::OnVisualTfLiteModelDone,
+                                weak_factory_.GetWeakPtr(), std::move(verdict)));
+ #else
+-  RunCallback(*verdict);
++  RunCallback(*verdict, Result::kSuccess);
+ #endif
+ }
+ 
 diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc b/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
 --- a/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
 +++ b/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
@@ -123,7 +142,7 @@ diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phish
 diff --git a/content/browser/browser_interface_binders.cc b/content/browser/browser_interface_binders.cc
 --- a/content/browser/browser_interface_binders.cc
 +++ b/content/browser/browser_interface_binders.cc
-@@ -356,6 +356,7 @@ void BindDateTimeChooserForFrame(
+@@ -360,6 +360,7 @@ void BindDateTimeChooserForFrame(
  void BindTextSuggestionHostForFrame(
      RenderFrameHost* host,
      mojo::PendingReceiver<blink::mojom::TextSuggestionHost> receiver) {
@@ -147,7 +166,7 @@ diff --git a/crypto/BUILD.gn b/crypto/BUILD.gn
 diff --git a/net/BUILD.gn b/net/BUILD.gn
 --- a/net/BUILD.gn
 +++ b/net/BUILD.gn
-@@ -1585,6 +1585,7 @@ component("net") {
+@@ -1581,6 +1581,7 @@ component("net") {
      configs -= [ "//build/config/compiler:default_optimization" ]
      configs += [ "//build/config/compiler:optimize_max" ]
    }

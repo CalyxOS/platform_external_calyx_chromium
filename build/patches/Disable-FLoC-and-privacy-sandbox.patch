@@ -2,10 +2,9 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Sat, 13 Nov 2021 09:17:06 +0000
 Subject: Disable FLoC and privacy sandbox
 
-Set the flags to inactive
+Remove UI from the settings and set the flags to inactive
 Permanently removes FLoC support, disabling the download of LSH clusters,
 the marking the history navigation and the javascript API and permission policies.
-Also added the disabling of blink features through the DisabledForBromite tag
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
@@ -15,17 +14,20 @@ Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
  .../browser/chrome_content_browser_client.cc  |  3 +++
  .../privacy_sandbox_settings_delegate.cc      |  1 +
  .../privacy_sandbox/privacy_sandbox_prompt.cc |  1 +
- .../history/core/browser/history_backend.cc   | 13 +-----------
- .../privacy_sandbox_attestations.cc           |  1 +
- .../privacy_sandbox_features.cc               | 10 +++++-----
- .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
- .../privacy_sandbox_settings_impl.cc          | 20 +++++++++++++------
- 8 files changed, 27 insertions(+), 24 deletions(-)
+ .../history/core/browser/history_backend.cc   | 13 +------------
+ .../privacy_sandbox_attestations.cc           |  2 --
+ .../privacy_sandbox_features.cc               |  4 ++++
+ .../privacy_sandbox/privacy_sandbox_prefs.cc  |  4 ++--
+ .../privacy_sandbox_settings_impl.cc          | 19 ++++++++++++++-----
+ .../Disable-FLoC-and-privacy-sandbox.inc      |  1 +
+ third_party/blink/common/features.cc          |  1 +
+ 10 files changed, 28 insertions(+), 21 deletions(-)
+ create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3381,6 +3381,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -3240,6 +3240,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin,
      bool* can_bypass) {
@@ -82,48 +84,27 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
 diff --git a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 --- a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
-@@ -114,6 +114,7 @@ void RecordParsingStatusHistogram(ParsingStatus status) {
- // `installed_file_path` is the path to the attestations list file.
- base::expected<PrivacySandboxAttestationsMap, ParsingStatus>
- LoadAttestationsInternal(base::FilePath installed_file_path) {
-+  if ((true)) return base::unexpected(ParsingStatus::kFileNotExist);
-   // This function should only be called when the feature is enabled.
-   CHECK(base::FeatureList::IsEnabled(
-       privacy_sandbox::kEnforcePrivacySandboxAttestations));
+@@ -478,8 +478,6 @@ void PrivacySandboxAttestations::OnAttestationsParsed(
+   if (attestations_map.has_value() &&
+       (!file_version_.IsValid() || file_version_.CompareTo(version) < 0)) {
+     // Parsing succeeded and the attestations file has newer version.
+-    file_version_ = std::move(version);
+-    attestations_map_ = std::move(attestations_map.value());
+   }
+ 
+   attestations_parse_progress_ = Progress::kFinished;
 diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
 --- a/components/privacy_sandbox/privacy_sandbox_features.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_features.cc
-@@ -25,8 +25,8 @@ BASE_FEATURE(kPrivacySandboxSuppressDialogOnNonNormalBrowsers,
-              base::FEATURE_ENABLED_BY_DEFAULT);
+@@ -164,4 +164,8 @@ BASE_FEATURE(kTrackingProtectionNoticeRequestTracking,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ #endif  // BUILDFLAG(IS_ANDROID)
  
- BASE_FEATURE(kPrivacySandboxSettings4,
--             "PrivacySandboxSettings4",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "PrivacySandboxSettings4",          // must be disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
- 
- const char kPrivacySandboxSettings4ConsentRequiredName[] = "consent-required";
- const char kPrivacySandboxSettings4NoticeRequiredName[] = "notice-required";
-@@ -92,7 +92,7 @@ BASE_FEATURE(kOverridePrivacySandboxSettingsLocalTesting,
- 
- BASE_FEATURE(kDisablePrivacySandboxPrompts,
-              "DisablePrivacySandboxPrompts",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             base::FEATURE_ENABLED_BY_DEFAULT);
- 
- BASE_FEATURE(kPrivacySandboxFirstPartySetsUI,
-              "PrivacySandboxFirstPartySetsUI",
-@@ -101,8 +101,8 @@ const base::FeatureParam<bool> kPrivacySandboxFirstPartySetsUISampleSets{
-     &kPrivacySandboxFirstPartySetsUI, "use-sample-sets", false};
- 
- BASE_FEATURE(kEnforcePrivacySandboxAttestations,
--             "EnforcePrivacySandboxAttestations",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "EnforcePrivacySandboxAttestations",  // if enabled
-+             base::FEATURE_ENABLED_BY_DEFAULT);    // log to console
- 
- BASE_FEATURE(kDefaultAllowPrivacySandboxAttestations,
-              "DefaultAllowPrivacySandboxAttestations",
++SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxSettings4);
++SET_CROMITE_FEATURE_ENABLED(kDisablePrivacySandboxPrompts);
++SET_CROMITE_FEATURE_DISABLED(kEnforcePrivacySandboxAttestations);
++SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxFirstPartySetsUI);
+ }  // namespace privacy_sandbox
 diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
 --- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
@@ -134,8 +115,17 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/pr
 -      prefs::kPrivacySandboxApisEnabled, true,
 +      prefs::kPrivacySandboxApisEnabled, false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
-   registry->RegisterBooleanPref(prefs::kPrivacySandboxApisEnabledV2, false);
    registry->RegisterBooleanPref(prefs::kPrivacySandboxM1ConsentDecisionMade,
+                                 false);
+@@ -27,7 +27,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterBooleanPref(prefs::kPrivacySandboxM1FledgeEnabled, false);
+   registry->RegisterBooleanPref(prefs::kPrivacySandboxM1AdMeasurementEnabled,
+                                 false);
+-  registry->RegisterBooleanPref(prefs::kPrivacySandboxM1Restricted, false);
++  registry->RegisterBooleanPref(prefs::kPrivacySandboxM1Restricted, true);
+ 
+   registry->RegisterTimePref(prefs::kPrivacySandboxTopicsDataAccessibleSince,
+                              base::Time());
 diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 --- a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
@@ -186,35 +176,19 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
    auto& pref_data = scoped_pref_update.Get();
-@@ -693,7 +697,8 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationDebugModeAllowed(
-          delegate_->AreThirdPartyCookiesBlockedByCookieDeprecationExperiment();
+@@ -742,7 +746,10 @@ void PrivacySandboxSettingsImpl::SetDelegateForTesting(
+   delegate_ = std::move(delegate);
  }
  
--bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const {
-+bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const { // disabled in Bromite
-+  if ((true)) return false;
-   PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
-   if (!IsAllowed(status)) {
-     return false;
-@@ -720,7 +725,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
-   pref_service_->SetBoolean(prefs::kPrivacySandboxM1TopicsEnabled, false);
- }
- 
--void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) {
-+void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) { // disabled in Bromite
-+  enabled = false;
-   pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
- }
- 
-@@ -768,6 +774,7 @@ void PrivacySandboxSettingsImpl::SetDelegateForTesting(
- }
- 
- void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const {
+-void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const {
++void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const { // disabled in Bromite
++  pref_service_->ClearPref(prefs::kPrivacySandboxTopicsDataAccessibleSince);
 +  if ((true)) return;
++
    pref_service_->SetTime(prefs::kPrivacySandboxTopicsDataAccessibleSince,
                           base::Time::Now());
  
-@@ -780,6 +787,7 @@ PrivacySandboxSettingsImpl::Status
+@@ -755,6 +762,7 @@ PrivacySandboxSettingsImpl::Status
  PrivacySandboxSettingsImpl::GetSiteAccessAllowedStatus(
      const url::Origin& top_frame_origin,
      const GURL& url) const {
@@ -222,5 +196,30 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    // Relying on |host_content_settings_map_| instead of |cookie_settings_|
    // allows to query whether the site associated with the |url| is allowed to
    // access Site data (aka ContentSettingsType::COOKIES) without considering any
+@@ -769,6 +777,7 @@ PrivacySandboxSettingsImpl::GetSiteAccessAllowedStatus(
+ PrivacySandboxSettingsImpl::Status
+ PrivacySandboxSettingsImpl::GetPrivacySandboxAllowedStatus(
+     bool should_ignore_restriction /*=false*/) const {
++  if ((true)) return Status::kRestricted;
+   if (delegate_->IsIncognitoProfile()) {
+     return Status::kIncognitoProfile;
+   }
+diff --git a/cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc b/cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kFencedFrames);
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -2329,6 +2329,7 @@ bool IsAllowPageWithIDBConnectionAndTransactionInBFCacheEnabled() {
+ }
+ 
+ bool IsAllowURNsInIframeEnabled() {
++  if ((true)) return false; // see https://chromium-review.googlesource.com/c/chromium/src/+/3690741
+   return base::FeatureList::IsEnabled(blink::features::kAllowURNsInIframes);
+ }
+ 
 -- 
 

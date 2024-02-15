@@ -5,15 +5,30 @@ Subject: Disable PrivacyGuide
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I6c5fa2baf41f43c017857ba660029c7844664aa2
 ---
- chrome/browser/ui/webui/settings/settings_ui.cc        |  2 +-
- .../common/chrome_features_cc/Disable-PrivacyGuide.inc | 10 ++++++++++
- 2 files changed, 11 insertions(+), 1 deletion(-)
+ .../chrome/browser/privacy/settings/PrivacySettings.java | 4 +---
+ chrome/browser/ui/webui/settings/settings_ui.cc          | 2 +-
+ .../common/chrome_features_cc/Disable-PrivacyGuide.inc   | 9 +++++++++
+ 3 files changed, 11 insertions(+), 4 deletions(-)
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-PrivacyGuide.inc
 
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
+@@ -135,9 +135,7 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+                     UserPrefs.get(getProfile()).setBoolean(Pref.PRIVACY_GUIDE_VIEWED, true);
+                     return false;
+                 });
+-        if (getProfile().isChild() || ManagedBrowserUtils.isBrowserManaged(getProfile())) {
+-            getPreferenceScreen().removePreference(privacyGuidePreference);
+-        }
++        getPreferenceScreen().removePreference(privacyGuidePreference);
+ 
+         IncognitoReauthSettingSwitchPreference incognitoReauthPreference =
+                 (IncognitoReauthSettingSwitchPreference) findPreference(PREF_INCOGNITO_LOCK);
 diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui/webui/settings/settings_ui.cc
 --- a/chrome/browser/ui/webui/settings/settings_ui.cc
 +++ b/chrome/browser/ui/webui/settings/settings_ui.cc
-@@ -351,7 +351,7 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
+@@ -357,7 +357,7 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
  #endif  // !BUILDFLAG(IS_CHROMEOS_LACROS)
  
    bool show_privacy_guide =
@@ -26,7 +41,7 @@ diff --git a/cromite_flags/chrome/common/chrome_features_cc/Disable-PrivacyGuide
 new file mode 100644
 --- /dev/null
 +++ b/cromite_flags/chrome/common/chrome_features_cc/Disable-PrivacyGuide.inc
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,9 @@
 +SET_CROMITE_FEATURE_DISABLED(kPrivacyGuide3);
 +SET_CROMITE_FEATURE_DISABLED(kPrivacyGuidePreload);
 +
@@ -34,7 +49,6 @@ new file mode 100644
 +
 +SET_CROMITE_FEATURE_DISABLED(kPrivacyGuideAndroid3);
 +SET_CROMITE_FEATURE_DISABLED(kPrivacyGuidePreloadAndroid);
-+SET_CROMITE_FEATURE_DISABLED(kPrivacyGuideAndroid);
 +
 +#endif
 -- 

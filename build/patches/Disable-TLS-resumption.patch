@@ -30,7 +30,7 @@ Change-Id: I9a0ef1a3827d0d3d06303e759c294c20fc7b791c
  .../features_cc/Disable-TLS-resumption.inc    |  7 +++
  .../features_h/Disable-TLS-resumption.inc     |  5 ++
  net/http/http_network_session.cc              |  1 +
- net/quic/quic_stream_factory.cc               | 35 ++++++++++-
+ net/quic/quic_session_pool.cc                 | 35 ++++++++++-
  net/socket/ssl_client_socket_impl.cc          | 59 +++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |  2 +
  7 files changed, 120 insertions(+), 1 deletion(-)
@@ -88,9 +88,9 @@ diff --git a/net/http/http_network_session.cc b/net/http/http_network_session.cc
    http_server_properties_->SetMaxServerConfigsStoredInProperties(
        context.quic_context->params()->max_server_configs_stored_in_properties);
    http_server_properties_->SetBrokenAlternativeServicesDelayParams(
-diff --git a/net/quic/quic_stream_factory.cc b/net/quic/quic_stream_factory.cc
---- a/net/quic/quic_stream_factory.cc
-+++ b/net/quic/quic_stream_factory.cc
+diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
+--- a/net/quic/quic_session_pool.cc
++++ b/net/quic/quic_session_pool.cc
 @@ -69,6 +69,7 @@
  #include "net/third_party/quiche/src/quiche/quic/core/quic_utils.h"
  #include "net/third_party/quiche/src/quiche/quic/platform/api/quic_flags.h"
@@ -99,7 +99,7 @@ diff --git a/net/quic/quic_stream_factory.cc b/net/quic/quic_stream_factory.cc
  #include "url/gurl.h"
  #include "url/scheme_host_port.h"
  #include "url/url_constants.h"
-@@ -194,6 +195,38 @@ std::set<std::string> HostsFromOrigins(std::set<HostPortPair> origins) {
+@@ -196,6 +197,38 @@ std::set<std::string> HostsFromOrigins(std::set<HostPortPair> origins) {
  
  }  // namespace
  
@@ -137,9 +137,9 @@ diff --git a/net/quic/quic_stream_factory.cc b/net/quic/quic_stream_factory.cc
 +
  // Refcounted class that owns quic::QuicCryptoClientConfig and tracks how many
  // consumers are using it currently. When the last reference is freed, the
- // QuicCryptoClientConfigHandle informs the owning QuicStreamFactory, moves it
-@@ -2368,7 +2401,7 @@ QuicStreamFactory::CreateCryptoConfigHandle(
-               sct_auditing_delegate_,
+ // QuicCryptoClientConfigHandle informs the owning QuicSessionPool, moves it
+@@ -2409,7 +2442,7 @@ QuicSessionPool::CreateCryptoConfigHandle(
+               cert_verifier_, transport_security_state_, sct_auditing_delegate_,
                HostsFromOrigins(params_.origins_to_force_quic_on),
                actual_network_anonymization_key),
 -          std::make_unique<quic::QuicClientSessionCache>(), this);
@@ -150,7 +150,7 @@ diff --git a/net/quic/quic_stream_factory.cc b/net/quic/quic_stream_factory.cc
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -387,7 +387,33 @@ SSLClientSocketImpl::SSLClientSocketImpl(
+@@ -380,7 +380,33 @@ SSLClientSocketImpl::SSLClientSocketImpl(
    CHECK(context_);
  }
  
@@ -184,7 +184,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    Disconnect();
  }
  
-@@ -772,6 +798,8 @@ int SSLClientSocketImpl::Init() {
+@@ -764,6 +790,8 @@ int SSLClientSocketImpl::Init() {
      }
      if (session)
        SSL_set_session(ssl_.get(), session.get());
@@ -193,7 +193,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    }
  
    const int kBufferSize = GetDefaultOpenSSLBufferSize();
-@@ -1066,6 +1094,35 @@ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
+@@ -1062,6 +1090,35 @@ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
                      : SSLHandshakeDetails::kTLS13Full;
      }
    }
@@ -229,7 +229,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    UMA_HISTOGRAM_ENUMERATION("Net.SSLHandshakeDetails", details);
  
    // Measure TLS connections that implement the renegotiation_info extension.
-@@ -1718,6 +1775,8 @@ bool SSLClientSocketImpl::IsRenegotiationAllowed() const {
+@@ -1699,6 +1756,8 @@ bool SSLClientSocketImpl::IsRenegotiationAllowed() const {
  }
  
  bool SSLClientSocketImpl::IsCachingEnabled() const {
