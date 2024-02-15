@@ -16,10 +16,8 @@ Change-Id: I743519ccda7c357578c23b0a074292649b3afb3d
  .../Enable-Certificate-Transparency.inc                  | 6 ++++++
  .../Enable-Certificate-Transparency.inc                  | 2 ++
  net/http/transport_security_state.cc                     | 5 +++--
- net/url_request/report_sender.cc                         | 3 ++-
- services/network/network_context.cc                      | 2 +-
  services/network/sct_auditing/sct_auditing_handler.cc    | 2 ++
- 10 files changed, 32 insertions(+), 5 deletions(-)
+ 8 files changed, 29 insertions(+), 3 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/about_flags_cc/Enable-Certificate-Transparency.inc
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Enable-Certificate-Transparency.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Enable-Certificate-Transparency.inc
@@ -27,7 +25,7 @@ Change-Id: I743519ccda7c357578c23b0a074292649b3afb3d
 diff --git a/chrome/browser/browser_features.h b/chrome/browser/browser_features.h
 --- a/chrome/browser/browser_features.h
 +++ b/chrome/browser/browser_features.h
-@@ -62,6 +62,7 @@ BASE_DECLARE_FEATURE(kTabCaptureBlueBorderCrOS);
+@@ -63,6 +63,7 @@ BASE_DECLARE_FEATURE(kTabCaptureBlueBorderCrOS);
  
  BASE_DECLARE_FEATURE(kWebUsbDeviceDetection);
  
@@ -38,7 +36,7 @@ diff --git a/chrome/browser/browser_features.h b/chrome/browser/browser_features
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -982,7 +982,7 @@ bool SystemNetworkContextManager::IsCertificateTransparencyEnabled() {
+@@ -1012,7 +1012,7 @@ bool SystemNetworkContextManager::IsCertificateTransparencyEnabled() {
    //   - on an opt-in basis for other builds and embedders, controlled with the
    //     kCertificateTransparencyAskBeforeEnabling flag
    return base::FeatureList::IsEnabled(
@@ -97,7 +95,7 @@ new file mode 100644
 diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_state.cc
 --- a/net/http/transport_security_state.cc
 +++ b/net/http/transport_security_state.cc
-@@ -327,6 +327,7 @@ class HSTSPreloadDecoder : public net::extras::PreloadDecoder {
+@@ -190,6 +190,7 @@ class HSTSPreloadDecoder : public net::extras::PreloadDecoder {
  
  bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
  #if !BUILDFLAG(INCLUDE_TRANSPORT_SECURITY_STATE_PRELOAD_LIST)
@@ -105,7 +103,7 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
    if (g_hsts_source == nullptr)
      return false;
  #endif
-@@ -372,8 +373,8 @@ bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
+@@ -235,8 +236,8 @@ bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
  
  // static
  BASE_FEATURE(kCertificateTransparencyEnforcement,
@@ -116,31 +114,6 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
  
  void SetTransportSecurityStateSourceForTesting(
      const TransportSecurityStateSource* source) {
-diff --git a/net/url_request/report_sender.cc b/net/url_request/report_sender.cc
---- a/net/url_request/report_sender.cc
-+++ b/net/url_request/report_sender.cc
-@@ -87,7 +87,8 @@ void ReportSender::Send(
- 
-   URLRequest* raw_url_request = url_request.get();
-   inflight_requests_[raw_url_request] = std::move(url_request);
--  raw_url_request->Start();
-+  // pretend that request completed
-+  OnResponseStarted(raw_url_request, OK);
- }
- 
- void ReportSender::OnResponseStarted(URLRequest* request, int net_error) {
-diff --git a/services/network/network_context.cc b/services/network/network_context.cc
---- a/services/network/network_context.cc
-+++ b/services/network/network_context.cc
-@@ -2797,7 +2797,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
-   // TransportSecurityState.  Since no requests have been made yet, safe to do
-   // this even after the call to Build().
- 
--  if (params_->enable_certificate_reporting) {
-+  if ((false) /* params_->enable_certificate_reporting*/) {
-     net::NetworkTrafficAnnotationTag traffic_annotation =
-         net::DefineNetworkTrafficAnnotation("domain_security_policy", R"(
-         semantics {
 diff --git a/services/network/sct_auditing/sct_auditing_handler.cc b/services/network/sct_auditing/sct_auditing_handler.cc
 --- a/services/network/sct_auditing/sct_auditing_handler.cc
 +++ b/services/network/sct_auditing/sct_auditing_handler.cc

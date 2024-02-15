@@ -51,9 +51,9 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../unindexed_ruleset_stream_generator.cc     |   3 +
  .../browser/verified_ruleset_dealer.cc        |   4 +
  .../browser/subresource_filter_features.cc    | 116 +-------
- .../core/common/indexed_ruleset.cc            |   5 +-
+ .../core/common/indexed_ruleset.cc            |   6 +-
  .../Bromite-subresource-adblocker.inc         |   3 +
- 40 files changed, 1255 insertions(+), 127 deletions(-)
+ 40 files changed, 1256 insertions(+), 127 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -69,8 +69,8 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -314,6 +314,7 @@ if (current_toolchain == default_toolchain) {
-       "//chrome/android/modules/image_editor/provider:java",
+@@ -312,6 +312,7 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/android/modules/cablev2_authenticator/public:java",
        "//chrome/android/modules/stack_unwinder/provider:java",
        "//chrome/android/webapk/libs/client:client_java",
 +      "//chrome/browser/endpoint_fetcher:java",
@@ -80,7 +80,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -434,6 +434,7 @@ chrome_java_resources = [
+@@ -429,6 +429,7 @@ chrome_java_resources = [
    "java/res/layout/account_chooser_dialog_title.xml",
    "java/res/layout/account_divider_preference.xml",
    "java/res/layout/account_management_account_row.xml",
@@ -88,7 +88,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_name_and_number.xml",
-@@ -638,6 +639,7 @@ chrome_java_resources = [
+@@ -631,6 +632,7 @@ chrome_java_resources = [
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
    "java/res/xml/ad_services_config.xml",
@@ -99,7 +99,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -961,6 +961,8 @@ chrome_java_sources = [
+@@ -964,6 +964,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -256,9 +256,9 @@ new file mode 100644
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
 +++ b/chrome/android/java/res/xml/main_preferences.xml
-@@ -72,6 +72,11 @@ found in the LICENSE file.
+@@ -78,6 +78,11 @@ found in the LICENSE file.
          android:key="safety_check"
-         android:order="12"
+         android:order="13"
          android:title="@string/prefs_safety_check"/>
 +    <Preference
 +        android:fragment="org.chromium.chrome.browser.settings.AdBlockPreferences"
@@ -267,7 +267,7 @@ diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/j
 +        android:title="@string/prefs_adblock"/>
      <Preference
          android:key="notifications"
-         android:order="13"
+         android:order="14"
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
 new file mode 100644
 --- /dev/null
@@ -442,7 +442,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -14908,6 +14908,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -15005,6 +15005,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -513,7 +513,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1138,6 +1138,27 @@ BrowserProcessImpl::component_updater() {
+@@ -1147,6 +1147,27 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -544,7 +544,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_process_impl.h
 --- a/chrome/browser/browser_process_impl.h
 +++ b/chrome/browser/browser_process_impl.h
-@@ -210,6 +210,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -209,6 +209,7 @@ class BrowserProcessImpl : public BrowserProcess,
  #endif
  
    component_updater::ComponentUpdateService* component_updater() override;
@@ -552,7 +552,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
    MediaFileSystemRegistry* media_file_system_registry() override;
    WebRtcLogUploader* webrtc_log_uploader() override;
    network_time::NetworkTimeTracker* network_time_tracker() override;
-@@ -406,6 +407,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -405,6 +406,7 @@ class BrowserProcessImpl : public BrowserProcess,
    // to concerns over integrity of data shared between profiles,
    // but some users of component updater only install per-user.
    std::unique_ptr<component_updater::ComponentUpdateService> component_updater_;
@@ -563,7 +563,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -448,6 +448,9 @@ StartupProfileInfo CreateInitialProfile(
+@@ -445,6 +445,9 @@ StartupProfileInfo CreateInitialProfile(
    // missing code in the above test.
    CHECK(profile_info.profile) << "Cannot get default profile.";
  
@@ -576,15 +576,15 @@ diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_brows
 diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
 --- a/chrome/browser/flags/BUILD.gn
 +++ b/chrome/browser/flags/BUILD.gn
-@@ -23,6 +23,7 @@ android_library("java") {
-     "android/java/src/org/chromium/chrome/browser/flags/StringCachedFieldTrialParameter.java",
-     "android/java/src/org/chromium/chrome/browser/flags/ValuesOverridden.java",
-     "android/java/src/org/chromium/chrome/browser/flags/ValuesReturned.java",
+@@ -11,6 +11,7 @@ android_library("java") {
+     "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java",
+     "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
+     "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
 +    "android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java",
    ]
+   public_deps = [ "//base:base_cached_flags_java" ]
    deps = [
-     "//base:base_java",
-@@ -44,6 +45,7 @@ android_library("java") {
+@@ -33,6 +34,7 @@ android_library("java") {
  generate_jni("jni_headers") {
    sources = [ "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java" ]
    sources += [
@@ -592,7 +592,7 @@ diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
    ]
-@@ -58,6 +60,7 @@ static_library("flags_android") {
+@@ -47,6 +49,7 @@ static_library("flags_android") {
      "android/chrome_session_state.cc",
      "android/chrome_session_state.h",
    ]
@@ -674,7 +674,7 @@ new file mode 100755
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -602,6 +602,14 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
+@@ -638,6 +638,14 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
  void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    StubResolverConfigReader::RegisterPrefs(registry);
  
@@ -747,7 +747,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
 +++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -371,6 +371,9 @@
+@@ -362,6 +362,9 @@
    <message name="IDS_INTRUSIVE_ADS_INFORMATION" desc="The extra information at the top of the Site Details page when the site tends to show intrusive ads">
      This site shows intrusive or misleading ads
    </message>
@@ -773,12 +773,12 @@ diff --git a/components/component_updater/BUILD.gn b/components/component_update
      "component_updater_service.cc",
      "component_updater_service.h",
      "component_updater_service_internal.h",
-@@ -47,6 +53,7 @@ static_library("component_updater") {
-     "//components/prefs",
+@@ -48,6 +54,7 @@ static_library("component_updater") {
      "//components/update_client",
      "//components/version_info",
+     "//net",
 +    "//services/network/public/mojom",
-     "//third_party/boringssl:boringssl",
+     "//third_party/boringssl",
      "//ui/base",
      "//url",
 diff --git a/components/component_updater/adblock_updater_service.cc b/components/component_updater/adblock_updater_service.cc
@@ -1556,8 +1556,8 @@ new file mode 100644
 diff --git a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
 --- a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
 +++ b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
-@@ -15,6 +15,9 @@
- #include "base/trace_event/trace_conversion_helper.h"
+@@ -14,6 +14,9 @@
+ #include "base/metrics/histogram_macros.h"
  #include "base/trace_event/trace_event.h"
  #include "base/trace_event/traced_value.h"
 +#include "components/content_settings/core/common/content_settings_types.h"
@@ -1566,7 +1566,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
  #include "components/subresource_filter/content/browser/activation_state_computing_navigation_throttle.h"
  #include "components/subresource_filter/content/browser/async_document_subresource_filter.h"
  #include "components/subresource_filter/content/browser/content_subresource_filter_web_contents_helper.h"
-@@ -149,6 +152,7 @@ ContentSubresourceFilterThrottleManager::
+@@ -148,6 +151,7 @@ ContentSubresourceFilterThrottleManager::
        profile_interaction_manager_(
            std::make_unique<subresource_filter::ProfileInteractionManager>(
                profile_context)),
@@ -1574,7 +1574,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
        web_contents_helper_(web_contents_helper) {}
  
  ContentSubresourceFilterThrottleManager::
-@@ -668,6 +672,17 @@ ContentSubresourceFilterThrottleManager::
+@@ -667,6 +671,17 @@ ContentSubresourceFilterThrottleManager::
        throttle->NotifyPageActivationWithRuleset(EnsureRulesetHandle(),
                                                  ad_tagging_state);
      }
@@ -1710,8 +1710,8 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
          IndexAndWriteRulesetResult::FAILED_PARSING_UNINDEXED_RULESET);
      return IndexedRulesetVersion();
 @@ -328,8 +346,12 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
-       indexed_ruleset_version_dir, unindexed_ruleset_info.license_path,
-       indexer.data(), indexer.size());
+       WriteRuleset(indexed_ruleset_version_dir,
+                    unindexed_ruleset_info.license_path, indexer.data());
    RecordIndexAndWriteRulesetResult(result);
 -  if (result != IndexAndWriteRulesetResult::SUCCESS)
 +  if (result != IndexAndWriteRulesetResult::SUCCESS) {
@@ -1738,11 +1738,11 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
 -
    publisher_->TryOpenAndSetRulesetFile(
        file_path, version.checksum,
-       base::BindOnce(&RulesetService::OnRulesetSet, AsWeakPtr()));
+       base::BindOnce(&RulesetService::OnRulesetSet,
 diff --git a/components/subresource_filter/content/browser/ruleset_service.h b/components/subresource_filter/content/browser/ruleset_service.h
 --- a/components/subresource_filter/content/browser/ruleset_service.h
 +++ b/components/subresource_filter/content/browser/ruleset_service.h
-@@ -182,7 +182,7 @@ class RulesetService : public base::SupportsWeakPtr<RulesetService> {
+@@ -182,7 +182,7 @@ class RulesetService {
    //
    // Virtual so that it can be mocked out in tests.
    virtual void IndexAndStoreAndPublishRulesetIfNeeded(
@@ -1751,7 +1751,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.h b/c
  
    // Get the ruleset version associated with the current local_state_.
    IndexedRulesetVersion GetMostRecentlyIndexedVersion() const;
-@@ -215,6 +215,11 @@ class RulesetService : public base::SupportsWeakPtr<RulesetService> {
+@@ -215,6 +215,11 @@ class RulesetService {
        const base::FilePath& indexed_ruleset_base_dir,
        const UnindexedRulesetInfo& unindexed_ruleset_info);
  
@@ -1805,10 +1805,10 @@ diff --git a/components/subresource_filter/content/browser/verified_ruleset_deal
  #include "base/functional/callback_helpers.h"
  #include "base/location.h"
 +#include "base/logging.h"
- #include "base/metrics/histogram_macros.h"
  #include "base/notreached.h"
  #include "base/task/sequenced_task_runner.h"
-@@ -39,6 +40,9 @@ RulesetFilePtr VerifiedRulesetDealer::OpenAndSetRulesetFile(
+ #include "base/trace_event/trace_event.h"
+@@ -38,6 +39,9 @@ RulesetFilePtr VerifiedRulesetDealer::OpenAndSetRulesetFile(
    TRACE_EVENT1(TRACE_DISABLED_BY_DEFAULT("loading"),
                 "VerifiedRulesetDealer::OpenAndSetRulesetFile", "file_valid",
                 file->IsValid());
@@ -1821,8 +1821,8 @@ diff --git a/components/subresource_filter/content/browser/verified_ruleset_deal
 diff --git a/components/subresource_filter/core/browser/subresource_filter_features.cc b/components/subresource_filter/core/browser/subresource_filter_features.cc
 --- a/components/subresource_filter/core/browser/subresource_filter_features.cc
 +++ b/components/subresource_filter/core/browser/subresource_filter_features.cc
-@@ -54,72 +54,7 @@ class CommaSeparatedStrings {
-   const std::vector<base::StringPiece> pieces_;
+@@ -55,72 +55,7 @@ class CommaSeparatedStrings {
+   const std::vector<std::string_view> pieces_;
  };
  
 -std::string TakeVariationParamOrReturnEmpty(
@@ -1837,7 +1837,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 -}
 -
 -mojom::ActivationLevel ParseActivationLevel(
--    const base::StringPiece activation_level) {
+-    const std::string_view activation_level) {
 -  if (base::EqualsCaseInsensitiveASCII(activation_level,
 -                                       kActivationLevelEnabled))
 -    return mojom::ActivationLevel::kEnabled;
@@ -1847,7 +1847,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 -  return mojom::ActivationLevel::kDisabled;
 -}
 -
--ActivationScope ParseActivationScope(const base::StringPiece activation_scope) {
+-ActivationScope ParseActivationScope(const std::string_view activation_scope) {
 -  if (base::EqualsCaseInsensitiveASCII(activation_scope,
 -                                       kActivationScopeAllSites))
 -    return ActivationScope::ALL_SITES;
@@ -1883,7 +1883,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 -  return value < 1 ? value : 1;
 -}
 -
--int ParseInt(const base::StringPiece value) {
+-int ParseInt(const std::string_view value) {
 -  int result = 0;
 -  base::StringToInt(value, &result);
 -  return result;
@@ -1895,7 +1895,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
    // If ad tagging is enabled, turn on the dryrun automatically.
    bool ad_tagging_enabled = base::FeatureList::IsEnabled(kAdTagging);
    const struct {
-@@ -127,23 +62,16 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
+@@ -128,23 +63,16 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
      bool enabled_by_default;
      Configuration (*factory_method)();
    } kAvailablePresetConfigurations[] = {
@@ -1921,7 +1921,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
        enabled_configurations.push_back(available_preset.factory_method());
      }
    }
-@@ -151,46 +79,10 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
+@@ -152,46 +80,10 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
    return enabled_configurations;
  }
  
@@ -1980,14 +1980,14 @@ diff --git a/components/subresource_filter/core/common/indexed_ruleset.cc b/comp
  #include "base/metrics/histogram_macros.h"
  #include "base/trace_event/trace_event.h"
  #include "components/subresource_filter/core/common/first_party_origin.h"
-@@ -37,8 +38,10 @@ VerifyStatus GetVerifyStatus(const uint8_t* buffer,
+@@ -36,7 +37,10 @@ VerifyStatus GetVerifyStatus(base::span<const uint8_t> buffer,
    // least once.  The verifier detects a subset of the errors detected by the
    // checksum, and is unneeded once expected_checksum is consistently nonzero.
-   flatbuffers::Verifier verifier(buffer, size);
-+  int local_checksum = LocalGetChecksum(buffer, size);
+   flatbuffers::Verifier verifier(buffer.data(), buffer.size());
+-  if (expected_checksum != 0 && expected_checksum != LocalGetChecksum(buffer)) {
++  int local_checksum = LocalGetChecksum(buffer);
 +  LOG(INFO) << "GetVerifyStatus: expected checksum = 0x" << std::hex << expected_checksum << ", local checksum = 0x" << std::hex << local_checksum;
-   if (expected_checksum != 0 &&
--      expected_checksum != LocalGetChecksum(buffer, size)) {
++  if (expected_checksum != 0 &&
 +      expected_checksum != local_checksum) {
      return flat::VerifyIndexedRulesetBuffer(verifier)
                 ? VerifyStatus::kChecksumFailVerifierPass

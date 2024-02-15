@@ -16,7 +16,7 @@ Change-Id: I22497a1236fa58ac934eb0591cc18b6e593b314e
 diff --git a/chrome/browser/net/stub_resolver_config_reader.cc b/chrome/browser/net/stub_resolver_config_reader.cc
 --- a/chrome/browser/net/stub_resolver_config_reader.cc
 +++ b/chrome/browser/net/stub_resolver_config_reader.cc
-@@ -149,7 +149,7 @@ StubResolverConfigReader::StubResolverConfigReader(PrefService* local_state,
+@@ -150,7 +150,7 @@ StubResolverConfigReader::StubResolverConfigReader(PrefService* local_state,
        if (entries.count("dns-over-https@1")) {
          // The user has "Enabled" selected.
          local_state_->SetString(prefs::kDnsOverHttpsMode,
@@ -25,7 +25,7 @@ diff --git a/chrome/browser/net/stub_resolver_config_reader.cc b/chrome/browser/
        } else if (entries.count("dns-over-https@2")) {
          // The user has "Disabled" selected.
          local_state_->SetString(prefs::kDnsOverHttpsMode,
-@@ -344,22 +344,7 @@ SecureDnsConfig StubResolverConfigReader::GetAndUpdateConfiguration(
+@@ -345,22 +345,7 @@ SecureDnsConfig StubResolverConfigReader::GetAndUpdateConfiguration(
      check_parental_controls = false;
    }
  
@@ -51,9 +51,9 @@ diff --git a/chrome/browser/net/stub_resolver_config_reader.cc b/chrome/browser/
 diff --git a/net/dns/dns_client.cc b/net/dns/dns_client.cc
 --- a/net/dns/dns_client.cc
 +++ b/net/dns/dns_client.cc
-@@ -242,11 +242,14 @@ class DnsClientImpl : public DnsClient {
+@@ -243,11 +243,14 @@ class DnsClientImpl : public DnsClient {
   private:
-   absl::optional<DnsConfig> BuildEffectiveConfig() const {
+   std::optional<DnsConfig> BuildEffectiveConfig() const {
      DnsConfig config;
 -    if (config_overrides_.OverridesEverything()) {
 +    // in Bromite it is sufficient to have secure DoH enabled to give the overrides priority
@@ -63,19 +63,19 @@ diff --git a/net/dns/dns_client.cc b/net/dns/dns_client.cc
 -      if (!system_config_)
 +      if (!system_config_) {
 +        LOG(WARNING) << "BuildEffectiveConfig(): no system configuration";
-         return absl::nullopt;
+         return std::nullopt;
 +      }
  
        config = config_overrides_.ApplyOverrides(system_config_.value());
      }
-@@ -261,8 +264,10 @@ class DnsClientImpl : public DnsClient {
+@@ -262,8 +265,10 @@ class DnsClientImpl : public DnsClient {
      if (config.unhandled_options)
        config.nameservers.clear();
  
 -    if (!config.IsValid())
 +    if (!config.IsValid()) {
 +        LOG(WARNING) << "BuildEffectiveConfig(): invalid configuration";
-       return absl::nullopt;
+       return std::nullopt;
 +    }
  
      return config;
@@ -83,7 +83,7 @@ diff --git a/net/dns/dns_client.cc b/net/dns/dns_client.cc
 diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
 --- a/net/dns/host_resolver_manager.cc
 +++ b/net/dns/host_resolver_manager.cc
-@@ -3135,6 +3135,7 @@ void HostResolverManager::SetDnsConfigOverrides(DnsConfigOverrides overrides) {
+@@ -598,6 +598,7 @@ void HostResolverManager::SetDnsConfigOverrides(DnsConfigOverrides overrides) {
    bool changed = dns_client_->SetConfigOverrides(std::move(overrides));
  
    if (changed) {
