@@ -13,9 +13,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
 ---
- .../browser/aw_content_browser_client.cc      |   1 +
- chrome/android/java/AndroidManifest.xml       |   1 -
- components/attribution_reporting/features.cc  |   1 +
+ .../browser/aw_content_browser_client.cc      |   3 +
+ .../chromium/android_webview/AwSettings.java  |   4 +-
+ chrome/android/java/AndroidManifest.xml       |   4 -
+ components/attribution_reporting/features.cc  |   2 +
  .../origin_trials/features.cc                 |   2 +
  .../render_view_context_menu_base.cc          |   3 -
  .../aggregatable_report_sender.cc             |  15 +-
@@ -24,12 +25,13 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../attribution_reporting/attribution_host.cc |   1 +
  .../attribution_os_level_manager.cc           |   3 +-
  .../attribution_report_network_sender.cc      |   9 +
- .../attribution_storage_sql.cc                |   4 +-
+ .../attribution_storage_sql.cc                |   8 +-
  content/browser/storage_partition_impl.cc     |   9 -
  content/public/android/BUILD.gn               |   2 -
- .../browser/AttributionOsLevelManager.java    | 245 +-----------------
+ .../browser/AttributionOsLevelManager.java    | 312 +-----------------
  .../public/browser/content_browser_client.cc  |   7 +-
  .../public/browser/navigation_controller.cc   |   1 -
+ .../Disable-conversion-measurement-api.inc    |   1 +
  .../Disable-conversion-measurement-api.inc    |   1 +
  .../Disable-conversion-measurement-api.inc    |   1 +
  .../Disable-conversion-measurement-api.inc    |   9 +
@@ -37,7 +39,8 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../network/public/cpp/attribution_utils.cc   |   2 +
  third_party/blink/renderer/core/page/page.cc  |   2 +-
  ui/events/android/motion_event_android.cc     |   6 +-
- 24 files changed, 61 insertions(+), 267 deletions(-)
+ 26 files changed, 72 insertions(+), 338 deletions(-)
+ create mode 100644 cromite_flags/content/common/features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-conversion-measurement-api.inc
@@ -45,7 +48,7 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
 diff --git a/android_webview/browser/aw_content_browser_client.cc b/android_webview/browser/aw_content_browser_client.cc
 --- a/android_webview/browser/aw_content_browser_client.cc
 +++ b/android_webview/browser/aw_content_browser_client.cc
-@@ -1157,6 +1157,7 @@ network::mojom::AttributionSupport
+@@ -1163,6 +1163,7 @@ network::mojom::AttributionSupport
  AwContentBrowserClient::GetAttributionSupport(
      AttributionReportingOsApiState state,
      content::WebContents* web_contents) {
@@ -53,6 +56,36 @@ diff --git a/android_webview/browser/aw_content_browser_client.cc b/android_webv
    AwSettings* aw_settings = AwSettings::FromWebContents(web_contents);
    if (aw_settings && aw_settings->GetAttributionBehavior() ==
                           AwSettings::AttributionBehavior::DISABLED) {
+@@ -1187,6 +1188,8 @@ bool AwContentBrowserClient::IsAttributionReportingOperationAllowed(
+     const url::Origin* destination_origin,
+     const url::Origin* reporting_origin,
+     bool* can_bypass) {
++  if ((true))
++    return false;
+   // Check if attribution reporting has been disabled.
+   // This method should not be called at all if the configured behavior is
+   // DISABLED.
+diff --git a/android_webview/java/src/org/chromium/android_webview/AwSettings.java b/android_webview/java/src/org/chromium/android_webview/AwSettings.java
+--- a/android_webview/java/src/org/chromium/android_webview/AwSettings.java
++++ b/android_webview/java/src/org/chromium/android_webview/AwSettings.java
+@@ -162,7 +162,7 @@ public class AwSettings {
+     private boolean mSpatialNavigationEnabled; // Default depends on device features.
+     private boolean mEnableSupportedHardwareAcceleratedFeatures;
+     private int mMixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW;
+-    private int mAttributionBehavior = AttributionBehavior.APP_SOURCE_AND_WEB_TRIGGER;
++    private int mAttributionBehavior = AttributionBehavior.DISABLED;
+     private boolean mCSSHexAlphaColorEnabled;
+     private boolean mScrollTopLeftInteropEnabled;
+     private boolean mWillSuppressErrorPage;
+@@ -1689,7 +1689,7 @@ public class AwSettings {
+     public void setAttributionBehavior(@AttributionBehavior int behavior) {
+         synchronized (mAwSettingsLock) {
+             if (mAttributionBehavior != behavior) {
+-                mAttributionBehavior = behavior;
++                mAttributionBehavior = AttributionBehavior.DISABLED;
+                 mEventHandler.updateWebkitPreferencesLocked();
+             }
+         }
 diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
 --- a/chrome/android/java/AndroidManifest.xml
 +++ b/chrome/android/java/AndroidManifest.xml
@@ -64,14 +97,25 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
      <uses-permission-sdk-23 android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
      <uses-permission-sdk-23 android:name="android.permission.BLUETOOTH_CONNECT"/>
      <!--
+@@ -1194,9 +1193,6 @@ by a child template that "extends" this file.
+             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|mcc|mnc|screenLayout|smallestScreenSize" >
+         </activity>
+ 
+-        <property android:name="android.adservices.AD_SERVICES_CONFIG"
+-            android:resource="@xml/ad_services_config" />
+-
+         {% set enable_openxr = enable_openxr|default(0) %}
+         {% if enable_openxr == "true" %}
+           <!-- launchMode is set to singleTask because there should never be multiple copies of the app running. -->
 diff --git a/components/attribution_reporting/features.cc b/components/attribution_reporting/features.cc
 --- a/components/attribution_reporting/features.cc
 +++ b/components/attribution_reporting/features.cc
-@@ -21,4 +21,5 @@ BASE_FEATURE(kAttributionReportingTriggerContextId,
+@@ -17,4 +17,6 @@ BASE_FEATURE(kAttributionReportingTriggerContextId,
               "AttributionReportingTriggerContextId",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
 +SET_CROMITE_FEATURE_DISABLED(kConversionMeasurement);
++SET_CROMITE_FEATURE_DISABLED(kAttributionReportingTriggerContextId);
  }  // namespace attribution_reporting::features
 diff --git a/components/embedder_support/origin_trials/features.cc b/components/embedder_support/origin_trials/features.cc
 --- a/components/embedder_support/origin_trials/features.cc
@@ -138,7 +182,7 @@ diff --git a/content/browser/aggregation_service/aggregation_service_features.cc
 diff --git a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
 --- a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
 +++ b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
-@@ -827,6 +827,7 @@ void AttributionDataHostManagerImpl::ParseHeader(
+@@ -924,6 +924,7 @@ void AttributionDataHostManagerImpl::ParseHeader(
      HeaderPendingDecode pending_decode,
      Registrar registrar) {
    DCHECK(it != registrations_.end());
@@ -149,18 +193,18 @@ diff --git a/content/browser/attribution_reporting/attribution_data_host_manager
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -318,6 +318,7 @@ void AttributionHost::RegisterNavigationDataHost(
+@@ -257,6 +257,7 @@ void AttributionHost::NotifyNavigationRegistrationData(
      return;
    }
  
 +  if ((true)) return;
-   if (!suitable_context->data_host_manager()->RegisterNavigationDataHost(
-           std::move(data_host), attribution_src_token)) {
-     mojo::ReportBadMessage(
+   auto* attribution_manager =
+       AttributionManager::FromWebContents(web_contents());
+   DCHECK(attribution_manager);
 diff --git a/content/browser/attribution_reporting/attribution_os_level_manager.cc b/content/browser/attribution_reporting/attribution_os_level_manager.cc
 --- a/content/browser/attribution_reporting/attribution_os_level_manager.cc
 +++ b/content/browser/attribution_reporting/attribution_os_level_manager.cc
-@@ -46,6 +46,7 @@ std::optional<ApiState> g_state GUARDED_BY_CONTEXT(GetSequenceChecker());
+@@ -47,6 +47,7 @@ std::optional<ApiState> g_state GUARDED_BY_CONTEXT(GetSequenceChecker());
  // static
  bool AttributionOsLevelManager::ShouldUseOsWebSource(
      GlobalRenderFrameHostId render_frame_id) {
@@ -168,7 +212,7 @@ diff --git a/content/browser/attribution_reporting/attribution_os_level_manager.
    return GetContentClient()
        ->browser()
        ->ShouldUseOsWebSourceAttributionReporting(
-@@ -74,7 +75,7 @@ bool AttributionOsLevelManager::ShouldInitializeApiState() {
+@@ -75,7 +76,7 @@ bool AttributionOsLevelManager::ShouldInitializeApiState() {
  // static
  ApiState AttributionOsLevelManager::GetApiState() {
    DCHECK_CALLED_ON_VALID_SEQUENCE(GetSequenceChecker());
@@ -206,7 +250,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -459,12 +459,14 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
+@@ -459,14 +459,16 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
    return user_data_directory.Append(kDatabasePath);
  }
  
@@ -218,14 +262,18 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
      const base::FilePath& user_data_directory,
      std::unique_ptr<AttributionStorageDelegate> delegate)
 -    : path_to_database_(user_data_directory.empty()
+-                            ? base::FilePath()
+-                            : DatabasePath(user_data_directory)),
 +    : path_to_database_(user_data_directory.empty() || g_run_in_memory
-                             ? base::FilePath()
-                             : DatabasePath(user_data_directory)),
-       db_(sql::DatabaseOptions{.exclusive_locking = true,
++                             ? base::FilePath()
++                             : DatabasePath(user_data_directory)),
+       db_(sql::DatabaseOptions{.page_size = 4096, .cache_size = 32}),
+       delegate_(std::move(delegate)),
+       rate_limit_table_(delegate_.get()) {
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1508,15 +1508,6 @@ void StoragePartitionImpl::Initialize(
+@@ -1443,15 +1443,6 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
@@ -244,24 +292,25 @@ diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage
 diff --git a/content/public/android/BUILD.gn b/content/public/android/BUILD.gn
 --- a/content/public/android/BUILD.gn
 +++ b/content/public/android/BUILD.gn
-@@ -184,8 +184,6 @@ android_library("content_full_java") {
+@@ -185,8 +185,6 @@ android_library("content_full_java") {
      "//third_party/androidx:androidx_appcompat_appcompat_resources_java",
      "//third_party/androidx:androidx_collection_collection_java",
      "//third_party/androidx:androidx_core_core_java",
 -    "//third_party/androidx:androidx_privacysandbox_ads_ads_adservices_java",
 -    "//third_party/androidx:androidx_privacysandbox_ads_ads_adservices_java_java",
+     "//third_party/androidx/local_modifications/window:window_util_java",
      "//third_party/blink/public:blink_headers_java",
      "//third_party/blink/public/common:common_java",
-     "//third_party/blink/public/mojom:android_mojo_bindings_java",
 diff --git a/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java b/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
 --- a/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
 +++ b/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
-@@ -12,17 +12,6 @@ import android.os.Process;
- import android.view.MotionEvent;
+@@ -13,18 +13,6 @@ import android.view.MotionEvent;
  
  import androidx.annotation.IntDef;
+ import androidx.annotation.OptIn;
 -import androidx.privacysandbox.ads.adservices.java.measurement.MeasurementManagerFutures;
 -import androidx.privacysandbox.ads.adservices.measurement.DeletionRequest;
+-import androidx.privacysandbox.ads.adservices.measurement.SourceRegistrationRequest;
 -import androidx.privacysandbox.ads.adservices.measurement.WebSourceParams;
 -import androidx.privacysandbox.ads.adservices.measurement.WebSourceRegistrationRequest;
 -import androidx.privacysandbox.ads.adservices.measurement.WebTriggerParams;
@@ -274,25 +323,83 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
  
  import org.jni_zero.CalledByNative;
  import org.jni_zero.JNINamespace;
-@@ -52,6 +41,8 @@ import java.util.concurrent.TimeoutException;
+@@ -54,6 +42,10 @@ import java.util.concurrent.TimeoutException;
   */
  @JNINamespace("content")
  public class AttributionOsLevelManager {
 +    private class MeasurementManagerFutures {}
++    private class WebTriggerParams {}
++    private class WebSourceParams {}
 +
      private static final String TAG = "AttributionManager";
      // TODO: replace with constant in android.Manifest.permission once it becomes available in U.
      private static final String PERMISSION_ACCESS_ADSERVICES_ATTRIBUTION =
-@@ -116,7 +107,7 @@ public class AttributionOsLevelManager {
+@@ -118,63 +110,11 @@ public class AttributionOsLevelManager {
      }
  
      private static boolean supportsAttribution() {
 -        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R;
+-    }
+-
+-    private static @OperationResult int convertToOperationResult(Throwable thrown) {
+-        if (thrown instanceof IllegalArgumentException) {
+-            return OperationResult.ERROR_ILLEGAL_ARGUMENT;
+-        } else if (thrown instanceof IOException) {
+-            return OperationResult.ERROR_IO;
+-        } else if (thrown instanceof IllegalStateException) {
+-            // The Android API doesn't break out this error as a separate exception so we
+-            // are forced to inspect the message for now.
+-            if (thrown.getMessage() != null
+-                    && thrown.getMessage().toLowerCase(Locale.US).contains("background")) {
+-                return OperationResult.ERROR_BACKGROUND_CALLER;
+-            } else {
+-                return OperationResult.ERROR_ILLEGAL_STATE;
+-            }
+-        } else if (thrown instanceof SecurityException) {
+-            return OperationResult.ERROR_SECURITY;
+-        } else if (thrown instanceof TimeoutException) {
+-            return OperationResult.ERROR_TIMEOUT;
+-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+-                && thrown instanceof LimitExceededException) {
+-            return OperationResult.ERROR_LIMIT_EXCEEDED;
+-        } else {
+-            return OperationResult.ERROR_UNKNOWN;
+-        }
 +        return false;
      }
  
-     private static @OperationResult int convertToOperationResult(Throwable thrown) {
-@@ -181,22 +172,7 @@ public class AttributionOsLevelManager {
+     private static void recordOperationResult(
+             @OperationType int type, @OperationResult int result) {
+-        String suffix = "";
+-        switch (type) {
+-            case OperationType.REGISTER_SOURCE:
+-                suffix = "RegisterSource";
+-                break;
+-            case OperationType.REGISTER_WEB_SOURCE:
+-                suffix = "RegisterWebSource";
+-                break;
+-            case OperationType.REGISTER_TRIGGER:
+-                suffix = "RegisterTrigger";
+-                break;
+-            case OperationType.REGISTER_WEB_TRIGGER:
+-                suffix = "RegisterWebTrigger";
+-                break;
+-            case OperationType.GET_MEASUREMENT_API_STATUS:
+-                suffix = "GetMeasurementApiStatus";
+-                break;
+-            case OperationType.DELETE_REGISTRATIONS:
+-                suffix = "DeleteRegistrations";
+-                break;
+-        }
+-
+-        assert suffix.length() > 0;
+-
+-        RecordHistogram.recordEnumeratedHistogram(
+-                "Conversions.AndroidOperationResult." + suffix, result, OperationResult.COUNT);
+     }
+ 
+     @CalledByNative
+@@ -183,22 +123,7 @@ public class AttributionOsLevelManager {
      }
  
      private MeasurementManagerFutures getManager() {
@@ -316,7 +423,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      private void onRegistrationCompleted(
-@@ -210,28 +186,6 @@ public class AttributionOsLevelManager {
+@@ -212,28 +137,6 @@ public class AttributionOsLevelManager {
          }
      }
  
@@ -342,10 +449,18 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
 -                ContextUtils.getApplicationContext().getMainExecutor());
 -    }
 -
+     @CalledByNative
+     private static List<WebSourceParams> createWebSourceParamsList(int size) {
+         if (!supportsAttribution()) {
+@@ -248,7 +151,6 @@ public class AttributionOsLevelManager {
+         if (!supportsAttribution()) {
+             return;
+         }
+-        list.add(new WebSourceParams(Uri.parse(registrationUrl.getSpec()), isDebugKeyAllowed));
+     }
+ 
      /**
-      * Registers a web attribution source with native, see `registerWebSourceAsync()`:
-      * https://developer.android.com/reference/androidx/privacysandbox/ads/adservices/java/measurement/MeasurementManagerFutures.
-@@ -250,25 +204,6 @@ public class AttributionOsLevelManager {
+@@ -265,32 +167,12 @@ public class AttributionOsLevelManager {
                      OperationResult.ERROR_VERSION_UNSUPPORTED);
              return;
          }
@@ -358,10 +473,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
 -        ListenableFuture<?> future =
 -                mm.registerWebSourceAsync(
 -                        new WebSourceRegistrationRequest(
--                                Arrays.asList(
--                                        new WebSourceParams(
--                                                Uri.parse(registrationUrl.getSpec()),
--                                                isDebugKeyAllowed)),
+-                                sources,
 -                                Uri.parse(topLevelOrigin.getSpec()),
 -                                /* inputEvent= */ event,
 -                                /* appDestination= */ null,
@@ -371,7 +483,17 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      /**
-@@ -284,15 +219,6 @@ public class AttributionOsLevelManager {
+      * Registers an attribution source with native, see `registerSourceAsync()`:
+      * https://developer.android.com/reference/androidx/privacysandbox/ads/adservices/java/measurement/MeasurementManagerFutures.
+      */
+-    @OptIn(
+-            markerClass =
+-                    androidx.privacysandbox.ads.adservices.common.ExperimentalFeatures
+-                            .RegisterSourceOptIn.class)
+     @CalledByNative
+     private void registerAttributionSource(
+             int requestId, GURL[] registrationUrls, MotionEvent event) {
+@@ -301,37 +183,16 @@ public class AttributionOsLevelManager {
                      OperationResult.ERROR_VERSION_UNSUPPORTED);
              return;
          }
@@ -381,13 +503,36 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
 -                    requestId, OperationType.REGISTER_SOURCE, OperationResult.ERROR_INTERNAL);
 -            return;
 -        }
+-
+-        ArrayList<Uri> registrationUris = new ArrayList<Uri>(registrationUrls.length);
+-        for (GURL registrationUrl : registrationUrls) {
+-            registrationUris.add(Uri.parse(registrationUrl.getSpec()));
+-        }
 -        ListenableFuture<?> future =
--                mm.registerSourceAsync(Uri.parse(registrationUrl.getSpec()), event);
+-                mm.registerSourceAsync(new SourceRegistrationRequest(registrationUris, event));
 -        addRegistrationFutureCallback(requestId, OperationType.REGISTER_SOURCE, future);
      }
  
+     @CalledByNative
+     private static List<WebTriggerParams> createWebTriggerParamsList(int size) {
+-        if (!supportsAttribution()) {
+-            return null;
+-        }
+-        return new ArrayList<WebTriggerParams>(size);
++        return null;
+     }
+ 
+     @CalledByNative
+     private static void addWebTriggerParams(
+             List<WebTriggerParams> list, GURL registrationUrl, boolean isDebugKeyAllowed) {
+-        if (!supportsAttribution()) {
+-            return;
+-        }
+-        list.add(new WebTriggerParams(Uri.parse(registrationUrl.getSpec()), isDebugKeyAllowed));
+     }
+ 
      /**
-@@ -309,22 +235,6 @@ public class AttributionOsLevelManager {
+@@ -348,18 +209,6 @@ public class AttributionOsLevelManager {
                      OperationResult.ERROR_VERSION_UNSUPPORTED);
              return;
          }
@@ -401,16 +546,12 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
 -        ListenableFuture<?> future =
 -                mm.registerWebTriggerAsync(
 -                        new WebTriggerRegistrationRequest(
--                                Arrays.asList(
--                                        new WebTriggerParams(
--                                                Uri.parse(registrationUrl.getSpec()),
--                                                isDebugKeyAllowed)),
--                                Uri.parse(topLevelOrigin.getSpec())));
+-                                triggers, Uri.parse(topLevelOrigin.getSpec())));
 -        addRegistrationFutureCallback(requestId, OperationType.REGISTER_WEB_TRIGGER, future);
      }
  
      /**
-@@ -340,15 +250,6 @@ public class AttributionOsLevelManager {
+@@ -375,15 +224,6 @@ public class AttributionOsLevelManager {
                      OperationResult.ERROR_VERSION_UNSUPPORTED);
              return;
          }
@@ -426,7 +567,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      private void onDataDeletionCompleted(int requestId) {
-@@ -383,96 +284,7 @@ public class AttributionOsLevelManager {
+@@ -418,96 +258,7 @@ public class AttributionOsLevelManager {
              onDataDeletionCompleted(requestId);
              return;
          }
@@ -524,7 +665,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
      }
  
      private static void onMeasurementStateReturned(int status, @OperationResult int result) {
-@@ -488,6 +300,10 @@ public class AttributionOsLevelManager {
+@@ -523,6 +274,10 @@ public class AttributionOsLevelManager {
      private static void getMeasurementApiStatus() {
          ThreadUtils.assertOnBackgroundThread();
  
@@ -535,7 +676,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
          if (sManagerForTesting != null) {
              AttributionOsLevelManagerJni.get().onMeasurementStateReturned(1);
              return;
-@@ -507,49 +323,6 @@ public class AttributionOsLevelManager {
+@@ -542,49 +297,6 @@ public class AttributionOsLevelManager {
              onMeasurementStateReturned(/* status= */ 0, OperationResult.ERROR_PERMISSION_UNGRANTED);
              return;
          }
@@ -588,7 +729,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
 diff --git a/content/public/browser/content_browser_client.cc b/content/public/browser/content_browser_client.cc
 --- a/content/public/browser/content_browser_client.cc
 +++ b/content/public/browser/content_browser_client.cc
-@@ -539,6 +539,7 @@ void ContentBrowserClient::OnAuctionComplete(
+@@ -543,6 +543,7 @@ void ContentBrowserClient::OnAuctionComplete(
  network::mojom::AttributionSupport ContentBrowserClient::GetAttributionSupport(
      AttributionReportingOsApiState state,
      content::WebContents* web_contents) {
@@ -596,7 +737,7 @@ diff --git a/content/public/browser/content_browser_client.cc b/content/public/b
    switch (state) {
      case AttributionReportingOsApiState::kDisabled:
        return network::mojom::AttributionSupport::kWeb;
-@@ -555,17 +556,17 @@ bool ContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -559,17 +560,17 @@ bool ContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin,
      bool* can_bypass) {
@@ -628,6 +769,12 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
        is_pdf(input.is_pdf) {
  #if DCHECK_IS_ON()
    DCHECK(input.Valid());
+diff --git a/cromite_flags/content/common/features_cc/Disable-conversion-measurement-api.inc b/cromite_flags/content/common/features_cc/Disable-conversion-measurement-api.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/content/common/features_cc/Disable-conversion-measurement-api.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kAttributionReportingCrossAppWebOverride);
 diff --git a/cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc b/cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc
 new file mode 100644
 --- /dev/null
@@ -687,7 +834,7 @@ diff --git a/services/network/public/cpp/attribution_utils.cc b/services/network
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -1336,7 +1336,7 @@ void Page::UpdateBrowsingContextGroup(
+@@ -1352,7 +1352,7 @@ void Page::UpdateBrowsingContextGroup(
  
  void Page::SetAttributionSupport(
      network::mojom::AttributionSupport attribution_support) {

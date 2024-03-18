@@ -24,9 +24,9 @@ Change-Id: I6a0b0fe3c16fde5349ed2bb90dc7ff4cd7821efb
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
-@@ -62,7 +62,7 @@ public abstract class FirstRunActivityBase extends AsyncInitializationActivity
-     static final String SHOW_SEARCH_ENGINE_PAGE = "ShowSearchEnginePage";
+@@ -63,7 +63,7 @@ public abstract class FirstRunActivityBase extends AsyncInitializationActivity
      static final String SHOW_SYNC_CONSENT_PAGE = "ShowSyncConsent";
+     static final String SHOW_HISTORY_SYNC_PAGE = "ShowHistorySync";
  
 -    public static final boolean DEFAULT_METRICS_AND_CRASH_REPORTING = true;
 +    public static final boolean DEFAULT_METRICS_AND_CRASH_REPORTING = false;
@@ -91,7 +91,7 @@ diff --git a/chrome/browser/android/ntp/most_visited_sites_bridge.cc b/chrome/br
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1060,7 +1060,7 @@ void BrowserProcessImpl::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -1081,7 +1081,7 @@ void BrowserProcessImpl::RegisterPrefs(PrefRegistrySimple* registry) {
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
  
    registry->RegisterBooleanPref(metrics::prefs::kMetricsReportingEnabled,
@@ -103,7 +103,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -84,7 +84,6 @@
+@@ -83,7 +83,6 @@
  #include "chrome/browser/hid/chrome_hid_delegate.h"
  #include "chrome/browser/interstitials/enterprise_util.h"
  #include "chrome/browser/lifetime/browser_shutdown.h"
@@ -111,7 +111,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  #include "chrome/browser/media/audio_service_util.h"
  #include "chrome/browser/media/prefs/capture_device_ranking.h"
  #include "chrome/browser/media/router/media_router_feature.h"
-@@ -4880,16 +4879,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+@@ -4908,16 +4907,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
      content::NavigationHandle* handle) {
    std::vector<std::unique_ptr<content::NavigationThrottle>> throttles;
  
@@ -128,7 +128,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
    MaybeAddThrottle(
        SupervisedUserNavigationThrottle::MaybeCreateThrottleFor(handle),
-@@ -4990,10 +4979,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+@@ -5018,10 +5007,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
      throttle_manager->MaybeAppendNavigationThrottles(handle, &throttles);
    }
  
@@ -142,7 +142,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
-@@ -73,8 +73,8 @@ namespace internal {
+@@ -75,8 +75,8 @@ namespace internal {
  // recording and reporting are enabled. If the feature is enabled, but no
  // consent is given, then there will be no recording or reporting.
  BASE_FEATURE(kMetricsReportingFeature,
@@ -153,7 +153,7 @@ diff --git a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc b/
  
  #if BUILDFLAG(IS_ANDROID)
  // Same as |kMetricsReportingFeature|, but this feature is associated with a
-@@ -83,8 +83,8 @@ BASE_FEATURE(kMetricsReportingFeature,
+@@ -85,8 +85,8 @@ BASE_FEATURE(kMetricsReportingFeature,
  // the fix to not affect the overall sampling rate, this new feature was
  // created. See crbug/1306481.
  BASE_FEATURE(kPostFREFixMetricsReportingFeature,

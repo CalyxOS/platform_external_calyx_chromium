@@ -30,10 +30,10 @@ Change-Id: I9a0ef1a3827d0d3d06303e759c294c20fc7b791c
  .../features_cc/Disable-TLS-resumption.inc    |  7 +++
  .../features_h/Disable-TLS-resumption.inc     |  5 ++
  net/http/http_network_session.cc              |  1 +
- net/quic/quic_session_pool.cc                 | 35 ++++++++++-
+ net/quic/quic_session_pool.cc                 | 36 ++++++++++-
  net/socket/ssl_client_socket_impl.cc          | 59 +++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |  2 +
- 7 files changed, 120 insertions(+), 1 deletion(-)
+ 7 files changed, 121 insertions(+), 1 deletion(-)
  create mode 100644 cromite_flags/chrome/browser/about_flags_cc/Disable-TLS-resumption.inc
  create mode 100644 cromite_flags/net/base/features_cc/Disable-TLS-resumption.inc
  create mode 100644 cromite_flags/net/base/features_h/Disable-TLS-resumption.inc
@@ -92,17 +92,18 @@ diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
 --- a/net/quic/quic_session_pool.cc
 +++ b/net/quic/quic_session_pool.cc
 @@ -69,6 +69,7 @@
- #include "net/third_party/quiche/src/quiche/quic/core/quic_utils.h"
  #include "net/third_party/quiche/src/quiche/quic/platform/api/quic_flags.h"
+ #include "net/traffic_annotation/network_traffic_annotation.h"
  #include "third_party/boringssl/src/include/openssl/aead.h"
 +#include "third_party/boringssl/src/include/openssl/ssl.h"
  #include "url/gurl.h"
  #include "url/scheme_host_port.h"
  #include "url/url_constants.h"
-@@ -196,6 +197,38 @@ std::set<std::string> HostsFromOrigins(std::set<HostPortPair> origins) {
+@@ -156,6 +157,39 @@ std::set<std::string> HostsFromOrigins(std::set<HostPortPair> origins) {
  
  }  // namespace
  
++
 +class BromiteSessionCache : public quic::QuicClientSessionCache {
 + public:
 +  BromiteSessionCache() = default;
@@ -135,10 +136,10 @@ diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
 +  }
 +};
 +
- // Refcounted class that owns quic::QuicCryptoClientConfig and tracks how many
- // consumers are using it currently. When the last reference is freed, the
- // QuicCryptoClientConfigHandle informs the owning QuicSessionPool, moves it
-@@ -2409,7 +2442,7 @@ QuicSessionPool::CreateCryptoConfigHandle(
+ QuicSessionRequest::QuicSessionRequest(QuicSessionPool* pool) : pool_(pool) {}
+ 
+ QuicSessionRequest::~QuicSessionRequest() {
+@@ -1716,7 +1750,7 @@ QuicSessionPool::CreateCryptoConfigHandle(
                cert_verifier_, transport_security_state_, sct_auditing_delegate_,
                HostsFromOrigins(params_.origins_to_force_quic_on),
                actual_network_anonymization_key),
