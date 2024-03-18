@@ -62,7 +62,7 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
 diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third_party/blink/renderer/core/loader/base_fetch_context.h
 --- a/third_party/blink/renderer/core/loader/base_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/base_fetch_context.h
-@@ -85,6 +85,7 @@ class CORE_EXPORT BaseFetchContext : public FetchContext {
+@@ -86,6 +86,7 @@ class CORE_EXPORT BaseFetchContext : public FetchContext {
  
    virtual SubresourceFilter* GetSubresourceFilter() const = 0;
    virtual bool ShouldBlockWebSocketByMixedContentCheck(const KURL&) const = 0;
@@ -103,7 +103,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/third_party/blink/renderer/core/loader/frame_fetch_context.h
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.h
-@@ -176,6 +176,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
+@@ -177,6 +177,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
    bool ShouldBlockWebSocketByMixedContentCheck(const KURL&) const override;
    std::unique_ptr<WebSocketHandshakeThrottle> CreateWebSocketHandshakeThrottle()
        override;
@@ -278,22 +278,22 @@ diff --git a/third_party/blink/renderer/modules/websockets/websocket_common.cc b
 +  return false;
 +}
 +
- void WebSocketCommon::CloseInternal(int code,
+ void WebSocketCommon::CloseInternal(std::optional<uint16_t> code,
                                      const String& reason,
                                      WebSocketChannel* channel,
 diff --git a/third_party/blink/renderer/modules/websockets/websocket_common.h b/third_party/blink/renderer/modules/websockets/websocket_common.h
 --- a/third_party/blink/renderer/modules/websockets/websocket_common.h
 +++ b/third_party/blink/renderer/modules/websockets/websocket_common.h
-@@ -7,6 +7,8 @@
- #ifndef THIRD_PARTY_BLINK_RENDERER_MODULES_WEBSOCKETS_WEBSOCKET_COMMON_H_
- #define THIRD_PARTY_BLINK_RENDERER_MODULES_WEBSOCKETS_WEBSOCKET_COMMON_H_
+@@ -11,6 +11,8 @@
+ 
+ #include <optional>
  
 +#include "services/network/public/mojom/ip_address_space.mojom.h"
 +#include "third_party/blink/renderer/platform/network/network_utils.h"
  #include "third_party/blink/renderer/modules/modules_export.h"
  #include "third_party/blink/renderer/platform/weborigin/kurl.h"
  #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
-@@ -54,6 +56,8 @@ class MODULES_EXPORT WebSocketCommon {
+@@ -58,6 +60,8 @@ class MODULES_EXPORT WebSocketCommon {
    void SetState(State state) { state_ = state; }
    const KURL& Url() const { return url_; }
  

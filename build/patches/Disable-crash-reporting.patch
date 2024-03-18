@@ -4,22 +4,41 @@ Subject: Disable crash reporting
 
 Change-Id: I4038e160b194d731c369c314f241814c83551d96
 ---
- chrome/browser/chrome_content_browser_client.cc                  | 1 +
- .../common/content_features_cc/Disable-crash-reporting.inc       | 1 +
- 2 files changed, 2 insertions(+)
+ .../browser/chrome_content_browser_client.cc  | 19 +++++++++++--------
+ .../Disable-crash-reporting.inc               |  1 +
+ 2 files changed, 12 insertions(+), 8 deletions(-)
  create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-crash-reporting.inc
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -2509,6 +2509,7 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
+@@ -2509,15 +2509,18 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
          base::NumberToString(pid));
    }
  #endif
+-  std::string switch_value;
+-  std::unique_ptr<metrics::ClientInfo> client_info =
+-      GoogleUpdateSettings::LoadMetricsClientInfo();
+-  if (client_info) {
+-    switch_value = client_info->client_id;
 +  enable_crash_reporter = false;
-   if (enable_crash_reporter) {
-     std::string switch_value;
-     std::unique_ptr<metrics::ClientInfo> client_info =
++  if (enable_crash_reporter) {
++    std::string switch_value;
++    std::unique_ptr<metrics::ClientInfo> client_info =
++        GoogleUpdateSettings::LoadMetricsClientInfo();
++    if (client_info) {
++      switch_value = client_info->client_id;
++    }
++    switch_value.push_back(',');
++    switch_value.append(chrome::GetChannelName(chrome::WithExtendedStable(true)));
++    command_line->AppendSwitchASCII(switches::kEnableCrashReporter, switch_value);
+   }
+-  switch_value.push_back(',');
+-  switch_value.append(chrome::GetChannelName(chrome::WithExtendedStable(true)));
+-  command_line->AppendSwitchASCII(switches::kEnableCrashReporter, switch_value);
+ #endif
+ 
+   if (logging::DialogsAreSuppressed())
 diff --git a/cromite_flags/content/public/common/content_features_cc/Disable-crash-reporting.inc b/cromite_flags/content/public/common/content_features_cc/Disable-crash-reporting.inc
 new file mode 100644
 --- /dev/null
