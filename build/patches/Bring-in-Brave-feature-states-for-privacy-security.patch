@@ -2,9 +2,9 @@ From: Tommy Webb <tommy@calyxinstitute.org>
 Date: Wed, 26 Jul 2023 16:57:20 -0400
 Subject: Bring in Brave feature states for privacy/security
 
-Reviewed Brave's feature state overrides, as of brave-core tag v1.65.9,
+Reviewed Brave's feature state overrides, as of brave-core tag v1.66.19,
 and added any that were relevant for privacy or security and applicable
-to Chromium 122. Features that were already set a particular way still
+to Chromium 123. Features that were already set a particular way still
 had comments added so that it will be easier to catch if upstream makes
 unwanted changes to their states.
 
@@ -18,7 +18,7 @@ Testing feature changes (two examples):
 
 brave-core can be found here: https://github.com/brave/brave-core
 
-brave_main_delegate_browsertest.cc is a highly useful resource,
+app/feature_defaults_unittest.cc is a highly useful resource,
 and the work of their privacy/security team is greatly appreciated.
 
 Change-Id: Ic0e67157ff4a747bb05ceba264660bfeb1ac73ef
@@ -55,16 +55,41 @@ Change-Id: Ic0e67157ff4a747bb05ceba264660bfeb1ac73ef
  .../core/common/common_features.cc            |  4 +-
  .../attribution_storage_delegate_impl.cc      |  3 ++
  content/common/features.cc                    |  8 ++--
+ cromite_flags/BUILD.gn                        | 36 ++++++++++++++
+ ...ve-feature-states-for-privacy-security.inc |  3 ++
+ ...ve-feature-states-for-privacy-security.inc |  1 +
+ .../placeholder.txt                           |  1 +
  ...ve-feature-states-for-privacy-security.inc |  2 +
- ...ve-feature-states-for-privacy-security.inc |  9 ++++
- ...ve-feature-states-for-privacy-security.inc | 18 +++++++
+ .../omnibox_features_cc/placeholder.txt       |  1 +
+ ...ve-feature-states-for-privacy-security.inc |  1 +
+ .../placeholder.txt                           |  1 +
+ ...ve-feature-states-for-privacy-security.inc |  1 +
+ .../placeholder.txt                           |  1 +
+ ...ve-feature-states-for-privacy-security.inc |  1 +
+ .../placeholder.txt                           |  1 +
+ ...ve-feature-states-for-privacy-security.inc |  1 +
+ .../prefetch_features_cc/placeholder.txt      |  1 +
+ ...ve-feature-states-for-privacy-security.inc | 10 ++++
+ ...ve-feature-states-for-privacy-security.inc | 19 ++++++++
  net/base/features.cc                          | 16 +++----
  services/network/public/cpp/features.cc       |  8 ++--
  .../renderer/core/html/html_script_element.cc |  4 +-
- .../platform/runtime_enabled_features.json5   | 31 ++++++------
+ .../platform/runtime_enabled_features.json5   | 42 ++++++++--------
  ui/base/ui_base_features.cc                   |  8 +---
- 40 files changed, 219 insertions(+), 167 deletions(-)
+ 53 files changed, 277 insertions(+), 172 deletions(-)
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+ create mode 100644 cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+ create mode 100755 cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/placeholder.txt
+ create mode 100644 cromite_flags/components/omnibox/common/omnibox_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+ create mode 100755 cromite_flags/components/omnibox/common/omnibox_features_cc/placeholder.txt
+ create mode 100644 cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+ create mode 100755 cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/placeholder.txt
+ create mode 100644 cromite_flags/components/password_manager/core/common/password_manager_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+ create mode 100755 cromite_flags/components/password_manager/core/common/password_manager_features_cc/placeholder.txt
+ create mode 100644 cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+ create mode 100755 cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/placeholder.txt
+ create mode 100644 cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+ create mode 100755 cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/placeholder.txt
  create mode 100644 cromite_flags/content/public/common/content_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
 
@@ -877,18 +902,147 @@ diff --git a/content/common/features.cc b/content/common/features.cc
  
  // (crbug.com/1371756): When enabled, the static routing API starts
  // ServiceWorker when the routing result of a main resource request was network
+diff --git a/cromite_flags/BUILD.gn b/cromite_flags/BUILD.gn
+--- a/cromite_flags/BUILD.gn
++++ b/cromite_flags/BUILD.gn
+@@ -123,15 +123,51 @@ cpp_bromite_include("services_network_public_cpp_features_h") {
+   output_file = "services_network_public_cpp_features_h.inc"
+ }
+ 
++cpp_bromite_include("components_heap_profiling_in_process_heap_profile_parameters_cc") {
++  inputs = [ "//cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/placeholder.txt" ]
++  output_file = "components_heap_profiling_in_process_heap_profile_parameters_cc.inc"
++}
++
++cpp_bromite_include("components_omnibox_common_omnibox_features_cc") {
++  inputs = [ "//cromite_flags/components/omnibox/common/omnibox_features_cc/placeholder.txt" ]
++  output_file = "components_omnibox_common_omnibox_features_cc.inc"
++}
++
++cpp_bromite_include("components_optimization_guide_core_optimization_guide_features_cc") {
++  inputs = [ "//cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/placeholder.txt" ]
++  output_file = "components_optimization_guide_core_optimization_guide_features_cc.inc"
++}
++
++cpp_bromite_include("components_password_manager_core_common_password_manager_features_cc") {
++  inputs = [ "//cromite_flags/components/password_manager/core/common/password_manager_features_cc/placeholder.txt" ]
++  output_file = "components_password_manager_core_common_password_manager_features_cc.inc"
++}
++
++cpp_bromite_include("components_privacy_sandbox_privacy_sandbox_features_cc") {
++  inputs = [ "//cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/placeholder.txt" ]
++  output_file = "components_privacy_sandbox_privacy_sandbox_features_cc.inc"
++}
++
++cpp_bromite_include("content_browser_preloading_prefetch_prefetch_features_cc") {
++  inputs = [ "//cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/placeholder.txt" ]
++  output_file = "content_browser_preloading_prefetch_prefetch_features_cc.inc"
++}
++
+ component("cromite_flags") {
+   deps = [
++    ":content_browser_preloading_prefetch_prefetch_features_cc",
+     ":content_common_features_cc",
+     ":content_public_common_content_features_cc",
+     ":content_public_common_content_features_h",
+     ":components_content_settings_core_common_features_cc",
++    ":components_heap_profiling_in_process_heap_profile_parameters_cc",
+     ":components_permissions_features_cc",
+     ":components_offline_pages_core_offline_page_feature_cc",
+     ":components_offline_pages_core_offline_page_feature_h",
++    ":components_omnibox_common_omnibox_features_cc",
++    ":components_optimization_guide_core_optimization_guide_features_cc",
++    ":components_password_manager_core_common_password_manager_features_cc",
++    ":components_privacy_sandbox_privacy_sandbox_features_cc",
+     ":media_base_media_switches_cc",
+     ":media_base_media_switches_h",
+     ":net_base_features_cc",
 diff --git a/cromite_flags/chrome/common/chrome_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/chrome/common/chrome_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
 new file mode 100644
 --- /dev/null
 +++ b/cromite_flags/chrome/common/chrome_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
-@@ -0,0 +1,2 @@
+@@ -0,0 +1,3 @@
++SET_CROMITE_FEATURE_DISABLED(kControlledFrame);
 +SET_CROMITE_FEATURE_DISABLED(kKAnonymityService);
 +SET_CROMITE_FEATURE_DISABLED(kKAnonymityServiceOHTTPRequests);
+diff --git a/cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kHeapProfilerReporting);
+diff --git a/cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/placeholder.txt b/cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/placeholder.txt
+new file mode 100755
+--- /dev/null
++++ b/cromite_flags/components/heap_profiling/in_process/heap_profile_parameters_cc/placeholder.txt
+@@ -0,0 +1 @@
++this file is intentionally empty
+diff --git a/cromite_flags/components/omnibox/common/omnibox_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/components/omnibox/common/omnibox_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/components/omnibox/common/omnibox_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+@@ -0,0 +1,2 @@
++SET_CROMITE_FEATURE_DISABLED(kMlUrlScoring);
++SET_CROMITE_FEATURE_DISABLED(kZeroSuggestPrefetching);
+diff --git a/cromite_flags/components/omnibox/common/omnibox_features_cc/placeholder.txt b/cromite_flags/components/omnibox/common/omnibox_features_cc/placeholder.txt
+new file mode 100755
+--- /dev/null
++++ b/cromite_flags/components/omnibox/common/omnibox_features_cc/placeholder.txt
+@@ -0,0 +1 @@
++this file is intentionally empty
+diff --git a/cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kOptimizationGuidePersonalizedFetching);
+diff --git a/cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/placeholder.txt b/cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/placeholder.txt
+new file mode 100755
+--- /dev/null
++++ b/cromite_flags/components/optimization_guide/core/optimization_guide_features_cc/placeholder.txt
+@@ -0,0 +1 @@
++this file is intentionally empty
+diff --git a/cromite_flags/components/password_manager/core/common/password_manager_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/components/password_manager/core/common/password_manager_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/components/password_manager/core/common/password_manager_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kUnifiedPasswordManagerLocalPasswordsMigrationWarning);
+diff --git a/cromite_flags/components/password_manager/core/common/password_manager_features_cc/placeholder.txt b/cromite_flags/components/password_manager/core/common/password_manager_features_cc/placeholder.txt
+new file mode 100755
+--- /dev/null
++++ b/cromite_flags/components/password_manager/core/common/password_manager_features_cc/placeholder.txt
+@@ -0,0 +1 @@
++this file is intentionally empty
+diff --git a/cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kCookieSettingsUiAlignment);
+diff --git a/cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/placeholder.txt b/cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/placeholder.txt
+new file mode 100755
+--- /dev/null
++++ b/cromite_flags/components/privacy_sandbox/privacy_sandbox_features_cc/placeholder.txt
+@@ -0,0 +1 @@
++this file is intentionally empty
+diff --git a/cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kPrefetchClientHints);
+diff --git a/cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/placeholder.txt b/cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/placeholder.txt
+new file mode 100755
+--- /dev/null
++++ b/cromite_flags/content/browser/preloading/prefetch/prefetch_features_cc/placeholder.txt
+@@ -0,0 +1 @@
++this file is intentionally empty
 diff --git a/cromite_flags/content/public/common/content_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/content/public/common/content_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
 new file mode 100644
 --- /dev/null
 +++ b/cromite_flags/content/public/common/content_features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,10 @@
 +SET_CROMITE_FEATURE_DISABLED(kAttributionFencedFrameReportingBeacon);
 +SET_CROMITE_FEATURE_DISABLED(kCookieDeprecationFacilitatedTesting);
 +SET_CROMITE_FEATURE_DISABLED(kDigitalGoodsApi);
@@ -896,14 +1050,16 @@ new file mode 100644
 +SET_CROMITE_FEATURE_DISABLED(kLegacyTechReportEnableCookieIssueReports);
 +SET_CROMITE_FEATURE_DISABLED(kLegacyTechReportTopLevelUrl);
 +SET_CROMITE_FEATURE_DISABLED(kNotificationTriggers);
-+SET_CROMITE_FEATURE_DISABLED(kWebOTP);
++SET_CROMITE_FEATURE_DISABLED(kWebIdentityDigitalCredentials);
 +SET_CROMITE_FEATURE_DISABLED(kWebNfc);
++SET_CROMITE_FEATURE_DISABLED(kWebOTP);
 diff --git a/cromite_flags/third_party/blink/common/features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc b/cromite_flags/third_party/blink/common/features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
 new file mode 100644
 --- /dev/null
 +++ b/cromite_flags/third_party/blink/common/features_cc/Bring-in-Brave-feature-states-for-privacy-security.inc
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,19 @@
 +SET_CROMITE_FEATURE_DISABLED(kAllowURNsInIframes);
++SET_CROMITE_FEATURE_DISABLED(kAttributionReportingInBrowserMigration);
 +SET_CROMITE_FEATURE_DISABLED(kBackgroundResourceFetch);
 +SET_CROMITE_FEATURE_DISABLED(kBiddingAndScoringDebugReportingAPI);
 +SET_CROMITE_FEATURE_DISABLED(kClientHintsFormFactor);
@@ -911,11 +1067,11 @@ new file mode 100644
 +SET_CROMITE_FEATURE_DISABLED(kFledge);
 +SET_CROMITE_FEATURE_DISABLED(kFledgeConsiderKAnonymity);
 +SET_CROMITE_FEATURE_DISABLED(kFledgeEnforceKAnonymity);
-+SET_CROMITE_FEATURE_DISABLED(kAttributionReportingInBrowserMigration);
 +SET_CROMITE_FEATURE_DISABLED(kPrivateAggregationApiMultipleCloudProviders);
 +SET_CROMITE_FEATURE_DISABLED(kSharedStorageAPI);
-+SET_CROMITE_FEATURE_DISABLED(kSharedStorageSelectURLLimit);
 +SET_CROMITE_FEATURE_DISABLED(kSharedStorageAPIM118);
++SET_CROMITE_FEATURE_DISABLED(kSharedStorageAPIM123);
++SET_CROMITE_FEATURE_DISABLED(kSharedStorageSelectURLLimit);
 +SET_CROMITE_FEATURE_DISABLED(kSpeculationRulesHeaderEnableThirdPartyOriginTrial);
 +SET_CROMITE_FEATURE_DISABLED(kSpeculationRulesPrefetchFuture);
 +SET_CROMITE_FEATURE_ENABLED(kMixedContentAutoupgrade);
@@ -1006,7 +1162,7 @@ diff --git a/third_party/blink/renderer/core/html/html_script_element.cc b/third
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -263,9 +263,9 @@
+@@ -263,15 +263,15 @@
      },
      {
        // Interest Group JS API/runtimeflag.
@@ -1016,6 +1172,14 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        origin_trial_feature_name: "AdInterestGroupAPI",
 -      implied_by: ["Fledge", "Parakeet"],
        public: true,
+     },
+     {
+-      name: "AdTagging",
++      name: "AdTagging", // disabled
++      status: {},        // in Brave
+       public: true,
+-      status: "test",
+       base_feature: "none",
      },
      {
 @@ -296,8 +296,10 @@
@@ -1067,7 +1231,17 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        base_feature: "none",
        origin_trial_feature_name: "PrivacySandboxAdsAPIs",
        origin_trial_allows_third_party: true,
-@@ -2761,7 +2761,8 @@
+@@ -1792,7 +1792,8 @@
+       base_feature: "none",
+     },
+     {
+-      name: "FledgeMultiBid",
++      name: "FledgeMultiBid", // disabled
++      status: {},             // in Brave
+     },
+     {
+       name: "FledgeNegativeTargeting",
+@@ -2761,7 +2762,8 @@
      },
      {
        // PARAKEET ad serving runtime flag/JS API.
@@ -1077,7 +1251,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        origin_trial_feature_name: "Parakeet",
      },
      {
-@@ -2941,8 +2942,8 @@
+@@ -2941,8 +2943,8 @@
        // preloading.) See https://crbug.com/1494471.
        //
        // It also has some feature params defined throughout the codebase.
@@ -1088,6 +1262,17 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      },
      {
        name: "Presentation",
+@@ -4176,8 +4178,8 @@
+     {
+       // WebGPU experimental features are meant for features that would
+       // eventually land in the WebGPU spec.
+-      name: "WebGPUExperimentalFeatures",
+-      status: "experimental",
++      name: "WebGPUExperimentalFeatures", // disabled
++      status: {},                         // in Brave
+       public: true,
+     },
+     {
 diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
 --- a/ui/base/ui_base_features.cc
 +++ b/ui/base/ui_base_features.cc
