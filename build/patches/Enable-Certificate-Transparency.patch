@@ -9,42 +9,27 @@ by default.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I743519ccda7c357578c23b0a074292649b3afb3d
 ---
- chrome/browser/browser_features.h                        | 1 +
- chrome/browser/net/system_network_context_manager.cc     | 2 +-
- chrome/browser/ssl/sct_reporting_service.cc              | 5 +++++
- .../about_flags_cc/Enable-Certificate-Transparency.inc   | 9 +++++++++
- .../Enable-Certificate-Transparency.inc                  | 6 ++++++
- .../Enable-Certificate-Transparency.inc                  | 2 ++
- net/http/transport_security_state.cc                     | 5 +++--
- services/network/sct_auditing/sct_auditing_handler.cc    | 2 ++
- 8 files changed, 29 insertions(+), 3 deletions(-)
- create mode 100644 cromite_flags/chrome/browser/about_flags_cc/Enable-Certificate-Transparency.inc
+ chrome/browser/browser_features.h                           | 1 +
+ chrome/browser/ssl/sct_reporting_service.cc                 | 5 +++++
+ .../browser_features_cc/Enable-Certificate-Transparency.inc | 6 ++++++
+ .../chrome_features_cc/Enable-Certificate-Transparency.inc  | 2 ++
+ net/http/transport_security_state.cc                        | 5 +++--
+ services/network/sct_auditing/sct_auditing_handler.cc       | 2 ++
+ 6 files changed, 19 insertions(+), 2 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Enable-Certificate-Transparency.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Enable-Certificate-Transparency.inc
 
 diff --git a/chrome/browser/browser_features.h b/chrome/browser/browser_features.h
 --- a/chrome/browser/browser_features.h
 +++ b/chrome/browser/browser_features.h
-@@ -72,6 +72,7 @@ BASE_DECLARE_FEATURE(kTabCaptureBlueBorderCrOS);
- 
- BASE_DECLARE_FEATURE(kWebUsbDeviceDetection);
- 
-+BASE_DECLARE_FEATURE(kCertificateTransparency);
- BASE_DECLARE_FEATURE(kCertificateTransparencyAskBeforeEnabling);
- 
+@@ -56,6 +56,7 @@ BASE_DECLARE_FEATURE(kFedCmWithoutThirdPartyCookies);
+ BASE_DECLARE_FEATURE(kFlexOrgManagementDisclosure);
+ BASE_DECLARE_FEATURE(kIncomingCallNotifications);
+ BASE_DECLARE_FEATURE(kKeyPinningComponentUpdater);
++BASE_DECLARE_FEATURE(kCertificateTransparencyAskBeforeEnabling);
  BASE_DECLARE_FEATURE(kLargeFaviconFromGoogle);
-diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
---- a/chrome/browser/net/system_network_context_manager.cc
-+++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -1034,7 +1034,7 @@ bool SystemNetworkContextManager::IsCertificateTransparencyEnabled() {
-   //   - on an opt-in basis for other builds and embedders, controlled with the
-   //     kCertificateTransparencyAskBeforeEnabling flag
-   return base::FeatureList::IsEnabled(
--      features::kCertificateTransparencyAskBeforeEnabling);
-+      features::kCertificateTransparency);
- }
+ extern const base::FeatureParam<int> kLargeFaviconFromGoogleSizeInDip;
  
- #if BUILDFLAG(CHROME_ROOT_STORE_OPTIONAL)
 diff --git a/chrome/browser/ssl/sct_reporting_service.cc b/chrome/browser/ssl/sct_reporting_service.cc
 --- a/chrome/browser/ssl/sct_reporting_service.cc
 +++ b/chrome/browser/ssl/sct_reporting_service.cc
@@ -60,20 +45,6 @@ diff --git a/chrome/browser/ssl/sct_reporting_service.cc b/chrome/browser/ssl/sc
    if (profile_->IsOffTheRecord() ||
        !base::FeatureList::IsEnabled(features::kSCTAuditing)) {
      return network::mojom::SCTAuditingMode::kDisabled;
-diff --git a/cromite_flags/chrome/browser/about_flags_cc/Enable-Certificate-Transparency.inc b/cromite_flags/chrome/browser/about_flags_cc/Enable-Certificate-Transparency.inc
-new file mode 100644
---- /dev/null
-+++ b/cromite_flags/chrome/browser/about_flags_cc/Enable-Certificate-Transparency.inc
-@@ -0,0 +1,9 @@
-+#ifdef FLAG_SECTION
-+
-+    {"certificate-transparency-enabled",
-+     "Enable Certificate Transparency",
-+     "Enables compliance against the Certificate Transparency "
-+     "Policy, with reporting disabled.", kOsAll,
-+     FEATURE_VALUE_TYPE(features::kCertificateTransparency)},
-+
-+#endif
 diff --git a/cromite_flags/chrome/browser/browser_features_cc/Enable-Certificate-Transparency.inc b/cromite_flags/chrome/browser/browser_features_cc/Enable-Certificate-Transparency.inc
 new file mode 100644
 --- /dev/null
@@ -117,7 +88,7 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
 diff --git a/services/network/sct_auditing/sct_auditing_handler.cc b/services/network/sct_auditing/sct_auditing_handler.cc
 --- a/services/network/sct_auditing/sct_auditing_handler.cc
 +++ b/services/network/sct_auditing/sct_auditing_handler.cc
-@@ -109,6 +109,7 @@ void SCTAuditingHandler::MaybeEnqueueReport(
+@@ -108,6 +108,7 @@ void SCTAuditingHandler::MaybeEnqueueReport(
    if (mode_ == mojom::SCTAuditingMode::kDisabled) {
      return;
    }
@@ -125,7 +96,7 @@ diff --git a/services/network/sct_auditing/sct_auditing_handler.cc b/services/ne
  
    // Only audit valid SCTs. This ensures that they come from a known log, have
    // a valid signature, and thus are expected to be public certificates. If
-@@ -324,6 +325,7 @@ void SCTAuditingHandler::AddReporter(
+@@ -323,6 +324,7 @@ void SCTAuditingHandler::AddReporter(
    if (mode_ == mojom::SCTAuditingMode::kDisabled) {
      return;
    }

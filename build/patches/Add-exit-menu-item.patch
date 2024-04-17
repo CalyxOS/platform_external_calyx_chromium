@@ -7,18 +7,18 @@ Corrected Exit functionality
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I04b24400b97b1a8e4857b3a8be693746fd782eeb
 ---
- chrome/android/java/res/menu/main_menu.xml                  | 6 ++++++
- .../org/chromium/chrome/browser/ApplicationLifetime.java    | 2 ++
- .../org/chromium/chrome/browser/ChromeTabbedActivity.java   | 4 ++++
- .../src/org/chromium/chrome/browser/app/ChromeActivity.java | 6 ++++++
- .../chrome/browser/init/ChromeLifetimeController.java       | 6 +++++-
- .../browser/ui/android/strings/android_chrome_strings.grd   | 3 +++
- 6 files changed, 26 insertions(+), 1 deletion(-)
+ chrome/android/java/res/menu/main_menu.xml    |  6 ++++++
+ .../chrome/browser/ApplicationLifetime.java   |  2 ++
+ .../chrome/browser/ChromeTabbedActivity.java  |  4 ++++
+ .../chrome/browser/app/ChromeActivity.java    |  6 ++++++
+ .../init/ChromeLifetimeController.java        | 20 +++++++++++--------
+ .../strings/android_chrome_strings.grd        |  3 +++
+ 6 files changed, 33 insertions(+), 8 deletions(-)
 
 diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
 --- a/chrome/android/java/res/menu/main_menu.xml
 +++ b/chrome/android/java/res/menu/main_menu.xml
-@@ -166,6 +166,9 @@ found in the LICENSE file.
+@@ -160,6 +160,9 @@ found in the LICENSE file.
          <item android:id="@+id/managed_by_menu_id"
              android:title="@string/managed_browser"
              android:icon="@drawable/ic_business" />
@@ -28,7 +28,7 @@ diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/re
      </group>
  
      <!-- Items shown only in the tab switcher -->
-@@ -192,6 +195,9 @@ found in the LICENSE file.
+@@ -186,6 +189,9 @@ found in the LICENSE file.
          <item android:id="@id/preferences_id"
              android:title="@string/menu_settings"
              android:icon="@drawable/settings_cog" />
@@ -60,8 +60,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ApplicationLife
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -267,6 +267,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
- import java.util.function.BooleanSupplier;
+@@ -267,6 +267,8 @@ import java.util.Set;
+ import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.DoubleConsumer;
  
 +import org.chromium.chrome.browser.ApplicationLifetime;
@@ -69,7 +69,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
  /**
   * This is the main activity for ChromeMobile when not running in document mode. All the tabs are
   * accessible via a chrome specific tab switching UI.
-@@ -2925,6 +2927,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -2958,6 +2960,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
          } else if (id == R.id.close_tab) {
              getCurrentTabModel().closeTab(currentTab, true, false, true);
              RecordUserAction.record("MobileTabClosed");
@@ -81,7 +81,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -62,6 +62,7 @@ import org.chromium.chrome.R;
+@@ -63,6 +63,7 @@ import org.chromium.chrome.R;
  import org.chromium.chrome.browser.ActivityTabProvider;
  import org.chromium.chrome.browser.ActivityUtils;
  import org.chromium.chrome.browser.AppHooks;
@@ -89,7 +89,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  import org.chromium.chrome.browser.ChromeActivitySessionTracker;
  import org.chromium.chrome.browser.ChromeApplicationImpl;
  import org.chromium.chrome.browser.ChromeKeyboardVisibilityDelegate;
-@@ -2576,6 +2577,11 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -2578,6 +2579,11 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
              return true;
          }
  
@@ -104,23 +104,38 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeLifetimeController.java b/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeLifetimeController.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeLifetimeController.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeLifetimeController.java
-@@ -81,7 +81,11 @@ class ChromeLifetimeController
+@@ -83,15 +83,19 @@ class ChromeLifetimeController
+             activity.finish();
+         }
  
-         // Kick off a timer to kill the process after a delay, which fires only if the Activities
-         // take too long to be finished.
--        mHandler.postDelayed(mRestartRunnable, WATCHDOG_DELAY_MS);
+-        if (BuildCompat.isAtLeastV()) {
+-            // Background activity launches are prohibited on newer versions of Android, so if the
+-            // restart intent isn't fired right away then Chrome won't restart. See b/331370736.
+-            mHandler.post(mRestartRunnable);
 +        if (restart) {
-+            mHandler.postDelayed(mRestartRunnable, WATCHDOG_DELAY_MS);
-+        } else {
++            if (BuildCompat.isAtLeastV()) {
++                // Background activity launches are prohibited on newer versions of Android, so if the
++                // restart intent isn't fired right away then Chrome won't restart. See b/331370736.
++                mHandler.post(mRestartRunnable);
++            } else {
++                // Kick off a timer to kill the process after a delay, which fires only if the
++                // Activities
++                // take too long to be finished.
++                mHandler.postDelayed(mRestartRunnable, WATCHDOG_DELAY_MS);
++            }
+         } else {
+-            // Kick off a timer to kill the process after a delay, which fires only if the
+-            // Activities
+-            // take too long to be finished.
+-            mHandler.postDelayed(mRestartRunnable, WATCHDOG_DELAY_MS);
 +            fireBrowserRestartActivityIntent();
-+        }
+         }
      }
  
-     @Override
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3745,6 +3745,9 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>clear the Chrome da
+@@ -3797,6 +3797,9 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>clear the Chrome da
        <message name="IDS_MENU_AUTO_DARK_WEB_CONTENTS" desc="Menu item in Chrome's overflow/options menu. When Chrome's browser UI is set to dark theme and this option is checked, sites will have a dark theme automatically applied as well. [CHAR_LIMIT=24]">
          Dark theme
        </message>
