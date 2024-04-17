@@ -65,11 +65,11 @@ Change-Id: Ic8a115d5b45b5768bec1f2fda45a8bf19da96e48
  components/content_settings/android/BUILD.gn  |  1 +
  .../core/browser/content_settings_utils.cc    | 36 ++++++++
  .../core/browser/content_settings_utils.h     |  6 ++
- .../common/content_settings_constraints.h     |  9 ++
+ .../common/content_settings_constraints.h     | 10 +++
  .../page_info/PageInfoController.java         |  5 +-
  .../PermissionParamsListBuilder.java          | 13 ++-
  .../android/page_info_controller_android.cc   | 10 ++-
- components/page_info/page_info.cc             |  2 +
+ components/page_info/page_info.cc             |  3 +
  components/page_info/page_info.h              |  1 +
  .../permissions/PermissionDialogDelegate.java | 13 +++
  .../PermissionDialogModelFactory.java         | 82 ++++++++++++++++++-
@@ -87,7 +87,7 @@ Change-Id: Ic8a115d5b45b5768bec1f2fda45a8bf19da96e48
  components/permissions/permission_request.h   | 16 +++-
  .../permissions/permission_request_manager.cc | 45 ++++++----
  .../permissions/permission_request_manager.h  | 11 ++-
- 33 files changed, 485 insertions(+), 59 deletions(-)
+ 33 files changed, 487 insertions(+), 59 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -229,7 +229,7 @@ diff --git a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc 
 diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 --- a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 +++ b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
-@@ -237,7 +237,7 @@ void EmbeddedPermissionPrompt::Allow() {
+@@ -238,7 +238,7 @@ void EmbeddedPermissionPrompt::Allow() {
  }
  
  void EmbeddedPermissionPrompt::AllowThisTime() {
@@ -241,7 +241,7 @@ diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc b
 diff --git a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
 --- a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
 +++ b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
-@@ -267,7 +267,7 @@ void PermissionPromptBubbleBaseView::RunButtonCallback(int button_id) {
+@@ -264,7 +264,7 @@ void PermissionPromptBubbleBaseView::RunButtonCallback(int button_id) {
        delegate_->Accept();
        return;
      case PermissionDialogButton::kAcceptOnce:
@@ -294,10 +294,10 @@ diff --git a/components/browser_ui/strings/android/browser_ui_strings.grd b/comp
 diff --git a/components/content_settings/android/BUILD.gn b/components/content_settings/android/BUILD.gn
 --- a/components/content_settings/android/BUILD.gn
 +++ b/components/content_settings/android/BUILD.gn
-@@ -65,6 +65,7 @@ java_cpp_enum("content_settings_enums_javagen") {
-     "../core/common/cookie_controls_breakage_confidence_level.h",
+@@ -63,6 +63,7 @@ java_cpp_enum("content_settings_enums_javagen") {
+     "../core/common/content_settings.h",
+     "../core/common/cookie_blocking_3pcd_status.h",
      "../core/common/cookie_controls_enforcement.h",
-     "../core/common/cookie_controls_status.h",
 +    "../core/common/content_settings_constraints.h",
    ]
    visibility = [ ":*" ]  # Depend on through :content_settings_enums_java
@@ -306,7 +306,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
 @@ -174,6 +174,42 @@ bool IsConstraintPersistent(const ContentSettingConstraints& constraints) {
-   return constraints.session_model() == SessionModel::Durable;
+   return constraints.session_model() == mojom::SessionModel::DURABLE;
  }
  
 +ContentSettingConstraints GetConstraintSessionExpiration(LifetimeMode lifetime_mode) {
@@ -367,10 +367,11 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.h b
 diff --git a/components/content_settings/core/common/content_settings_constraints.h b/components/content_settings/core/common/content_settings_constraints.h
 --- a/components/content_settings/core/common/content_settings_constraints.h
 +++ b/components/content_settings/core/common/content_settings_constraints.h
-@@ -33,6 +33,15 @@ enum class SessionModel : int32_t {
-   kMaxValue = OneTime,
- };
+@@ -9,6 +9,16 @@
+ #include "components/content_settings/core/common/content_settings_enums.mojom.h"
  
+ namespace content_settings {
++
 +// GENERATED_JAVA_ENUM_PACKAGE: org.chromium.components.content_settings
 +// GENERATED_JAVA_CLASS_NAME_OVERRIDE: LifetimeMode
 +enum class LifetimeMode {
@@ -445,7 +446,7 @@ diff --git a/components/page_info/android/java/src/org/chromium/components/page_
 diff --git a/components/page_info/android/page_info_controller_android.cc b/components/page_info/android/page_info_controller_android.cc
 --- a/components/page_info/android/page_info_controller_android.cc
 +++ b/components/page_info/android/page_info_controller_android.cc
-@@ -154,6 +154,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -151,6 +151,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
  
    std::map<ContentSettingsType, ContentSetting>
        user_specified_settings_to_display;
@@ -454,7 +455,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
  
    for (const auto& permission : permission_info_list) {
      if (base::Contains(permissions_to_display, permission.type)) {
-@@ -162,6 +164,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -159,6 +161,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
        if (setting_to_display) {
          user_specified_settings_to_display[permission.type] =
              *setting_to_display;
@@ -463,7 +464,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
        }
      }
    }
-@@ -178,7 +182,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -175,7 +179,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
            ConvertUTF16ToJavaString(env, setting_title),
            ConvertUTF16ToJavaString(env, setting_title_mid_sentence),
            static_cast<jint>(permission),
@@ -473,7 +474,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
      }
    }
  
-@@ -191,7 +196,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -188,7 +193,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
          env, controller_jobject_, ConvertUTF16ToJavaString(env, object_title),
          ConvertUTF16ToJavaString(env, object_title),
          static_cast<jint>(chosen_object->ui_info->content_settings_type),
@@ -486,19 +487,20 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
 diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.cc
 --- a/components/page_info/page_info.cc
 +++ b/components/page_info/page_info.cc
-@@ -1163,6 +1163,8 @@ void PageInfo::PopulatePermissionInfo(PermissionInfo& permission_info,
-   permission_info.source = info.source;
-   permission_info.is_one_time = (info.metadata.session_model() ==
-                                  content_settings::SessionModel::OneTime);
+@@ -1158,6 +1158,9 @@ void PageInfo::PopulatePermissionInfo(PermissionInfo& permission_info,
+       (info.metadata.session_model() ==
+        content_settings::mojom::SessionModel::ONE_TIME);
+ 
 +  permission_info.is_user_session =
 +      (info.metadata.session_model() == content_settings::SessionModel::UserSession);
- 
++
    auto* page_specific_content_settings = GetPageSpecificContentSettings();
    if (page_specific_content_settings && setting == CONTENT_SETTING_ALLOW) {
+     permission_info.is_in_use =
 diff --git a/components/page_info/page_info.h b/components/page_info/page_info.h
 --- a/components/page_info/page_info.h
 +++ b/components/page_info/page_info.h
-@@ -199,6 +199,7 @@ class PageInfo : private content_settings::CookieControlsObserver {
+@@ -151,6 +151,7 @@ class PageInfo : private content_settings::CookieControlsObserver {
          content_settings::SETTING_SOURCE_NONE;
      // Whether the permission is a one-time grant.
      bool is_one_time = false;
@@ -565,7 +567,7 @@ diff --git a/components/permissions/android/java/src/org/chromium/components/per
  /** This class creates the model for the permission dialog. */
  class PermissionDialogModelFactory {
      public static PropertyModel getModel(
-@@ -60,6 +72,74 @@ class PermissionDialogModelFactory {
+@@ -64,6 +76,74 @@ class PermissionDialogModelFactory {
                              ModalDialogProperties.NEGATIVE_BUTTON_TEXT,
                              delegate.getNegativeButtonText());
          }
@@ -986,9 +988,9 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
    DCHECK_EQ(embedding_origin, embedding_origin.DeprecatedGetOriginAsURL());
    DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
 @@ -621,6 +658,8 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
-   constraints.set_session_model(is_one_time
-                                     ? content_settings::SessionModel::OneTime
-                                     : content_settings::SessionModel::Durable);
+   constraints.set_session_model(
+       is_one_time ? content_settings::mojom::SessionModel::ONE_TIME
+                   : content_settings::mojom::SessionModel::DURABLE);
 +  if (is_one_time)
 +    constraints = content_settings::GetConstraintSessionExpiration(lifetime_option);
  
@@ -1080,8 +1082,8 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
  PermissionRequest::~PermissionRequest() {
    DCHECK(delete_callback_.is_null());
  }
-@@ -357,19 +365,37 @@ bool PermissionRequest::ShouldUseTwoOriginPrompt() const {
-              permissions::features::kPermissionStorageAccessAPI);
+@@ -355,19 +363,37 @@ bool PermissionRequest::ShouldUseTwoOriginPrompt() const {
+   return request_type() == RequestType::kStorageAccess;
  }
  
 -void PermissionRequest::PermissionGranted(bool is_one_time) {
@@ -1146,7 +1148,7 @@ diff --git a/components/permissions/permission_request.h b/components/permission
    PermissionRequest(const PermissionRequest&) = delete;
    PermissionRequest& operator=(const PermissionRequest&) = delete;
  
-@@ -159,10 +168,10 @@ class PermissionRequest {
+@@ -162,10 +171,10 @@ class PermissionRequest {
    // If |is_one_time| is true the permission will last until all tabs of
    // |origin| are closed or navigated away from, and then the permission will
    // automatically expire after 1 day.
@@ -1159,7 +1161,7 @@ diff --git a/components/permissions/permission_request.h b/components/permission
  
    // Called when the user has cancelled the permission request. This
    // corresponds to a denial, but is segregated in case the context needs to
-@@ -216,6 +225,9 @@ class PermissionRequest {
+@@ -219,6 +228,9 @@ class PermissionRequest {
    // Called once a decision is made about the permission.
    PermissionDecidedCallback permission_decided_callback_;
  

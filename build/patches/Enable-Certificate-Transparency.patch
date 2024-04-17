@@ -25,14 +25,14 @@ Change-Id: I743519ccda7c357578c23b0a074292649b3afb3d
 diff --git a/chrome/browser/browser_features.h b/chrome/browser/browser_features.h
 --- a/chrome/browser/browser_features.h
 +++ b/chrome/browser/browser_features.h
-@@ -72,6 +72,7 @@ BASE_DECLARE_FEATURE(kTabCaptureBlueBorderCrOS);
- 
- BASE_DECLARE_FEATURE(kWebUsbDeviceDetection);
- 
-+BASE_DECLARE_FEATURE(kCertificateTransparency);
- BASE_DECLARE_FEATURE(kCertificateTransparencyAskBeforeEnabling);
- 
+@@ -56,6 +56,7 @@ BASE_DECLARE_FEATURE(kFedCmWithoutThirdPartyCookies);
+ BASE_DECLARE_FEATURE(kFlexOrgManagementDisclosure);
+ BASE_DECLARE_FEATURE(kIncomingCallNotifications);
+ BASE_DECLARE_FEATURE(kKeyPinningComponentUpdater);
++BASE_DECLARE_FEATURE(kCertificateTransparencyAskBeforeEnabling);
  BASE_DECLARE_FEATURE(kLargeFaviconFromGoogle);
+ extern const base::FeatureParam<int> kLargeFaviconFromGoogleSizeInDip;
+ 
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
@@ -44,7 +44,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
 +      features::kCertificateTransparency);
  }
  
- #if BUILDFLAG(CHROME_ROOT_STORE_OPTIONAL)
+ network::mojom::NetworkContextParamsPtr
 diff --git a/chrome/browser/ssl/sct_reporting_service.cc b/chrome/browser/ssl/sct_reporting_service.cc
 --- a/chrome/browser/ssl/sct_reporting_service.cc
 +++ b/chrome/browser/ssl/sct_reporting_service.cc
@@ -117,7 +117,7 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
 diff --git a/services/network/sct_auditing/sct_auditing_handler.cc b/services/network/sct_auditing/sct_auditing_handler.cc
 --- a/services/network/sct_auditing/sct_auditing_handler.cc
 +++ b/services/network/sct_auditing/sct_auditing_handler.cc
-@@ -109,6 +109,7 @@ void SCTAuditingHandler::MaybeEnqueueReport(
+@@ -108,6 +108,7 @@ void SCTAuditingHandler::MaybeEnqueueReport(
    if (mode_ == mojom::SCTAuditingMode::kDisabled) {
      return;
    }
@@ -125,7 +125,7 @@ diff --git a/services/network/sct_auditing/sct_auditing_handler.cc b/services/ne
  
    // Only audit valid SCTs. This ensures that they come from a known log, have
    // a valid signature, and thus are expected to be public certificates. If
-@@ -324,6 +325,7 @@ void SCTAuditingHandler::AddReporter(
+@@ -323,6 +324,7 @@ void SCTAuditingHandler::AddReporter(
    if (mode_ == mojom::SCTAuditingMode::kDisabled) {
      return;
    }

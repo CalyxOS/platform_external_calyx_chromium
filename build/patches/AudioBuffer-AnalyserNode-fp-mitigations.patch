@@ -88,15 +88,15 @@ diff --git a/third_party/blink/renderer/modules/webaudio/audio_buffer.h b/third_
 diff --git a/third_party/blink/renderer/modules/webaudio/audio_context.cc b/third_party/blink/renderer/modules/webaudio/audio_context.cc
 --- a/third_party/blink/renderer/modules/webaudio/audio_context.cc
 +++ b/third_party/blink/renderer/modules/webaudio/audio_context.cc
-@@ -11,6 +11,7 @@
- #include "services/metrics/public/cpp/ukm_recorder.h"
+@@ -12,6 +12,7 @@
  #include "third_party/blink/public/common/browser_interface_broker_proxy.h"
+ #include "third_party/blink/public/common/features.h"
  #include "third_party/blink/public/common/mediastream/media_devices.h"
 +#include "third_party/blink/public/common/features.h"
  #include "third_party/blink/public/platform/modules/webrtc/webrtc_logging.h"
  #include "third_party/blink/public/platform/web_audio_latency_hint.h"
  #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
-@@ -586,7 +587,9 @@ double AudioContext::baseLatency() const {
+@@ -587,7 +588,9 @@ double AudioContext::baseLatency() const {
    DCHECK(IsMainThread());
    DCHECK(destination());
  
@@ -118,7 +118,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/base_audio_context.cc b
  #include "third_party/blink/public/mojom/devtools/console_message.mojom-blink.h"
  #include "third_party/blink/public/mojom/frame/lifecycle.mojom-shared.h"
  #include "third_party/blink/public/platform/platform.h"
-@@ -721,6 +722,17 @@ LocalDOMWindow* BaseAudioContext::GetWindow() const {
+@@ -722,6 +723,17 @@ LocalDOMWindow* BaseAudioContext::GetWindow() const {
    return To<LocalDOMWindow>(GetExecutionContext());
  }
  
@@ -135,11 +135,11 @@ diff --git a/third_party/blink/renderer/modules/webaudio/base_audio_context.cc b
 +
  void BaseAudioContext::NotifySourceNodeStartedProcessing(AudioNode* node) {
    DCHECK(IsMainThread());
-   GraphAutoLocker locker(this);
+   DeferredTaskHandler::GraphAutoLocker locker(this);
 diff --git a/third_party/blink/renderer/modules/webaudio/base_audio_context.h b/third_party/blink/renderer/modules/webaudio/base_audio_context.h
 --- a/third_party/blink/renderer/modules/webaudio/base_audio_context.h
 +++ b/third_party/blink/renderer/modules/webaudio/base_audio_context.h
-@@ -339,6 +339,8 @@ class MODULES_EXPORT BaseAudioContext
+@@ -337,6 +337,8 @@ class MODULES_EXPORT BaseAudioContext
    // if the execution context does not exist.
    bool CheckExecutionContextAndThrowIfNecessary(ExceptionState&);
  
@@ -151,7 +151,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/base_audio_context.h b/
 diff --git a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
 --- a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
 +++ b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
-@@ -368,6 +368,7 @@ void OfflineAudioContext::FireCompletionEvent() {
+@@ -369,6 +369,7 @@ void OfflineAudioContext::FireCompletionEvent() {
      if (!rendered_buffer) {
        return;
      }
