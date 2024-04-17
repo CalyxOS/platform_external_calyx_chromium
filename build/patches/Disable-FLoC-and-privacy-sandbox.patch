@@ -17,17 +17,17 @@ Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
  .../history/core/browser/history_backend.cc   | 13 +------------
  .../privacy_sandbox_attestations.cc           |  2 --
  .../privacy_sandbox_features.cc               |  4 ++++
- .../privacy_sandbox/privacy_sandbox_prefs.cc  |  4 ++--
+ .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
  .../privacy_sandbox_settings_impl.cc          | 19 ++++++++++++++-----
  .../Disable-FLoC-and-privacy-sandbox.inc      |  1 +
  third_party/blink/common/features.cc          |  1 +
- 10 files changed, 28 insertions(+), 21 deletions(-)
+ 10 files changed, 27 insertions(+), 20 deletions(-)
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3239,6 +3239,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -3263,6 +3263,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin,
      bool* can_bypass) {
@@ -40,7 +40,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 --- a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 +++ b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
-@@ -159,6 +159,7 @@ bool PrivacySandboxSettingsDelegate::HasAppropriateTopicsConsent() const {
+@@ -160,6 +160,7 @@ bool PrivacySandboxSettingsDelegate::HasAppropriateTopicsConsent() const {
  
  bool PrivacySandboxSettingsDelegate::PrivacySandboxRestrictedNoticeRequired()
      const {
@@ -84,7 +84,7 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
 diff --git a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 --- a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.cc
-@@ -478,8 +478,6 @@ void PrivacySandboxAttestations::OnAttestationsParsed(
+@@ -485,8 +485,6 @@ void PrivacySandboxAttestations::OnAttestationsParsed(
    if (attestations_map.has_value() &&
        (!file_version_.IsValid() || file_version_.CompareTo(version) < 0)) {
      // Parsing succeeded and the attestations file has newer version.
@@ -96,7 +96,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_san
 diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
 --- a/components/privacy_sandbox/privacy_sandbox_features.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_features.cc
-@@ -167,4 +167,8 @@ BASE_FEATURE(kTrackingProtectionNoticeRequestTracking,
+@@ -175,4 +175,8 @@ BASE_FEATURE(kTrackingProtectionNoticeRequestTracking,
               base::FEATURE_DISABLED_BY_DEFAULT);
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -108,16 +108,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components
 diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
 --- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
-@@ -12,7 +12,7 @@ namespace privacy_sandbox {
- 
- void RegisterProfilePrefs(PrefRegistrySimple* registry) {
-   registry->RegisterBooleanPref(
--      prefs::kPrivacySandboxApisEnabled, true,
-+      prefs::kPrivacySandboxApisEnabled, false,
-       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
-   registry->RegisterBooleanPref(prefs::kPrivacySandboxM1ConsentDecisionMade,
-                                 false);
-@@ -27,7 +27,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+@@ -24,7 +24,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
    registry->RegisterBooleanPref(prefs::kPrivacySandboxM1FledgeEnabled, false);
    registry->RegisterBooleanPref(prefs::kPrivacySandboxM1AdMeasurementEnabled,
                                  false);
@@ -213,7 +204,7 @@ new file mode 100644
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -2462,6 +2462,7 @@ bool IsAllowPageWithIDBConnectionAndTransactionInBFCacheEnabled() {
+@@ -2519,6 +2519,7 @@ bool IsAllowPageWithIDBConnectionAndTransactionInBFCacheEnabled() {
  }
  
  bool IsAllowURNsInIframeEnabled() {

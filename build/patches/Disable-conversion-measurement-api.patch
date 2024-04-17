@@ -23,7 +23,7 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../aggregation_service_features.cc           |   1 +
  .../attribution_data_host_manager_impl.cc     |   1 +
  .../attribution_reporting/attribution_host.cc |   1 +
- .../attribution_os_level_manager.cc           |   3 +-
+ .../attribution_os_level_manager.cc           |   2 +-
  .../attribution_report_network_sender.cc      |   9 +
  .../attribution_storage_sql.cc                |   8 +-
  content/browser/storage_partition_impl.cc     |   9 -
@@ -39,7 +39,7 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../network/public/cpp/attribution_utils.cc   |   2 +
  third_party/blink/renderer/core/page/page.cc  |   2 +-
  ui/events/android/motion_event_android.cc     |   6 +-
- 26 files changed, 72 insertions(+), 338 deletions(-)
+ 26 files changed, 71 insertions(+), 338 deletions(-)
  create mode 100644 cromite_flags/content/common/features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc
@@ -48,27 +48,27 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
 diff --git a/android_webview/browser/aw_content_browser_client.cc b/android_webview/browser/aw_content_browser_client.cc
 --- a/android_webview/browser/aw_content_browser_client.cc
 +++ b/android_webview/browser/aw_content_browser_client.cc
-@@ -1163,6 +1163,7 @@ network::mojom::AttributionSupport
+@@ -1178,6 +1178,7 @@ network::mojom::AttributionSupport
  AwContentBrowserClient::GetAttributionSupport(
      AttributionReportingOsApiState state,
-     content::WebContents* web_contents) {
+     bool client_os_disabled) {
 +  if ((true)) return network::mojom::AttributionSupport::kNone;
-   AwSettings* aw_settings = AwSettings::FromWebContents(web_contents);
-   if (aw_settings && aw_settings->GetAttributionBehavior() ==
-                          AwSettings::AttributionBehavior::DISABLED) {
-@@ -1187,6 +1188,8 @@ bool AwContentBrowserClient::IsAttributionReportingOperationAllowed(
+   // WebView only supports OS-level attribution and not web-attribution.
+   switch (state) {
+     case AttributionReportingOsApiState::kDisabled:
+@@ -1196,6 +1197,8 @@ bool AwContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin,
      bool* can_bypass) {
 +  if ((true))
 +    return false;
-   // Check if attribution reporting has been disabled.
-   // This method should not be called at all if the configured behavior is
-   // DISABLED.
+   // WebView only supports OS-level attribution and not web-attribution.
+   // Note: We do not check here if attribution reporting has been disabled
+   // for the associated WebView as this is checked at the start of processing
 diff --git a/android_webview/java/src/org/chromium/android_webview/AwSettings.java b/android_webview/java/src/org/chromium/android_webview/AwSettings.java
 --- a/android_webview/java/src/org/chromium/android_webview/AwSettings.java
 +++ b/android_webview/java/src/org/chromium/android_webview/AwSettings.java
-@@ -162,7 +162,7 @@ public class AwSettings {
+@@ -167,7 +167,7 @@ public class AwSettings {
      private boolean mSpatialNavigationEnabled; // Default depends on device features.
      private boolean mEnableSupportedHardwareAcceleratedFeatures;
      private int mMixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW;
@@ -77,7 +77,7 @@ diff --git a/android_webview/java/src/org/chromium/android_webview/AwSettings.ja
      private boolean mCSSHexAlphaColorEnabled;
      private boolean mScrollTopLeftInteropEnabled;
      private boolean mWillSuppressErrorPage;
-@@ -1689,7 +1689,7 @@ public class AwSettings {
+@@ -1705,7 +1705,7 @@ public class AwSettings {
      public void setAttributionBehavior(@AttributionBehavior int behavior) {
          synchronized (mAwSettingsLock) {
              if (mAttributionBehavior != behavior) {
@@ -182,7 +182,7 @@ diff --git a/content/browser/aggregation_service/aggregation_service_features.cc
 diff --git a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
 --- a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
 +++ b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
-@@ -924,6 +924,7 @@ void AttributionDataHostManagerImpl::ParseHeader(
+@@ -1041,6 +1041,7 @@ void AttributionDataHostManagerImpl::ParseHeader(
      HeaderPendingDecode pending_decode,
      Registrar registrar) {
    DCHECK(it != registrations_.end());
@@ -193,7 +193,7 @@ diff --git a/content/browser/attribution_reporting/attribution_data_host_manager
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -257,6 +257,7 @@ void AttributionHost::NotifyNavigationRegistrationData(
+@@ -258,6 +258,7 @@ void AttributionHost::NotifyNavigationRegistrationData(
      return;
    }
  
@@ -204,15 +204,7 @@ diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content
 diff --git a/content/browser/attribution_reporting/attribution_os_level_manager.cc b/content/browser/attribution_reporting/attribution_os_level_manager.cc
 --- a/content/browser/attribution_reporting/attribution_os_level_manager.cc
 +++ b/content/browser/attribution_reporting/attribution_os_level_manager.cc
-@@ -47,6 +47,7 @@ std::optional<ApiState> g_state GUARDED_BY_CONTEXT(GetSequenceChecker());
- // static
- bool AttributionOsLevelManager::ShouldUseOsWebSource(
-     GlobalRenderFrameHostId render_frame_id) {
-+  if ((true)) return false;
-   return GetContentClient()
-       ->browser()
-       ->ShouldUseOsWebSourceAttributionReporting(
-@@ -75,7 +76,7 @@ bool AttributionOsLevelManager::ShouldInitializeApiState() {
+@@ -56,7 +56,7 @@ bool AttributionOsLevelManager::ShouldInitializeApiState() {
  // static
  ApiState AttributionOsLevelManager::GetApiState() {
    DCHECK_CALLED_ON_VALID_SEQUENCE(GetSequenceChecker());
@@ -273,7 +265,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1443,15 +1443,6 @@ void StoragePartitionImpl::Initialize(
+@@ -1451,15 +1451,6 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
@@ -729,15 +721,15 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/Attrib
 diff --git a/content/public/browser/content_browser_client.cc b/content/public/browser/content_browser_client.cc
 --- a/content/public/browser/content_browser_client.cc
 +++ b/content/public/browser/content_browser_client.cc
-@@ -543,6 +543,7 @@ void ContentBrowserClient::OnAuctionComplete(
+@@ -539,6 +539,7 @@ void ContentBrowserClient::OnAuctionComplete(
  network::mojom::AttributionSupport ContentBrowserClient::GetAttributionSupport(
      AttributionReportingOsApiState state,
-     content::WebContents* web_contents) {
+     bool client_os_disabled) {
 +  if ((true)) return network::mojom::AttributionSupport::kNone;
    switch (state) {
      case AttributionReportingOsApiState::kDisabled:
        return network::mojom::AttributionSupport::kWeb;
-@@ -559,17 +560,17 @@ bool ContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -556,13 +557,13 @@ bool ContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin,
      bool* can_bypass) {
@@ -745,14 +737,18 @@ diff --git a/content/public/browser/content_browser_client.cc b/content/public/b
 +  return false;
  }
  
- bool ContentBrowserClient::ShouldUseOsWebSourceAttributionReporting(
-     content::RenderFrameHost* rfh) {
--  return true;
-+  return false;
+ ContentBrowserClient::AttributionReportingOsReportTypes
+ ContentBrowserClient::GetAttributionReportingOsReportTypes(
+     WebContents* web_contents) {
+-  return {AttributionReportType::kWeb, AttributionReportType::kWeb};
++  return {AttributionReportType::kDisabled, AttributionReportType::kDisabled};
  }
  
- bool ContentBrowserClient::ShouldUseOsWebTriggerAttributionReporting(
-     content::RenderFrameHost* rfh) {
+ bool ContentBrowserClient::IsAttributionReportingAllowedForContext(
+@@ -570,7 +571,7 @@ bool ContentBrowserClient::IsAttributionReportingAllowedForContext(
+     content::RenderFrameHost* rfh,
+     const url::Origin& context_origin,
+     const url::Origin& reporting_origin) {
 -  return true;
 +  return false;
  }
@@ -834,7 +830,7 @@ diff --git a/services/network/public/cpp/attribution_utils.cc b/services/network
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -1352,7 +1352,7 @@ void Page::UpdateBrowsingContextGroup(
+@@ -1383,7 +1383,7 @@ void Page::UpdateBrowsingContextGroup(
  
  void Page::SetAttributionSupport(
      network::mojom::AttributionSupport attribution_support) {

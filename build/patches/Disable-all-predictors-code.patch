@@ -7,32 +7,30 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 ---
- chrome/browser/BUILD.gn                       |  2 --
- .../preloading_model_keyed_service.cc         |  1 +
- .../preloading_model_keyed_service_factory.cc |  4 +--
- .../chrome_hints_manager.cc                   |  1 +
- .../optimization_guide_keyed_service.cc       |  1 -
- .../browser/predictors/loading_predictor.cc   |  4 +--
- .../predictors/loading_predictor_config.cc    |  4 +--
- .../browser/predictors/predictors_features.cc | 11 ++------
- chrome/browser/ui/tab_helpers.cc              |  1 -
- .../ui/webui/omnibox/omnibox_page_handler.cc  | 14 +++++++++++
- .../browser/autofill_optimization_guide.cc    |  5 ++--
- .../browser/autocomplete_controller.cc        |  2 ++
- .../optimization_guide/core/hints_fetcher.cc  |  1 +
- .../optimization_guide/core/hints_manager.cc  |  5 ++++
- .../core/optimization_guide_features.cc       | 25 +++++++++++--------
- .../core/prediction_model_download_manager.cc |  6 +++--
- .../core/prediction_model_fetcher_impl.cc     |  1 +
- components/optimization_guide/features.gni    |  3 +--
- components/search/ntp_features.cc             |  3 +++
- .../Disable-all-predictors-code.inc           |  4 +++
- .../Disable-all-predictors-code.inc           |  7 ++++++
- .../Disable-all-predictors-code.inc           |  4 +++
- .../Disable-all-predictors-code.inc           |  2 ++
- .../document_speculation_rules.cc             |  1 +
- .../platform/runtime_enabled_features.json5   |  2 +-
- 25 files changed, 77 insertions(+), 37 deletions(-)
+ chrome/browser/BUILD.gn                          |  2 --
+ .../preloading_model_keyed_service.cc            |  1 +
+ .../preloading_model_keyed_service_factory.cc    |  4 +---
+ .../optimization_guide/chrome_hints_manager.cc   |  1 +
+ .../optimization_guide_keyed_service.cc          |  1 -
+ chrome/browser/predictors/loading_predictor.cc   |  4 ++--
+ .../predictors/loading_predictor_config.cc       |  4 ++--
+ chrome/browser/predictors/predictors_features.cc | 11 ++---------
+ chrome/browser/ui/tab_helpers.cc                 |  1 -
+ .../core/browser/autofill_optimization_guide.cc  |  5 +++--
+ .../optimization_guide/core/hints_fetcher.cc     |  1 +
+ .../optimization_guide/core/hints_manager.cc     |  5 +++++
+ .../core/optimization_guide_features.cc          | 16 ++++++++++------
+ .../core/prediction_model_download_manager.cc    |  6 ++++--
+ .../core/prediction_model_fetcher_impl.cc        |  1 +
+ components/optimization_guide/features.gni       |  3 +--
+ components/search/ntp_features.cc                |  3 +++
+ .../Disable-all-predictors-code.inc              |  4 ++++
+ .../Disable-all-predictors-code.inc              |  7 +++++++
+ .../features_cc/Disable-all-predictors-code.inc  |  4 ++++
+ .../features_cc/Disable-all-predictors-code.inc  |  2 ++
+ .../document_speculation_rules.cc                |  1 +
+ .../platform/runtime_enabled_features.json5      |  2 +-
+ 23 files changed, 56 insertions(+), 33 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/components/permissions/features_cc/Disable-all-predictors-code.inc
@@ -41,7 +39,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -849,8 +849,6 @@ static_library("browser") {
+@@ -845,8 +845,6 @@ static_library("browser") {
      "navigation_predictor/navigation_predictor_keyed_service_factory.h",
      "navigation_predictor/navigation_predictor_metrics_document_data.cc",
      "navigation_predictor/navigation_predictor_metrics_document_data.h",
@@ -87,7 +85,7 @@ diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -528,7 +528,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -521,7 +521,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
@@ -167,7 +165,7 @@ diff --git a/chrome/browser/predictors/predictors_features.cc b/chrome/browser/p
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -414,7 +414,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -417,7 +417,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    }
    MixedContentSettingsTabHelper::CreateForWebContents(web_contents);
    NavigationMetricsRecorder::CreateForWebContents(web_contents);
@@ -175,69 +173,10 @@ diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
    OpenerHeuristicTabHelper::CreateForWebContents(web_contents);
    if (optimization_guide::features::IsOptimizationHintsEnabled()) {
      OptimizationGuideWebContentsObserver::CreateForWebContents(web_contents);
-diff --git a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc b/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc
---- a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc
-+++ b/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc
-@@ -39,7 +39,9 @@
- #include "components/omnibox/browser/autocomplete_match.h"
- #include "components/omnibox/browser/autocomplete_provider.h"
- #include "components/omnibox/browser/autocomplete_result.h"
-+#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
- #include "components/omnibox/browser/autocomplete_scoring_model_service.h"
-+#endif
- #include "components/omnibox/browser/omnibox_field_trial.h"
- #include "components/search_engines/template_url.h"
- #include "content/public/browser/web_ui.h"
-@@ -498,6 +500,7 @@ void OmniboxPageHandler::StartOmniboxQuery(const std::string& input_string,
- }
- 
- void OmniboxPageHandler::GetMlModelVersion(GetMlModelVersionCallback callback) {
-+#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
-   if (auto* service = GetMlService()) {
-     auto version = service->GetModelVersion();
-     if (version == -1) {
-@@ -510,10 +513,14 @@ void OmniboxPageHandler::GetMlModelVersion(GetMlModelVersionCallback callback) {
-   } else {
-     std::move(callback).Run(-1);
-   }
-+#else
-+  std::move(callback).Run(-1);
-+#endif
- }
- 
- void OmniboxPageHandler::StartMl(mojom::SignalsPtr mojom_signals,
-                                  StartMlCallback callback) {
-+#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
-   if (auto* service = GetMlService()) {
-     AutocompleteMatch::ScoringSignals signals =
-         mojo::ConvertTo<AutocompleteMatch::ScoringSignals>(mojom_signals);
-@@ -523,6 +530,9 @@ void OmniboxPageHandler::StartMl(mojom::SignalsPtr mojom_signals,
-   } else {
-     std::move(callback).Run(-1);
-   }
-+#else
-+  std::move(callback).Run(-1);
-+#endif
- }
- 
- std::unique_ptr<AutocompleteController> OmniboxPageHandler::CreateController(
-@@ -547,8 +557,12 @@ OmniboxPageHandler::GetAutocompleteControllerType(
- }
- 
- AutocompleteScoringModelService* OmniboxPageHandler::GetMlService() {
-+#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
-   return OmniboxFieldTrial::IsMlUrlScoringEnabled()
-              ? AutocompleteScoringModelServiceFactory::GetInstance()
-                    ->GetForProfile(profile_)
-              : nullptr;
-+#else
-+  return nullptr;
-+#endif
- }
 diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/components/autofill/core/browser/autofill_optimization_guide.cc
 --- a/components/autofill/core/browser/autofill_optimization_guide.cc
 +++ b/components/autofill/core/browser/autofill_optimization_guide.cc
-@@ -163,6 +163,7 @@ void AutofillOptimizationGuide::OnDidParseForm(
+@@ -165,6 +165,7 @@ void AutofillOptimizationGuide::OnDidParseForm(
    // If we do not have any optimization types to register, do not do anything.
    if (!optimization_types.empty()) {
      // Register all optimization types that we need based on `form_structure`.
@@ -245,7 +184,7 @@ diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/c
      decider_->RegisterOptimizationTypes(
          std::vector<optimization_guide::proto::OptimizationType>(
              std::move(optimization_types).extract()));
-@@ -214,7 +215,7 @@ bool AutofillOptimizationGuide::ShouldBlockSingleFieldSuggestions(
+@@ -216,7 +217,7 @@ bool AutofillOptimizationGuide::ShouldBlockSingleFieldSuggestions(
      AutofillField* field) const {
    // If the field's storable type is `IBAN_VALUE`, check whether IBAN
    // suggestions should be blocked based on `url`.
@@ -254,35 +193,22 @@ diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/c
      optimization_guide::OptimizationGuideDecision decision =
          decider_->CanApplyOptimization(
              url, optimization_guide::proto::IBAN_AUTOFILL_BLOCKED,
-@@ -240,7 +241,7 @@ bool AutofillOptimizationGuide::ShouldBlockFormFieldSuggestion(
-     const CreditCard* card) const {
+@@ -242,7 +243,7 @@ bool AutofillOptimizationGuide::ShouldBlockFormFieldSuggestion(
+     const CreditCard& card) const {
    if (auto optimization_type =
-           GetVcnMerchantOptOutOptimizationTypeForCard(*card);
+           GetVcnMerchantOptOutOptimizationTypeForCard(card);
 -      optimization_type != optimization_guide::proto::TYPE_UNSPECIFIED) {
 +      decider_ && optimization_type != optimization_guide::proto::TYPE_UNSPECIFIED) {
      optimization_guide::OptimizationGuideDecision decision =
          decider_->CanApplyOptimization(url, optimization_type,
                                         /*optimization_metadata=*/nullptr);
-diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/omnibox/browser/autocomplete_controller.cc
---- a/components/omnibox/browser/autocomplete_controller.cc
-+++ b/components/omnibox/browser/autocomplete_controller.cc
-@@ -46,7 +46,9 @@
- #include "components/omnibox/browser/autocomplete_match_type.h"
- #include "components/omnibox/browser/autocomplete_provider.h"
- #include "components/omnibox/browser/autocomplete_provider_client.h"
-+#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
- #include "components/omnibox/browser/autocomplete_scoring_model_service.h"
-+#endif
- #include "components/omnibox/browser/autocomplete_scoring_signals_annotator.h"
- #include "components/omnibox/browser/bookmark_provider.h"
- #include "components/omnibox/browser/bookmark_scoring_signals_annotator.h"
 diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/optimization_guide/core/hints_fetcher.cc
 --- a/components/optimization_guide/core/hints_fetcher.cc
 +++ b/components/optimization_guide/core/hints_fetcher.cc
-@@ -183,6 +183,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
+@@ -185,6 +185,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
      bool skip_cache,
      HintsFetchedCallback hints_fetched_callback,
-     proto::RequestContextMetadata* request_context_metadata) {
+     std::optional<proto::RequestContextMetadata> request_context_metadata) {
 +  if ((true)) return false;
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
    DCHECK_GT(optimization_types.size(), 0u);
@@ -290,7 +216,7 @@ diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/op
 diff --git a/components/optimization_guide/core/hints_manager.cc b/components/optimization_guide/core/hints_manager.cc
 --- a/components/optimization_guide/core/hints_manager.cc
 +++ b/components/optimization_guide/core/hints_manager.cc
-@@ -390,6 +390,7 @@ void HintsManager::Shutdown() {
+@@ -393,6 +393,7 @@ void HintsManager::Shutdown() {
  OptimizationGuideDecision
  HintsManager::GetOptimizationGuideDecisionFromOptimizationTypeDecision(
      OptimizationTypeDecision optimization_type_decision) {
@@ -298,15 +224,15 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
    switch (optimization_type_decision) {
      case OptimizationTypeDecision::kAllowedByOptimizationFilter:
      case OptimizationTypeDecision::kAllowedByHint:
-@@ -1110,6 +1111,7 @@ void HintsManager::CanApplyOptimizationOnDemand(
+@@ -1116,6 +1117,7 @@ void HintsManager::CanApplyOptimizationOnDemand(
      OnDemandOptimizationGuideDecisionRepeatingCallback callback,
-     proto::RequestContextMetadata* request_context_metadata) {
+     std::optional<proto::RequestContextMetadata> request_context_metadata) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 +  if ((true)) return; // no consent on bromite
  
    InsertionOrderedSet<GURL> urls_to_fetch;
    InsertionOrderedSet<std::string> hosts_to_fetch;
-@@ -1416,6 +1418,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
+@@ -1420,6 +1422,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
      bool skip_cache,
      OptimizationMetadata* optimization_metadata) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -319,15 +245,8 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
 diff --git a/components/optimization_guide/core/optimization_guide_features.cc b/components/optimization_guide/core/optimization_guide_features.cc
 --- a/components/optimization_guide/core/optimization_guide_features.cc
 +++ b/components/optimization_guide/core/optimization_guide_features.cc
-@@ -37,18 +37,10 @@ namespace features {
+@@ -36,11 +36,7 @@ namespace features {
  namespace {
- 
- constexpr auto enabled_by_default_desktop_only =
--#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
-     base::FEATURE_DISABLED_BY_DEFAULT;
--#else
--    base::FEATURE_ENABLED_BY_DEFAULT;
--#endif
  
  constexpr auto enabled_by_default_mobile_only =
 -#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
@@ -336,9 +255,9 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
      base::FEATURE_DISABLED_BY_DEFAULT;
 -#endif
  
- // Returns whether |locale| is a supported locale for |feature|.
- //
-@@ -575,8 +567,7 @@ size_t MaxURLKeyedHintCacheSize() {
+ }  // namespace
+ 
+@@ -434,8 +430,7 @@ size_t MaxURLKeyedHintCacheSize() {
  }
  
  bool ShouldPersistHintsToDisk() {
@@ -348,8 +267,8 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  }
  
  RequestContextSet GetAllowedContextsForPersonalizedMetadata() {
-@@ -1080,5 +1071,19 @@ bool GetOnDeviceModelRetractRepeats() {
-   return kOnDeviceModelRetractRepeats.Get();
+@@ -817,5 +812,14 @@ double GetOnDeviceModelDefaultTemperature() {
+   return kTemperature.Get();
  }
  
 +SET_CROMITE_FEATURE_DISABLED(kOptimizationHints);
@@ -357,15 +276,10 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
 +SET_CROMITE_FEATURE_DISABLED(kRemoteOptimizationGuideFetchingAnonymousDataConsent);
 +SET_CROMITE_FEATURE_DISABLED(kOptimizationTargetPrediction);
 +SET_CROMITE_FEATURE_DISABLED(kOptimizationGuideModelDownloading);
-+SET_CROMITE_FEATURE_DISABLED(kPageContentAnnotations);
-+SET_CROMITE_FEATURE_DISABLED(kRemotePageMetadata);
-+SET_CROMITE_FEATURE_DISABLED(kPageEntitiesPageContentAnnotations);
 +SET_CROMITE_FEATURE_DISABLED(kPushNotifications);
-+SET_CROMITE_FEATURE_DISABLED(kPageVisibilityBatchAnnotations);
-+SET_CROMITE_FEATURE_DISABLED(kPageContentAnnotationsValidation);
 +SET_CROMITE_FEATURE_DISABLED(kPreventLongRunningPredictionModels);
-+SET_CROMITE_FEATURE_DISABLED(kPageContentAnnotationsPersistSalientImageMetadata);
 +SET_CROMITE_FEATURE_DISABLED(kOptimizationGuideFetchingForSRP);
++
  }  // namespace features
  }  // namespace optimization_guide
 diff --git a/components/optimization_guide/core/prediction_model_download_manager.cc b/components/optimization_guide/core/prediction_model_download_manager.cc
@@ -480,18 +394,18 @@ new file mode 100644
 diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
 --- a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
 +++ b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
-@@ -599,6 +599,7 @@ void DocumentSpeculationRules::UpdateSpeculationCandidates() {
+@@ -657,6 +657,7 @@ void DocumentSpeculationRules::UpdateSpeculationCandidates() {
      return;
    }
  
 +  if ((true)) return;
    HeapVector<Member<SpeculationCandidate>> candidates;
-   auto push_candidates = [&candidates, &execution_context](
+   auto push_candidates = [&candidates, &document](
                               mojom::blink::SpeculationAction action,
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -2943,7 +2943,7 @@
+@@ -3038,7 +3038,7 @@
        //
        // It also has some feature params defined throughout the codebase.
        name: "Prerender2",

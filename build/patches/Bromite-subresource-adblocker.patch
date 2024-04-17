@@ -19,7 +19,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  chrome/android/java/res/values/styles.xml     |  18 ++
  chrome/android/java/res/values/values.xml     |   5 +
  .../java/res/xml/adblock_preferences.xml      |  25 ++
- .../android/java/res/xml/main_preferences.xml |   5 +
+ .../android/java/res/xml/main_preferences.xml |  29 +-
  .../browser/settings/AdBlockEditor.java       |  91 ++++++
  .../browser/settings/AdBlockPreferences.java  |  58 ++++
  .../chrome/browser/tabmodel/TabModelImpl.java |   2 +-
@@ -44,15 +44,15 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../component_updater/download_filters_task.h | 129 ++++++++
  ...ent_subresource_filter_throttle_manager.cc |  15 +
  ...tent_subresource_filter_throttle_manager.h |   2 +
- .../content/browser/ruleset_service.cc        |  42 ++-
+ .../content/browser/ruleset_service.cc        |  39 ++-
  .../content/browser/ruleset_service.h         |   7 +-
- .../content/browser/ruleset_version.h         |   4 +
  .../unindexed_ruleset_stream_generator.cc     |   3 +
- .../browser/verified_ruleset_dealer.cc        |   4 +
+ .../core/browser/ruleset_version.h            |   4 +
  .../browser/subresource_filter_features.cc    | 116 +-------
+ .../core/browser/verified_ruleset_dealer.cc   |   4 +
  .../core/common/indexed_ruleset.cc            |   6 +-
  .../Bromite-subresource-adblocker.inc         |   3 +
- 39 files changed, 1255 insertions(+), 127 deletions(-)
+ 39 files changed, 1267 insertions(+), 136 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -68,7 +68,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -430,6 +430,7 @@ chrome_java_resources = [
+@@ -431,6 +431,7 @@ chrome_java_resources = [
    "java/res/layout/account_chooser_dialog_title.xml",
    "java/res/layout/account_divider_preference.xml",
    "java/res/layout/account_management_account_row.xml",
@@ -76,7 +76,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_name_and_number.xml",
-@@ -633,6 +634,7 @@ chrome_java_resources = [
+@@ -634,6 +635,7 @@ chrome_java_resources = [
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
    "java/res/xml/ad_services_config.xml",
@@ -87,7 +87,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -972,6 +972,8 @@ chrome_java_sources = [
+@@ -973,6 +973,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -244,18 +244,87 @@ new file mode 100644
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
 +++ b/chrome/android/java/res/xml/main_preferences.xml
-@@ -78,6 +78,11 @@ found in the LICENSE file.
-         android:key="safety_check"
-         android:order="13"
+@@ -84,63 +84,68 @@ found in the LICENSE file.
+         android:order="14"
          android:title="@string/prefs_safety_check"/>
-+    <Preference
+     <Preference
+-        android:key="notifications"
 +        android:fragment="org.chromium.chrome.browser.settings.AdBlockPreferences"
 +        android:key="adblock"
-+        android:order="13"
+         android:order="15"
 +        android:title="@string/prefs_adblock"/>
++    <Preference
++        android:key="notifications"
++        android:order="16"
+         android:title="@string/prefs_notifications"/>
      <Preference
-         android:key="notifications"
-         android:order="14"
+         android:fragment="org.chromium.chrome.browser.night_mode.settings.ThemeSettingsFragment"
+         android:key="ui_theme"
+-        android:order="16"
++        android:order="17"
+         android:title="@string/theme_settings" />
+ 
+     <PreferenceCategory
+         android:key="advanced_section"
+-        android:order="17"
++        android:order="18"
+         android:title="@string/prefs_section_advanced"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.homepage.settings.HomepageSettings"
+         android:key="homepage"
+-        android:order="18"
++        android:order="19"
+         android:title="@string/options_homepage_title"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.magic_stack.HomeModulesConfigSettings"
+         android:key="home_modules_config"
+-        android:order="19"
++        android:order="20"
+         android:title="@string/home_modules_configuration"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.toolbar.adaptive.settings.AdaptiveToolbarSettingsFragment"
+         android:key="toolbar_shortcut"
+-        android:order="20"
++        android:order="21"
+         android:title="@string/toolbar_shortcut"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.accessibility.settings.AccessibilitySettings"
+         android:key="accessibility"
+-        android:order="21"
++        android:order="22"
+         android:title="@string/prefs_accessibility"/>
+     <Preference
+         android:fragment="org.chromium.components.browser_ui.site_settings.SiteSettings"
+         android:key="content_settings"
+-        android:order="22"
++        android:order="23"
+         android:title="@string/prefs_site_settings"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.language.settings.LanguageSettings"
+         android:key="languages"
+-        android:order="23"
++        android:order="24"
+         android:title="@string/language_settings"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.download.settings.DownloadSettings"
+         android:key="downloads"
+-        android:order="24"
++        android:order="25"
+         android:title="@string/menu_downloads"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.tracing.settings.DeveloperSettings"
+         android:key="developer"
+-        android:order="25"
++        android:order="26"
+         android:title="Developer options"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.about_settings.AboutChromeSettings"
+         android:key="about_chrome"
+-        android:order="26"
++        android:order="27"
+         android:title="@string/prefs_about_chrome"/>
+ 
+ </PreferenceScreen>
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
 new file mode 100644
 --- /dev/null
@@ -430,7 +499,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -15030,6 +15030,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -15085,6 +15085,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -551,7 +620,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -446,6 +446,9 @@ StartupProfileInfo CreateInitialProfile(
+@@ -455,6 +455,9 @@ StartupProfileInfo CreateInitialProfile(
    // missing code in the above test.
    CHECK(profile_info.profile) << "Cannot get default profile.";
  
@@ -720,7 +789,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -2653,6 +2653,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2657,6 +2657,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  inline constexpr char kAudioCaptureAllowedUrls[] =
      "hardware.audio_capture_allowed_urls";
  
@@ -1665,7 +1734,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
 +    LOG(WARNING) << "RulesetService: failed to open: " << unindexed_ruleset_info.ruleset_path;
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_OPENING_UNINDEXED_RULESET);
-     return IndexedRulesetVersion();
+     return IndexedRulesetVersion(kSafeBrowsingFilterTag);
 @@ -286,6 +303,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
            indexed_ruleset_base_dir, indexed_version);
  
@@ -1673,45 +1742,45 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
 +    LOG(WARNING) << "RulesetService: failed to create version dir: " << indexed_ruleset_version_dir;
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_CREATING_VERSION_DIR);
-     return IndexedRulesetVersion();
-@@ -293,12 +311,11 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+     return IndexedRulesetVersion(kSafeBrowsingFilterTag);
+@@ -293,12 +311,14 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
  
    SentinelFile sentinel_file(indexed_ruleset_version_dir);
    if (sentinel_file.IsPresent()) {
--    RecordIndexAndWriteRulesetResult(
--        IndexAndWriteRulesetResult::ABORTED_BECAUSE_SENTINEL_FILE_PRESENT);
--    return IndexedRulesetVersion();
 +    LOG(WARNING) << "RulesetService: sentinel file is present in " << indexed_ruleset_version_dir;
+     RecordIndexAndWriteRulesetResult(
+         IndexAndWriteRulesetResult::ABORTED_BECAUSE_SENTINEL_FILE_PRESENT);
+     return IndexedRulesetVersion(kSafeBrowsingFilterTag);
    }
  
    if (!sentinel_file.Create()) {
 +    LOG(WARNING) << "RulesetService: cannot create sentinel file in " << indexed_ruleset_version_dir;
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_CREATING_SENTINEL_FILE);
-     return IndexedRulesetVersion();
-@@ -311,6 +328,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+     return IndexedRulesetVersion(kSafeBrowsingFilterTag);
+@@ -311,6 +331,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
  
    RulesetIndexer indexer;
    if (!(*g_index_ruleset_func)(&unindexed_ruleset_stream_generator, &indexer)) {
 +    LOG(WARNING) << "RulesetService: failed parsing.";
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_PARSING_UNINDEXED_RULESET);
-     return IndexedRulesetVersion();
-@@ -328,8 +346,12 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+     return IndexedRulesetVersion(kSafeBrowsingFilterTag);
+@@ -328,8 +349,12 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
        WriteRuleset(indexed_ruleset_version_dir,
                     unindexed_ruleset_info.license_path, indexer.data());
    RecordIndexAndWriteRulesetResult(result);
 -  if (result != IndexAndWriteRulesetResult::SUCCESS)
 +  if (result != IndexAndWriteRulesetResult::SUCCESS) {
 +    LOG(INFO) << "RulesetService: failed to index.";
-     return IndexedRulesetVersion();
+     return IndexedRulesetVersion(kSafeBrowsingFilterTag);
 +  }
 +
 +  LOG(INFO) << "RulesetService: successful parsing.";
  
    DCHECK(indexed_version.IsValid());
    return indexed_version;
-@@ -449,6 +471,7 @@ void RulesetService::IndexAndStoreRuleset(
+@@ -449,6 +474,7 @@ void RulesetService::IndexAndStoreRuleset(
  void RulesetService::OnWrittenRuleset(WriteRulesetCallback result_callback,
                                        const IndexedRulesetVersion& version) {
    DCHECK(!result_callback.is_null());
@@ -1719,7 +1788,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
    if (!version.IsValid())
      return;
    version.SaveToPrefs(local_state_);
-@@ -461,7 +484,6 @@ void RulesetService::OpenAndPublishRuleset(
+@@ -461,7 +487,6 @@ void RulesetService::OpenAndPublishRuleset(
        IndexedRulesetLocator::GetRulesetDataFilePath(
            IndexedRulesetLocator::GetSubdirectoryPathForVersion(
                indexed_ruleset_base_dir_, version));
@@ -1751,20 +1820,6 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.h b/c
    // Reads the rules via the |unindexed_ruleset_stream_generator|, and indexes
    // them using |indexer|. Returns whether the entire ruleset could be parsed.
    static bool IndexRuleset(
-diff --git a/components/subresource_filter/content/browser/ruleset_version.h b/components/subresource_filter/content/browser/ruleset_version.h
---- a/components/subresource_filter/content/browser/ruleset_version.h
-+++ b/components/subresource_filter/content/browser/ruleset_version.h
-@@ -53,6 +53,10 @@ struct UnindexedRulesetInfo {
-   // can be indicated not only by setting |license_path| to empty, but also by
-   // setting it to any non existent path.
-   base::FilePath license_path;
-+
-+  // Whether to delete or not the ruleset path once done indexing; useful for disposal
-+  // of temporary files.
-+  bool delete_ruleset_path;
- };
- 
- // Encapsulates the combination of the binary format version of the indexed
 diff --git a/components/subresource_filter/content/browser/unindexed_ruleset_stream_generator.cc b/components/subresource_filter/content/browser/unindexed_ruleset_stream_generator.cc
 --- a/components/subresource_filter/content/browser/unindexed_ruleset_stream_generator.cc
 +++ b/components/subresource_filter/content/browser/unindexed_ruleset_stream_generator.cc
@@ -1785,27 +1840,20 @@ diff --git a/components/subresource_filter/content/browser/unindexed_ruleset_str
    copying_stream_ = std::make_unique<CopyingFileInputStream>(
        std::move(unindexed_ruleset_file));
    ruleset_stream_ =
-diff --git a/components/subresource_filter/content/browser/verified_ruleset_dealer.cc b/components/subresource_filter/content/browser/verified_ruleset_dealer.cc
---- a/components/subresource_filter/content/browser/verified_ruleset_dealer.cc
-+++ b/components/subresource_filter/content/browser/verified_ruleset_dealer.cc
-@@ -11,6 +11,7 @@
- #include "base/functional/bind.h"
- #include "base/functional/callback_helpers.h"
- #include "base/location.h"
-+#include "base/logging.h"
- #include "base/notreached.h"
- #include "base/task/sequenced_task_runner.h"
- #include "base/trace_event/trace_event.h"
-@@ -38,6 +39,9 @@ RulesetFilePtr VerifiedRulesetDealer::OpenAndSetRulesetFile(
-   TRACE_EVENT1(TRACE_DISABLED_BY_DEFAULT("loading"),
-                "VerifiedRulesetDealer::OpenAndSetRulesetFile", "file_valid",
-                file->IsValid());
+diff --git a/components/subresource_filter/core/browser/ruleset_version.h b/components/subresource_filter/core/browser/ruleset_version.h
+--- a/components/subresource_filter/core/browser/ruleset_version.h
++++ b/components/subresource_filter/core/browser/ruleset_version.h
+@@ -53,6 +53,10 @@ struct UnindexedRulesetInfo {
+   // can be indicated not only by setting |license_path| to empty, but also by
+   // setting it to any non existent path.
+   base::FilePath license_path;
 +
-+  LOG(INFO) << "OpenAndSetRulesetFile: " << file_path << " is valid: " << file->IsValid();
-+
-   if (file->IsValid()) {
-     SetRulesetFile(file->Duplicate());
-     expected_checksum_ = expected_checksum;
++  // Whether to delete or not the ruleset path once done indexing; useful for disposal
++  // of temporary files.
++  bool delete_ruleset_path;
+ };
+ 
+ // Encapsulates the combination of the binary format version of the indexed
 diff --git a/components/subresource_filter/core/browser/subresource_filter_features.cc b/components/subresource_filter/core/browser/subresource_filter_features.cc
 --- a/components/subresource_filter/core/browser/subresource_filter_features.cc
 +++ b/components/subresource_filter/core/browser/subresource_filter_features.cc
@@ -1957,6 +2005,27 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
  
    return configs;
  }
+diff --git a/components/subresource_filter/core/browser/verified_ruleset_dealer.cc b/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
+--- a/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
++++ b/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
+@@ -11,6 +11,7 @@
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
+ #include "base/location.h"
++#include "base/logging.h"
+ #include "base/notreached.h"
+ #include "base/task/sequenced_task_runner.h"
+ #include "base/trace_event/trace_event.h"
+@@ -38,6 +39,9 @@ RulesetFilePtr VerifiedRulesetDealer::OpenAndSetRulesetFile(
+   TRACE_EVENT1(TRACE_DISABLED_BY_DEFAULT("loading"),
+                "VerifiedRulesetDealer::OpenAndSetRulesetFile", "file_valid",
+                file->IsValid());
++
++  LOG(INFO) << "OpenAndSetRulesetFile: " << file_path << " is valid: " << file->IsValid();
++
+   if (file->IsValid()) {
+     SetRulesetFile(file->Duplicate());
+     expected_checksum_ = expected_checksum;
 diff --git a/components/subresource_filter/core/common/indexed_ruleset.cc b/components/subresource_filter/core/common/indexed_ruleset.cc
 --- a/components/subresource_filter/core/common/indexed_ruleset.cc
 +++ b/components/subresource_filter/core/common/indexed_ruleset.cc
