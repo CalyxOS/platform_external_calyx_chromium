@@ -6,15 +6,15 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I6336b599175f31e7dd750d90d3b6f882e28a421c
 ---
  components/module_installer/android/BUILD.gn  |  2 -
- .../engine/SplitCompatEngine.java             | 57 +++----------------
- .../engine/SplitCompatEngineFacade.java       | 29 +++-------
- .../module_installer/logger/Logger.java       | 16 +-----
- .../logger/PlayCoreLogger.java                | 34 +----------
- .../logger/SplitAvailabilityLogger.java       | 40 -------------
- .../logger/SplitInstallStatusLogger.java      | 30 +---------
+ .../engine/SplitCompatEngine.java             | 77 +------------------
+ .../engine/SplitCompatEngineFacade.java       | 29 ++-----
+ .../module_installer/logger/Logger.java       | 16 +---
+ .../logger/PlayCoreLogger.java                | 50 ++----------
+ .../logger/SplitAvailabilityLogger.java       | 40 ----------
+ .../logger/SplitInstallStatusLogger.java      | 30 +-------
  .../module_installer/util/ModuleUtil.java     |  5 --
  .../util/SplitCompatInitializer.java          |  6 --
- 9 files changed, 23 insertions(+), 196 deletions(-)
+ 9 files changed, 19 insertions(+), 236 deletions(-)
 
 diff --git a/components/module_installer/android/BUILD.gn b/components/module_installer/android/BUILD.gn
 --- a/components/module_installer/android/BUILD.gn
@@ -56,7 +56,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
      private static final Map<String, List<InstallListener>> sSessions = new HashMap<>();
  
      public SplitCompatEngine() {
-@@ -43,53 +37,20 @@ class SplitCompatEngine implements InstallEngine {
+@@ -43,83 +37,20 @@ class SplitCompatEngine implements InstallEngine {
  
      @Override
      public boolean isInstalled(String moduleName) {
@@ -105,46 +105,55 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
 -                        });
 -
 -        mFacade.getLogger().logRequestStart(moduleName);
-     }
- 
--    private SplitInstallStateUpdatedListener getStatusUpdateListener() {
-+/*    private SplitInstallStateUpdatedListener getStatusUpdateListener() {
-         return state -> {
-             assert !state.moduleNames().isEmpty();
- 
-@@ -113,12 +74,12 @@ class SplitCompatEngine implements InstallEngine {
-                 mFacade.getLogger().logStatus(moduleName, status);
-             }
-         };
 -    }
-+    }*/
+-
+-    private SplitInstallStateUpdatedListener getStatusUpdateListener() {
+-        return state -> {
+-            assert !state.moduleNames().isEmpty();
+-
+-            int status = state.status();
+-            List<String> modules = state.moduleNames();
+-
+-            if (status == SplitInstallSessionStatus.INSTALLED) {
+-                mFacade.updateCrashKeys();
+-            }
+-
+-            for (String moduleName : modules) {
+-                switch (status) {
+-                    case SplitInstallSessionStatus.INSTALLED:
+-                        notifyListeners(moduleName, true);
+-                        break;
+-                    case SplitInstallSessionStatus.FAILED:
+-                        notifyListeners(moduleName, false);
+-                        mFacade.getLogger().logStatusFailure(moduleName, state.errorCode());
+-                        break;
+-                }
+-                mFacade.getLogger().logStatus(moduleName, status);
+-            }
+-        };
+     }
  
      private void notifyListeners(String moduleName, Boolean success) {
 -        for (InstallListener listener : sSessions.get(moduleName)) {
-+/*        for (InstallListener listener : sSessions.get(moduleName)) {
-             notifyListener(listener, success);
+-            notifyListener(listener, success);
 -        }
-+        }*/
- 
+-
          sSessions.remove(moduleName);
  
-@@ -134,15 +95,15 @@ class SplitCompatEngine implements InstallEngine {
+         unregisterUpdateListener();
+@@ -134,15 +65,9 @@ class SplitCompatEngine implements InstallEngine {
      }
  
      private void registerUpdateListener() {
 -        if (sSessions.size() == 0) {
-+/*        if (sSessions.size() == 0) {
-             mFacade.getSplitManager().registerListener(mUpdateListener);
+-            mFacade.getSplitManager().registerListener(mUpdateListener);
 -        }
-+        }*/
      }
  
      private void unregisterUpdateListener() {
 -        if (sSessions.size() == 0) {
-+/*        if (sSessions.size() == 0) {
-             mFacade.getSplitManager().unregisterListener(mUpdateListener);
+-            mFacade.getSplitManager().unregisterListener(mUpdateListener);
 -        }
-+        }*/
      }
  
      @VisibleForTesting
@@ -272,7 +281,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java
 --- a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java
 +++ b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java
-@@ -4,58 +4,35 @@
+@@ -4,74 +4,38 @@
  
  package org.chromium.components.module_installer.logger;
  
@@ -282,23 +291,27 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
  /** Concrete Logger for SplitCompat Installers (proxy to specific loggers). */
  public class PlayCoreLogger implements Logger {
 -    private final SplitInstallFailureLogger mFailureLogger;
-     private final SplitInstallStatusLogger mStatusLogger;
-     private final SplitAvailabilityLogger mAvailabilityLogger;
- 
+-    private final SplitInstallStatusLogger mStatusLogger;
+-    private final SplitAvailabilityLogger mAvailabilityLogger;
+-
      public PlayCoreLogger() {
          this(
 -                new SplitInstallFailureLogger(),
-                 new SplitInstallStatusLogger(),
-                 new SplitAvailabilityLogger());
+-                new SplitInstallStatusLogger(),
+-                new SplitAvailabilityLogger());
++                null,
++                null,
++                null);
      }
  
      public PlayCoreLogger(
 -            SplitInstallFailureLogger failureLogger,
++            Object failureLogger,
              SplitInstallStatusLogger statusLogger,
              SplitAvailabilityLogger availabilityLogger) {
 -        mFailureLogger = failureLogger;
-         mStatusLogger = statusLogger;
-         mAvailabilityLogger = availabilityLogger;
+-        mStatusLogger = statusLogger;
+-        mAvailabilityLogger = availabilityLogger;
      }
  
      @Override
@@ -315,8 +328,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
  
      @Override
 -    public void logStatus(String moduleName, @SplitInstallSessionStatus int status) {
-+    public void logStatus(String moduleName, int status) {
-         mStatusLogger.logStatusChange(moduleName, status);
+-        mStatusLogger.logStatusChange(moduleName, status);
 -
 -        if (status == SplitInstallSessionStatus.INSTALLED) {
 -            mAvailabilityLogger.storeModuleInstalled(moduleName, status);
@@ -331,18 +343,25 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
 -            // Keep old behavior where we log a 'no split compat' bit with all other failures.
 -            mFailureLogger.logStatusNoSplitCompat(moduleName);
 -        }
++    public void logStatus(String moduleName, int status) {
      }
  
      @Override
-@@ -69,9 +46,4 @@ public class PlayCoreLogger implements Logger {
-         mStatusLogger.logRequestDeferredStart(moduleName);
-         mAvailabilityLogger.storeRequestDeferredStart(moduleName);
+     public void logRequestStart(String moduleName) {
+-        mStatusLogger.logRequestStart(moduleName);
+-        mAvailabilityLogger.storeRequestStart(moduleName);
      }
+ 
+     @Override
+     public void logRequestDeferredStart(String moduleName) {
+-        mStatusLogger.logRequestDeferredStart(moduleName);
+-        mAvailabilityLogger.storeRequestDeferredStart(moduleName);
+-    }
 -
 -    @Override
 -    public int getUnknownRequestErrorCode() {
 -        return SplitInstallFailureLogger.UNKNOWN_REQUEST_ERROR;
--    }
+     }
  }
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java
 --- a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java

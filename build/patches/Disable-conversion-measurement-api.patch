@@ -10,7 +10,6 @@ being sent and being saved to disk, although it is currently in uncalled code.
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
 Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
 ---
  .../browser/aw_content_browser_client.cc      |   3 +
@@ -23,7 +22,7 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../aggregation_service_features.cc           |   1 +
  .../attribution_data_host_manager_impl.cc     |   1 +
  .../attribution_reporting/attribution_host.cc |   1 +
- .../attribution_os_level_manager.cc           |   2 +-
+ .../attribution_os_level_manager.cc           |   3 +-
  .../attribution_report_network_sender.cc      |   9 +
  .../attribution_storage_sql.cc                |   8 +-
  content/browser/storage_partition_impl.cc     |   9 -
@@ -39,7 +38,7 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../network/public/cpp/attribution_utils.cc   |   2 +
  third_party/blink/renderer/core/page/page.cc  |   2 +-
  ui/events/android/motion_event_android.cc     |   6 +-
- 26 files changed, 71 insertions(+), 338 deletions(-)
+ 26 files changed, 72 insertions(+), 338 deletions(-)
  create mode 100644 cromite_flags/content/common/features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc
@@ -204,7 +203,15 @@ diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content
 diff --git a/content/browser/attribution_reporting/attribution_os_level_manager.cc b/content/browser/attribution_reporting/attribution_os_level_manager.cc
 --- a/content/browser/attribution_reporting/attribution_os_level_manager.cc
 +++ b/content/browser/attribution_reporting/attribution_os_level_manager.cc
-@@ -56,7 +56,7 @@ bool AttributionOsLevelManager::ShouldInitializeApiState() {
+@@ -45,6 +45,7 @@ std::optional<ApiState> g_state GUARDED_BY_CONTEXT(GetSequenceChecker());
+ 
+ // static
+ bool AttributionOsLevelManager::ShouldInitializeApiState() {
++  if ((true)) return false;
+   DCHECK_CALLED_ON_VALID_SEQUENCE(GetSequenceChecker());
+   if (g_state.has_value()) {
+     return false;
+@@ -56,7 +57,7 @@ bool AttributionOsLevelManager::ShouldInitializeApiState() {
  // static
  ApiState AttributionOsLevelManager::GetApiState() {
    DCHECK_CALLED_ON_VALID_SEQUENCE(GetSequenceChecker());

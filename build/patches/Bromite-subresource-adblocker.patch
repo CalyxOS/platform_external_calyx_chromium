@@ -13,13 +13,14 @@ Enable AutomaticLazyFrameLoadingToAds and AutomaticLazyFrameLoadingToEmbeds feat
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 ---
+ chrome/android/BUILD.gn                       |   1 +
  chrome/android/chrome_java_resources.gni      |   2 +
  chrome/android/chrome_java_sources.gni        |   2 +
  .../java/res/layout/adblock_editor.xml        |  67 +++++
  chrome/android/java/res/values/styles.xml     |  18 ++
- chrome/android/java/res/values/values.xml     |   5 +
+ chrome/android/java/res/values/values.xml     |   4 +
  .../java/res/xml/adblock_preferences.xml      |  25 ++
- .../android/java/res/xml/main_preferences.xml |   7 +-
+ .../android/java/res/xml/main_preferences.xml |   5 +
  .../browser/settings/AdBlockEditor.java       |  91 ++++++
  .../browser/settings/AdBlockPreferences.java  |  58 ++++
  .../chrome/browser/tabmodel/TabModelImpl.java |   2 +-
@@ -29,7 +30,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  chrome/browser/browser_process_impl.cc        |  21 ++
  chrome/browser/browser_process_impl.h         |   2 +
  chrome/browser/chrome_browser_main.cc         |   3 +
- chrome/browser/flags/BUILD.gn                 |   3 +
+ chrome/browser/flags/BUILD.gn                 |   4 +
  .../flags/android/adblock_native_gateway.cc   |  31 ++
  .../browser/flags/AdBlockNativeGateway.java   |  30 ++
  .../net/system_network_context_manager.cc     |   8 +
@@ -44,15 +45,15 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../component_updater/download_filters_task.h | 129 ++++++++
  ...ent_subresource_filter_throttle_manager.cc |  15 +
  ...tent_subresource_filter_throttle_manager.h |   2 +
- .../content/browser/ruleset_service.cc        |  39 ++-
+ .../content/browser/ruleset_service.cc        |  42 ++-
  .../content/browser/ruleset_service.h         |   7 +-
  .../unindexed_ruleset_stream_generator.cc     |   3 +
  .../core/browser/ruleset_version.h            |   4 +
  .../browser/subresource_filter_features.cc    | 116 +-------
- .../core/browser/verified_ruleset_dealer.cc   |   4 +
- .../core/common/indexed_ruleset.cc            |   6 +-
+ .../core/browser/verified_ruleset_dealer.cc   |   3 +
+ .../core/common/indexed_ruleset.cc            |   5 +-
  .../Bromite-subresource-adblocker.inc         |   3 +
- 39 files changed, 1256 insertions(+), 125 deletions(-)
+ 40 files changed, 1254 insertions(+), 127 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -65,6 +66,17 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  create mode 100644 components/component_updater/download_filters_task.h
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Bromite-subresource-adblocker.inc
 
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -344,6 +344,7 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/android/modules/cablev2_authenticator/public:java",
+       "//chrome/android/modules/stack_unwinder/provider:java",
+       "//chrome/android/webapk/libs/client:client_java",
++      "//chrome/browser/endpoint_fetcher:java",
+       "//chrome/android/webapk/libs/common:common_java",
+       "//chrome/android/webapk/libs/common:splash_java",
+       "//chrome/android/webapk/libs/runtime_library:webapk_service_aidl_java",
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
@@ -199,13 +211,12 @@ diff --git a/chrome/android/java/res/values/styles.xml b/chrome/android/java/res
 diff --git a/chrome/android/java/res/values/values.xml b/chrome/android/java/res/values/values.xml
 --- a/chrome/android/java/res/values/values.xml
 +++ b/chrome/android/java/res/values/values.xml
-@@ -25,6 +25,11 @@ found in the LICENSE file.
+@@ -25,6 +25,10 @@ found in the LICENSE file.
      <!-- Compositor Tab Title Text -->
      <bool name="compositor_tab_title_fake_bold_text">true</bool>
  
 +    <string name="adblock_on">Autoupdate enabled</string>
 +    <string name="adblock_off">Autoupdate disabled</string>
-+
 +    <string name="adblock_help_url">https://www.bromite.org/custom-filters</string>
 +
      <!-- Download InfoBar animation. -->
@@ -244,21 +255,15 @@ new file mode 100644
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
 +++ b/chrome/android/java/res/xml/main_preferences.xml
-@@ -78,11 +78,16 @@ found in the LICENSE file.
-         android:key="safety_check"
-         android:order="13"
+@@ -83,6 +83,11 @@ found in the LICENSE file.
+         android:key="safety_hub"
+         android:order="14"
          android:title="@string/prefs_safety_check"/>
-+     <Preference
++    <Preference
 +        android:fragment="org.chromium.chrome.browser.settings.AdBlockPreferences"
 +        android:key="adblock"
 +        android:order="13"
-+        android:title="@string/prefs_adblock"/>       
-     <Preference
-         android:fragment="org.chromium.chrome.browser.safety_hub.SafetyHubFragment"
-         android:key="safety_hub"
-         android:order="14"
--        android:title="@string/prefs_safety_check"/>
-+        android:title="@string/prefs_safety_check"/> 
++        android:title="@string/prefs_adblock"/>
      <Preference
          android:key="notifications"
          android:order="15"
@@ -570,14 +575,14 @@ diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_brows
 diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
 --- a/chrome/browser/flags/BUILD.gn
 +++ b/chrome/browser/flags/BUILD.gn
-@@ -11,6 +11,7 @@ android_library("java") {
+@@ -8,6 +8,7 @@ import("//third_party/jni_zero/jni_zero.gni")
+ android_library("java") {
+   sources = [ "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java" ]
+   sources += [
++    "android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
-+    "android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java",
-   ]
-   public_deps = [ "//base:base_cached_flags_java" ]
-   deps = [
 @@ -33,6 +34,7 @@ android_library("java") {
  generate_jni("jni_headers") {
    sources = [ "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java" ]
@@ -594,6 +599,14 @@ diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
    deps = [
      ":jni_headers",
      "//base",
+@@ -71,6 +74,7 @@ robolectric_library("flags_junit_tests") {
+     "android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlagsAnnotationUnitTest.java",
+     "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureListWithProcessorUnitTest.java",
+     "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureListWithoutProcessorUnitTest.java",
++    "android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java",
+   ]
+   deps = [
+     ":java",
 diff --git a/chrome/browser/flags/android/adblock_native_gateway.cc b/chrome/browser/flags/android/adblock_native_gateway.cc
 new file mode 100755
 --- /dev/null
@@ -1680,14 +1693,14 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_CREATING_VERSION_DIR);
      return IndexedRulesetVersion(kSafeBrowsingFilterTag);
-@@ -293,12 +311,14 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -293,12 +311,11 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
  
    SentinelFile sentinel_file(indexed_ruleset_version_dir);
    if (sentinel_file.IsPresent()) {
+-    RecordIndexAndWriteRulesetResult(
+-        IndexAndWriteRulesetResult::ABORTED_BECAUSE_SENTINEL_FILE_PRESENT);
+-    return IndexedRulesetVersion(kSafeBrowsingFilterTag);
 +    LOG(WARNING) << "RulesetService: sentinel file is present in " << indexed_ruleset_version_dir;
-     RecordIndexAndWriteRulesetResult(
-         IndexAndWriteRulesetResult::ABORTED_BECAUSE_SENTINEL_FILE_PRESENT);
-     return IndexedRulesetVersion(kSafeBrowsingFilterTag);
    }
  
    if (!sentinel_file.Create()) {
@@ -1695,7 +1708,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_CREATING_SENTINEL_FILE);
      return IndexedRulesetVersion(kSafeBrowsingFilterTag);
-@@ -311,6 +331,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -311,6 +328,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
  
    RulesetIndexer indexer;
    if (!(*g_index_ruleset_func)(&unindexed_ruleset_stream_generator, &indexer)) {
@@ -1703,7 +1716,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_PARSING_UNINDEXED_RULESET);
      return IndexedRulesetVersion(kSafeBrowsingFilterTag);
-@@ -328,8 +349,12 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -328,8 +346,12 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
        WriteRuleset(indexed_ruleset_version_dir,
                     unindexed_ruleset_info.license_path, indexer.data());
    RecordIndexAndWriteRulesetResult(result);
@@ -1717,7 +1730,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
  
    DCHECK(indexed_version.IsValid());
    return indexed_version;
-@@ -449,6 +474,7 @@ void RulesetService::IndexAndStoreRuleset(
+@@ -449,6 +471,7 @@ void RulesetService::IndexAndStoreRuleset(
  void RulesetService::OnWrittenRuleset(WriteRulesetCallback result_callback,
                                        const IndexedRulesetVersion& version) {
    DCHECK(!result_callback.is_null());
@@ -1725,7 +1738,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
    if (!version.IsValid())
      return;
    version.SaveToPrefs(local_state_);
-@@ -461,7 +487,6 @@ void RulesetService::OpenAndPublishRuleset(
+@@ -461,7 +484,6 @@ void RulesetService::OpenAndPublishRuleset(
        IndexedRulesetLocator::GetRulesetDataFilePath(
            IndexedRulesetLocator::GetSubdirectoryPathForVersion(
                indexed_ruleset_base_dir_, version));
@@ -1945,15 +1958,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 diff --git a/components/subresource_filter/core/browser/verified_ruleset_dealer.cc b/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
 --- a/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
 +++ b/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
-@@ -11,6 +11,7 @@
- #include "base/functional/bind.h"
- #include "base/functional/callback_helpers.h"
- #include "base/location.h"
-+#include "base/logging.h"
- #include "base/notreached.h"
- #include "base/task/sequenced_task_runner.h"
- #include "base/trace_event/trace_event.h"
-@@ -38,6 +39,9 @@ RulesetFilePtr VerifiedRulesetDealer::OpenAndSetRulesetFile(
+@@ -38,6 +38,9 @@ RulesetFilePtr VerifiedRulesetDealer::OpenAndSetRulesetFile(
    TRACE_EVENT1(TRACE_DISABLED_BY_DEFAULT("loading"),
                 "VerifiedRulesetDealer::OpenAndSetRulesetFile", "file_valid",
                 file->IsValid());
@@ -1974,15 +1979,14 @@ diff --git a/components/subresource_filter/core/common/indexed_ruleset.cc b/comp
  #include "base/metrics/histogram_macros.h"
  #include "base/trace_event/trace_event.h"
  #include "components/subresource_filter/core/common/first_party_origin.h"
-@@ -36,7 +37,10 @@ VerifyStatus GetVerifyStatus(base::span<const uint8_t> buffer,
+@@ -36,7 +37,9 @@ VerifyStatus GetVerifyStatus(base::span<const uint8_t> buffer,
    // least once.  The verifier detects a subset of the errors detected by the
    // checksum, and is unneeded once expected_checksum is consistently nonzero.
    flatbuffers::Verifier verifier(buffer.data(), buffer.size());
 -  if (expected_checksum != 0 && expected_checksum != LocalGetChecksum(buffer)) {
 +  int local_checksum = LocalGetChecksum(buffer);
 +  LOG(INFO) << "GetVerifyStatus: expected checksum = 0x" << std::hex << expected_checksum << ", local checksum = 0x" << std::hex << local_checksum;
-+  if (expected_checksum != 0 &&
-+      expected_checksum != local_checksum) {
++  if (expected_checksum != 0 && expected_checksum != local_checksum) {
      return flat::VerifyIndexedRulesetBuffer(verifier)
                 ? VerifyStatus::kChecksumFailVerifierPass
                 : VerifyStatus::kChecksumFailVerifierFail;
