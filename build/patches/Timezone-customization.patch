@@ -6,7 +6,7 @@ Allow specifying a custom timezone, or using a random one.
 
 See also: https://github.com/bromite/bromite/wiki/TimezoneOverride
 
-Original-License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Require: Content-settings-infrastructure.patch
 Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
@@ -18,8 +18,8 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../WebsitePreferenceBridge.java              |  10 +
  ...BromiteTimezoneOverrideContentSetting.java | 148 +++++++++++++
  .../android/website_preference_bridge.cc      |  16 ++
- .../bromite_content_settings/timezone.grdp    |  42 ++++
- .../timezone_override.inc                     |  23 ++
+ .../bromite_content_settings/timezone.grdp    |  39 ++++
+ .../timezone_override.inc                     |  24 +++
  .../browser/content_settings_pref_provider.cc |  16 ++
  .../browser/content_settings_pref_provider.h  |   4 +
  .../core/browser/content_settings_utils.cc    |   5 +
@@ -31,9 +31,9 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../common/content_settings_mojom_traits.cc   |   3 +-
  .../common/content_settings_mojom_traits.h    |   5 +
  .../content_settings/core/common/pref_names.h |   3 +
- .../renderer/content_settings_agent_impl.cc   |  76 +++++++
+ .../renderer/content_settings_agent_impl.cc   |  81 +++++++-
  .../renderer/content_settings_agent_impl.h    |  11 +
- 22 files changed, 679 insertions(+), 1 deletion(-)
+ 22 files changed, 681 insertions(+), 2 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -468,7 +468,7 @@ new file mode 100644
 +            /*defaultDisabledValue*/ getDefaultDisabledValue(),
 +            /*enabledSummary*/ R.string.website_settings_category_timezone_override_custom,
 +            /*disabledSummary*/ R.string.website_settings_category_timezone_override_random,
-+            /*summaryOverrideForScreenReader*/ R.string.website_settings_category_timezone_override_a11y);
++            /*summaryOverrideForScreenReader*/ 0);
 +    }
 +
 +    @Override
@@ -584,7 +584,7 @@ diff --git a/components/browser_ui/strings/bromite_content_settings/timezone.grd
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/strings/bromite_content_settings/timezone.grdp
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,39 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
 +  <message name="IDS_SITE_SETTINGS_TIMEZONE_OVERRIDE_TITLE" desc="Description of the timezone override content setting page title.">
@@ -611,9 +611,6 @@ new file mode 100644
 +  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM" desc="Summary text for random timezone override." formatter_data="android_java">
 +    Random (for each page)
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_A11Y" desc="The screen reader announcement describing a toggle with two states, controlling whether sites will use the system/custom timezone or a random timezone. It is important to keep this string as two full sentences terminated by a period." formatter_data="android_java">
-+    When on, sites will use the system or custom timezone. When off, sites will use a random timezone.
-+  </message>
 +  <message name="IDS_WEBSITE_SETTINGS_SELECT_BUTTON" desc="Primary button text for choosing a timezone from a list." formatter_data="android_java">
 +    Choose Timezone...
 +  </message>
@@ -631,7 +628,7 @@ diff --git a/components/content_settings/core/browser/bromite_content_settings/t
 new file mode 100644
 --- /dev/null
 +++ b/components/content_settings/core/browser/bromite_content_settings/timezone_override.inc
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,24 @@
 +  Register(ContentSettingsType::TIMEZONE_OVERRIDE, "timezone-override", CONTENT_SETTING_ALLOW,
 +           WebsiteSettingsInfo::SYNCABLE,
 +           /*allowlisted_schemes=*/{},
@@ -652,6 +649,7 @@ new file mode 100644
 +    .set_description_ui(IDS_WEBSITE_SETTINGS_TIMEOVERRIDE_INFO)
 +    .set_allowed_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_ALLOWED)
 +    .set_blocked_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM)
++    .set_ask_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_CUSTOM)
 +    .set_allowed_exceptions_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_ALLOWED)
 +    .set_blocked_exceptions_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM)
 +    .set_mid_sentence_ui(IDS_SITE_SETTINGS_TIMEZONE_OVERRIDE_TITLE);
@@ -842,7 +840,26 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
  #include "components/content_settings/core/common/content_settings.h"
  #include "components/content_settings/core/common/content_settings.mojom.h"
  #include "components/content_settings/core/common/content_settings_pattern.h"
-@@ -426,4 +428,78 @@ bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
+@@ -369,6 +371,7 @@ bool ContentSettingsAgentImpl::AllowScript(bool enabled_per_settings) {
+   allow = allow || IsAllowlistedForContentSettings();
+ 
+   cached_script_permissions_[frame] = allow;
++  if (allow) UpdateOverrides();
+   return allow;
+ }
+ 
+@@ -384,7 +387,9 @@ bool ContentSettingsAgentImpl::AllowScriptFromSource(
+         content_setting_rules_->script_rules, script_url);
+     allow = setting != CONTENT_SETTING_BLOCK;
+   }
+-  return allow || IsAllowlistedForContentSettings();
++  allow = allow || IsAllowlistedForContentSettings();
++  if (allow) UpdateOverrides();
++  return allow;
+ }
+ 
+ bool ContentSettingsAgentImpl::AllowReadFromClipboard() {
+@@ -484,4 +489,78 @@ bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
    return false;
  }
  
@@ -936,7 +953,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
  namespace blink {
  class WebFrame;
  class WebURL;
-@@ -168,6 +173,12 @@ class ContentSettingsAgentImpl
+@@ -176,6 +181,12 @@ class ContentSettingsAgentImpl
    std::unique_ptr<Delegate> delegate_;
  
    mojo::AssociatedReceiverSet<mojom::ContentSettingsAgent> receivers_;

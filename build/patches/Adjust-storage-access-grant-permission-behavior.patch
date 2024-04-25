@@ -1,0 +1,54 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 9 Jan 2023 12:02:05 +0000
+Subject: Adjust storage access grant permission behavior
+
+Relevant new code copied directly from uazo/cromite's patch:
+Partitioning-all-cookies-by-top-frame-domain.patch
+
+kPermissionStorageAccessAPI was removed upstream.
+It was here: chrome://flags#permission-storage-access-api
+
+It defaulted to enabled, except in Cromite, where it was disabled.
+When it was disabled, sites could not even request embedded content
+access. That can apparently still be archieved by turning it off via
+Site Settings > Embedded Content. This change appears to make the
+behavior obey the user's preference rather than subvert it under
+some conditions.
+
+More research might be warranted. Brave reimplemented the flag,
+but we are not doing that, currently.
+See brave-core 3f54a899a3f748640848123aff69da4f9a94ba0
+
+Test: https://senglehardt.com/test/storage_access - request button.
+
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+Co-authored-by: Tommy Webb <tommy@calyxinstitute.org>
+Change-Id: If0cc944f25ed87df69c91191eeb7ba1db7239383
+---
+ .../storage_access_grant_permission_context.cc       | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/chrome/browser/storage_access_api/storage_access_grant_permission_context.cc b/chrome/browser/storage_access_api/storage_access_grant_permission_context.cc
+--- a/chrome/browser/storage_access_api/storage_access_grant_permission_context.cc
++++ b/chrome/browser/storage_access_api/storage_access_grant_permission_context.cc
+@@ -319,6 +319,18 @@ void StorageAccessGrantPermissionContext::CheckForAutoGrantOrAutoDenial(
+     permissions::PermissionRequestData request_data,
+     permissions::BrowserPermissionCallback callback,
+     net::FirstPartySetMetadata metadata) {
++  if ((true)) {
++    // don't use implicit grants or heuristic, ask to user
++    PermissionContextBase::DecidePermission(std::move(request_data),
++                                            std::move(callback));
++    // to deny:
++    // NotifyPermissionSetInternal(request_data.id, request_data.requesting_origin,
++    //                             request_data.embedding_origin,
++    //                             std::move(callback),
++    //                             /*persist=*/true, CONTENT_SETTING_BLOCK,
++    //                             RequestOutcome::kDeniedByFirstPartySet);
++    return;
++  }
+   if (metadata.AreSitesInSameFirstPartySet()) {
+     switch (metadata.top_frame_entry()->site_type()) {
+       case net::SiteType::kPrimary:
+-- 
+

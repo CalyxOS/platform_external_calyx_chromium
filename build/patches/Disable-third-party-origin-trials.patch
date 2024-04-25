@@ -9,13 +9,14 @@ Change-Id: I3e5ec3477997954b99b12f7d5c7a475b2ff45472
  .../origin_trials/origin_trial_policy_impl.cc   |  7 ++++---
  .../origin_trials/origin_trial_policy_impl.h    |  2 +-
  .../browser/renderer_host/navigation_request.cc |  1 -
+ .../origin_trial_state_host_impl.cc             |  9 ---------
  content/renderer/render_frame_impl.cc           | 17 +----------------
  .../shell/common/shell_origin_trial_policy.cc   | 10 ++++------
  .../origin_trials/trial_token_validator.cc      |  1 +
  .../renderer/core/loader/document_loader.cc     | 17 -----------------
  .../blink/renderer/core/loader/http_equiv.cc    |  2 +-
  .../core/origin_trials/origin_trial_context.cc  |  6 ++++--
- 10 files changed, 16 insertions(+), 48 deletions(-)
+ 11 files changed, 16 insertions(+), 57 deletions(-)
 
 diff --git a/android_webview/common/aw_content_client.cc b/android_webview/common/aw_content_client.cc
 --- a/android_webview/common/aw_content_client.cc
@@ -84,6 +85,25 @@ diff --git a/content/browser/renderer_host/navigation_request.cc b/content/brows
  }
  
  network::CrossOriginEmbedderPolicy
+diff --git a/content/browser/renderer_host/origin_trial_state_host_impl.cc b/content/browser/renderer_host/origin_trial_state_host_impl.cc
+--- a/content/browser/renderer_host/origin_trial_state_host_impl.cc
++++ b/content/browser/renderer_host/origin_trial_state_host_impl.cc
+@@ -99,15 +99,6 @@ void OriginTrialStateHostImpl::ApplyFeatureDiffForOriginTrial(
+           feature_pair.second->tokens;
+     }
+   }
+-  // Apply the diff changes to the mutable RuntimeFeatureStateReadContext.
+-  RuntimeFeatureStateDocumentData* document_data =
+-      RuntimeFeatureStateDocumentData::GetForCurrentDocument(
+-          &render_frame_host());
+-  CHECK(document_data);
+-  document_data
+-      ->GetMutableRuntimeFeatureStateReadContext(
+-          base::PassKey<OriginTrialStateHostImpl>())
+-      .ApplyFeatureChange(validated_features, possible_third_party_features);
+ }
+ 
+ void OriginTrialStateHostImpl::EnablePersistentTrial(
 diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_frame_impl.cc
 --- a/content/renderer/render_frame_impl.cc
 +++ b/content/renderer/render_frame_impl.cc
