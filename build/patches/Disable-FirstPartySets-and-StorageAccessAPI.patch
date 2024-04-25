@@ -5,10 +5,57 @@ Subject: Disable FirstPartySets and StorageAccessAPI
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 Change-Id: Id8c5b554fb0ada619f8fddeebd56175aaa94b22f
 ---
- components/privacy_sandbox/privacy_sandbox_prefs.cc     | 2 +-
- components/privacy_sandbox/tracking_protection_prefs.cc | 4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ .../first_party_sets/first_party_sets_navigation_throttle.cc  | 2 +-
+ .../first_party_sets/first_party_sets_policy_service.cc       | 3 ++-
+ .../browser/privacy_sandbox/privacy_sandbox_service_impl.cc   | 2 +-
+ components/privacy_sandbox/privacy_sandbox_prefs.cc           | 2 +-
+ components/privacy_sandbox/tracking_protection_prefs.cc       | 4 ++--
+ 5 files changed, 7 insertions(+), 6 deletions(-)
 
+diff --git a/chrome/browser/first_party_sets/first_party_sets_navigation_throttle.cc b/chrome/browser/first_party_sets/first_party_sets_navigation_throttle.cc
+--- a/chrome/browser/first_party_sets/first_party_sets_navigation_throttle.cc
++++ b/chrome/browser/first_party_sets/first_party_sets_navigation_throttle.cc
+@@ -77,7 +77,7 @@ FirstPartySetsNavigationThrottle::MaybeCreateNavigationThrottle(
+   // The `service` might be null for some irregular profiles.
+   // TODO(https://crbug.com/1348572): regular profiles and guest sessions
+   // aren't mutually exclusive on ChromeOS.
+-  if (!profile->IsRegularProfile() || profile->IsGuestSession())
++  if (((true)) || !profile->IsRegularProfile() || profile->IsGuestSession())
+     return nullptr;
+ 
+   FirstPartySetsPolicyService* service =
+diff --git a/chrome/browser/first_party_sets/first_party_sets_policy_service.cc b/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
+--- a/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
++++ b/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
+@@ -58,6 +58,7 @@ const base::Value::Dict* GetOverridesPolicyForProfile(
+ }
+ 
+ ServiceState GetServiceState(Profile* profile, bool pref_enabled) {
++  if ((true)) return ServiceState::kPermanentlyDisabled;
+   if (profile->IsSystemProfile() || profile->IsGuestSession() ||
+       profile->IsOffTheRecord()) {
+     return ServiceState::kPermanentlyDisabled;
+@@ -107,7 +108,7 @@ void FirstPartySetsPolicyService::Init() {
+       profile, profile->GetPrefs() &&
+                    profile->GetPrefs()->GetBoolean(
+                        prefs::kPrivacySandboxRelatedWebsiteSetsEnabled));
+-
++  service_state_ = ServiceState::kPermanentlyDisabled;
+   if (service_state_ == ServiceState::kPermanentlyDisabled) {
+     OnReadyToNotifyDelegates(net::FirstPartySetsContextConfig(),
+                              net::FirstPartySetsCacheFilter());
+diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
+--- a/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
++++ b/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
+@@ -419,7 +419,7 @@ bool PrivacySandboxServiceImpl::IsRestrictedNoticeEnabled() {
+ void PrivacySandboxServiceImpl::SetFirstPartySetsDataAccessEnabled(
+     bool enabled) {
+   pref_service_->SetBoolean(prefs::kPrivacySandboxRelatedWebsiteSetsEnabled,
+-                            enabled);
++                            false);
+ }
+ 
+ bool PrivacySandboxServiceImpl::IsFirstPartySetsDataAccessEnabled() const {
 diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
 --- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
@@ -17,7 +64,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/pr
        prefs::kPrivacySandboxFirstPartySetsDataAccessAllowedInitialized, false);
    registry->RegisterBooleanPref(
 -      prefs::kPrivacySandboxRelatedWebsiteSetsEnabled, true,
-+      prefs::kPrivacySandboxRelatedWebsiteSetsEnabled, false,
++      prefs::kPrivacySandboxRelatedWebsiteSetsEnabled, false,  // must be disabled
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
  
    registry->RegisterBooleanPref(prefs::kPrivacySandboxTopicsConsentGiven,

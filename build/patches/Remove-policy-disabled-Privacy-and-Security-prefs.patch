@@ -15,7 +15,7 @@ Change-Id: Ic86dc8dac25b4e9bc89ab73952ec997ce517395b
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -54,11 +54,6 @@ found in the LICENSE file.
+@@ -55,11 +55,6 @@ found in the LICENSE file.
          android:key="cromite_flags"
          android:title="@string/cromite_flags_title"
          app:url="@string/cromite_flags_url" />
@@ -27,7 +27,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      <org.chromium.chrome.browser.incognito.reauth.IncognitoReauthSettingSwitchPreference
          android:key="incognito_lock"
          android:title="@string/settings_incognito_tab_lock_title"
-@@ -68,11 +63,6 @@ found in the LICENSE file.
+@@ -69,11 +64,6 @@ found in the LICENSE file.
      <PreferenceCategory
          android:key="security_section"
          android:title="@string/security_section_title" />
@@ -39,18 +39,18 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
          android:key="https_first_mode"
          android:title="@string/settings_https_first_mode_title"
-@@ -89,10 +79,6 @@ found in the LICENSE file.
+@@ -90,10 +80,6 @@ found in the LICENSE file.
            android:title="@string/improve_search_suggestions_title"
            android:summary="@string/improve_search_suggestions_summary"
            android:persistent="false"/>
 -      <org.chromium.components.browser_ui.settings.ChromeBasePreference
 -          android:key="contextual_search"
 -          android:title="@string/contextual_search_title"
--          android:fragment="org.chromium.chrome.browser.contextualsearch.ContextualSearchPreferenceFragment"/>
+-          android:fragment="org.chromium.chrome.browser.contextualsearch.ContextualSearchSettingsFragment"/>
      </PreferenceCategory>
      <Preference
          android:key="phone_as_a_security_key"
-@@ -103,8 +89,4 @@ found in the LICENSE file.
+@@ -104,8 +90,4 @@ found in the LICENSE file.
          android:key="can_make_payment"
          android:title="@string/can_make_payment_title"
          android:summary="@string/settings_can_make_payment_toggle_label" />
@@ -62,7 +62,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -157,31 +157,12 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -159,31 +159,12 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
          mIncognitoLockSettings = new IncognitoLockSettings(incognitoReauthPreference, getProfile());
          mIncognitoLockSettings.setUpIncognitoReauthPreference(getActivity());
  
@@ -87,14 +87,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  
 -        mContextualSearch = findPreference(PREF_CONTEXTUAL_SEARCH);
 -        boolean isContextualSearchEnabled =
--                !ContextualSearchManager.isContextualSearchDisabled();
+-                !ContextualSearchManager.isContextualSearchDisabled(getProfile());
 -        mContextualSearch.setSummary(
 -                isContextualSearchEnabled ? R.string.text_on : R.string.text_off);
 -
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -222,9 +203,6 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -224,9 +205,6 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
          Preference secureDnsPref = findPreference(PREF_SECURE_DNS);
          secureDnsPref.setVisible(SecureDnsSettings.isUiEnabled());
  

@@ -7,8 +7,9 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 Change-Id: I7fe280deea7a4fae79b7099cc602f49cad81991c
 ---
  components/media_device_salt/media_device_salt_service.cc    | 3 +++
+ content/browser/media/media_devices_util.cc                  | 3 +++
  content/browser/renderer_host/media/media_devices_manager.cc | 5 +++++
- 2 files changed, 8 insertions(+)
+ 3 files changed, 11 insertions(+)
 
 diff --git a/components/media_device_salt/media_device_salt_service.cc b/components/media_device_salt/media_device_salt_service.cc
 --- a/components/media_device_salt/media_device_salt_service.cc
@@ -23,6 +24,19 @@ diff --git a/components/media_device_salt/media_device_salt_service.cc b/compone
  namespace {
  
  scoped_refptr<base::SequencedTaskRunner> CreateDatabaseTaskRunner() {
+diff --git a/content/browser/media/media_devices_util.cc b/content/browser/media/media_devices_util.cc
+--- a/content/browser/media/media_devices_util.cc
++++ b/content/browser/media/media_devices_util.cc
+@@ -166,6 +166,9 @@ blink::WebMediaDeviceInfo TranslateMediaDeviceInfo(
+     bool has_permission,
+     const MediaDeviceSaltAndOrigin& salt_and_origin,
+     const blink::WebMediaDeviceInfo& device_info) {
++  // If device permission is not granted by the user,
++  // media-device enumeration will provide at most one device per type and the
++  // device IDs will not be available.
+   if (has_permission) {
+     return blink::WebMediaDeviceInfo(
+         GetHMACForRawMediaDeviceID(salt_and_origin, device_info.device_id),
 diff --git a/content/browser/renderer_host/media/media_devices_manager.cc b/content/browser/renderer_host/media/media_devices_manager.cc
 --- a/content/browser/renderer_host/media/media_devices_manager.cc
 +++ b/content/browser/renderer_host/media/media_devices_manager.cc

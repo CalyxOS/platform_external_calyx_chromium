@@ -10,7 +10,6 @@ See BromiteCustomContentSetting_README.md for more information.
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Require: bromite-build-utils.patch
-
 Change-Id: I246d2dc343ebe5150e7eb6ac0988cce0f3bf97e7
 ---
  .../ChromeSiteSettingsDelegate.java           |  17 +-
@@ -29,24 +28,24 @@ Change-Id: I246d2dc343ebe5150e7eb6ac0988cce0f3bf97e7
  chrome/browser/ui/BUILD.gn                    |   1 +
  .../controls/rich_controls_container_view.h   |   7 +
  .../ui/views/page_info/page_info_main_view.cc |  28 +-
- .../views/page_info/page_info_view_factory.cc |  19 +
- .../views/page_info/page_info_view_factory.h  |   3 +
+ .../views/page_info/page_info_view_factory.cc |  20 +
+ .../views/page_info/page_info_view_factory.h  |   5 +
  .../page_info/permission_toggle_row_view.cc   | 163 ++++++-
  .../page_info/permission_toggle_row_view.h    |  18 +-
  .../settings_localized_strings_provider.cc    |  54 +++
- .../ui/webui/settings/site_settings_helper.cc |  33 +-
+ .../ui/webui/settings/site_settings_helper.cc |  46 +-
  .../browser_ui/settings/android/BUILD.gn      |   1 +
  .../preference_spinner_single_widget.xml      |  92 ++++
  .../settings/SpinnerPreference.java           |  24 +
  .../browser_ui/site_settings/android/BUILD.gn |  18 +
  .../site_settings/AllSiteSettings.java        |   5 +-
  .../BromiteCustomContentSetting.java          | 155 +++++++
- .../BromiteCustomContentSettingImpl.java      | 409 ++++++++++++++++++
+ .../BromiteCustomContentSettingImpl.java      | 411 ++++++++++++++++++
  ...tomTriStateSiteSettingsPreferenceImpl.java |  24 +
- .../ContentSettingsResources.java             |  17 +-
+ .../ContentSettingsResources.java             |  16 +-
  .../site_settings/SingleCategorySettings.java |  50 ++-
  .../site_settings/SingleWebsiteSettings.java  |  54 ++-
- .../site_settings/SiteSettings.java           |  30 +-
+ .../site_settings/SiteSettings.java           |  31 +-
  .../site_settings/SiteSettingsCategory.java   |  18 +-
  .../site_settings/SiteSettingsDelegate.java   |   2 +
  .../TriStateSiteSettingsPreference.java       |  13 +-
@@ -72,6 +71,7 @@ Change-Id: I246d2dc343ebe5150e7eb6ac0988cce0f3bf97e7
  .../core/common/content_settings.mojom        |   6 +
  .../common/content_settings_mojom_traits.cc   |  12 +-
  .../common/content_settings_mojom_traits.h    |  24 +
+ .../core/common/content_settings_types.mojom  |   2 +
  .../renderer/content_settings_agent_impl.cc   |  33 ++
  .../renderer/content_settings_agent_impl.h    |   5 +
  .../PageInfoPermissionsController.java        |   9 +
@@ -83,7 +83,7 @@ Change-Id: I246d2dc343ebe5150e7eb6ac0988cce0f3bf97e7
  .../platform/web_content_settings_client.h    |   5 +
  .../execution_context/execution_context.cc    |  16 +
  .../execution_context/execution_context.h     |   5 +
- 70 files changed, 1824 insertions(+), 81 deletions(-)
+ 71 files changed, 1836 insertions(+), 89 deletions(-)
  create mode 100644 components/browser_ui/settings/android/java/res/layout/preference_spinner_single_widget.xml
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSetting.java
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
@@ -803,21 +803,22 @@ diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrom
  #include "components/page_info/core/features.h"
  #include "components/page_info/core/proto/about_this_site_metadata.pb.h"
  #include "components/page_info/page_info.h"
-@@ -256,7 +258,13 @@ const ui::ImageModel PageInfoViewFactory::GetPermissionIcon(
+@@ -256,7 +258,14 @@ const ui::ImageModel PageInfoViewFactory::GetPermissionIcon(
    ContentSetting setting = info.setting == CONTENT_SETTING_DEFAULT
                                 ? info.default_setting
                                 : info.setting;
-+  return GetPermissionIcon(info, setting);
++  return GetPermissionIcon(info, blocked_on_system_level, setting);
 +}
  
 +// static
 +const ui::ImageModel PageInfoViewFactory::GetPermissionIcon(
 +    const PageInfo::PermissionInfo& info,
++    bool blocked_on_system_level,
 +    ContentSetting setting) {
    // For guard content settings and Automatic Picture-in-Picture, ASK is treated
    // as an "on" state.
    const bool show_blocked_badge =
-@@ -521,6 +529,17 @@ const ui::ImageModel PageInfoViewFactory::GetPermissionIcon(
+@@ -521,6 +530,17 @@ const ui::ImageModel PageInfoViewFactory::GetPermissionIcon(
        icon = &kFullscreenIcon;
        break;
      default:
@@ -838,12 +839,14 @@ diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrom
 diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.h b/chrome/browser/ui/views/page_info/page_info_view_factory.h
 --- a/chrome/browser/ui/views/page_info/page_info_view_factory.h
 +++ b/chrome/browser/ui/views/page_info/page_info_view_factory.h
-@@ -87,6 +87,9 @@ class PageInfoViewFactory {
+@@ -87,6 +87,11 @@ class PageInfoViewFactory {
        const PageInfo::PermissionInfo& info,
        bool blocked_on_system_level = false);
  
 +  static const ui::ImageModel GetPermissionIcon(
-+      const PageInfo::PermissionInfo& info, ContentSetting setting);
++      const PageInfo::PermissionInfo& info,
++      bool blocked_on_system_level,
++      ContentSetting setting);
 +
    // Returns the icon for the given object |info|.
    static const ui::ImageModel GetChosenObjectIcon(
@@ -1206,6 +1209,27 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
  #include "components/content_settings/core/common/content_settings.h"
  #include "components/content_settings/core/common/content_settings_pattern.h"
  #include "components/content_settings/core/common/content_settings_utils.h"
+@@ -220,13 +222,13 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
+     {ContentSettingsType::DIRECT_SOCKETS, nullptr},
+ };
+ 
+-static_assert(
+-    std::size(kContentSettingsTypeGroupNames) ==
+-        // Add one since the sequence is kMinValue = -1, 0, ..., kMaxValue
+-        1 + static_cast<int32_t>(ContentSettingsType::kMaxValue) -
+-            static_cast<int32_t>(ContentSettingsType::kMinValue),
+-    "kContentSettingsTypeGroupNames should have the correct number "
+-    "of elements");
++// static_assert(
++//     std::size(kContentSettingsTypeGroupNames) ==
++//         // Add one since the sequence is kMinValue = -1, 0, ..., kMaxValue
++//         1 + static_cast<int32_t>(ContentSettingsType::kMaxValue) -
++//             static_cast<int32_t>(ContentSettingsType::kMinValue),
++//     "kContentSettingsTypeGroupNames should have the correct number "
++//     "of elements");
+ 
+ struct SiteSettingSourceStringMapping {
+   SiteSettingSource source;
 @@ -476,6 +478,13 @@ bool HasRegisteredGroupName(ContentSettingsType type) {
        return true;
      }
@@ -1254,7 +1278,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
    NOTREACHED() << static_cast<int32_t>(type)
                 << " is not a recognized content settings type.";
    return base::StringPiece();
-@@ -594,6 +615,14 @@ std::vector<ContentSettingsType> GetVisiblePermissionCategories(
+@@ -594,6 +615,13 @@ std::vector<ContentSettingsType> GetVisiblePermissionCategories(
        base_types->push_back(ContentSettingsType::SPEAKER_SELECTION);
      }
  
@@ -1265,7 +1289,6 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
 +        base_types->push_back(cs->type());
 +      }
 +    }
-+
      initialized = true;
    }
  
@@ -1653,7 +1676,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
-@@ -0,0 +1,409 @@
+@@ -0,0 +1,411 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1954,8 +1977,10 @@ new file mode 100644
 +
 +        Context styledContext = settings.getPreferenceManager().getContext();
 +        for (BromiteCustomContentSetting cs : mItemList) {
++            String preferenceKey = cs.getPreferenceKey();
++            if (settings.findPreference(preferenceKey) != null) continue;
 +            ChromeBasePreference pref = new ChromeBasePreference(styledContext);
-+            pref.setKey(cs.getPreferenceKey());
++            pref.setKey(preferenceKey);
 +            pref.setFragment(SingleCategorySettings.class.getCanonicalName());
 +            preferenceScreen.addPreference(pref);
 +        }
@@ -2122,14 +2147,13 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          assert false; // NOTREACHED
          return null;
      }
-@@ -590,6 +592,15 @@ public class ContentSettingsResources {
+@@ -590,6 +592,14 @@ public class ContentSettingsResources {
          return getResourceItem(contentType, null).getDefaultDisabledValue();
      }
  
-+    public static int getCategorySummary(
-+            @ContentSettingsType.EnumType int contentType,
-+            @Nullable @ContentSettingValues int value,
-+            boolean isOneTime) {
++    public static int getCategorySummary(int contentType,
++                                         @Nullable @ContentSettingValues int value,
++                                         boolean isOneTime) {
 +        int result = BromiteCustomContentSettingImpl.getCategorySummary(contentType, value);
 +        if (result != 0) return result;
 +        return getCategorySummary(value, isOneTime);
@@ -2138,7 +2162,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      /**
       * Returns the string resource id for a given ContentSetting to show with a permission category.
       *
-@@ -752,6 +763,8 @@ public class ContentSettingsResources {
+@@ -752,6 +762,8 @@ public class ContentSettingsResources {
       *         Blocked states, in that order.
       */
      public static int[] getTriStateSettingDescriptionIDs(int contentType) {
@@ -2427,7 +2451,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              Preference p = findPreference(prefCategory);
              int contentType = SiteSettingsCategory.contentSettingsType(prefCategory);
              // p can be null if the Preference was removed in configurePreferences.
-@@ -142,19 +143,22 @@ public class SiteSettings extends BaseSiteSettingsFragment
+@@ -142,19 +143,21 @@ public class SiteSettings extends BaseSiteSettingsFragment
              } else if (Type.ZOOM == prefCategory) {
                  // Don't want to set a summary for Zoom because we don't want any message to display
                  // under the Zoom row on site settings.
@@ -2442,10 +2466,10 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 -                                ? ContentSettingsResources.getDefaultEnabledValue(contentType)
 -                                : ContentSettingsResources.getDefaultDisabledValue(contentType);
 -                p.setSummary(
-+                int summary =
-                         ContentSettingsResources.getCategorySummary(
+-                        ContentSettingsResources.getCategorySummary(
 -                                defaultForToggle, /* isOneTime= */ false));
-+                                contentType, setting, /* isOneTime */ false);
++                int summary = ContentSettingsResources.getCategorySummary(
++                                    contentType, setting, /* isOneTime= */ false);
 +                if (summary != 0) {
 +                    p.setSummary(summary);
 +                } else {
@@ -3063,6 +3087,16 @@ diff --git a/components/content_settings/core/common/content_settings_mojom_trai
    static const std::vector<ContentSettingPatternSource>& image_rules(
        const RendererContentSettingRules& r) {
      return r.image_rules;
+diff --git a/components/content_settings/core/common/content_settings_types.mojom b/components/content_settings/core/common/content_settings_types.mojom
+--- a/components/content_settings/core/common/content_settings_types.mojom
++++ b/components/content_settings/core/common/content_settings_types.mojom
+@@ -408,4 +408,6 @@ enum ContentSettingsType {
+   // Pointer Lock API allows a site to hide the cursor and have exclusive access
+   // to mouse inputs.
+   POINTER_LOCK,
++
++#include "components/content_settings/core/common/bromite_content_settings.inc"
+ };
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc

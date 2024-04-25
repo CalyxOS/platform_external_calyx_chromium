@@ -83,7 +83,7 @@ diff --git a/content/browser/network/cross_origin_embedder_policy_reporter.cc b/
          kType, context_url_, blink::mojom::ReportBody::New(std::move(list))));
    }
 +#if BUILDFLAG(ENABLE_REPORTING)
-+  const std::optional<std::string>& endpoint =
++  const absl::optional<std::string>& endpoint =
 +      report_only ? report_only_endpoint_ : endpoint_;
    if (endpoint) {
      base::Value::Dict body_to_pass;
@@ -378,14 +378,14 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
-@@ -38,6 +38,7 @@
+@@ -36,6 +36,7 @@
+ #include "base/time/time.h"
+ #include "base/unguessable_token.h"
  #include "build/build_config.h"
++#include "net/net_buildflags.h"
  #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
  #include "mojo/public/cpp/bindings/pending_receiver.h"
-+#include "net/net_buildflags.h"
  #include "services/metrics/public/cpp/ukm_source_id.h"
- #include "services/network/public/mojom/fetch_api.mojom-blink-forward.h"
- #include "third_party/blink/public/common/frame/frame_ad_evidence.h"
 @@ -661,8 +662,9 @@ class CORE_EXPORT LocalFrame final
    void FinishedScrollSequence();
  

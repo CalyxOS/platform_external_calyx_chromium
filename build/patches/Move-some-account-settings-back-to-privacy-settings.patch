@@ -30,7 +30,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 +      <org.chromium.components.browser_ui.settings.ChromeBasePreference
 +          android:key="contextual_search"
 +          android:title="@string/contextual_search_title"
-+          android:fragment="org.chromium.chrome.browser.contextualsearch.ContextualSearchPreferenceFragment"/>
++          android:fragment="org.chromium.chrome.browser.contextualsearch.ContextualSearchSettingsFragment"/>
 +    </PreferenceCategory>
      <Preference
          android:key="phone_as_a_security_key"
@@ -53,10 +53,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  /** Fragment to keep track of the all the privacy related preferences. */
  public class PrivacySettings extends ChromeBaseSettingsFragment
          implements Preference.OnPreferenceChangeListener {
-@@ -77,6 +85,16 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
-     @VisibleForTesting
-     static final String PREF_CLEAR_BROWSING_DATA_ADVANCED = "clear_browsing_data_advanced";
- 
+@@ -71,6 +79,16 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+     private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
+     private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
+     private static final String PREF_TRACKING_PROTECTION = "tracking_protection";
 +    // moved from SyncAndServicesSettings.java
 +    private static final String PREF_SERVICES_CATEGORY = "services_category";
 +    private static final String PREF_SEARCH_SUGGESTIONS = "search_suggestions";
@@ -67,9 +67,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +            ChromeSharedPreferences.getInstance();
 +
 +    private ManagedPreferenceDelegate mManagedPreferenceDelegate;
-     private IncognitoLockSettings mIncognitoLockSettings;
+     private static final String PREF_IP_PROTECTION = "ip_protection";
+     @VisibleForTesting static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
  
-     @Override
 @@ -156,6 +174,16 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
  
          setHasOptionsMenu(true);
@@ -80,7 +80,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +
 +        mContextualSearch = findPreference(PREF_CONTEXTUAL_SEARCH);
 +        boolean isContextualSearchEnabled =
-+                !ContextualSearchManager.isContextualSearchDisabled();
++                !ContextualSearchManager.isContextualSearchDisabled(getProfile());
 +        mContextualSearch.setSummary(
 +                isContextualSearchEnabled ? R.string.text_on : R.string.text_off);
 +
