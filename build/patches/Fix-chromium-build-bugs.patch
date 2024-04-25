@@ -4,21 +4,20 @@ Subject: Fix chromium build bugs
 
 because of
 https://bugs.chromium.org/p/chromium/issues/detail?id=1491776#c10
-
 Change-Id: I9afc6e66b4ab03ccf33ec9b73dcb4e821906da07
 ---
- BUILD.gn                                         |  1 -
- .../navigation_predictor_metrics_document_data.h |  2 ++
- chrome/browser/safe_browsing/BUILD.gn            |  1 +
- .../omnibox/browser/autocomplete_classifier.cc   |  4 ++--
- .../omnibox/browser/omnibox_field_trial.cc       |  4 ++--
- .../phishing_classifier/phishing_classifier.cc   |  2 +-
- .../phishing_image_embedder.cc                   | 16 ++--------------
- content/browser/browser_interface_binders.cc     |  1 +
- crypto/BUILD.gn                                  |  3 +++
- net/BUILD.gn                                     |  1 +
- third_party/libevent/BUILD.gn                    |  2 ++
- 11 files changed, 17 insertions(+), 20 deletions(-)
+ BUILD.gn                                           |  1 -
+ .../chrome_browsing_data_model_delegate.cc         |  1 +
+ .../navigation_predictor_metrics_document_data.h   |  2 ++
+ chrome/browser/safe_browsing/BUILD.gn              |  1 +
+ .../omnibox/browser/autocomplete_classifier.cc     |  4 ++--
+ components/omnibox/browser/omnibox_field_trial.cc  |  4 ++--
+ .../phishing_classifier/phishing_image_embedder.cc | 14 +++-----------
+ content/browser/browser_interface_binders.cc       |  1 +
+ crypto/BUILD.gn                                    |  3 +++
+ net/BUILD.gn                                       |  1 +
+ third_party/libevent/BUILD.gn                      |  2 ++
+ 11 files changed, 18 insertions(+), 16 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
 --- a/BUILD.gn
@@ -31,6 +30,17 @@ diff --git a/BUILD.gn b/BUILD.gn
            "//android_webview/tools/sdk_sandbox",
            "//android_webview/tools/system_webview_shell",
            "//chrome/android:chrome_junit_tests",
+diff --git a/chrome/browser/browsing_data/chrome_browsing_data_model_delegate.cc b/chrome/browser/browsing_data/chrome_browsing_data_model_delegate.cc
+--- a/chrome/browser/browsing_data/chrome_browsing_data_model_delegate.cc
++++ b/chrome/browser/browsing_data/chrome_browsing_data_model_delegate.cc
+@@ -262,6 +262,7 @@ bool ChromeBrowsingDataModelDelegate::IsCookieDeletionDisabled(
+     auto* client = permissions::PermissionsClient::Get();
+     return client->IsCookieDeletionDisabled(profile_, url);
+   }
++  return false;
+ #endif
+   return false;
+ }
 diff --git a/chrome/browser/navigation_predictor/navigation_predictor_metrics_document_data.h b/chrome/browser/navigation_predictor/navigation_predictor_metrics_document_data.h
 --- a/chrome/browser/navigation_predictor/navigation_predictor_metrics_document_data.h
 +++ b/chrome/browser/navigation_predictor/navigation_predictor_metrics_document_data.h
@@ -85,26 +95,13 @@ diff --git a/components/omnibox/browser/omnibox_field_trial.cc b/components/omni
  }
  
  MLConfig& ScopedMLConfigForTesting::GetMLConfig() {
-diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phishing_classifier.cc b/components/safe_browsing/content/renderer/phishing_classifier/phishing_classifier.cc
---- a/components/safe_browsing/content/renderer/phishing_classifier/phishing_classifier.cc
-+++ b/components/safe_browsing/content/renderer/phishing_classifier/phishing_classifier.cc
-@@ -234,7 +234,7 @@ void PhishingClassifier::VisualExtractionFinished(bool success) {
-       *bitmap_, base::BindOnce(&PhishingClassifier::OnVisualTfLiteModelDone,
-                                weak_factory_.GetWeakPtr(), std::move(verdict)));
- #else
--  RunFailureCallback(Result::kVisualExtractionFailed);
-+  RunCallback(*verdict, Result::kSuccess);
- #endif
- }
- 
 diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc b/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
 --- a/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
 +++ b/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
-@@ -52,21 +52,9 @@ void PhishingImageEmbedder::BeginImageEmbedding(DoneCallback done_callback) {
- }
+@@ -53,17 +53,9 @@ void PhishingImageEmbedder::BeginImageEmbedding(DoneCallback done_callback) {
  
  void PhishingImageEmbedder::OnPlaybackDone(std::unique_ptr<SkBitmap> bitmap) {
--#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
 -  if (bitmap) {
 -    bitmap_ = std::move(bitmap);
 -    ScorerStorage::GetInstance()
@@ -116,14 +113,12 @@ diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phish
 -  } else {
 -    RunFailureCallback();
 -  }
--#else
 +  // (UAZO) removed due error:
 +  // no member named 'ApplyVisualTfLiteModelImageEmbedding' in 'safe_browsing::Scorer'
++  RunFailureCallback();
+ #else
    RunFailureCallback();
--#endif
- }
- 
- void PhishingImageEmbedder::CancelPendingImageEmbedding() {
+ #endif
 diff --git a/content/browser/browser_interface_binders.cc b/content/browser/browser_interface_binders.cc
 --- a/content/browser/browser_interface_binders.cc
 +++ b/content/browser/browser_interface_binders.cc

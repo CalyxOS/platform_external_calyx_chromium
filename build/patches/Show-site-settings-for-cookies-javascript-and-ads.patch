@@ -7,9 +7,11 @@ Avoid displaying info about intrusive ads
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: Ie13754b13dd6530aee34520a227497cdb97cea0e
 ---
- .../site_settings/SingleWebsiteSettings.java  | 59 ++++++++++---------
- .../browser_ui/site_settings/Website.java     | 18 ++++--
- 2 files changed, 43 insertions(+), 34 deletions(-)
+ .../site_settings/SingleWebsiteSettings.java  | 51 ++++++++++++-------
+ .../browser_ui/site_settings/Website.java     | 14 ++++-
+ .../bromite_content_settings/javascript.inc   |  3 ++
+ 3 files changed, 49 insertions(+), 19 deletions(-)
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/javascript.inc
 
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
@@ -41,7 +43,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      }
  
      private SiteSettingsCategory getWarningCategory() {
-@@ -1199,12 +1192,12 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
+@@ -1199,12 +1192,13 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
          @Nullable
          Integer currentValue =
                  mSite.getContentSetting(browserContextHandle, ContentSettingsType.JAVASCRIPT);
@@ -53,14 +55,15 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 -            currentValue = ContentSettingValues.BLOCK;
 +        // Always show the Javascript permission
 +        if (currentValue == null) {
-+            currentValue = WebsitePreferenceBridge.isCategoryEnabled(
-+                                   browserContextHandle, ContentSettingsType.JAVASCRIPT)
-+                    ? ContentSettingValues.ALLOW
-+                    : ContentSettingValues.BLOCK;
++            currentValue =
++                WebsitePreferenceBridge.isCategoryEnabled(
++                    browserContextHandle, ContentSettingsType.JAVASCRIPT)
++                        ? ContentSettingValues.ALLOW
++                        : ContentSettingValues.BLOCK;
          }
          // Not possible to embargo JAVASCRIPT.
          setupContentSettingsPreference(
-@@ -1214,6 +1207,28 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
+@@ -1214,6 +1208,29 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
                  isOneTime(ContentSettingsType.JAVASCRIPT));
      }
  
@@ -73,61 +76,38 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +                mSite.getContentSetting(browserContextHandle, ContentSettingsType.COOKIES);
 +        // Always show the cookies permission
 +        if (currentValue == null || currentValue == ContentSettingValues.DEFAULT) {
-+            currentValue = WebsitePreferenceBridge.isCategoryEnabled(
-+                                   browserContextHandle, ContentSettingsType.COOKIES)
-+                    ? ContentSettingValues.ALLOW
-+                    : ContentSettingValues.BLOCK;
++            currentValue =
++                WebsitePreferenceBridge.isCategoryEnabled(
++                    browserContextHandle, ContentSettingsType.COOKIES)
++                        ? ContentSettingValues.ALLOW
++                        : ContentSettingValues.BLOCK;
 +        }
 +        // Not possible to embargo COOKIES.
 +        setupContentSettingsPreference(
 +                preference,
 +                currentValue,
-+                /* isEmbargoed */ false,
++                /* isEmbargoed= */ false,
 +                isOneTime(ContentSettingsType.COOKIES));
 +     }
 +
      /**
       * Updates the ads list preference based on whether the site is a candidate for blocking. This
       * has some custom behavior.
-@@ -1230,24 +1245,10 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
-                     preference, null, false, isOneTime(ContentSettingsType.ADS));
-             return;
+@@ -1232,9 +1249,7 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
          }
--        // If the ad blocker is activated, then this site will have ads blocked unless there is an
--        // explicit permission disallowing the blocking.
+         // If the ad blocker is activated, then this site will have ads blocked unless there is an
+         // explicit permission disallowing the blocking.
 -        boolean activated =
 -                WebsitePreferenceBridge.getAdBlockingActivated(
 -                        browserContextHandle, mSite.getAddress().getOrigin());
++        boolean activated = true;
          @ContentSettingValues
          @Nullable
          Integer permission = mSite.getContentSetting(browserContextHandle, ContentSettingsType.ADS);
- 
--        // If |permission| is null, there is no explicit (non-default) permission set for this site.
--        // If the site is not considered a candidate for blocking, do the standard thing and remove
--        // the preference.
--        if (permission == null && !activated) {
--            setupContentSettingsPreference(
--                    preference, null, false, isOneTime(ContentSettingsType.ADS));
--            return;
--        }
--
-         // However, if the blocking is activated, we still want to show the permission, even if it
-         // is in the default state.
-         if (permission == null) {
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -271,16 +271,24 @@ public final class Website implements WebsiteEntry {
- 
-         ContentSettingException exception = getContentSettingException(type);
-         if (type == ContentSettingsType.ADS) {
--            // It is possible to set the permission without having an existing exception,
--            // because we can show the BLOCK state even when this permission is set to the
--            // default. In that case, just set an exception now to BLOCK to enable changing the
--            // permission.
-+            // It is possible to set the permission without having an existing exception
-             if (exception == null) {
-                 exception =
+@@ -280,7 +280,19 @@ public final class Website implements WebsiteEntry {
                          new ContentSettingException(
                                  ContentSettingsType.ADS,
                                  getAddress().getOrigin(),
@@ -135,6 +115,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +                                value,
 +                                "",
 +                                /* isEmbargoed= */ false);
++                setContentSettingException(type, exception);
 +            }
 +        } else if (type == ContentSettingsType.COOKIES) {
 +            // It is possible to set the permission without having an existing exception
@@ -147,5 +128,13 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                                  "",
                                  /* isEmbargoed= */ false);
                  setContentSettingException(type, exception);
+diff --git a/components/content_settings/core/browser/bromite_content_settings/javascript.inc b/components/content_settings/core/browser/bromite_content_settings/javascript.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/javascript.inc
+@@ -0,0 +1,3 @@
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::JAVASCRIPT)
++    ->set_show_into_info_page();
 -- 
 
