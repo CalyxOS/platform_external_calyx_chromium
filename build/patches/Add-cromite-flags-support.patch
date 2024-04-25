@@ -16,22 +16,22 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
 ---
  base/BUILD.gn                                 |   4 +-
- base/android/feature_map.cc                   |   6 +
- .../base/cached_flags/CachedFlag.java         |   6 +
- base/feature_list.cc                          |  80 ++++++++++
+ base/android/feature_map.cc                   |   8 +-
+ .../base/cached_flags/CachedFlag.java         |   8 +-
+ base/feature_list.cc                          |  78 +++++++++
  base/feature_list.h                           |  72 ++++++++-
  build/android/gyp/java_cpp_features.py        |  17 ++
  chrome/android/java/res/values/values.xml     |   3 +
  .../java/res/xml/privacy_preferences.xml      |   4 +
+ .../homepage/settings/HomepageSettings.java   |   2 +-
  .../privacy/settings/PrivacySettings.java     |   2 +-
  .../browser/settings/SettingsActivity.java    |  36 +++++
- chrome/browser/about_flags.cc                 |   7 +
+ chrome/browser/about_flags.cc                 |  11 ++
  chrome/browser/browser_features.cc            |   1 +
- chrome/browser/flags/BUILD.gn                 |  12 ++
+ chrome/browser/flags/BUILD.gn                 |  13 ++
  .../flags/android/chrome_feature_list.cc      |   1 +
  .../flags/android/chrome_feature_list.h       |   1 +
  .../browser/flags/ChromeFeatureList.java      |  13 +-
- .../browser/flags/CromiteNativeUtils.java     |   5 +-
  .../flags/cromite/include_all_directory.java  |   1 +
  .../java_template/CromiteCachedFlag.java.tmpl |  47 ++++++
  chrome/browser/settings/BUILD.gn              |   1 +
@@ -42,7 +42,9 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  chrome/common/chrome_features.cc              |   1 +
  .../android/java/res/values/attrs.xml         |   4 +
  .../settings/ChromeSwitchPreference.java      |  20 +++
+ components/components_strings.grd             |   1 +
  .../content_settings/core/common/features.cc  |   1 +
+ .../placeholder.txt                           |   1 +
  components/flags_ui/flags_state.cc            |  56 ++++++-
  components/flags_ui/resources/app.html        |  42 ++++-
  components/flags_ui/resources/app.ts          |  41 ++++-
@@ -81,16 +83,17 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  .../blink/common/features_h/placeholder.txt   |   1 +
  media/base/media_switches.cc                  |   2 +-
  media/base/media_switches.h                   |   2 +-
- net/base/features.cc                          |   2 +
- net/base/features.h                           |   2 +
+ net/base/features.cc                          |   1 +
+ net/base/features.h                           |   1 +
  services/network/public/cpp/features.cc       |   1 +
  services/network/public/cpp/features.h        |   1 +
- third_party/blink/common/features.cc          |   2 +
- third_party/blink/public/common/features.h    |   2 +
- 72 files changed, 738 insertions(+), 18 deletions(-)
+ third_party/blink/common/features.cc          |   1 +
+ third_party/blink/public/common/features.h    |   1 +
+ 74 files changed, 738 insertions(+), 20 deletions(-)
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl
  create mode 100644 chrome/browser/ui/android/strings/cromite_android_chrome_strings_grd/placeholder.txt
+ create mode 100644 components/cromite_components_strings_grd/placeholder.txt
  create mode 100755 cromite_flags/BUILD.gn
  create mode 100755 cromite_flags/chrome/browser/about_flags_cc/placeholder.txt
  create mode 100755 cromite_flags/chrome/browser/browser_features_cc/placeholder.txt
@@ -139,7 +142,7 @@ diff --git a/base/BUILD.gn b/base/BUILD.gn
 diff --git a/base/android/feature_map.cc b/base/android/feature_map.cc
 --- a/base/android/feature_map.cc
 +++ b/base/android/feature_map.cc
-@@ -46,6 +46,12 @@ static jboolean JNI_FeatureMap_IsEnabled(
+@@ -46,9 +46,15 @@ static jboolean JNI_FeatureMap_IsEnabled(
      JNIEnv* env,
      jlong jfeature_map,
      const android::JavaParamRef<jstring>& jfeature_name) {
@@ -151,10 +154,23 @@ diff --git a/base/android/feature_map.cc b/base/android/feature_map.cc
 +  }
    FeatureMap* feature_map = reinterpret_cast<FeatureMap*>(jfeature_map);
    const base::Feature* feature = feature_map->FindFeatureExposedToJava(
-       std::string_view(ConvertJavaStringToUTF8(env, jfeature_name)));
+-      std::string_view(ConvertJavaStringToUTF8(env, jfeature_name)));
++      std::string_view(feature_name));
+   return base::FeatureList::IsEnabled(*feature);
+ }
+ 
 diff --git a/base/android/java/src/org/chromium/base/cached_flags/CachedFlag.java b/base/android/java/src/org/chromium/base/cached_flags/CachedFlag.java
 --- a/base/android/java/src/org/chromium/base/cached_flags/CachedFlag.java
 +++ b/base/android/java/src/org/chromium/base/cached_flags/CachedFlag.java
+@@ -125,7 +125,7 @@ public class CachedFlag extends Flag {
+                 .writeBoolean(getSharedPreferenceKey(), isEnabledInNative);
+     }
+ 
+-    String getSharedPreferenceKey() {
++    public String getSharedPreferenceKey() {
+         // Create the key only once to avoid String concatenation every flag check.
+         if (mPreferenceKey == null) {
+             mPreferenceKey = CachedFlagsSharedPreferences.FLAGS_CACHED.createKey(mFeatureName);
 @@ -157,6 +157,12 @@ public class CachedFlag extends Flag {
                  .removeKeysWithPrefix(CachedFlagsSharedPreferences.FLAGS_CACHED);
      }
@@ -171,11 +187,10 @@ diff --git a/base/android/java/src/org/chromium/base/cached_flags/CachedFlag.jav
 diff --git a/base/feature_list.cc b/base/feature_list.cc
 --- a/base/feature_list.cc
 +++ b/base/feature_list.cc
-@@ -35,6 +35,33 @@
- #include "base/feature_visitor.h"
- #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+@@ -37,6 +37,31 @@
  
-+namespace base {
+ namespace base {
+ 
 +namespace internal {
 +
 +using DefaultStateOverrides =
@@ -200,12 +215,11 @@ diff --git a/base/feature_list.cc b/base/feature_list.cc
 +}
 +
 +} // namespace internal
-+} // namespace base
 +
- namespace base {
- 
  namespace {
-@@ -464,6 +491,48 @@ bool FeatureList::IsEnabled(const Feature& feature) {
+ 
+ // Pointer to the FeatureList instance singleton that was set via
+@@ -464,6 +489,48 @@ bool FeatureList::IsEnabled(const Feature& feature) {
    return g_feature_list_instance->IsFeatureEnabled(feature);
  }
  
@@ -254,7 +268,7 @@ diff --git a/base/feature_list.cc b/base/feature_list.cc
  // static
  bool FeatureList::IsValidFeatureOrFieldTrialName(StringPiece name) {
    return IsStringASCII(name) && name.find_first_of(",<*") == std::string::npos;
-@@ -710,6 +779,17 @@ void FeatureList::VisitFeaturesAndParams(FeatureVisitor& visitor) {
+@@ -710,6 +777,17 @@ void FeatureList::VisitFeaturesAndParams(FeatureVisitor& visitor) {
  
  void FeatureList::FinalizeInitialization() {
    DCHECK(!initialized_);
@@ -407,20 +421,20 @@ diff --git a/build/android/gyp/java_cpp_features.py b/build/android/gyp/java_cpp
 diff --git a/chrome/android/java/res/values/values.xml b/chrome/android/java/res/values/values.xml
 --- a/chrome/android/java/res/values/values.xml
 +++ b/chrome/android/java/res/values/values.xml
-@@ -40,6 +40,9 @@ found in the LICENSE file.
-     <!-- Contextual Search -->
-     <item name="contextual_search_sheet_full_height_fraction" format="float" type="dimen">0.95</item>
+@@ -9,6 +9,9 @@ found in the LICENSE file.
+     xmlns:tools="http://schemas.android.com/tools"
+     tools:ignore="MissingTranslation">
  
 +    <string name="cromite_flags_title">Open Cromite flags list</string>
 +    <string name="cromite_flags_url">chrome://flags/cromite</string>
 +
-     <!-- Revamped Incognito NTP -->
-     <integer name="descriptions_weight">1</integer>
- </resources>
+     <!-- Full Screen Constants -->
+     <!-- These constants were chosen empirically for their visually pleasant behavior.
+          Contact tedchoc@chromium.org or dtrainor@chromium.org for questions about
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -50,6 +50,10 @@ found in the LICENSE file.
+@@ -51,6 +51,10 @@ found in the LICENSE file.
          android:key="do_not_track"
          android:title="@string/do_not_track_title"
          android:fragment="org.chromium.chrome.browser.privacy.settings.DoNotTrackSettings" />
@@ -431,6 +445,18 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      <Preference
          android:key="preload_pages"
          android:title="@string/preload_pages_title"
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/homepage/settings/HomepageSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/homepage/settings/HomepageSettings.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/homepage/settings/HomepageSettings.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/homepage/settings/HomepageSettings.java
+@@ -37,7 +37,7 @@ public class HomepageSettings extends ChromeBaseSettingsFragment {
+     private RadioButtonGroupHomepagePreference mRadioButtons;
+ 
+     @Override
+-    public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
++    public void onCreatePreferencesCromite(Bundle savedInstanceState, String rootKey) {
+         mHomepageManager = HomepageManager.getInstance();
+ 
+         getActivity().setTitle(R.string.options_homepage_title);
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
@@ -513,18 +539,29 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -3746,6 +3746,10 @@ const FeatureEntry::FeatureVariation
- };
- #endif  // BUILDFLAG(IS_ANDROID)
+@@ -365,6 +365,10 @@ using flags_ui::kOsLinux;
+ using flags_ui::kOsMac;
+ using flags_ui::kOsWin;
+ 
++#define ABOUT_FLAG_INCLUDE_SECTION
++#include "cromite_flags/chrome_browser_about_flags_cc.inc"
++#undef ABOUT_FLAG_INCLUDE_SECTION
++
+ namespace about_flags {
+ 
+ namespace {
+@@ -3792,6 +3796,10 @@ const FeatureEntry::FeatureVariation kDefaultBrowserPromptRefreshVariations[] =
+       kDefaultBrowserPromptRefreshTesting,
+       std::size(kDefaultBrowserPromptRefreshTesting), nullptr}};
  
 +#define FEATURE_PARAM_SECTION
 +#include "cromite_flags/chrome_browser_about_flags_cc.inc"
 +#undef FEATURE_PARAM_SECTION
 +
- #if !BUILDFLAG(IS_ANDROID)
- const FeatureEntry::FeatureParam kLinkPreviewTriggerTypeAltClick[] = {
-     {"trigger_type", "alt_click"}};
-@@ -3818,6 +3822,9 @@ const FeatureEntry::FeatureVariation kDefaultBrowserPromptRefreshVariations[] =
+ // RECORDING USER METRICS FOR FLAGS:
+ // -----------------------------------------------------------------------------
+ // The first line of the entry is the internal name.
+@@ -3818,6 +3826,9 @@ const FeatureEntry::FeatureVariation kDefaultBrowserPromptRefreshVariations[] =
  const FeatureEntry kFeatureEntries[] = {
  // Include generated flags for flag unexpiry; see //docs/flag_expiry.md and
  // //tools/flags/generate_unexpire_flags.py.
@@ -546,9 +583,9 @@ diff --git a/chrome/browser/browser_features.cc b/chrome/browser/browser_feature
 diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
 --- a/chrome/browser/flags/BUILD.gn
 +++ b/chrome/browser/flags/BUILD.gn
-@@ -13,8 +13,12 @@ android_library("java") {
+@@ -13,9 +13,14 @@ android_library("java") {
+     "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
-     "android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java",
    ]
 +  sources += [
 +    "android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java",
@@ -557,9 +594,11 @@ diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
    deps = [
 +    ":java_cromite_cached_flags",
      "//base:base_java",
++    "//base:base_cached_flags_java",
      "//base/version_info/android:version_constants_java",
      "//build:chromeos_buildflags",
-@@ -25,12 +29,20 @@ android_library("java") {
+     "//build/android:build_java",
+@@ -25,12 +30,20 @@ android_library("java") {
      "//third_party/jni_zero:jni_zero_java",
    ]
    srcjar_deps = [
@@ -583,7 +622,7 @@ diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -997,5 +997,6 @@ BASE_FEATURE(kWebApkIconUpdateThreshold,
+@@ -995,5 +995,6 @@ BASE_FEATURE(kWebApkIconUpdateThreshold,
               "WebApkIconUpdateThreshold",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
@@ -593,7 +632,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -196,6 +196,7 @@ constexpr base::FeatureParam<int> kAuxiliarySearchMaxTabsCountParam(
+@@ -195,6 +195,7 @@ constexpr base::FeatureParam<int> kAuxiliarySearchMaxTabsCountParam(
      "auxiliary_search_max_donation_tab",
      100);
  
@@ -615,7 +654,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
  import java.util.List;
  import java.util.Map;
  
-@@ -674,7 +678,7 @@ public abstract class ChromeFeatureList {
+@@ -678,7 +682,7 @@ public abstract class ChromeFeatureList {
      public static final CachedFlag sVerticalAutomotiveBackButtonToolbar =
              newCachedFlag(VERTICAL_AUTOMOTIVE_BACK_BUTTON_TOOLBAR, true);
  
@@ -624,7 +663,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
              List.of(
                      sAndroidAppIntegration,
                      sAndroidElegantTextHeight,
-@@ -763,6 +767,13 @@ public abstract class ChromeFeatureList {
+@@ -767,6 +771,13 @@ public abstract class ChromeFeatureList {
                      sUseLibunwindstackNativeUnwinderAndroid,
                      sVerticalAutomotiveBackButtonToolbar);
  
@@ -638,27 +677,6 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final List<CachedFlag> sFlagsCachedInMinimalBrowser =
              List.of(sExperimentsForAgsa);
  
-diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
---- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
-+++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
-@@ -1,5 +1,7 @@
- package org.chromium.chrome.browser.flags;
- 
-+import org.chromium.base.cached_flags.CachedFlag;
-+import org.chromium.base.cached_flags.CachedFlagsSharedPreferences;
- import org.chromium.chrome.browser.flags.ChromeFeatureList;
- import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
- import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
-@@ -27,7 +29,8 @@ public class CromiteNativeUtils {
- 
-         if (!featureName.isEmpty()) {
-             CachedFlag cachedFlag = ChromeFeatureList.sAllCachedFlags.get(featureName);
--            String preferenceName = cachedFlag.getSharedPreferenceKey();
-+            String preferenceName =
-+                    CachedFlagsSharedPreferences.FLAGS_CACHED.createKey(featureName);
- 
-             ChromeSharedPreferences.getInstance().writeBoolean(preferenceName, newValue);
-             cachedFlag.setValueReturnedOverride(newValue);
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java
 new file mode 100644
 --- /dev/null
@@ -854,18 +872,18 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
  import androidx.annotation.ColorRes;
  import androidx.appcompat.content.res.AppCompatResources;
  import androidx.preference.PreferenceViewHolder;
-@@ -38,6 +41,11 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat {
-      */
-     private String mSummaryOverrideForScreenReader;
+@@ -30,6 +33,11 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat {
+     /** Indicates if the preference uses a custom layout. */
+     private final boolean mHasCustomLayout;
  
 +    @Nullable
 +    private String mFeatureName;
 +
 +    private final boolean mNeedRestart;
 +
-     public ChromeSwitchPreference(Context context) {
-         this(context, null);
-     }
+     // TOOD(crbug.com/1451550): This is an interim solution. In the long-term, we should migrate
+     // away from a switch with dynamically changing summaries onto a radio group.
+     /**
 @@ -46,6 +54,18 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat {
          super(context, attrs);
  
@@ -885,6 +903,17 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
      }
  
      /** Sets the ManagedPreferenceDelegate which will determine whether this preference is managed. */
+diff --git a/components/components_strings.grd b/components/components_strings.grd
+--- a/components/components_strings.grd
++++ b/components/components_strings.grd
+@@ -337,6 +337,7 @@
+       <part file="user_education_strings.grdp" />
+       <part file="version_ui_strings.grdp" />
+       <part file="webapps_strings.grdp" />
++      <part file="cromite_components_strings_grd/placeholder.txt"/>
+ 
+       <if expr="use_blink">
+         <part file="history_clusters_strings.grdp" />
 diff --git a/components/content_settings/core/common/features.cc b/components/content_settings/core/common/features.cc
 --- a/components/content_settings/core/common/features.cc
 +++ b/components/content_settings/core/common/features.cc
@@ -895,6 +924,12 @@ diff --git a/components/content_settings/core/common/features.cc b/components/co
 +#include "cromite_flags/components_content_settings_core_common_features_cc.inc"
  }  // namespace features
  }  // namespace content_settings
+diff --git a/components/cromite_components_strings_grd/placeholder.txt b/components/cromite_components_strings_grd/placeholder.txt
+new file mode 100644
+--- /dev/null
++++ b/components/cromite_components_strings_grd/placeholder.txt
+@@ -0,0 +1 @@
++this file is intentionally empty
 diff --git a/components/flags_ui/flags_state.cc b/components/flags_ui/flags_state.cc
 --- a/components/flags_ui/flags_state.cc
 +++ b/components/flags_ui/flags_state.cc
@@ -1648,22 +1683,20 @@ diff --git a/media/base/media_switches.h b/media/base/media_switches.h
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -535,4 +535,6 @@ BASE_FEATURE(kReduceIPAddressChangeNotification,
+@@ -535,4 +535,5 @@ BASE_FEATURE(kReduceIPAddressChangeNotification,
               base::FEATURE_ENABLED_BY_DEFAULT);
  #endif  // BUILDFLAG(IS_MAC)
  
 +#include "cromite_flags/net_base_features_cc.inc"
-+
  }  // namespace net::features
 diff --git a/net/base/features.h b/net/base/features.h
 --- a/net/base/features.h
 +++ b/net/base/features.h
-@@ -521,6 +521,8 @@ NET_EXPORT BASE_DECLARE_FEATURE(kTruncateBodyToContentLength);
+@@ -521,6 +521,7 @@ NET_EXPORT BASE_DECLARE_FEATURE(kTruncateBodyToContentLength);
  NET_EXPORT BASE_DECLARE_FEATURE(kReduceIPAddressChangeNotification);
  #endif  // BUILDFLAG(IS_MAC)
  
 +#include "cromite_flags/net_base_features_h.inc"
-+
  }  // namespace net::features
  
  #endif  // NET_BASE_FEATURES_H_
@@ -1690,23 +1723,21 @@ diff --git a/services/network/public/cpp/features.h b/services/network/public/cp
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -2601,5 +2601,7 @@ BASE_FEATURE(kNoThrottlingVisibleAgent,
+@@ -2601,5 +2601,6 @@ BASE_FEATURE(kNoThrottlingVisibleAgent,
               "NoThrottlingVisibleAgent",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
 +#include "cromite_flags/third_party_blink_common_features_cc.inc"
-+
  }  // namespace features
  }  // namespace blink
 diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
 --- a/third_party/blink/public/common/features.h
 +++ b/third_party/blink/public/common/features.h
-@@ -1679,6 +1679,8 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
+@@ -1679,6 +1679,7 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
  // Don't throttle frames that are same-agent with with a visible frame.
  BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kNoThrottlingVisibleAgent);
  
 +#include "cromite_flags/third_party_blink_common_features_h.inc"
-+
  }  // namespace features
  }  // namespace blink
  

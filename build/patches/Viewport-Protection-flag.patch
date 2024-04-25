@@ -11,7 +11,7 @@ Require: Content-settings-infrastructure.patch
 Change-Id: If2b917e8aeb7d818922a97f71e12f02803aa9158
 ---
  .../impl/BromiteViewportContentSetting.java   | 94 +++++++++++++++++++
- .../bromite_content_settings/viewport.grdp    | 30 ++++++
+ .../bromite_content_settings/viewport.grdp    | 27 ++++++
  .../bromite_content_settings/viewport.inc     | 22 +++++
  .../bromite_content_settings/VIEWPORT.inc     |  1 +
  .../guest_view/browser/guest_view_base.cc     |  8 ++
@@ -19,6 +19,7 @@ Change-Id: If2b917e8aeb7d818922a97f71e12f02803aa9158
  .../features_cc/Viewport-Protection-flag.inc  |  3 +
  .../features_h/Viewport-Protection-flag.inc   |  2 +
  .../common/widget/device_emulation_params.h   |  6 +-
+ .../renderer/core/css/css_properties.json5    |  2 +-
  .../blink/renderer/core/css/media_values.cc   |  2 +-
  .../core/css/resolver/style_resolver.cc       |  7 +-
  .../blink/renderer/core/events/mouse_event.h  | 19 +++-
@@ -32,9 +33,10 @@ Change-Id: If2b917e8aeb7d818922a97f71e12f02803aa9158
  .../core/frame/web_frame_widget_impl.cc       |  8 ++
  .../core/frame/web_remote_frame_impl.cc       |  3 +-
  .../blink/renderer/core/input/touch.cc        | 17 +++-
- third_party/blink/renderer/core/page/page.cc  | 92 ++++++++++++++++++
+ third_party/blink/renderer/core/page/page.cc  | 93 ++++++++++++++++++
  third_party/blink/renderer/core/page/page.h   |  9 ++
- 24 files changed, 425 insertions(+), 19 deletions(-)
+ .../renderer/core/style/computed_style.h      |  6 ++
+ 26 files changed, 430 insertions(+), 20 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
  create mode 100644 components/browser_ui/strings/bromite_content_settings/viewport.grdp
  create mode 100644 components/content_settings/core/browser/bromite_content_settings/viewport.inc
@@ -101,7 +103,7 @@ new file mode 100644
 +            /*defaultDisabledValue*/ getDefaultDisabledValue(),
 +            /*enabledSummary*/ R.string.website_settings_category_viewport_enabled,
 +            /*disabledSummary*/ R.string.website_settings_category_viewport_disabled,
-+            /*summaryOverrideForScreenReader*/ R.string.website_settings_category_viewport_a11y);
++            /*summaryOverrideForScreenReader*/ 0);
 +    }
 +
 +    @Override
@@ -146,7 +148,7 @@ diff --git a/components/browser_ui/strings/bromite_content_settings/viewport.grd
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/strings/bromite_content_settings/viewport.grdp
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,27 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
 +  <message name="IDS_SITE_SETTINGS_TYPE_VIEWPORT" desc="The label used for viewport size change site settings controls." formatter_data="android_java">
@@ -166,9 +168,6 @@ new file mode 100644
 +  </message>
 +  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_DISABLED" desc="Summary text explaining that viewport size change is full disabled." formatter_data="android_java">
 +    Disabled
-+  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_A11Y" desc="The screen reader announcement describing a toggle with two states, controlling whether the screen size is hidden from sites by randomly changing values. It is important to keep this string as two full sentences terminated by a period." formatter_data="android_java">
-+    When on, the screen size will be hidden from sites by randomly changing the values. When off, sites will see the actual screen size.
 +  </message>
 +  <message name="IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the viewport protection setting.">
 +    Viewport Protection is enabled with these websites
@@ -281,6 +280,25 @@ diff --git a/third_party/blink/public/common/widget/device_emulation_params.h b/
  }
  
  inline bool operator!=(const DeviceEmulationParams& a,
+diff --git a/third_party/blink/renderer/core/css/css_properties.json5 b/third_party/blink/renderer/core/css/css_properties.json5
+--- a/third_party/blink/renderer/core/css/css_properties.json5
++++ b/third_party/blink/renderer/core/css/css_properties.json5
+@@ -3813,6 +3813,7 @@
+     },
+     {
+       name: "opacity",
++      computed_style_custom_functions: ["setter","getter"],
+       property_methods: ["ParseSingleValue", "CSSValueFromComputedStyleInternal"],
+       interpolable: true,
+       compositable: true,
+@@ -3820,7 +3821,6 @@
+       field_template: "primitive",
+       default_value: "1.0",
+       type_name: "float",
+-      computed_style_custom_functions: ["setter"],
+       typedom_types: ["Number"],
+       valid_for_first_letter: true,
+       valid_for_first_line: true,
 diff --git a/third_party/blink/renderer/core/css/media_values.cc b/third_party/blink/renderer/core/css/media_values.cc
 --- a/third_party/blink/renderer/core/css/media_values.cc
 +++ b/third_party/blink/renderer/core/css/media_values.cc
@@ -715,29 +733,20 @@ diff --git a/third_party/blink/renderer/core/input/touch.cc b/third_party/blink/
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -23,6 +23,7 @@
- 
- #include "base/compiler_specific.h"
- #include "base/feature_list.h"
-+#include "build/build_config.h"
- #include "third_party/blink/public/common/features.h"
- #include "third_party/blink/public/common/page/color_provider_color_maps.h"
- #include "third_party/blink/public/mojom/frame/lifecycle.mojom-blink-forward.h"
-@@ -92,9 +93,13 @@
- #include "third_party/blink/renderer/platform/scheduler/public/agent_group_scheduler.h"
- #include "third_party/blink/renderer/platform/scheduler/public/frame_scheduler.h"
- #include "third_party/blink/renderer/platform/web_test_support.h"
-+#include "third_party/blink/renderer/platform/weborigin/scheme_registry.h"
- #include "third_party/skia/include/core/SkColor.h"
+@@ -96,6 +96,12 @@
  #include "ui/color/color_provider.h"
  #include "ui/color/color_provider_utils.h"
+ 
 +#include "base/rand_util.h"
++#include "build/build_config.h"
 +#include "third_party/blink/public/common/widget/device_emulation_params.h"
 +#include "third_party/blink/renderer/core/exported/web_view_impl.h"
- 
++#include "third_party/blink/renderer/platform/weborigin/scheme_registry.h"
++
  namespace blink {
  
-@@ -1067,7 +1072,94 @@ void Page::UpdateAcceleratedCompositingSettings() {
+ namespace {
+@@ -1067,7 +1073,94 @@ void Page::UpdateAcceleratedCompositingSettings() {
    }
  }
  
@@ -858,5 +867,21 @@ diff --git a/third_party/blink/renderer/core/page/page.h b/third_party/blink/ren
    // This tracks the mode that the fenced frame is set to.
    blink::FencedFrame::DeprecatedFencedFrameMode fenced_frame_mode_ =
        blink::FencedFrame::DeprecatedFencedFrameMode::kDefault;
+diff --git a/third_party/blink/renderer/core/style/computed_style.h b/third_party/blink/renderer/core/style/computed_style.h
+--- a/third_party/blink/renderer/core/style/computed_style.h
++++ b/third_party/blink/renderer/core/style/computed_style.h
+@@ -1899,6 +1899,12 @@ class ComputedStyle final : public ComputedStyleBase {
+            IsRunningBackdropFilterAnimationOnCompositor();
+   }
+ 
++  float Opacity() const {
++    float v = OpacityInternal();
++    if (v >= 0.991f) v = 1.0f;
++    return v;
++  }
++
+   // Opacity utility functions.
+   bool HasOpacity() const { return Opacity() < 1.0f; }
+ 
 -- 
 
