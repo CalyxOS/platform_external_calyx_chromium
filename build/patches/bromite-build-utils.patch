@@ -15,12 +15,13 @@ Change-Id: I341ca819f305782864b36de15b42e2da3849897d
  build/config/android/rules.gni                |   6 +-
  .../ChromeAccessibilitySettingsDelegate.java  |   5 +
  chrome/browser/flags/BUILD.gn                 |  10 +-
- .../flags/android/cromite_native_utils.cc     |  41 +++++++
+ .../flags/android/cromite_native_utils.cc     |  43 +++++++
  .../flags/android/cromite_native_utils.h      |  14 +++
  .../browser/flags/CromiteNativeUtils.java     |  46 ++++++++
+ mojo/public/tools/mojom/mojom_parser.py       |  22 +++-
  tools/grit/grit/grd_reader.py                 |  27 ++++-
  tools/grit/preprocess_if_expr.py              |  32 +++++-
- 16 files changed, 467 insertions(+), 16 deletions(-)
+ 17 files changed, 488 insertions(+), 19 deletions(-)
  create mode 100644 build/bromite/bromite_utils.gni
  create mode 100644 build/bromite/gyp/cpp_bromite_include.py
  create mode 100644 build/bromite/gyp/cpp_bromite_include.pydeps
@@ -511,7 +512,7 @@ diff --git a/chrome/browser/flags/android/cromite_native_utils.cc b/chrome/brows
 new file mode 100755
 --- /dev/null
 +++ b/chrome/browser/flags/android/cromite_native_utils.cc
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,43 @@
 +#include "chrome/browser/flags/android/cromite_native_utils.h"
 +
 +#include "chrome/browser/browser_process.h"
@@ -535,6 +536,8 @@ new file mode 100755
 +
 +  if (isEnabled)
 +    entries.insert(internal_name + "@1");
++  else
++    entries.insert(internal_name + "@2");
 +
 +  flags_storage.SetFlags(entries);
 +  flags_storage.CommitPendingWrites();
@@ -579,9 +582,9 @@ new file mode 100755
 @@ -0,0 +1,46 @@
 +package org.chromium.chrome.browser.flags;
 +
++import org.chromium.base.cached_flags.CachedFlag;
 +import org.chromium.chrome.browser.flags.ChromeFeatureList;
-+import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
-+import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
++import org.chromium.base.cached_flags.CachedFlagsSharedPreferences;
 +
 +import org.jni_zero.CalledByNative;
 +import org.jni_zero.NativeMethods;
@@ -608,7 +611,7 @@ new file mode 100755
 +            CachedFlag cachedFlag = ChromeFeatureList.sAllCachedFlags.get(featureName);
 +            String preferenceName = cachedFlag.getSharedPreferenceKey();
 +
-+            ChromeSharedPreferences.getInstance().writeBoolean(preferenceName, newValue);
++            CachedFlagsSharedPreferences.getInstance().writeBoolean(preferenceName, newValue);
 +            cachedFlag.setValueReturnedOverride(newValue);
 +        }
 +    }
@@ -623,6 +626,55 @@ new file mode 100755
 +        boolean isFlagEnabled(String featureName);
 +    }
 +}
+diff --git a/mojo/public/tools/mojom/mojom_parser.py b/mojo/public/tools/mojom/mojom_parser.py
+--- a/mojo/public/tools/mojom/mojom_parser.py
++++ b/mojo/public/tools/mojom/mojom_parser.py
+@@ -21,6 +21,7 @@ import os
+ import os.path
+ import sys
+ import traceback
++import re
+ from collections import defaultdict
+ 
+ from mojom.generate import module
+@@ -176,11 +177,26 @@ def _CollectAllowedImportsFromBuildMetadata(build_metadata_filename):
+   collect(build_metadata_filename)
+   return allowed_imports
+ 
++def _ResolveInclude(mojom_abspath, input_root_paths):
++  mojom_abspath = _ResolveRelativeImportPath(mojom_abspath, input_root_paths)
++  with codecs.open(mojom_abspath, encoding='utf-8') as f:
++    src = f.read()
++
++    lines = src.splitlines();
++    for idx, i in enumerate(lines):
++      if i.startswith("#include"):
++        include_file = re.findall(r'"([^"]*)"', i)[0]
++        if include_file.startswith("../../"):
++          include_file = include_file[6::]
++        lines[idx] = _ResolveInclude(include_file, input_root_paths)
++
++  return "\n".join(lines)
+ 
+ # multiprocessing helper.
+-def _ParseAstHelper(mojom_abspath, enabled_features):
++def _ParseAstHelper(mojom_abspath, enabled_features, input_root_paths):
+   with codecs.open(mojom_abspath, encoding='utf-8') as f:
+-    ast = parser.Parse(f.read(), mojom_abspath)
++    src = _ResolveInclude(mojom_abspath, input_root_paths)
++    ast = parser.Parse(src, mojom_abspath)
+     conditional_features.RemoveDisabledDefinitions(ast, enabled_features)
+     return mojom_abspath, ast
+ 
+@@ -300,7 +316,7 @@ def _ParseMojoms(mojom_files,
+       (path, abs_path) for abs_path, path in mojom_files_to_parse.items())
+ 
+   logging.info('Parsing %d .mojom into ASTs', len(mojom_files_to_parse))
+-  map_args = ((mojom_abspath, enabled_features)
++  map_args = ((mojom_abspath, enabled_features, input_root_paths)
+               for mojom_abspath in mojom_files_to_parse)
+   for mojom_abspath, ast in _Shard(_ParseAstHelper, map_args):
+     loaded_mojom_asts[mojom_abspath] = ast
 diff --git a/tools/grit/grit/grd_reader.py b/tools/grit/grit/grd_reader.py
 --- a/tools/grit/grit/grd_reader.py
 +++ b/tools/grit/grit/grd_reader.py
