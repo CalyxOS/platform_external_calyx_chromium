@@ -98,7 +98,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
 @@ -96,35 +90,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
          ContentLanguagesPreference mLanguageListPref =
                  (ContentLanguagesPreference) findPreference(PREFERRED_LANGUAGES_KEY);
-         mLanguageListPref.initialize(this, getPrefService());
+         mLanguageListPref.initialize(this, getProfile(), getPrefService());
 -
 -        ChromeSwitchPreference translateSwitch =
 -                (ChromeSwitchPreference) findPreference(TRANSLATE_SWITCH_KEY);
@@ -134,22 +134,22 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
 @@ -144,8 +109,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
          ContentLanguagesPreference mLanguageListPref =
                  (ContentLanguagesPreference) findPreference(CONTENT_LANGUAGES_KEY);
-         mLanguageListPref.initialize(this, getPrefService());
+         mLanguageListPref.initialize(this, getProfile(), getPrefService());
 -
 -        setupTranslateSection(mLanguageListPref);
      }
  
      /** Setup the App Language section with a title and preference to choose the app language. */
-@@ -175,7 +138,7 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -176,7 +139,7 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
       * @param contentLanguagesPreference ContentLanguagesPreference reference to update about state
-      *         changes.
+      *     changes.
       */
 -    private void setupTranslateSection(ContentLanguagesPreference contentLanguagesPreference) {
 +/*    private void setupTranslateSection(ContentLanguagesPreference contentLanguagesPreference) {
          // Setup expandable advanced settings section.
          PreferenceCategory translationAdvancedSection =
                  (PreferenceCategory) findPreference(TRANSLATION_ADVANCED_SECTION);
-@@ -251,7 +214,7 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -254,7 +217,7 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
                          return getPrefService().isManagedPreference(Pref.OFFER_TRANSLATE_ENABLED);
                      }
                  });
@@ -158,14 +158,14 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
  
      @Override
      public void onStart() {
-@@ -290,12 +253,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -293,12 +256,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
              // Set the default target language to match the new app language.
-             TranslateBridge.setDefaultTargetLanguage(code);
+             TranslateBridge.setDefaultTargetLanguage(getProfile(), code);
          } else if (requestCode == REQUEST_CODE_CHANGE_TARGET_LANGUAGE) {
 -            LanguageItemPickerPreference targetLanguagePreference =
 -                    (LanguageItemPickerPreference) findPreference(TARGET_LANGUAGE_KEY);
--            targetLanguagePreference.setLanguageItem(code);
--            TranslateBridge.setDefaultTargetLanguage(code);
+-            targetLanguagePreference.setLanguageItem(getProfile(), code);
+-            TranslateBridge.setDefaultTargetLanguage(getProfile(), code);
 -            LanguagesManager.recordAction(
 -                    LanguagesManager.LanguageSettingsActionType.CHANGE_TARGET_LANGUAGE);
          }
@@ -174,7 +174,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1775,9 +1775,6 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1789,9 +1789,6 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_LANGUAGES_LIST_DESCRIPTION" desc="Description on the Languages settings screen. Appears above a list of one or more languages that the user selects, to tell Chrome which languages they prefer to use to read website content.">
          Let websites know the languages you speak. They’ll show content in those languages, when possible.
        </message>
