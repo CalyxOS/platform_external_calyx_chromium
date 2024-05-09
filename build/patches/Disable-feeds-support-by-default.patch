@@ -5,17 +5,31 @@ Subject: Disable feeds support by default
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I59cfe031bfb2b8c55d19e4449a4280ec2bb9daa6
 ---
+ chrome/browser/feed/android/web_feed_bridge.cc  |  3 +--
  chrome/browser/prefs/browser_prefs.cc           |  4 ++--
  components/feed/core/common/pref_names.cc       | 13 +------------
  components/feed/core/shared_prefs/pref_names.cc |  2 +-
- components/feed/feed_feature_list.cc            |  2 ++
- 4 files changed, 6 insertions(+), 15 deletions(-)
+ components/feed/feed_feature_list.cc            |  1 +
+ 5 files changed, 6 insertions(+), 17 deletions(-)
 
+diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/feed/android/web_feed_bridge.cc
+--- a/chrome/browser/feed/android/web_feed_bridge.cc
++++ b/chrome/browser/feed/android/web_feed_bridge.cc
+@@ -227,8 +227,7 @@ static jboolean JNI_WebFeedBridge_IsCormorantEnabledForLocale(JNIEnv* env) {
+ }
+ 
+ static jboolean JNI_WebFeedBridge_IsWebFeedEnabled(JNIEnv* env) {
+-  return feed::IsWebFeedEnabledForLocale(
+-      country_codes::GetCurrentCountryCode());
++  return false;
+ }
+ 
+ static void JNI_WebFeedBridge_FollowWebFeedById(
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1871,10 +1871,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
-   supervised_user::RegisterProfilePrefs(registry);
+@@ -1920,10 +1920,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+   ChromeRLZTrackerDelegate::RegisterProfilePrefs(registry);
  #endif
  
 -#if BUILDFLAG(ENABLE_FEED_V2)
@@ -30,7 +44,7 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 diff --git a/components/feed/core/common/pref_names.cc b/components/feed/core/common/pref_names.cc
 --- a/components/feed/core/common/pref_names.cc
 +++ b/components/feed/core/common/pref_names.cc
-@@ -105,18 +105,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+@@ -107,18 +107,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
  }
  
  void MigrateObsoleteProfilePrefsOct_2022(PrefService* prefs) {
@@ -65,12 +79,11 @@ diff --git a/components/feed/core/shared_prefs/pref_names.cc b/components/feed/c
 diff --git a/components/feed/feed_feature_list.cc b/components/feed/feed_feature_list.cc
 --- a/components/feed/feed_feature_list.cc
 +++ b/components/feed/feed_feature_list.cc
-@@ -152,4 +152,6 @@ BASE_FEATURE(kRefreshFeedOnRestart,
-              "RefreshFeedOnRestart",
-              base::FEATURE_DISABLED_BY_DEFAULT);
+@@ -156,4 +156,5 @@ bool IsWebFeedEnabledForLocale(const std::string& country) {
+   return base::Contains(launched_countries, country);
+ }
  
 +SET_CROMITE_FEATURE_DISABLED(kInterestFeedV2);
-+SET_CROMITE_FEATURE_DISABLED(kWebFeed);
  }  // namespace feed
 -- 
 
