@@ -5,15 +5,17 @@ Subject: Disable all predictors code
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
+
+Change-Id: I42e34f6e9ad9c8b4e7c592c866ab24f6ad6cdf2e
 ---
  chrome/browser/BUILD.gn                           |  2 --
- .../preloading_model_keyed_service.cc             |  1 +
+ .../preloading_model_keyed_service.cc             |  2 ++
  .../preloading_model_keyed_service_factory.cc     |  4 +---
  .../optimization_guide/chrome_hints_manager.cc    |  1 +
  .../model_validator_keyed_service.cc              |  6 +++++-
  .../optimization_guide_keyed_service.cc           |  1 -
  .../predictors/loading_predictor_config.cc        |  4 ++--
- chrome/browser/predictors/predictors_features.cc  | 11 ++---------
+ chrome/browser/predictors/predictors_features.cc  |  6 ++++--
  chrome/browser/ui/tab_helpers.cc                  |  1 -
  .../ui/webui/omnibox/omnibox_page_handler.cc      |  2 ++
  .../core/browser/autofill_optimization_guide.cc   |  5 +++--
@@ -32,7 +34,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  .../features_cc/Disable-all-predictors-code.inc   |  2 ++
  .../document_speculation_rules.cc                 |  1 +
  .../platform/runtime_enabled_features.json5       |  2 +-
- 26 files changed, 61 insertions(+), 32 deletions(-)
+ 26 files changed, 64 insertions(+), 25 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/components/permissions/features_cc/Disable-all-predictors-code.inc
@@ -41,7 +43,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -845,8 +845,6 @@ static_library("browser") {
+@@ -851,8 +851,6 @@ static_library("browser") {
      "navigation_predictor/navigation_predictor_keyed_service_factory.h",
      "navigation_predictor/navigation_predictor_metrics_document_data.cc",
      "navigation_predictor/navigation_predictor_metrics_document_data.h",
@@ -53,7 +55,15 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/navigation_predictor/preloading_model_keyed_service.cc b/chrome/browser/navigation_predictor/preloading_model_keyed_service.cc
 --- a/chrome/browser/navigation_predictor/preloading_model_keyed_service.cc
 +++ b/chrome/browser/navigation_predictor/preloading_model_keyed_service.cc
-@@ -16,6 +16,7 @@ PreloadingModelKeyedService::Inputs::Inputs() = default;
+@@ -20,6 +20,7 @@ constexpr float ToInput(T val) {
+   return static_cast<float>(val);
+ }
+ 
++#pragma clang diagnostic ignored "-Wunused-function"
+ template <>
+ constexpr float ToInput(base::TimeDelta val) {
+   return static_cast<float>(val.InMillisecondsF());
+@@ -34,6 +35,7 @@ PreloadingModelKeyedService::Inputs::Inputs() = default;
  PreloadingModelKeyedService::PreloadingModelKeyedService(
      OptimizationGuideKeyedService* optimization_guide_keyed_service) {
  #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
@@ -111,7 +121,7 @@ diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc 
        OptimizationGuideKeyedServiceFactory::GetForProfile(profile_);
    if (!opt_guide_service) {
 @@ -137,6 +138,7 @@ void ModelValidatorKeyedService::StartModelExecutionValidation() {
-       proto::ModelExecutionFeature::MODEL_EXECUTION_FEATURE_TEST, request,
+       ModelBasedCapabilityKey::kTest, request,
        base::BindOnce(&ModelValidatorKeyedService::OnModelExecuteResponse,
                       weak_ptr_factory_.GetWeakPtr()));
 +#endif
@@ -137,7 +147,7 @@ diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc 
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -521,7 +521,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -522,7 +522,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
@@ -162,41 +172,42 @@ diff --git a/chrome/browser/predictors/loading_predictor_config.cc b/chrome/brow
 diff --git a/chrome/browser/predictors/predictors_features.cc b/chrome/browser/predictors/predictors_features.cc
 --- a/chrome/browser/predictors/predictors_features.cc
 +++ b/chrome/browser/predictors/predictors_features.cc
-@@ -39,11 +39,7 @@ BASE_FEATURE(kLoadingPredictorDisregardAlwaysAccessesNetwork,
+@@ -11,6 +11,7 @@ namespace features {
  
- const base::FeatureState
+ namespace {
+ 
++#pragma clang diagnostic ignored "-Wunused-const-variable"
+ constexpr base::FeatureState kFeatureEnabledOnlyOnAndroid =
+     BUILDFLAG(IS_ANDROID) ? base::FEATURE_ENABLED_BY_DEFAULT
+                           : base::FEATURE_DISABLED_BY_DEFAULT;
+@@ -47,7 +48,7 @@ BASE_FEATURE(kLoadingPredictorDisregardAlwaysAccessesNetwork,
+ 
+ constexpr base::FeatureState
      kLoadingPredictorUseOptimizationGuideDefaultFeatureState =
--#if BUILDFLAG(IS_ANDROID)
--        base::FEATURE_ENABLED_BY_DEFAULT;
--#else
--        base::FEATURE_DISABLED_BY_DEFAULT;
--#endif
+-        kFeatureEnabledOnlyOnAndroid;
 +      base::FEATURE_DISABLED_BY_DEFAULT;
  
  // Modifies loading predictor so that it can also use predictions coming from
  // the optimization guide.
-@@ -52,11 +48,7 @@ BASE_FEATURE(kLoadingPredictorUseOptimizationGuide,
+@@ -56,7 +57,7 @@ BASE_FEATURE(kLoadingPredictorUseOptimizationGuide,
               kLoadingPredictorUseOptimizationGuideDefaultFeatureState);
  
- const base::FeatureState kLoadingPredictorPrefetchDefaultFeatureState =
--#if BUILDFLAG(IS_ANDROID)
--    base::FEATURE_ENABLED_BY_DEFAULT;
--#else
-     base::FEATURE_DISABLED_BY_DEFAULT;
--#endif
+ constexpr base::FeatureState kLoadingPredictorPrefetchDefaultFeatureState =
+-    kFeatureEnabledOnlyOnAndroid;
++    base::FEATURE_DISABLED_BY_DEFAULT;
  
  // Modifies loading predictor so that it does prefetches of subresources instead
  // of preconnects.
-@@ -103,4 +95,5 @@ size_t GetMaxInflightPrefetches() {
-       3));
- }
+@@ -115,4 +116,5 @@ BASE_FEATURE(kAvoidLoadingPredictorPrefetchDuringBrowserStartup,
+              "AvoidLoadingPredictorPrefetchDuringBrowserStartup",
+              base::FEATURE_DISABLED_BY_DEFAULT);
  
 +SET_CROMITE_FEATURE_DISABLED(kLoadingPredictorUseLocalPredictions);
  }  // namespace features
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -417,7 +417,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -419,7 +419,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    }
    MixedContentSettingsTabHelper::CreateForWebContents(web_contents);
    NavigationMetricsRecorder::CreateForWebContents(web_contents);
@@ -289,7 +300,7 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
  
    InsertionOrderedSet<GURL> urls_to_fetch;
    InsertionOrderedSet<std::string> hosts_to_fetch;
-@@ -1420,6 +1422,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
+@@ -1421,6 +1423,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
      bool skip_cache,
      OptimizationMetadata* optimization_metadata) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -302,7 +313,7 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
 diff --git a/components/optimization_guide/core/optimization_guide_features.cc b/components/optimization_guide/core/optimization_guide_features.cc
 --- a/components/optimization_guide/core/optimization_guide_features.cc
 +++ b/components/optimization_guide/core/optimization_guide_features.cc
-@@ -36,11 +36,7 @@ namespace features {
+@@ -37,11 +37,7 @@ namespace features {
  namespace {
  
  constexpr auto enabled_by_default_mobile_only =
@@ -314,7 +325,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  }  // namespace
  
-@@ -434,8 +430,7 @@ size_t MaxURLKeyedHintCacheSize() {
+@@ -427,8 +423,7 @@ size_t MaxURLKeyedHintCacheSize() {
  }
  
  bool ShouldPersistHintsToDisk() {
@@ -324,7 +335,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  }
  
  RequestContextSet GetAllowedContextsForPersonalizedMetadata() {
-@@ -817,5 +812,13 @@ double GetOnDeviceModelDefaultTemperature() {
+@@ -814,5 +809,13 @@ double GetOnDeviceModelDefaultTemperature() {
    return kTemperature.Get();
  }
  
@@ -402,7 +413,7 @@ diff --git a/components/optimization_guide/features.gni b/components/optimizatio
 diff --git a/components/page_content_annotations/core/page_content_annotations_features.cc b/components/page_content_annotations/core/page_content_annotations_features.cc
 --- a/components/page_content_annotations/core/page_content_annotations_features.cc
 +++ b/components/page_content_annotations/core/page_content_annotations_features.cc
-@@ -264,4 +264,9 @@ size_t MaxRelatedSearchesCacheSize() {
+@@ -270,4 +270,9 @@ size_t MaxRelatedSearchesCacheSize() {
        "max_related_searches_cache_size", 10);
  }
  
@@ -415,7 +426,7 @@ diff --git a/components/page_content_annotations/core/page_content_annotations_f
 diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
 --- a/components/search/ntp_features.cc
 +++ b/components/search/ntp_features.cc
-@@ -544,4 +544,7 @@ std::vector<std::string> GetModulesOrder() {
+@@ -566,4 +566,7 @@ std::vector<std::string> GetModulesOrder() {
                             base::SplitResult::SPLIT_WANT_NONEMPTY);
  }
  
@@ -468,7 +479,7 @@ diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculat
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3035,7 +3035,7 @@
+@@ -3039,7 +3039,7 @@
        //
        // It also has some feature params defined throughout the codebase.
        name: "Prerender2",
