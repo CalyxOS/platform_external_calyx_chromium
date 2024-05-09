@@ -91,7 +91,7 @@ diff --git a/net/http/http_network_session.cc b/net/http/http_network_session.cc
 diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
 --- a/net/quic/quic_session_pool.cc
 +++ b/net/quic/quic_session_pool.cc
-@@ -71,6 +71,7 @@
+@@ -77,6 +77,7 @@
  #include "net/third_party/quiche/src/quiche/quic/platform/api/quic_flags.h"
  #include "net/traffic_annotation/network_traffic_annotation.h"
  #include "third_party/boringssl/src/include/openssl/aead.h"
@@ -99,7 +99,7 @@ diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
  #include "url/gurl.h"
  #include "url/scheme_host_port.h"
  #include "url/url_constants.h"
-@@ -158,6 +159,39 @@ std::set<std::string> HostsFromOrigins(std::set<HostPortPair> origins) {
+@@ -196,6 +197,39 @@ void LogUsingExistingSession(const NetLogWithSource& request_net_log,
  
  }  // namespace
  
@@ -139,7 +139,7 @@ diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
  QuicSessionRequest::QuicSessionRequest(QuicSessionPool* pool) : pool_(pool) {}
  
  QuicSessionRequest::~QuicSessionRequest() {
-@@ -1721,7 +1755,7 @@ QuicSessionPool::CreateCryptoConfigHandle(
+@@ -1894,7 +1928,7 @@ QuicSessionPool::CreateCryptoConfigHandle(
                cert_verifier_, transport_security_state_, sct_auditing_delegate_,
                HostsFromOrigins(params_.origins_to_force_quic_on),
                actual_network_anonymization_key),
@@ -194,7 +194,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    }
  
    const int kBufferSize = GetDefaultOpenSSLBufferSize();
-@@ -960,6 +988,35 @@ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
+@@ -959,6 +987,35 @@ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
                      : SSLHandshakeDetails::kTLS13Full;
      }
    }
@@ -230,7 +230,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    UMA_HISTOGRAM_ENUMERATION("Net.SSLHandshakeDetails", details);
  
    // Measure TLS connections that implement the renegotiation_info extension.
-@@ -1585,6 +1642,8 @@ bool SSLClientSocketImpl::IsRenegotiationAllowed() const {
+@@ -1584,6 +1641,8 @@ bool SSLClientSocketImpl::IsRenegotiationAllowed() const {
  }
  
  bool SSLClientSocketImpl::IsCachingEnabled() const {
@@ -242,7 +242,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
-@@ -124,6 +124,8 @@ class SSLClientSocketImpl : public SSLClientSocket,
+@@ -125,6 +125,8 @@ class SSLClientSocketImpl : public SSLClientSocket,
    friend class SSLClientSocket;
    friend class SSLContext;
  
