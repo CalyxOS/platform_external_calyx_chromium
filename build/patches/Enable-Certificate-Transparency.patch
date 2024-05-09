@@ -15,9 +15,9 @@ Change-Id: I743519ccda7c357578c23b0a074292649b3afb3d
  .../about_flags_cc/Enable-Certificate-Transparency.inc   | 9 +++++++++
  .../Enable-Certificate-Transparency.inc                  | 6 ++++++
  .../Enable-Certificate-Transparency.inc                  | 2 ++
- net/http/transport_security_state.cc                     | 5 +++--
+ net/http/transport_security_state.cc                     | 1 +
  services/network/sct_auditing/sct_auditing_handler.cc    | 2 ++
- 8 files changed, 29 insertions(+), 3 deletions(-)
+ 8 files changed, 27 insertions(+), 1 deletion(-)
  create mode 100644 cromite_flags/chrome/browser/about_flags_cc/Enable-Certificate-Transparency.inc
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Enable-Certificate-Transparency.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Enable-Certificate-Transparency.inc
@@ -95,7 +95,7 @@ new file mode 100644
 diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_state.cc
 --- a/net/http/transport_security_state.cc
 +++ b/net/http/transport_security_state.cc
-@@ -190,6 +190,7 @@ class HSTSPreloadDecoder : public net::extras::PreloadDecoder {
+@@ -186,6 +186,7 @@ class HSTSPreloadDecoder : public net::extras::PreloadDecoder {
  
  bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
  #if !BUILDFLAG(INCLUDE_TRANSPORT_SECURITY_STATE_PRELOAD_LIST)
@@ -103,21 +103,10 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
    if (g_hsts_source == nullptr)
      return false;
  #endif
-@@ -235,8 +236,8 @@ bool DecodeHSTSPreload(const std::string& search_hostname, PreloadResult* out) {
- 
- // static
- BASE_FEATURE(kCertificateTransparencyEnforcement,
--             "CertificateTransparencyEnforcement",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "CertificateTransparencyEnforcement",            // must be enabled
-+             base::FEATURE_ENABLED_BY_DEFAULT);               // in Bromite
- 
- void SetTransportSecurityStateSourceForTesting(
-     const TransportSecurityStateSource* source) {
 diff --git a/services/network/sct_auditing/sct_auditing_handler.cc b/services/network/sct_auditing/sct_auditing_handler.cc
 --- a/services/network/sct_auditing/sct_auditing_handler.cc
 +++ b/services/network/sct_auditing/sct_auditing_handler.cc
-@@ -108,6 +108,7 @@ void SCTAuditingHandler::MaybeEnqueueReport(
+@@ -109,6 +109,7 @@ void SCTAuditingHandler::MaybeEnqueueReport(
    if (mode_ == mojom::SCTAuditingMode::kDisabled) {
      return;
    }
@@ -125,7 +114,7 @@ diff --git a/services/network/sct_auditing/sct_auditing_handler.cc b/services/ne
  
    // Only audit valid SCTs. This ensures that they come from a known log, have
    // a valid signature, and thus are expected to be public certificates. If
-@@ -323,6 +324,7 @@ void SCTAuditingHandler::AddReporter(
+@@ -324,6 +325,7 @@ void SCTAuditingHandler::AddReporter(
    if (mode_ == mojom::SCTAuditingMode::kDisabled) {
      return;
    }
