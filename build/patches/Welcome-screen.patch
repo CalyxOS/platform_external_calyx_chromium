@@ -35,7 +35,7 @@ Change-Id: I4a722acfabcd9a4da886d2d164e69ac36e734813
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -503,6 +503,7 @@ chrome_java_resources = [
+@@ -497,6 +497,7 @@ chrome_java_resources = [
    "java/res/layout/find_in_page.xml",
    "java/res/layout/find_toolbar.xml",
    "java/res/layout/fre_tos_privacy_disclaimer.xml",
@@ -46,7 +46,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -653,6 +653,8 @@ chrome_java_sources = [
+@@ -650,6 +650,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/firstrun/SyncConsentFirstRunFragment.java",
    "java/src/org/chromium/chrome/browser/firstrun/TabbedModeFirstRunActivity.java",
    "java/src/org/chromium/chrome/browser/firstrun/TosDialogBehaviorSharedPrefInvalidator.java",
@@ -234,7 +234,7 @@ diff --git a/chrome/android/java/res/values/dimens.xml b/chrome/android/java/res
 diff --git a/chrome/android/java/res/values/styles.xml b/chrome/android/java/res/values/styles.xml
 --- a/chrome/android/java/res/values/styles.xml
 +++ b/chrome/android/java/res/values/styles.xml
-@@ -270,6 +270,30 @@ found in the LICENSE file.
+@@ -272,6 +272,30 @@ found in the LICENSE file.
          <item name="android:layout_weight">1</item>
      </style>
  
@@ -313,7 +313,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  import org.chromium.ui.base.ActivityWindowAndroid;
  import org.chromium.ui.base.LocalizationUtils;
  import org.chromium.ui.modaldialog.ModalDialogManager;
-@@ -123,7 +120,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -124,7 +121,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      /** Creates first page and sets up adapter. Should result UI being shown on the screen. */
      private void createFirstPage() {
          BooleanSupplier showWelcomePage = () -> !FirstRunStatus.shouldSkipWelcomePage();
@@ -322,7 +322,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          mFreProgressStates.add(MobileFreProgress.WELCOME_SHOWN);
          mPagerAdapter = new FirstRunPagerAdapter(FirstRunActivity.this, mPages);
          mPager.setAdapter(mPagerAdapter);
-@@ -144,8 +141,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -145,8 +142,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          // Initialize SigninChecker, to kick off sign-in for child accounts as early as possible.
          //
          // TODO(b/245912657): explicitly sign in supervised users in {@link
@@ -332,7 +332,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          mFirstRunFlowSequencer.updateFirstRunProperties(mFreProperties);
  
-@@ -160,26 +156,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -161,26 +157,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
              mFreProgressStates.add(MobileFreProgress.DEFAULT_SEARCH_ENGINE_SHOWN);
          }
  
@@ -359,7 +359,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          if (mPagerAdapter != null) {
              mPagerAdapter.notifyDataSetChanged();
          }
-@@ -530,11 +506,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -531,11 +507,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      public void acceptTermsOfService(boolean allowMetricsAndCrashUploading) {
          assert mNativeInitializationPromise.isFulfilled();
  
@@ -392,7 +392,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -                new ChildAccountStatusSupplier(accountManagerFacade, mFirstRunAppRestrictionInfo);
 +        mChildAccountStatusSupplier = new ChildAccountStatusSupplier(null, null);
  
-         // TODO(crbug.com/1498708): Find the underlying issue causing the status bar not to be set
+         // TODO(crbug.com/40939710): Find the underlying issue causing the status bar not to be set
          //  during FRE, this is just a temporary visual fix.
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
@@ -467,8 +467,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          }
      }
  
-@@ -155,18 +123,8 @@ public abstract class FirstRunFlowSequencer {
-      *                                  method.
+@@ -154,18 +122,8 @@ public abstract class FirstRunFlowSequencer {
+      * method.
       */
      void start() {
 -        AccountManagerFacadeProvider.getInstance()
@@ -488,7 +488,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @VisibleForTesting
-@@ -178,10 +136,6 @@ public abstract class FirstRunFlowSequencer {
+@@ -177,10 +135,6 @@ public abstract class FirstRunFlowSequencer {
          return mDelegate.shouldShowSyncConsentPage(mIsChild);
      }
  
@@ -499,7 +499,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      private void setChildAccountStatus(boolean isChild) {
          assert mIsChild == null;
          mIsChild = isChild;
-@@ -189,14 +143,10 @@ public abstract class FirstRunFlowSequencer {
+@@ -188,14 +142,10 @@ public abstract class FirstRunFlowSequencer {
      }
  
      private void maybeProcessFreEnvironmentPreNative() {
@@ -514,7 +514,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          onFlowIsKnown(freProperties);
      }
-@@ -207,19 +157,8 @@ public abstract class FirstRunFlowSequencer {
+@@ -206,19 +156,8 @@ public abstract class FirstRunFlowSequencer {
       * @param freProperties Resulting FRE properties bundle.
       */
      public void updateFirstRunProperties(Bundle freProperties) {
@@ -536,7 +536,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          freProperties.putBoolean(
                  FirstRunActivity.SHOW_SEARCH_ENGINE_PAGE, shouldShowSearchEnginePage());
      }
-@@ -321,13 +260,17 @@ public abstract class FirstRunFlowSequencer {
+@@ -320,13 +259,17 @@ public abstract class FirstRunFlowSequencer {
              if (!(caller instanceof Activity)) {
                  freIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
              }
@@ -1212,7 +1212,7 @@ new file mode 100644
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3178,7 +3178,22 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>clear the Chrome da
+@@ -3248,7 +3248,22 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
          <ph name="APP_NAME">%1$s<ex>Google Maps</ex></ph> will open in Chrome. By continuing, you agree to the <ph name="BEGIN_LINK1">&lt;LINK1&gt;</ph>Google Terms of Service<ph name="END_LINK1">&lt;/LINK1&gt;</ph>, and the <ph name="BEGIN_LINK2">&lt;LINK2&gt;</ph>Google Chrome and ChromeOS Additional Terms of Service<ph name="END_LINK2">&lt;/LINK2&gt;</ph>. The <ph name="BEGIN_LINK3">&lt;LINK3&gt;</ph>Privacy Policy<ph name="END_LINK3">&lt;/LINK3&gt;</ph> also applies.
        </message>
        <message name="IDS_FRE_ACCEPT_CONTINUE" desc="Text for first page accept and continue button [CHAR_LIMIT=20]">
@@ -1229,10 +1229,10 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 +        https://docs.github.com/en/github/site-policy/github-privacy-statement#github-pages
 +      </message>
 +      <message name="IDS_ADBLOCK_WIKI_URL" desc="URL for Bromite wiki page about ad blocking" translateable="false">
-+        https://github.com/bromite/bromite/wiki/AdBlocking
++        https://github.com/uazo/cromite/wiki/AdBlocking
 +      </message>
 +      <message name="IDS_AUTO_UPDATES_WIKI_URL" desc="URL for Bromite wiki page about automatic updates" translateable="false">
-+        https://github.com/bromite/bromite/wiki/AutomaticUpdates
++        https://github.com/uazo/cromite/wiki/AutomaticUpdates
        </message>
        <message name="IDS_FRE_WELCOME" desc="Text for greeting the user on Chrome First Run">
          Welcome to Chrome
