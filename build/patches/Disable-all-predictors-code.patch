@@ -8,17 +8,19 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 ---
  chrome/browser/BUILD.gn                           |  2 --
- .../preloading_model_keyed_service.cc             |  2 ++
+ .../preloading_model_keyed_service.cc             |  3 +++
  .../preloading_model_keyed_service_factory.cc     |  4 +---
  .../optimization_guide/chrome_hints_manager.cc    |  1 +
  .../model_validator_keyed_service.cc              |  6 +++++-
  .../optimization_guide_keyed_service.cc           |  1 -
  .../predictors/loading_predictor_config.cc        |  4 ++--
- chrome/browser/predictors/predictors_features.cc  |  6 ++++--
+ chrome/browser/predictors/predictors_features.cc  |  3 +--
  chrome/browser/ui/tab_helpers.cc                  |  1 -
  .../ui/webui/omnibox/omnibox_page_handler.cc      |  2 ++
+ chrome/utility/BUILD.gn                           |  2 +-
+ chrome/utility/services.cc                        |  7 -------
  .../core/browser/autofill_optimization_guide.cc   |  5 +++--
- .../omnibox/browser/autocomplete_controller.cc    |  2 ++
+ .../omnibox/browser/autocomplete_controller.cc    |  4 ++++
  .../optimization_guide/core/hints_fetcher.cc      |  1 +
  .../optimization_guide/core/hints_manager.cc      |  5 +++++
  .../core/optimization_guide_features.cc           | 15 +++++++++------
@@ -31,9 +33,10 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  .../Disable-all-predictors-code.inc               |  1 +
  .../features_cc/Disable-all-predictors-code.inc   |  4 ++++
  .../features_cc/Disable-all-predictors-code.inc   |  2 ++
+ services/webnn/features.gni                       |  2 +-
  .../document_speculation_rules.cc                 |  1 +
  .../platform/runtime_enabled_features.json5       |  2 +-
- 26 files changed, 64 insertions(+), 25 deletions(-)
+ 29 files changed, 66 insertions(+), 34 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/components/permissions/features_cc/Disable-all-predictors-code.inc
@@ -42,7 +45,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -851,8 +851,6 @@ static_library("browser") {
+@@ -848,8 +848,6 @@ static_library("browser") {
      "navigation_predictor/navigation_predictor_keyed_service_factory.h",
      "navigation_predictor/navigation_predictor_metrics_document_data.cc",
      "navigation_predictor/navigation_predictor_metrics_document_data.h",
@@ -54,15 +57,22 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/navigation_predictor/preloading_model_keyed_service.cc b/chrome/browser/navigation_predictor/preloading_model_keyed_service.cc
 --- a/chrome/browser/navigation_predictor/preloading_model_keyed_service.cc
 +++ b/chrome/browser/navigation_predictor/preloading_model_keyed_service.cc
-@@ -20,6 +20,7 @@ constexpr float ToInput(T val) {
-   return static_cast<float>(val);
- }
+@@ -11,6 +11,7 @@
+ #include "chrome/browser/navigation_predictor/preloading_model_handler.h"
+ #endif
  
-+#pragma clang diagnostic ignored "-Wunused-function"
- template <>
- constexpr float ToInput(base::TimeDelta val) {
-   return static_cast<float>(val.InMillisecondsF());
-@@ -34,6 +35,7 @@ PreloadingModelKeyedService::Inputs::Inputs() = default;
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ namespace {
+ 
+ // The model takes all of its inputs as floats, so this is a convenience
+@@ -28,12 +29,14 @@ constexpr float ToInput(base::TimeDelta val) {
+ static_assert(1.0f == ToInput(true));
+ 
+ }  // namespace
++#endif
+ 
+ PreloadingModelKeyedService::Inputs::Inputs() = default;
+ 
  PreloadingModelKeyedService::PreloadingModelKeyedService(
      OptimizationGuideKeyedService* optimization_guide_keyed_service) {
  #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
@@ -146,7 +156,7 @@ diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc 
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -522,7 +522,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -537,7 +537,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
@@ -171,42 +181,20 @@ diff --git a/chrome/browser/predictors/loading_predictor_config.cc b/chrome/brow
 diff --git a/chrome/browser/predictors/predictors_features.cc b/chrome/browser/predictors/predictors_features.cc
 --- a/chrome/browser/predictors/predictors_features.cc
 +++ b/chrome/browser/predictors/predictors_features.cc
-@@ -11,6 +11,7 @@ namespace features {
- 
+@@ -12,8 +12,7 @@ namespace features {
  namespace {
  
-+#pragma clang diagnostic ignored "-Wunused-const-variable"
  constexpr base::FeatureState kFeatureEnabledOnlyOnAndroid =
-     BUILDFLAG(IS_ANDROID) ? base::FEATURE_ENABLED_BY_DEFAULT
-                           : base::FEATURE_DISABLED_BY_DEFAULT;
-@@ -47,7 +48,7 @@ BASE_FEATURE(kLoadingPredictorDisregardAlwaysAccessesNetwork,
+-    BUILDFLAG(IS_ANDROID) ? base::FEATURE_ENABLED_BY_DEFAULT
+-                          : base::FEATURE_DISABLED_BY_DEFAULT;
++             base::FEATURE_DISABLED_BY_DEFAULT;
  
- constexpr base::FeatureState
-     kLoadingPredictorUseOptimizationGuideDefaultFeatureState =
--        kFeatureEnabledOnlyOnAndroid;
-+      base::FEATURE_DISABLED_BY_DEFAULT;
+ }  // namespace
  
- // Modifies loading predictor so that it can also use predictions coming from
- // the optimization guide.
-@@ -56,7 +57,7 @@ BASE_FEATURE(kLoadingPredictorUseOptimizationGuide,
-              kLoadingPredictorUseOptimizationGuideDefaultFeatureState);
- 
- constexpr base::FeatureState kLoadingPredictorPrefetchDefaultFeatureState =
--    kFeatureEnabledOnlyOnAndroid;
-+    base::FEATURE_DISABLED_BY_DEFAULT;
- 
- // Modifies loading predictor so that it does prefetches of subresources instead
- // of preconnects.
-@@ -115,4 +116,5 @@ BASE_FEATURE(kAvoidLoadingPredictorPrefetchDuringBrowserStartup,
-              "AvoidLoadingPredictorPrefetchDuringBrowserStartup",
-              base::FEATURE_DISABLED_BY_DEFAULT);
- 
-+SET_CROMITE_FEATURE_DISABLED(kLoadingPredictorUseLocalPredictions);
- }  // namespace features
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -420,7 +420,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -435,7 +435,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    }
    MixedContentSettingsTabHelper::CreateForWebContents(web_contents);
    NavigationMetricsRecorder::CreateForWebContents(web_contents);
@@ -227,10 +215,46 @@ diff --git a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc b/chrome/br
  #include "components/optimization_guide/machine_learning_tflite_buildflags.h"
  #include "components/search_engines/template_url.h"
  #include "content/public/browser/web_ui.h"
+diff --git a/chrome/utility/BUILD.gn b/chrome/utility/BUILD.gn
+--- a/chrome/utility/BUILD.gn
++++ b/chrome/utility/BUILD.gn
+@@ -65,7 +65,7 @@ static_library("utility") {
+     "//printing/buildflags",
+     "//services/data_decoder:lib",
+     "//services/network:network_service",
+-    "//services/passage_embeddings:passage_embeddings",
++    # "//services/passage_embeddings:passage_embeddings",
+     "//services/passage_embeddings/public/mojom",
+     "//services/screen_ai/buildflags",
+     "//services/service_manager/public/cpp",
+diff --git a/chrome/utility/services.cc b/chrome/utility/services.cc
+--- a/chrome/utility/services.cc
++++ b/chrome/utility/services.cc
+@@ -222,12 +222,6 @@ auto RunMacNotificationService(
+ #endif  // BUILDFLAG(IS_MAC)
+ 
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+-auto RunPassageEmbeddingsService(
+-    mojo::PendingReceiver<passage_embeddings::mojom::PassageEmbeddingsService>
+-        receiver) {
+-  return std::make_unique<passage_embeddings::PassageEmbeddingsService>(
+-      std::move(receiver));
+-}
+ 
+ auto RunSystemSignalsService(
+     mojo::PendingReceiver<device_signals::mojom::SystemSignalsService>
+@@ -495,7 +489,6 @@ void RegisterMainThreadServices(mojo::ServiceFactory& services) {
+ #endif  // BUILDFLAG(IS_WIN)
+ 
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+-  services.Add(RunPassageEmbeddingsService);
+   services.Add(RunSystemSignalsService);
+ #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ 
 diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/components/autofill/core/browser/autofill_optimization_guide.cc
 --- a/components/autofill/core/browser/autofill_optimization_guide.cc
 +++ b/components/autofill/core/browser/autofill_optimization_guide.cc
-@@ -165,6 +165,7 @@ void AutofillOptimizationGuide::OnDidParseForm(
+@@ -169,6 +169,7 @@ void AutofillOptimizationGuide::OnDidParseForm(
    // If we do not have any optimization types to register, do not do anything.
    if (!optimization_types.empty()) {
      // Register all optimization types that we need based on `form_structure`.
@@ -238,7 +262,7 @@ diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/c
      decider_->RegisterOptimizationTypes(
          std::vector<optimization_guide::proto::OptimizationType>(
              std::move(optimization_types).extract()));
-@@ -216,7 +217,7 @@ bool AutofillOptimizationGuide::ShouldBlockSingleFieldSuggestions(
+@@ -220,7 +221,7 @@ bool AutofillOptimizationGuide::ShouldBlockSingleFieldSuggestions(
      AutofillField* field) const {
    // If the field's storable type is `IBAN_VALUE`, check whether IBAN
    // suggestions should be blocked based on `url`.
@@ -247,7 +271,7 @@ diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/c
      optimization_guide::OptimizationGuideDecision decision =
          decider_->CanApplyOptimization(
              url, optimization_guide::proto::IBAN_AUTOFILL_BLOCKED,
-@@ -242,7 +243,7 @@ bool AutofillOptimizationGuide::ShouldBlockFormFieldSuggestion(
+@@ -246,7 +247,7 @@ bool AutofillOptimizationGuide::ShouldBlockFormFieldSuggestion(
      const CreditCard& card) const {
    if (auto optimization_type =
            GetVcnMerchantOptOutOptimizationTypeForCard(card);
@@ -269,6 +293,22 @@ diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/
  #include "components/omnibox/browser/autocomplete_scoring_signals_annotator.h"
  #include "components/omnibox/browser/bookmark_provider.h"
  #include "components/omnibox/browser/bookmark_scoring_signals_annotator.h"
+@@ -118,6 +120,7 @@ using ProviderType = AutocompleteProvider::Type;
+ 
+ constexpr bool is_android = !!BUILDFLAG(IS_ANDROID);
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ void RecordMlScoreCoverage(size_t matches_with_non_null_scores,
+                            size_t total_scored_matches) {
+   int percent_score_coverage =
+@@ -206,6 +209,7 @@ void RecordScoringSignalCoverageForProvider(
+         pair.second);
+   }
+ }
++#endif
+ 
+ // Appends available autocompletion of the given type, subtype, and number to
+ // the existing available autocompletions string, encoding according to the
 diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/optimization_guide/core/hints_fetcher.cc
 --- a/components/optimization_guide/core/hints_fetcher.cc
 +++ b/components/optimization_guide/core/hints_fetcher.cc
@@ -425,7 +465,7 @@ diff --git a/components/page_content_annotations/core/page_content_annotations_f
 diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
 --- a/components/search/ntp_features.cc
 +++ b/components/search/ntp_features.cc
-@@ -566,4 +566,7 @@ std::vector<std::string> GetModulesOrder() {
+@@ -571,4 +571,7 @@ std::vector<std::string> GetModulesOrder() {
                             base::SplitResult::SPLIT_WANT_NONEMPTY);
  }
  
@@ -464,6 +504,18 @@ new file mode 100644
 @@ -0,0 +1,2 @@
 +SET_CROMITE_FEATURE_DISABLED(kNavigationPredictor);
 +SET_CROMITE_FEATURE_DISABLED(kPreloadingHeuristicsMLModel);
+diff --git a/services/webnn/features.gni b/services/webnn/features.gni
+--- a/services/webnn/features.gni
++++ b/services/webnn/features.gni
+@@ -5,7 +5,7 @@
+ import("//build/config/features.gni")
+ 
+ declare_args() {
+-  webnn_use_tflite = is_android || is_chromeos || is_linux
++  webnn_use_tflite = false #is_android || is_chromeos || is_linux
+ 
+   # Enable logging of TFLite profiling information on MLGraph destruction.
+   webnn_enable_tflite_profiler = false
 diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
 --- a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
 +++ b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
@@ -478,7 +530,7 @@ diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculat
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3039,7 +3039,7 @@
+@@ -3073,7 +3073,7 @@
        //
        // It also has some feature params defined throughout the codebase.
        name: "Prerender2",
