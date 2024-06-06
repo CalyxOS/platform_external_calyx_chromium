@@ -24,7 +24,7 @@ Change-Id: Ia07b313c9065599a717d3633e5acc7471959efe7
 diff --git a/chrome/browser/content_settings/page_specific_content_settings_delegate.cc b/chrome/browser/content_settings/page_specific_content_settings_delegate.cc
 --- a/chrome/browser/content_settings/page_specific_content_settings_delegate.cc
 +++ b/chrome/browser/content_settings/page_specific_content_settings_delegate.cc
-@@ -163,6 +163,21 @@ namespace {
+@@ -168,6 +168,21 @@ namespace {
  void GetGuestViewDefaultContentSettingRules(
      bool incognito,
      RendererContentSettingRules* rules) {
@@ -46,7 +46,7 @@ diff --git a/chrome/browser/content_settings/page_specific_content_settings_dele
    rules->mixed_content_rules.clear();
    rules->mixed_content_rules.push_back(ContentSettingPatternSource(
        ContentSettingsPattern::Wildcard(), ContentSettingsPattern::Wildcard(),
-@@ -175,15 +190,26 @@ void GetGuestViewDefaultContentSettingRules(
+@@ -180,15 +195,26 @@ void GetGuestViewDefaultContentSettingRules(
  void PageSpecificContentSettingsDelegate::SetDefaultRendererContentSettingRules(
      content::RenderFrameHost* rfh,
      RendererContentSettingRules* rules) {
@@ -115,7 +115,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
    // it.
    rules->mixed_content_rules.push_back(ContentSettingPatternSource(
        ContentSettingsPattern::Wildcard(), ContentSettingsPattern::Wildcard(),
-       ContentSettingToValue(CONTENT_SETTING_BLOCK), std::string(),
+       ContentSettingToValue(CONTENT_SETTING_BLOCK), ProviderType::kNone,
        map->IsOffTheRecord()));
 +  rules->auto_dark_content_rules =
 +      map->GetSettingsForOneType(ContentSettingsType::AUTO_DARK_WEB_CONTENT);
@@ -145,7 +145,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
 diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
 --- a/components/content_settings/core/common/content_settings.h
 +++ b/components/content_settings/core/common/content_settings.h
-@@ -93,7 +93,11 @@ struct RendererContentSettingRules {
+@@ -95,7 +95,11 @@ struct RendererContentSettingRules {
  
    bool operator==(const RendererContentSettingRules& other) const;
  
@@ -189,7 +189,7 @@ diff --git a/components/content_settings/core/common/content_settings_mojom_trai
 diff --git a/components/content_settings/core/common/content_settings_mojom_traits.h b/components/content_settings/core/common/content_settings_mojom_traits.h
 --- a/components/content_settings/core/common/content_settings_mojom_traits.h
 +++ b/components/content_settings/core/common/content_settings_mojom_traits.h
-@@ -174,11 +174,31 @@ template <>
+@@ -175,11 +175,31 @@ template <>
  struct StructTraits<
      content_settings::mojom::RendererContentSettingRulesDataView,
      RendererContentSettingRules> {

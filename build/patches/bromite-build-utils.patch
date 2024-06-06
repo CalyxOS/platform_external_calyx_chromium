@@ -42,7 +42,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
    single_line_comment_re = re.compile(r'\s*//\s*([^\n]*)')
    multi_line_comment_start_re = re.compile(r'\s*/\*')
    enum_line_re = re.compile(r'^\s*(\w+)(\s*\=\s*([^,\n]+))?,?')
-@@ -195,7 +196,7 @@ class HeaderParser:
+@@ -200,7 +201,7 @@ class HeaderParser:
    enum_single_line_re = re.compile(
        r'^\s*(?:\[cpp.*\])?\s*enum.*{(?P<enum_entries>.*)}.*$')
  
@@ -51,15 +51,15 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      self._lines = lines
      self._path = path
      self._enum_definitions = []
-@@ -205,6 +206,7 @@ class HeaderParser:
+@@ -217,6 +218,7 @@ class HeaderParser:
      self._generator_directives = DirectiveSet()
      self._multi_line_generator_directive = None
      self._current_enum_entry = ''
 +    self._options = options
  
-   def _ApplyGeneratorDirectives(self):
-     self._generator_directives.UpdateDefinition(self._current_definition)
-@@ -228,6 +230,24 @@ class HeaderParser:
+   def _ShouldIgnoreLine(self):
+     return self._in_preprocessor_block and not self._in_buildflag_android
+@@ -260,6 +262,24 @@ class HeaderParser:
        raise Exception('Multi-line comments in enums are not supported in ' +
                        self._path)
  
@@ -84,7 +84,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      enum_comment = HeaderParser.single_line_comment_re.match(line)
      if enum_comment:
        comment = enum_comment.groups()[0]
-@@ -328,9 +348,9 @@ class HeaderParser:
+@@ -360,9 +380,9 @@ class HeaderParser:
          self._ParseSingleLineEnum(single_line_enum.group('enum_entries'))
  
  
@@ -96,7 +96,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      if not enum_definitions:
        raise Exception('No enums found in %s\n'
                        'Did you forget prefixing enums with '
-@@ -343,9 +363,9 @@ def DoGenerate(source_paths):
+@@ -375,9 +395,9 @@ def DoGenerate(source_paths):
        yield output_path, output
  
  
@@ -108,7 +108,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
  
  
  def GenerateOutput(source_path, enum_definition):
-@@ -424,6 +444,10 @@ def DoMain(argv):
+@@ -456,6 +476,10 @@ def DoMain(argv):
    parser.add_option('--srcjar',
                      help='When specified, a .srcjar at the given path is '
                      'created instead of individual .java files.')
@@ -119,7 +119,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
  
    options, args = parser.parse_args(argv)
  
-@@ -433,7 +457,7 @@ def DoMain(argv):
+@@ -465,7 +489,7 @@ def DoMain(argv):
  
    with action_helpers.atomic_output(options.srcjar) as f:
      with zipfile.ZipFile(f, 'w', zipfile.ZIP_STORED) as srcjar:
@@ -428,7 +428,7 @@ new file mode 100644
 diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
 --- a/build/config/BUILDCONFIG.gn
 +++ b/build/config/BUILDCONFIG.gn
-@@ -721,6 +721,7 @@ set_defaults("component") {
+@@ -726,6 +726,7 @@ set_defaults("component") {
    configs = default_component_configs
  }
  
@@ -439,7 +439,7 @@ diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
 diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
 --- a/build/config/android/rules.gni
 +++ b/build/config/android/rules.gni
-@@ -209,7 +209,7 @@ if (is_robolectric) {
+@@ -207,7 +207,7 @@ if (!is_robolectric && enable_java_templates) {
    #   }
    template("java_cpp_enum") {
      action_with_pydeps(target_name) {
@@ -448,7 +448,7 @@ diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
  
        # The sources aren't compiled so don't check their dependencies.
        check_includes = false
-@@ -220,6 +220,10 @@ if (is_robolectric) {
+@@ -218,6 +218,10 @@ if (!is_robolectric && enable_java_templates) {
        _rebased_sources = rebase_path(invoker.sources, root_build_dir)
  
        args = [ "--srcjar=$_rebased_srcjar_path" ] + _rebased_sources

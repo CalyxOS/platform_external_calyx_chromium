@@ -1,0 +1,89 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 6 Jun 2024 16:33:29 +0000
+Subject: Do not include new history embeddings stuff
+
+Try to gut out passage embeddings, which depends on tflite.
+Note that this does not make changes necessary for non-Android builds.
+
+Change-Id: I87fe5d73e51ab208dc32af40bd7e54e2d13a1f09
+---
+ chrome/utility/BUILD.gn                |  2 --
+ chrome/utility/DEPS                    |  1 -
+ components/history_embeddings/BUILD.gn | 10 ----------
+ 3 files changed, 13 deletions(-)
+
+diff --git a/chrome/utility/BUILD.gn b/chrome/utility/BUILD.gn
+--- a/chrome/utility/BUILD.gn
++++ b/chrome/utility/BUILD.gn
+@@ -65,8 +65,6 @@ static_library("utility") {
+     "//printing/buildflags",
+     "//services/data_decoder:lib",
+     "//services/network:network_service",
+-    "//services/passage_embeddings:passage_embeddings",
+-    "//services/passage_embeddings/public/mojom",
+     "//services/screen_ai/buildflags",
+     "//services/service_manager/public/cpp",
+     "//skia",
+diff --git a/chrome/utility/DEPS b/chrome/utility/DEPS
+--- a/chrome/utility/DEPS
++++ b/chrome/utility/DEPS
+@@ -68,7 +68,6 @@ include_rules = [
+   "+media",
+   "+services/network/public",
+   "+services/network/url_request_context_builder_mojo.h",
+-  "+services/passage_embeddings",
+   "+services/proxy_resolver",
+   "+services/proxy_resolver_win",
+   "+services/screen_ai",
+diff --git a/components/history_embeddings/BUILD.gn b/components/history_embeddings/BUILD.gn
+--- a/components/history_embeddings/BUILD.gn
++++ b/components/history_embeddings/BUILD.gn
+@@ -9,16 +9,10 @@ static_library("history_embeddings") {
+     "history_embeddings_features.h",
+     "history_embeddings_service.cc",
+     "history_embeddings_service.h",
+-    "ml_embedder.cc",
+-    "ml_embedder.h",
+     "mock_embedder.cc",
+     "mock_embedder.h",
+-    "passage_embeddings_service_controller.cc",
+-    "passage_embeddings_service_controller.h",
+     "passages_util.cc",
+     "passages_util.h",
+-    "scheduling_embedder.cc",
+-    "scheduling_embedder.h",
+     "sql_database.cc",
+     "sql_database.h",
+     "vector_database.cc",
+@@ -30,13 +24,11 @@ static_library("history_embeddings") {
+     "//components/history/core/browser",
+     "//components/history_embeddings/proto:history_embeddings_proto",
+     "//components/keyed_service/core",
+-    "//components/optimization_guide/core",
+     "//components/os_crypt/sync",
+     "//components/page_content_annotations/core",
+     "//content/public/browser",
+     "//content/public/common",
+     "//mojo/public/cpp/bindings",
+-    "//services/passage_embeddings/public/mojom",
+     "//services/service_manager",
+     "//sql",
+     "//third_party/zlib/google:compression_utils",
+@@ -48,7 +40,6 @@ source_set("unit_tests") {
+   testonly = true
+   sources = [
+     "history_embeddings_service_unittest.cc",
+-    "ml_embedder_unittest.cc",
+     "passages_util_unittest.cc",
+     "sql_database_unittest.cc",
+     "vector_database_unittest.cc",
+@@ -63,7 +54,6 @@ source_set("unit_tests") {
+     "//components/os_crypt/sync",
+     "//components/os_crypt/sync:test_support",
+     "//components/page_content_annotations/core:test_support",
+-    "//services/passage_embeddings:passage_embeddings",
+     "//testing/gtest",
+   ]
+ }
+-- 
+
