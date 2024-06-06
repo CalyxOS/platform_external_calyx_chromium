@@ -19,7 +19,7 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  .../domain_reliability/service_factory.cc     |  33 +-
  chrome/browser/extensions/BUILD.gn            |   1 -
  .../log_sources/chrome_internal_log_source.cc |   5 -
- chrome/browser/first_run/first_run.cc         |   9 -
+ chrome/browser/first_run/first_run.cc         |   8 -
  chrome/browser/google/BUILD.gn                |   4 +-
  .../long_screenshots_tab_service.cc           |  22 --
  .../metrics/chrome_metrics_service_client.cc  |   2 +-
@@ -36,7 +36,7 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  chrome/browser/ui/BUILD.gn                    |   1 -
  .../ui/webui/new_tab_page/new_tab_page_ui.cc  |   5 -
  .../webui/settings/reset_settings_handler.cc  |   1 -
- .../upgrade_detector/upgrade_detector_impl.cc |   2 +-
+ .../upgrade_detector/upgrade_detector_impl.cc |   2 +
  chrome/common/BUILD.gn                        |   2 -
  .../google_accounts_private_api_util.cc       |   1 +
  .../url_loader_throttle_provider_impl.cc      |  11 -
@@ -48,7 +48,7 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  .../domain_reliability/google_configs.h       |   8 +-
  components/domain_reliability/monitor.cc      |   8 -
  components/domain_reliability/uploader.cc     |   2 +-
- components/google/core/common/google_util.cc  | 312 +-----------------
+ components/google/core/common/google_util.cc  | 313 +-----------------
  components/google/core/common/google_util.h   |  15 +-
  .../browser/page_load_metrics_util.cc         |   4 +-
  .../common/page_load_metrics_util.cc          |  33 +-
@@ -68,14 +68,14 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  ...gled-chromium-no-special-hosts-domains.inc |   2 +
  net/base/url_util.cc                          |  25 +-
  services/network/network_context.cc           |   2 +-
- 58 files changed, 78 insertions(+), 811 deletions(-)
+ 58 files changed, 79 insertions(+), 810 deletions(-)
  create mode 100644 cromite_flags/content/common/features_cc/ungoogled-chromium-no-special-hosts-domains.inc
  create mode 100644 cromite_flags/content/public/common/content_features_cc/ungoogled-chromium-no-special-hosts-domains.inc
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1009,10 +1009,6 @@ static_library("browser") {
+@@ -1014,10 +1014,6 @@ static_library("browser") {
      "page_load_metrics/observers/foreground_duration_ukm_observer.h",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.cc",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.h",
@@ -95,7 +95,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "supervised_user/supervised_user_interstitial_tab_closer.cc",
      "supervised_user/supervised_user_interstitial_tab_closer.h",
      "supervised_user/supervised_user_metrics_service_factory.cc",
-@@ -2002,7 +1996,6 @@ static_library("browser") {
+@@ -2005,7 +1999,6 @@ static_library("browser") {
      "//chrome/browser/autofill",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -103,7 +103,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
  
      # Circular dependency due to SystemNetworkContextManager.
      "//chrome/browser/image_fetcher",
-@@ -2032,7 +2025,6 @@ static_library("browser") {
+@@ -2039,7 +2032,6 @@ static_library("browser") {
  
    public_deps = [
      "//base",
@@ -134,7 +134,7 @@ diff --git a/chrome/browser/android/metrics/uma_session_stats.cc b/chrome/browse
 diff --git a/chrome/browser/android/signin/signin_manager_android.cc b/chrome/browser/android/signin/signin_manager_android.cc
 --- a/chrome/browser/android/signin/signin_manager_android.cc
 +++ b/chrome/browser/android/signin/signin_manager_android.cc
-@@ -63,40 +63,11 @@ class ProfileDataRemover : public content::BrowsingDataRemover::Observer {
+@@ -71,40 +71,11 @@ class ProfileDataRemover : public content::BrowsingDataRemover::Observer {
          remover_(profile->GetBrowsingDataRemover()) {
      remover_->AddObserver(this);
  
@@ -183,7 +183,7 @@ diff --git a/chrome/browser/android/signin/signin_manager_android.cc b/chrome/br
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1174,7 +1174,6 @@ BrowserProcessImpl::component_updater() {
+@@ -1190,7 +1190,6 @@ BrowserProcessImpl::component_updater() {
        std::make_unique<component_updater::TimerUpdateScheduler>();
  
    std::string brand;
@@ -194,7 +194,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -543,11 +543,6 @@ void ProcessSingletonNotificationCallbackImpl(
+@@ -559,11 +559,6 @@ void ProcessSingletonNotificationCallbackImpl(
  
    StartupBrowserCreator::ProcessCommandLineAlreadyRunning(
        command_line, current_directory, startup_profile_path_info);
@@ -206,7 +206,7 @@ diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_brows
  }
  #endif  // BUILDFLAG(ENABLE_PROCESS_SINGLETON)
  
-@@ -1791,11 +1786,6 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
+@@ -1808,11 +1803,6 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
      upgrade_util::SaveLastModifiedTimeOfExe();
  #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
  
@@ -221,7 +221,7 @@ diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_brows
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -2796,7 +2796,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
+@@ -2799,7 +2799,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
        switches::kForcePNaClSubzero,
  #endif
        switches::kForceUIDirection,
@@ -229,7 +229,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
        switches::kJavaScriptHarmony,
        switches::kEnableExperimentalWebAssemblyFeatures,
        embedder_support::kOriginTrialDisabledFeatures,
-@@ -5131,10 +5130,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+@@ -5149,10 +5148,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
    }
  #endif
  
@@ -240,7 +240,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    MaybeAddThrottle(
        SupervisedUserNavigationThrottle::MaybeCreateThrottleFor(handle),
        &throttles);
-@@ -5694,7 +5689,8 @@ GetClientDataHeader(int frame_tree_node_id) {
+@@ -5727,7 +5722,8 @@ GetClientDataHeader(int frame_tree_node_id) {
  }
  #endif
  
@@ -250,7 +250,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  #if BUILDFLAG(IS_ANDROID)
      const std::string& client_data_header,
  #endif
-@@ -5733,7 +5729,7 @@ std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
+@@ -5766,7 +5762,7 @@ std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
        std::move(bound_session_request_throttled_handler),
  #endif
        std::move(dynamic_params));
@@ -259,7 +259,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  
  std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
  ChromeContentBrowserClient::CreateURLLoaderThrottles(
-@@ -5781,15 +5777,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
+@@ -5814,15 +5810,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
        GetClientDataHeader(frame_tree_node_id);
  #endif
  
@@ -275,7 +275,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    {
      auto* factory =
          ProtocolHandlerRegistryFactory::GetForBrowserContext(browser_context);
-@@ -5844,20 +5831,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottlesForKeepAlive(
+@@ -5877,20 +5864,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottlesForKeepAlive(
    }
  #endif
  
@@ -345,7 +345,7 @@ diff --git a/chrome/browser/domain_reliability/service_factory.cc b/chrome/brows
 diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUILD.gn
 --- a/chrome/browser/extensions/BUILD.gn
 +++ b/chrome/browser/extensions/BUILD.gn
-@@ -811,7 +811,6 @@ static_library("extensions") {
+@@ -824,7 +824,6 @@ static_library("extensions") {
      "//chrome/browser/devtools",
      "//chrome/browser/extensions:cws_item_service_proto",
      "//chrome/browser/favicon",
@@ -378,12 +378,11 @@ diff --git a/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log
 diff --git a/chrome/browser/first_run/first_run.cc b/chrome/browser/first_run/first_run.cc
 --- a/chrome/browser/first_run/first_run.cc
 +++ b/chrome/browser/first_run/first_run.cc
-@@ -296,15 +296,6 @@ void SetupInitialPrefsFromInstallPrefs(
+@@ -296,14 +296,6 @@ void SetupInitialPrefsFromInstallPrefs(
  
  // -- Platform-specific functions --
  
--#if !BUILDFLAG(IS_LINUX) && !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_BSD) && \
--    !BUILDFLAG(IS_FUCHSIA)
+-#if !BUILDFLAG(IS_LINUX) && !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_BSD)
 -bool IsOrganicFirstRun() {
 -  std::string brand;
 -  google_brand::GetBrand(&brand);
@@ -397,16 +396,16 @@ diff --git a/chrome/browser/first_run/first_run.cc b/chrome/browser/first_run/fi
 diff --git a/chrome/browser/google/BUILD.gn b/chrome/browser/google/BUILD.gn
 --- a/chrome/browser/google/BUILD.gn
 +++ b/chrome/browser/google/BUILD.gn
-@@ -5,7 +5,7 @@
- import("//build/config/chrome_build.gni")
- import("//build/config/chromeos/ui_mode.gni")
+@@ -7,7 +7,7 @@ import("//build/config/chromeos/ui_mode.gni")
+ 
+ assert(!is_fuchsia, "Fuchsia shouldn't use anything in //chrome")
  
 -source_set("google") {
 +source_set("google_UNUSED") {
    sources = [
      "google_brand.cc",
      "google_brand.h",
-@@ -82,7 +82,7 @@ source_set("unit_tests") {
+@@ -84,7 +84,7 @@ source_set("unit_tests") {
    sources = [ "google_update_settings_unittest.cc" ]
  
    deps = [
@@ -462,7 +461,7 @@ diff --git a/chrome/browser/long_screenshots/long_screenshots_tab_service.cc b/c
 diff --git a/chrome/browser/metrics/chrome_metrics_service_client.cc b/chrome/browser/metrics/chrome_metrics_service_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_service_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_service_client.cc
-@@ -634,7 +634,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
+@@ -594,7 +594,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
  }
  
  bool ChromeMetricsServiceClient::GetBrand(std::string* brand_code) {
@@ -592,7 +591,7 @@ diff --git a/chrome/browser/metrics/metrics_reporting_state.cc b/chrome/browser/
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -857,7 +857,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
+@@ -859,7 +859,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
  void SystemNetworkContextManager::ConfigureDefaultNetworkContextParams(
      network::mojom::NetworkContextParams* network_context_params) {
    variations::UpdateCorsExemptHeaderForVariations(network_context_params);
@@ -618,7 +617,7 @@ diff --git a/chrome/browser/new_tab_page/modules/recipes/recipes_service.cc b/ch
 diff --git a/chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc b/chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc
 --- a/chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc
 +++ b/chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc
-@@ -313,10 +313,11 @@ bool OneGoogleBarLoaderImpl::SetAdditionalQueryParams(
+@@ -315,10 +315,11 @@ bool OneGoogleBarLoaderImpl::SetAdditionalQueryParams(
  }
  
  GURL OneGoogleBarLoaderImpl::GetApiUrl() const {
@@ -710,7 +709,7 @@ diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data.cc b/chro
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -444,7 +444,6 @@ static_library("ui") {
+@@ -447,7 +447,6 @@ static_library("ui") {
      "//chrome/browser/companion/core",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -721,7 +720,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 --- a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 +++ b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
-@@ -662,11 +662,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
+@@ -675,11 +675,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
    // chrome-untrusted://new-tab-page for other external content and resources.
    // NOTE: Use caution when overriding content security policies as that cean
    // lead to subtle security bugs such as https://crbug.com/1251541.
@@ -747,19 +746,19 @@ diff --git a/chrome/browser/ui/webui/settings/reset_settings_handler.cc b/chrome
 diff --git a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
 --- a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
 +++ b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
-@@ -213,7 +213,7 @@ void UpgradeDetectorImpl::StartOutdatedBuildDetector() {
-   // an outdated build is being simulated by command line switches.
+@@ -222,6 +222,8 @@ void UpgradeDetectorImpl::StartOutdatedBuildDetector() {
+   // Don't show the bubble for certain conditions unless an outdated build is
+   // being simulated by command line switches.
    if (!simulating_outdated_) {
-     std::string brand;
--    if (google_brand::GetBrand(&brand) && !google_brand::IsOrganic(brand))
 +    if ((true))
++      return;
+     if (!ShouldDetectOutdatedBuilds())
        return;
  
- #if BUILDFLAG(IS_WIN)
 diff --git a/chrome/common/BUILD.gn b/chrome/common/BUILD.gn
 --- a/chrome/common/BUILD.gn
 +++ b/chrome/common/BUILD.gn
-@@ -145,8 +145,6 @@ static_library("common_lib") {
+@@ -144,8 +144,6 @@ static_library("common_lib") {
      "content_restriction.h",
      "crash_keys.cc",
      "crash_keys.h",
@@ -803,8 +802,8 @@ diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/rende
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
-@@ -6769,7 +6769,6 @@ test("unit_tests") {
-     "//chrome/browser/enterprise/identifiers",
+@@ -6837,7 +6837,6 @@ test("unit_tests") {
+     "//chrome/browser/dips:unit_tests",
      "//chrome/browser/favicon",
      "//chrome/browser/first_party_sets",
 -    "//chrome/browser/google:unit_tests",
@@ -945,12 +944,12 @@ diff --git a/components/domain_reliability/google_configs.h b/components/domain_
 diff --git a/components/domain_reliability/monitor.cc b/components/domain_reliability/monitor.cc
 --- a/components/domain_reliability/monitor.cc
 +++ b/components/domain_reliability/monitor.cc
-@@ -95,14 +95,6 @@ void DomainReliabilityMonitor::Shutdown() {
+@@ -96,14 +96,6 @@ void DomainReliabilityMonitor::Shutdown() {
  }
  
  void DomainReliabilityMonitor::AddBakedInConfigs() {
 -  for (size_t i = 0; kBakedInJsonConfigs[i]; ++i) {
--    base::StringPiece json(kBakedInJsonConfigs[i]);
+-    std::string_view json(kBakedInJsonConfigs[i]);
 -    std::unique_ptr<const DomainReliabilityConfig> config =
 -        DomainReliabilityConfig::FromJSON(json);
 -    // Guard against accidentally checking in malformed JSON configs.
@@ -975,16 +974,16 @@ diff --git a/components/domain_reliability/uploader.cc b/components/domain_relia
 diff --git a/components/google/core/common/google_util.cc b/components/google/core/common/google_util.cc
 --- a/components/google/core/common/google_util.cc
 +++ b/components/google/core/common/google_util.cc
-@@ -31,60 +31,6 @@ namespace google_util {
+@@ -31,61 +31,6 @@ namespace google_util {
  
  namespace {
  
--bool IsPathHomePageBase(base::StringPiece path) {
+-bool IsPathHomePageBase(std::string_view path) {
 -  return (path == "/") || (path == "/webhp");
 -}
 -
 -// Removes a single trailing dot if present in |host|.
--void StripTrailingDot(base::StringPiece* host) {
+-void StripTrailingDot(std::string_view* host) {
 -  if (base::EndsWith(*host, "."))
 -    host->remove_suffix(1);
 -}
@@ -994,13 +993,14 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -// ALLOW_SUBDOMAIN, we check against host "*.<domain_in_lower_case>.<TLD>"
 -// instead.
 -template <typename Container>
--bool IsValidHostName(base::StringPiece host,
--                     base::StringPiece domain_in_lower_case,
+-bool IsValidHostName(std::string_view host,
+-                     std::string_view domain_in_lower_case,
 -                     SubdomainPermission subdomain_permission,
 -                     const Container& allowed_tlds) {
 -  // Fast path to avoid searching the registry set.
--  if (host.find(domain_in_lower_case) == base::StringPiece::npos)
+-  if (host.find(domain_in_lower_case) == std::string_view::npos) {
 -    return false;
+-  }
 -
 -  size_t tld_length =
 -      net::registry_controlled_domains::GetCanonicalHostRegistryLength(
@@ -1010,10 +1010,10 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -    return false;
 -
 -  // Removes the tld and the preceding dot.
--  base::StringPiece host_minus_tld =
+-  std::string_view host_minus_tld =
 -      host.substr(0, host.length() - tld_length - 1);
 -
--  base::StringPiece tld = host.substr(host.length() - tld_length);
+-  std::string_view tld = host.substr(host.length() - tld_length);
 -  // Remove the trailing dot from tld if present, as for Google domains it's the
 -  // same page.
 -  StripTrailingDot(&tld);
@@ -1036,24 +1036,24 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  // True if |url| is a valid URL with HTTP or HTTPS scheme. If |port_permission|
  // is DISALLOW_NON_STANDARD_PORTS, this also requires |url| to use the standard
  // port for its scheme (80 for HTTP, 443 for HTTPS).
-@@ -99,57 +45,14 @@ bool IsValidURL(const GURL& url, PortPermission port_permission) {
+@@ -100,57 +45,14 @@ bool IsValidURL(const GURL& url, PortPermission port_permission) {
  
- bool IsCanonicalHostGoogleHostname(base::StringPiece canonical_host,
+ bool IsCanonicalHostGoogleHostname(std::string_view canonical_host,
                                     SubdomainPermission subdomain_permission) {
 -  const GURL& base_url(CommandLineGoogleBaseURL());
 -  if (base_url.is_valid() && (canonical_host == base_url.host_piece()))
 -    return true;
 -
 -  static constexpr auto google_tlds =
--      base::MakeFixedFlatSet<base::StringPiece>({GOOGLE_TLD_LIST});
+-      base::MakeFixedFlatSet<std::string_view>({GOOGLE_TLD_LIST});
 -  return IsValidHostName(canonical_host, "google", subdomain_permission,
 -                         google_tlds);
 -}
 -
--bool IsCanonicalHostYoutubeHostname(base::StringPiece canonical_host,
+-bool IsCanonicalHostYoutubeHostname(std::string_view canonical_host,
 -                                    SubdomainPermission subdomain_permission) {
 -  static constexpr auto youtube_tlds =
--      base::MakeFixedFlatSet<base::StringPiece>({YOUTUBE_TLD_LIST});
+-      base::MakeFixedFlatSet<std::string_view>({YOUTUBE_TLD_LIST});
 -
 -  return IsValidHostName(canonical_host, "youtube", subdomain_permission,
 -                         youtube_tlds);
@@ -1066,11 +1066,11 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -  if (!IsValidURL(url, PortPermission::DISALLOW_NON_STANDARD_PORTS))
 -    return false;
 -
--  base::StringPiece host(url.host_piece());
+-  std::string_view host(url.host_piece());
 -  StripTrailingDot(&host);
 -
 -  static constexpr auto google_subdomains =
--      base::MakeFixedFlatSet<base::StringPiece>(
+-      base::MakeFixedFlatSet<std::string_view>(
 -          {"ipv4.google.com", "ipv6.google.com"});
 -
 -  return google_subdomains.contains(host);
@@ -1083,10 +1083,10 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  
 -const char kGoogleHomepageURL[] = "https://www.google.com/";
 -
--bool HasGoogleSearchQueryParam(base::StringPiece str) {
+-bool HasGoogleSearchQueryParam(std::string_view str) {
 -  url::Component query(0, static_cast<int>(str.length())), key, value;
 -  while (url::ExtractQueryKeyValue(str, &query, &key, &value)) {
--    base::StringPiece key_str = str.substr(key.begin, key.len);
+-    std::string_view key_str = str.substr(key.begin, key.len);
 -    if (key_str == "q" || key_str == "as_q" || key_str == "imgurl")
 -      return true;
 -  }
@@ -1096,7 +1096,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  
  std::string GetGoogleLocale(const std::string& application_locale) {
    // Google does not recognize "nb" for Norwegian Bokmal; it uses "no".
-@@ -158,30 +61,11 @@ std::string GetGoogleLocale(const std::string& application_locale) {
+@@ -159,30 +61,11 @@ std::string GetGoogleLocale(const std::string& application_locale) {
  
  GURL AppendGoogleLocaleParam(const GURL& url,
                               const std::string& application_locale) {
@@ -1106,13 +1106,13 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  }
  
  std::string GetGoogleCountryCode(const GURL& google_homepage_url) {
--  base::StringPiece google_hostname = google_homepage_url.host_piece();
+-  std::string_view google_hostname = google_homepage_url.host_piece();
 -  // TODO(igorcov): This needs a fix for case when the host has a trailing dot,
 -  // like "google.com./". https://crbug.com/720295.
 -  const size_t last_dot = google_hostname.find_last_of('.');
 -  if (last_dot == std::string::npos)
 -    return std::string();
--  base::StringPiece country_code = google_hostname.substr(last_dot + 1);
+-  std::string_view country_code = google_hostname.substr(last_dot + 1);
 -  // Assume the com TLD implies the US.
 -  if (country_code == "com")
 -    return "us";
@@ -1129,9 +1129,9 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  }
  
  GURL GetGoogleSearchURL(const GURL& google_homepage_url) {
-@@ -227,205 +111,25 @@ bool IsGoogleDomainUrl(const GURL& url,
+@@ -228,205 +111,25 @@ bool IsGoogleDomainUrl(const GURL& url,
  
- bool IsGoogleHostname(base::StringPiece host,
+ bool IsGoogleHostname(std::string_view host,
                        SubdomainPermission subdomain_permission) {
 -  url::CanonHostInfo host_info;
 -  return IsCanonicalHostGoogleHostname(net::CanonicalizeHost(host, &host_info),
@@ -1148,7 +1148,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -  }
 -
 -  // Make sure the path is a known home page path.
--  base::StringPiece path(url.path_piece());
+-  std::string_view path(url.path_piece());
 -  return IsPathHomePageBase(path) ||
 -         base::StartsWith(path, "/ig", base::CompareCase::INSENSITIVE_ASCII);
 +  return false;
@@ -1163,7 +1163,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -  }
 -
 -  // Make sure the path is a known search path.
--  base::StringPiece path(url.path_piece());
+-  std::string_view path(url.path_piece());
 -  bool is_home_page_base = IsPathHomePageBase(path);
 -  if (!is_home_page_base && path != "/search" && path != "/imgres")
 -    return false;
@@ -1259,12 +1259,12 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -  const std::string param_name = "async";
 -  const std::string key_value = key + ":" + value;
 -  bool replaced = false;
--  const base::StringPiece input = url.query_piece();
+-  const std::string_view input = url.query_piece();
 -  url::Component cursor(0, input.size());
 -  std::string output;
 -  url::Component key_range, value_range;
 -  while (url::ExtractQueryKeyValue(input, &cursor, &key_range, &value_range)) {
--    const base::StringPiece input_key =
+-    const std::string_view input_key =
 -        input.substr(key_range.begin, key_range.len);
 -    std::string key_value_pair(
 -        input.substr(key_range.begin, value_range.end() - key_range.begin));
@@ -1296,12 +1296,12 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -                "This function should be updated if new values are added to "
 -                "GoogleSearchMode");
 -
--  base::StringPiece query_str = url.query_piece();
+-  std::string_view query_str = url.query_piece();
 -  url::Component query(0, static_cast<int>(url.query_piece().length()));
 -  url::Component key, value;
 -  GoogleSearchMode mode = GoogleSearchMode::kUnspecified;
 -  while (url::ExtractQueryKeyValue(query_str, &query, &key, &value)) {
--    base::StringPiece key_str = query_str.substr(key.begin, key.len);
+-    std::string_view key_str = query_str.substr(key.begin, key.len);
 -    if (key_str != "tbm") {
 -      continue;
 -    }
@@ -1310,7 +1310,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -      // kUnknown to signify the result can't be trusted.
 -      return GoogleSearchMode::kUnknown;
 -    }
--    base::StringPiece value_str = query_str.substr(value.begin, value.len);
+-    std::string_view value_str = query_str.substr(value.begin, value.len);
 -    if (value_str == "isch") {
 -      mode = GoogleSearchMode::kImages;
 -    } else if (value_str == "web") {
@@ -1342,7 +1342,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 diff --git a/components/google/core/common/google_util.h b/components/google/core/common/google_util.h
 --- a/components/google/core/common/google_util.h
 +++ b/components/google/core/common/google_util.h
-@@ -40,7 +40,7 @@ enum class GoogleSearchMode {
+@@ -39,7 +39,7 @@ enum class GoogleSearchMode {
    kMaxValue = kFlights,
  };
  
@@ -1351,7 +1351,7 @@ diff --git a/components/google/core/common/google_util.h b/components/google/cor
  
  // True iff |str| contains a "q=" or "as_q=" query parameter with a non-empty
  // value. |str| should be a query or a hash fragment, without the ? or # (as
-@@ -133,14 +133,6 @@ bool IsYoutubeDomainUrl(const GURL& url,
+@@ -132,14 +132,6 @@ bool IsYoutubeDomainUrl(const GURL& url,
  // True if |url| is hosted by Google.
  bool IsGoogleAssociatedDomainUrl(const GURL& url);
  
@@ -1366,7 +1366,7 @@ diff --git a/components/google/core/common/google_util.h b/components/google/cor
  // Appends the provided |key| and |value| pair to the "async" query param list,
  // according to the format used by the Google servers:
  //
-@@ -154,11 +146,6 @@ GURL AppendToAsyncQueryParam(const GURL& url,
+@@ -153,11 +145,6 @@ GURL AppendToAsyncQueryParam(const GURL& url,
                               const std::string& key,
                               const std::string& value);
  
@@ -1381,7 +1381,7 @@ diff --git a/components/google/core/common/google_util.h b/components/google/cor
 diff --git a/components/page_load_metrics/browser/page_load_metrics_util.cc b/components/page_load_metrics/browser/page_load_metrics_util.cc
 --- a/components/page_load_metrics/browser/page_load_metrics_util.cc
 +++ b/components/page_load_metrics/browser/page_load_metrics_util.cc
-@@ -283,9 +283,7 @@ bool DidObserveLoadingBehaviorInAnyFrame(
+@@ -284,9 +284,7 @@ bool DidObserveLoadingBehaviorInAnyFrame(
  }
  
  bool IsGoogleSearchHostname(const GURL& url) {
@@ -1395,7 +1395,7 @@ diff --git a/components/page_load_metrics/browser/page_load_metrics_util.cc b/co
 diff --git a/components/page_load_metrics/common/page_load_metrics_util.cc b/components/page_load_metrics/common/page_load_metrics_util.cc
 --- a/components/page_load_metrics/common/page_load_metrics_util.cc
 +++ b/components/page_load_metrics/common/page_load_metrics_util.cc
-@@ -24,38 +24,7 @@ const int kExtraBufferTimerDelayMillis = 50;
+@@ -25,38 +25,7 @@ const int kExtraBufferTimerDelayMillis = 50;
  }  // namespace
  
  std::optional<std::string> GetGoogleHostnamePrefix(const GURL& url) {
@@ -1411,14 +1411,14 @@ diff --git a/components/page_load_metrics/common/page_load_metrics_util.cc b/com
 -          // want to match URLs like www.google.appspot.com.
 -          net::registry_controlled_domains::EXCLUDE_PRIVATE_REGISTRIES);
 -
--  const base::StringPiece hostname = url.host_piece();
+-  const std::string_view hostname = url.host_piece();
 -  if (registry_length == 0 || registry_length == std::string::npos ||
 -      registry_length >= hostname.length()) {
 -    return std::nullopt;
 -  }
 -
 -  // Removes the tld and the preceding dot.
--  const base::StringPiece hostname_minus_registry =
+-  const std::string_view hostname_minus_registry =
 -      hostname.substr(0, hostname.length() - (registry_length + 1));
 -
 -  if (hostname_minus_registry == "google")
@@ -1648,7 +1648,7 @@ diff --git a/components/url_matcher/url_util.cc b/components/url_matcher/url_uti
 diff --git a/content/browser/webid/federated_auth_request_impl.cc b/content/browser/webid/federated_auth_request_impl.cc
 --- a/content/browser/webid/federated_auth_request_impl.cc
 +++ b/content/browser/webid/federated_auth_request_impl.cc
-@@ -1721,6 +1721,12 @@ void FederatedAuthRequestImpl::HandleAccountsFetchFailure(
+@@ -1788,6 +1788,12 @@ void FederatedAuthRequestImpl::HandleAccountsFetchFailure(
        url::Origin::Create(idp_info->provider->config->config_url);
    FedCmIdpSigninStatusMode signin_status_mode =
        webid::GetIdpSigninStatusMode(render_frame_host(), idp_origin);
@@ -1688,7 +1688,7 @@ diff --git a/content/browser/webid/flags.h b/content/browser/webid/flags.h
 diff --git a/content/browser/webid/webid_utils.cc b/content/browser/webid/webid_utils.cc
 --- a/content/browser/webid/webid_utils.cc
 +++ b/content/browser/webid/webid_utils.cc
-@@ -154,6 +154,11 @@ bool ShouldFailAccountsEndpointRequestBecauseNotSignedInWithIdp(
+@@ -129,6 +129,11 @@ bool ShouldFailAccountsEndpointRequestBecauseNotSignedInWithIdp(
      FederatedIdentityPermissionContextDelegate* permission_delegate) {
    const url::Origin idp_origin =
        url::Origin::Create(identity_provider_config_url);
@@ -1700,9 +1700,9 @@ diff --git a/content/browser/webid/webid_utils.cc b/content/browser/webid/webid_
    const std::optional<bool> idp_signin_status =
        permission_delegate->GetIdpSigninStatus(idp_origin);
    return !idp_signin_status.value_or(true);
-@@ -167,6 +172,10 @@ void UpdateIdpSigninStatusForAccountsEndpointResponse(
-     FederatedIdentityPermissionContextDelegate* permission_delegate,
-     FedCmMetrics* metrics) {
+@@ -141,6 +146,10 @@ void UpdateIdpSigninStatusForAccountsEndpointResponse(
+     bool does_idp_have_failing_signin_status,
+     FederatedIdentityPermissionContextDelegate* permission_delegate) {
    url::Origin idp_origin = url::Origin::Create(identity_provider_config_url);
 +  if (webid::GetIdpSigninStatusMode(host, idp_origin) ==
 +      FedCmIdpSigninStatusMode::DISABLED) {
@@ -1748,7 +1748,7 @@ new file mode 100644
 diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 --- a/net/base/url_util.cc
 +++ b/net/base/url_util.cc
-@@ -489,34 +489,11 @@ bool HasGoogleHost(const GURL& url) {
+@@ -495,34 +495,11 @@ bool HasGoogleHost(const GURL& url) {
  }
  
  bool IsGoogleHost(std::string_view host) {
@@ -1787,7 +1787,7 @@ diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -2745,7 +2745,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
+@@ -2754,7 +2754,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
    }
  #endif  // BUILDFLAG(IS_CT_SUPPORTED)
  

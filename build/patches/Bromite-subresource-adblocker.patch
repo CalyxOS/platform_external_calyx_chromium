@@ -11,6 +11,7 @@ Fix RestoreForeignSessionTab by recreating the tab (issue #681)
 Enable AutomaticLazyFrameLoadingToAds and AutomaticLazyFrameLoadingToEmbeds features
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 ---
  chrome/android/BUILD.gn                       |   1 +
@@ -30,10 +31,10 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  chrome/browser/browser_process_impl.cc        |  21 ++
  chrome/browser/browser_process_impl.h         |   2 +
  chrome/browser/chrome_browser_main.cc         |   3 +
- chrome/browser/flags/BUILD.gn                 |   4 +
+ chrome/browser/flags/BUILD.gn                 |   3 +
  .../flags/android/adblock_native_gateway.cc   |  31 ++
  .../browser/flags/AdBlockNativeGateway.java   |  30 ++
- .../net/system_network_context_manager.cc     |   8 +
+ .../net/system_network_context_manager.cc     |   4 +
  .../sessions/session_restore_android.cc       |   6 +-
  .../strings/android_chrome_strings.grd        |  14 +
  chrome/common/pref_names.h                    |   5 +
@@ -45,12 +46,12 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../component_updater/download_filters_task.h | 129 ++++++++
  ...ent_subresource_filter_throttle_manager.cc |  15 +
  ...tent_subresource_filter_throttle_manager.h |   2 +
- .../content/shared/browser/ruleset_service.cc |  43 ++-
+ .../content/shared/browser/ruleset_service.cc |  47 ++-
  .../content/shared/browser/ruleset_service.h  |   8 +-
  .../unindexed_ruleset_stream_generator.cc     |   3 +
  .../core/browser/ruleset_version.h            |   4 +
  .../browser/subresource_filter_features.cc    | 116 +-------
- .../core/browser/verified_ruleset_dealer.cc   |   3 +
+ .../core/browser/verified_ruleset_dealer.cc   |   4 +
  .../core/common/indexed_ruleset.cc            |   5 +-
  .../Bromite-subresource-adblocker.inc         |   3 +
  40 files changed, 1256 insertions(+), 127 deletions(-)
@@ -69,7 +70,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -348,6 +348,7 @@ if (current_toolchain == default_toolchain) {
+@@ -349,6 +349,7 @@ if (current_toolchain == default_toolchain) {
        "//chrome/android/modules/cablev2_authenticator/public:java",
        "//chrome/android/modules/stack_unwinder/provider:java",
        "//chrome/android/webapk/libs/client:client_java",
@@ -80,15 +81,15 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -427,6 +427,7 @@ chrome_java_resources = [
-   "java/res/layout/account_chooser_dialog_title.xml",
+@@ -424,6 +424,7 @@ chrome_java_resources = [
    "java/res/layout/account_divider_preference.xml",
    "java/res/layout/account_management_account_row.xml",
+   "java/res/layout/app_history_filter.xml",
 +  "java/res/layout/adblock_editor.xml",
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_name_and_number.xml",
-@@ -630,6 +631,7 @@ chrome_java_resources = [
+@@ -620,6 +621,7 @@ chrome_java_resources = [
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
    "java/res/xml/ad_services_config.xml",
@@ -99,7 +100,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -973,6 +973,8 @@ chrome_java_sources = [
+@@ -965,6 +965,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -183,7 +184,7 @@ new file mode 100644
 diff --git a/chrome/android/java/res/values/styles.xml b/chrome/android/java/res/values/styles.xml
 --- a/chrome/android/java/res/values/styles.xml
 +++ b/chrome/android/java/res/values/styles.xml
-@@ -245,6 +245,24 @@ found in the LICENSE file.
+@@ -247,6 +247,24 @@ found in the LICENSE file.
          </item>
      </style>
  
@@ -429,7 +430,7 @@ new file mode 100644
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
-@@ -862,7 +862,7 @@ public class TabModelImpl extends TabModelJniBridge {
+@@ -864,7 +864,7 @@ public class TabModelImpl extends TabModelJniBridge {
      protected boolean createTabWithWebContents(
              Tab parent, Profile profile, WebContents webContents) {
          return getTabCreator(profile.isOffTheRecord())
@@ -441,7 +442,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -15173,6 +15173,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -15480,6 +15480,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -501,7 +502,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
  namespace extensions {
  class EventRouterForwarder;
  }
-@@ -253,6 +258,7 @@ class BrowserProcess {
+@@ -254,6 +259,7 @@ class BrowserProcess {
  #endif
  
    virtual component_updater::ComponentUpdateService* component_updater() = 0;
@@ -512,7 +513,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1183,6 +1183,27 @@ BrowserProcessImpl::component_updater() {
+@@ -1199,6 +1199,27 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -543,7 +544,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_process_impl.h
 --- a/chrome/browser/browser_process_impl.h
 +++ b/chrome/browser/browser_process_impl.h
-@@ -212,6 +212,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -215,6 +215,7 @@ class BrowserProcessImpl : public BrowserProcess,
  #endif
  
    component_updater::ComponentUpdateService* component_updater() override;
@@ -551,7 +552,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
    MediaFileSystemRegistry* media_file_system_registry() override;
    WebRtcLogUploader* webrtc_log_uploader() override;
    network_time::NetworkTimeTracker* network_time_tracker() override;
-@@ -413,6 +414,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -420,6 +421,7 @@ class BrowserProcessImpl : public BrowserProcess,
    // to concerns over integrity of data shared between profiles,
    // but some users of component updater only install per-user.
    std::unique_ptr<component_updater::ComponentUpdateService> component_updater_;
@@ -562,7 +563,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -455,6 +455,9 @@ StartupProfileInfo CreateInitialProfile(
+@@ -470,6 +470,9 @@ StartupProfileInfo CreateInitialProfile(
    // missing code in the above test.
    CHECK(profile_info.profile) << "Cannot get default profile.";
  
@@ -599,14 +600,6 @@ diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
    deps = [
      ":jni_headers",
      "//base",
-@@ -70,6 +73,7 @@ robolectric_library("flags_junit_tests") {
-   sources = [
-     "android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlagsAnnotationUnitTest.java",
-     "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureListWithProcessorUnitTest.java",
-+    "android/java/src/org/chromium/chrome/browser/flags/AdBlockNativeGateway.java",
-   ]
-   deps = [
-     ":java",
 diff --git a/chrome/browser/flags/android/adblock_native_gateway.cc b/chrome/browser/flags/android/adblock_native_gateway.cc
 new file mode 100755
 --- /dev/null
@@ -681,15 +674,11 @@ new file mode 100755
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -640,6 +640,14 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
+@@ -642,6 +642,10 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
  void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    StubResolverConfigReader::RegisterPrefs(registry);
  
-+#if BUILDFLAG(IS_ANDROID)
-+  registry->RegisterBooleanPref(prefs::kAdBlockEnabled, true);
-+#else
 +  registry->RegisterBooleanPref(prefs::kAdBlockEnabled, false);
-+#endif
 +  registry->RegisterStringPref(prefs::kAdBlockFiltersURL,
 +    "https://www.bromite.org/filters/filters.dat");
 +
@@ -715,8 +704,8 @@ diff --git a/chrome/browser/sessions/session_restore_android.cc b/chrome/browser
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -225,6 +225,20 @@ CHAR_LIMIT guidelines:
-         Control your data &amp; accounts
+@@ -222,6 +222,20 @@ CHAR_LIMIT guidelines:
+         Control your data &amp; account
        </message>
  
 +      <!-- AdBlock settings -->
@@ -739,7 +728,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -2688,6 +2688,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2731,6 +2731,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  inline constexpr char kAudioCaptureAllowedUrls[] =
      "hardware.audio_capture_allowed_urls";
  
@@ -1563,18 +1552,17 @@ new file mode 100644
 diff --git a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
 --- a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
 +++ b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
-@@ -15,7 +15,10 @@
+@@ -15,6 +15,9 @@
  #include "base/strings/stringprintf.h"
  #include "base/trace_event/trace_event.h"
  #include "base/trace_event/traced_value.h"
 +#include "components/content_settings/core/common/content_settings_types.h"
- #include "components/subresource_filter/content/browser/ad_tagging_utils.h"
 +#include "components/subresource_filter/content/browser/subresource_filter_content_settings_manager.h"
 +#include "components/subresource_filter/content/browser/subresource_filter_profile_context.h"
+ #include "components/subresource_filter/content/browser/ad_tagging_utils.h"
  #include "components/subresource_filter/content/browser/content_subresource_filter_web_contents_helper.h"
- #include "components/subresource_filter/content/browser/page_load_statistics.h"
  #include "components/subresource_filter/content/browser/profile_interaction_manager.h"
-@@ -151,6 +154,7 @@ ContentSubresourceFilterThrottleManager::
+@@ -152,6 +155,7 @@ ContentSubresourceFilterThrottleManager::
        profile_interaction_manager_(
            std::make_unique<subresource_filter::ProfileInteractionManager>(
                profile_context)),
@@ -1615,18 +1603,18 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
 diff --git a/components/subresource_filter/content/shared/browser/ruleset_service.cc b/components/subresource_filter/content/shared/browser/ruleset_service.cc
 --- a/components/subresource_filter/content/shared/browser/ruleset_service.cc
 +++ b/components/subresource_filter/content/shared/browser/ruleset_service.cc
-@@ -47,9 +47,7 @@ namespace {
- 
+@@ -50,9 +50,7 @@ namespace {
  void RecordIndexAndWriteRulesetResult(
+     std::string_view uma_tag,
      RulesetService::IndexAndWriteRulesetResult result) {
--  UMA_HISTOGRAM_ENUMERATION(
--      "SubresourceFilter.WriteRuleset.Result", static_cast<int>(result),
--      static_cast<int>(RulesetService::IndexAndWriteRulesetResult::MAX));
+-  base::UmaHistogramEnumeration(
+-      base::StrCat({uma_tag, ".WriteRuleset.Result"}), result,
+-      RulesetService::IndexAndWriteRulesetResult::MAX);
 +  VLOG(1) << "SubresourceFilter.WriteRuleset.Result: " << static_cast<int>(result);
  }
  
  // Implements operations on a `sentinel file`, which is used as a safeguard to
-@@ -228,10 +226,13 @@ RulesetService::RulesetService(
+@@ -231,10 +229,13 @@ RulesetService::RulesetService(
  RulesetService::~RulesetService() {}
  
  void RulesetService::IndexAndStoreAndPublishRulesetIfNeeded(
@@ -1642,7 +1630,7 @@ diff --git a/components/subresource_filter/content/shared/browser/ruleset_servic
    // Trying to store a ruleset with the same version for a second time would
    // not only be futile, but would fail on Windows due to "File System
    // Tunneling" as long as the previously stored copy of the rules is still
-@@ -241,13 +242,16 @@ void RulesetService::IndexAndStoreAndPublishRulesetIfNeeded(
+@@ -244,13 +245,16 @@ void RulesetService::IndexAndStoreAndPublishRulesetIfNeeded(
    if (most_recently_indexed_version.IsCurrentFormatVersion() &&
        most_recently_indexed_version.content_version ==
            unindexed_ruleset_info.content_version) {
@@ -1659,11 +1647,15 @@ diff --git a/components/subresource_filter/content/shared/browser/ruleset_servic
      return;
    }
  
-@@ -267,6 +271,19 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -270,6 +274,23 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
      const RulesetConfig& config,
      const base::FilePath& indexed_ruleset_base_dir,
      const UnindexedRulesetInfo& unindexed_ruleset_info) {
-+  IndexedRulesetVersion version = IndexAndWriteRulesetInternal(config, indexed_ruleset_base_dir, unindexed_ruleset_info);
++  IndexedRulesetVersion version =
++    IndexAndWriteRulesetInternal(
++        config,
++        indexed_ruleset_base_dir,
++        unindexed_ruleset_info);
 +  // cleanup temporary file when done
 +  if (unindexed_ruleset_info.delete_ruleset_path) {
 +    base::DeleteFile(unindexed_ruleset_info.ruleset_path);
@@ -1679,27 +1671,28 @@ diff --git a/components/subresource_filter/content/shared/browser/ruleset_servic
    base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                  base::BlockingType::MAY_BLOCK);
  
-@@ -274,6 +291,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -277,6 +298,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
        unindexed_ruleset_info);
  
    if (!unindexed_ruleset_stream_generator.ruleset_stream()) {
 +    LOG(WARNING) << "RulesetService: failed to open: " << unindexed_ruleset_info.ruleset_path;
      RecordIndexAndWriteRulesetResult(
+         config.uma_tag,
          IndexAndWriteRulesetResult::FAILED_OPENING_UNINDEXED_RULESET);
-     return IndexedRulesetVersion(config.filter_tag);
-@@ -287,6 +305,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -291,6 +313,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
            indexed_ruleset_base_dir, indexed_version);
  
    if (!base::CreateDirectory(indexed_ruleset_version_dir)) {
 +    LOG(WARNING) << "RulesetService: failed to create version dir: " << indexed_ruleset_version_dir;
      RecordIndexAndWriteRulesetResult(
+         config.uma_tag,
          IndexAndWriteRulesetResult::FAILED_CREATING_VERSION_DIR);
-     return IndexedRulesetVersion(config.filter_tag);
-@@ -294,12 +313,11 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -299,13 +322,11 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
  
    SentinelFile sentinel_file(indexed_ruleset_version_dir);
    if (sentinel_file.IsPresent()) {
 -    RecordIndexAndWriteRulesetResult(
+-        config.uma_tag,
 -        IndexAndWriteRulesetResult::ABORTED_BECAUSE_SENTINEL_FILE_PRESENT);
 -    return IndexedRulesetVersion(config.filter_tag);
 +    LOG(WARNING) << "RulesetService: sentinel file is present in " << indexed_ruleset_version_dir;
@@ -1708,20 +1701,20 @@ diff --git a/components/subresource_filter/content/shared/browser/ruleset_servic
    if (!sentinel_file.Create()) {
 +    LOG(WARNING) << "RulesetService: cannot create sentinel file in " << indexed_ruleset_version_dir;
      RecordIndexAndWriteRulesetResult(
+         config.uma_tag,
          IndexAndWriteRulesetResult::FAILED_CREATING_SENTINEL_FILE);
-     return IndexedRulesetVersion(config.filter_tag);
-@@ -312,6 +330,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
- 
+@@ -320,6 +341,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
    RulesetIndexer indexer;
-   if (!(*g_index_ruleset_func)(&unindexed_ruleset_stream_generator, &indexer)) {
+   if (!(*g_index_ruleset_func)(config, &unindexed_ruleset_stream_generator,
+                                &indexer)) {
 +    LOG(WARNING) << "RulesetService: failed parsing.";
      RecordIndexAndWriteRulesetResult(
+         config.uma_tag,
          IndexAndWriteRulesetResult::FAILED_PARSING_UNINDEXED_RULESET);
-     return IndexedRulesetVersion(config.filter_tag);
-@@ -329,8 +348,12 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -339,8 +361,12 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
        WriteRuleset(indexed_ruleset_version_dir,
                     unindexed_ruleset_info.license_path, indexer.data());
-   RecordIndexAndWriteRulesetResult(result);
+   RecordIndexAndWriteRulesetResult(config.uma_tag, result);
 -  if (result != IndexAndWriteRulesetResult::SUCCESS)
 +  if (result != IndexAndWriteRulesetResult::SUCCESS) {
 +    LOG(INFO) << "RulesetService: failed to index.";
@@ -1732,7 +1725,7 @@ diff --git a/components/subresource_filter/content/shared/browser/ruleset_servic
  
    DCHECK(indexed_version.IsValid());
    return indexed_version;
-@@ -452,6 +475,7 @@ void RulesetService::IndexAndStoreRuleset(
+@@ -466,6 +492,7 @@ void RulesetService::IndexAndStoreRuleset(
  void RulesetService::OnWrittenRuleset(WriteRulesetCallback result_callback,
                                        const IndexedRulesetVersion& version) {
    DCHECK(!result_callback.is_null());
@@ -1740,14 +1733,6 @@ diff --git a/components/subresource_filter/content/shared/browser/ruleset_servic
    if (!version.IsValid())
      return;
    version.SaveToPrefs(local_state_);
-@@ -464,7 +488,6 @@ void RulesetService::OpenAndPublishRuleset(
-       IndexedRulesetLocator::GetRulesetDataFilePath(
-           IndexedRulesetLocator::GetSubdirectoryPathForVersion(
-               indexed_ruleset_base_dir_, version));
--
-   publisher_->TryOpenAndSetRulesetFile(
-       file_path, version.checksum,
-       base::BindOnce(&RulesetService::OnRulesetSet,
 diff --git a/components/subresource_filter/content/shared/browser/ruleset_service.h b/components/subresource_filter/content/shared/browser/ruleset_service.h
 --- a/components/subresource_filter/content/shared/browser/ruleset_service.h
 +++ b/components/subresource_filter/content/shared/browser/ruleset_service.h
@@ -1961,7 +1946,15 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 diff --git a/components/subresource_filter/core/browser/verified_ruleset_dealer.cc b/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
 --- a/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
 +++ b/components/subresource_filter/core/browser/verified_ruleset_dealer.cc
-@@ -38,6 +38,9 @@ RulesetFilePtr VerifiedRulesetDealer::OpenAndSetRulesetFile(
+@@ -11,6 +11,7 @@
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
+ #include "base/location.h"
++#include "base/logging.h"
+ #include "base/notreached.h"
+ #include "base/task/sequenced_task_runner.h"
+ #include "base/trace_event/trace_event.h"
+@@ -38,6 +39,9 @@ RulesetFilePtr VerifiedRulesetDealer::OpenAndSetRulesetFile(
    TRACE_EVENT1(TRACE_DISABLED_BY_DEFAULT("loading"),
                 "VerifiedRulesetDealer::OpenAndSetRulesetFile", "file_valid",
                 file->IsValid());
