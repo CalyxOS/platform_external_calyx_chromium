@@ -5,6 +5,7 @@ Subject: Site setting for images
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Require: Content-settings-infrastructure.patch
+
 Change-Id: Icd829f513d0d8ef8a63402edb20d8fe6bb06032c
 ---
  .../res/drawable-hdpi/permission_images.png   | Bin 0 -> 257 bytes
@@ -13,11 +14,22 @@ Change-Id: Icd829f513d0d8ef8a63402edb20d8fe6bb06032c
  .../res/drawable-xxhdpi/permission_images.png | Bin 0 -> 449 bytes
  .../drawable-xxxhdpi/permission_images.png    | Bin 0 -> 532 bytes
  .../impl/BromiteImagesContentSetting.java     |  93 ++++++++++++++++++
- .../bromite_content_settings/images.grdp      |  26 +++++
+ .../bromite_content_settings/images.grdp      |  23 +++++
  .../bromite_content_settings/images.inc       |   6 ++
  .../core/browser/content_settings_registry.cc |   2 +-
- .../core/browser/content_settings_utils.cc    |   7 +-
- 10 files changed, 127 insertions(+), 7 deletions(-)
+ .../renderer/content_settings_agent_impl.cc   |  15 +++
+ .../renderer/content_settings_agent_impl.h    |   2 +
+ .../platform/web_content_settings_client.h    |   5 +
+ .../blink/renderer/core/frame/local_frame.cc  |   7 --
+ .../blink/renderer/core/frame/local_frame.h   |   6 --
+ .../renderer/core/html/image_document.cc      |   5 +-
+ .../core/loader/frame_fetch_context.cc        |  12 +--
+ .../core/loader/frame_fetch_context.h         |   2 +-
+ third_party/blink/renderer/core/page/page.cc  |   5 +-
+ .../platform/loader/fetch/fetch_context.h     |   2 +-
+ .../platform/loader/fetch/resource_fetcher.cc |  17 +++-
+ .../platform/loader/fetch/resource_fetcher.h  |   4 +-
+ 21 files changed, 175 insertions(+), 31 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_images.png
@@ -167,7 +179,7 @@ new file mode 100644
 +            /*defaultDisabledValue*/ getDefaultDisabledValue(),
 +            /*enabledSummary*/ R.string.website_settings_category_images_enabled,
 +            /*disabledSummary*/ R.string.website_settings_category_images_disabled,
-+            /*summaryOverrideForScreenReader*/ R.string.website_settings_category_images_a11y);
++            /*summaryOverrideForScreenReader*/ 0);
 +    }
 +
 +    @Override
@@ -211,7 +223,7 @@ diff --git a/components/browser_ui/strings/bromite_content_settings/images.grdp 
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/strings/bromite_content_settings/images.grdp
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,23 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
 +<if expr="is_android">
@@ -233,9 +245,6 @@ new file mode 100644
 +  </message>
 +  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_DISABLED" desc="Summary text explaining that sites are not allowed to load images." formatter_data="android_java">
 +    Disallow sites to load images
-+  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_A11Y" desc="The screen reader announcement describing a toggle with two states, controlling whether sites can load images. It is important to keep this string as two full sentences terminated by a period." formatter_data="android_java">
-+    When on, sites can load images. When off, sites can't load images.
 +  </message>
 +</grit-part>
 diff --git a/components/content_settings/core/browser/bromite_content_settings/images.inc b/components/content_settings/core/browser/bromite_content_settings/images.inc
@@ -261,22 +270,239 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
  
-diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
---- a/components/content_settings/core/browser/content_settings_utils.cc
-+++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -145,12 +145,7 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
-       ContentSettingToValue(CONTENT_SETTING_ALLOW), std::string(),
-       map->IsOffTheRecord()));
- #else
--  // Android doesn't use image content settings, so ALLOW rule is added for
--  // all origins.
--  rules->image_rules.push_back(ContentSettingPatternSource(
--      ContentSettingsPattern::Wildcard(), ContentSettingsPattern::Wildcard(),
--      ContentSettingToValue(CONTENT_SETTING_ALLOW), std::string(),
--      map->IsOffTheRecord()));
-+  rules->image_rules = map->GetSettingsForOneType(ContentSettingsType::IMAGES);
-   // In Android active mixed content is hard blocked, with no option to allow
-   // it.
-   rules->mixed_content_rules.push_back(ContentSettingPatternSource(
+diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
+--- a/components/content_settings/renderer/content_settings_agent_impl.cc
++++ b/components/content_settings/renderer/content_settings_agent_impl.cc
+@@ -336,6 +336,21 @@ bool ContentSettingsAgentImpl::AllowStorageAccessSync(
+   return result;
+ }
+ 
++bool ContentSettingsAgentImpl::AllowImage(bool enabled_per_settings,
++                                          const WebURL& image_url) {
++  bool allow = enabled_per_settings;
++  if (enabled_per_settings) {
++    allow = allow || IsAllowlistedForContentSettingsCromite();
++    if (content_setting_rules_) {
++      allow = AllowContentSetting(ContentSettingsType::IMAGES,
++                                  image_url, enabled_per_settings);
++    }
++  }
++  if (!allow)
++    DidBlockContentType(ContentSettingsType::IMAGES);
++  return allow;
++}
++
+ bool ContentSettingsAgentImpl::AllowReadFromClipboard() {
+   return delegate_->AllowReadFromClipboard();
+ }
+diff --git a/components/content_settings/renderer/content_settings_agent_impl.h b/components/content_settings/renderer/content_settings_agent_impl.h
+--- a/components/content_settings/renderer/content_settings_agent_impl.h
++++ b/components/content_settings/renderer/content_settings_agent_impl.h
+@@ -91,6 +91,8 @@ class ContentSettingsAgentImpl
+   void AllowStorageAccess(StorageType storage_type,
+                           base::OnceCallback<void(bool)> callback) override;
+   bool AllowStorageAccessSync(StorageType type) override;
++  bool AllowImage(bool enabled_per_settings,
++                  const blink::WebURL& image_url) override;
+   bool AllowReadFromClipboard() override;
+   bool AllowWriteToClipboard() override;
+   bool AllowMutationEvents(bool default_value) override;
+diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/third_party/blink/public/platform/web_content_settings_client.h
+--- a/third_party/blink/public/platform/web_content_settings_client.h
++++ b/third_party/blink/public/platform/web_content_settings_client.h
+@@ -55,6 +55,11 @@ class WebContentSettingsClient {
+     return enabled_per_settings;
+   }
+ 
++  // Controls whether images are allowed for this frame.
++  virtual bool AllowImage(bool enabled_per_settings, const WebURL& image_url) {
++    return enabled_per_settings;
++  }
++
+   // Controls whether insecure scripts are allowed to execute for this frame.
+   virtual bool AllowRunningInsecureContent(bool enabled_per_settings,
+                                            const WebURL&) {
+diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
+--- a/third_party/blink/renderer/core/frame/local_frame.cc
++++ b/third_party/blink/renderer/core/frame/local_frame.cc
+@@ -3964,13 +3964,6 @@ const mojom::RendererContentSettingsPtr& LocalFrame::GetContentSettings() {
+   return loader_.GetDocumentLoader()->GetContentSettings();
+ }
+ 
+-bool LocalFrame::ImagesEnabled() {
+-  DCHECK(!IsDetached());
+-
+-  bool allow_image_renderer = GetSettings()->GetImagesEnabled();
+-  bool allow_image_content_setting = GetContentSettings()->allow_image;
+-  return allow_image_renderer && allow_image_content_setting;
+-}
+ 
+ bool LocalFrame::ScriptEnabled() {
+   DCHECK(!IsDetached());
+diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
+--- a/third_party/blink/renderer/core/frame/local_frame.h
++++ b/third_party/blink/renderer/core/frame/local_frame.h
+@@ -930,12 +930,6 @@ class CORE_EXPORT LocalFrame final
+   // Can only be called while the frame is not detached.
+   const mojom::RendererContentSettingsPtr& GetContentSettings();
+ 
+-  // Returns whether images are allowed to load for the current frame. This is a
+-  // convenience method that checks both renderer content settings and frame
+-  // settings.
+-  // Can only be called while the frame is not detached.
+-  bool ImagesEnabled();
+-
+   // Returns whether script is allowed to run for the current frame. This is a
+   // convenience method that checks both renderer content settings and frame
+   // settings.
+diff --git a/third_party/blink/renderer/core/html/image_document.cc b/third_party/blink/renderer/core/html/image_document.cc
+--- a/third_party/blink/renderer/core/html/image_document.cc
++++ b/third_party/blink/renderer/core/html/image_document.cc
+@@ -140,7 +140,10 @@ void ImageDocumentParser::AppendBytes(const char* data, size_t length) {
+     return;
+ 
+   LocalFrame* frame = GetDocument()->GetFrame();
+-  bool allow_image = frame->ImagesEnabled();
++  Settings* settings = frame->GetSettings();
++  bool allow_image_renderer = !settings || settings->GetImagesEnabled();
++  bool allow_image_content_setting = frame->GetContentSettings()->allow_image;
++  bool allow_image = allow_image_renderer && allow_image_content_setting;
+   if (!allow_image) {
+     auto* client = frame->GetContentSettingsClient();
+     if (client) {
+diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
+--- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
++++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
+@@ -242,6 +242,7 @@ ResourceFetcher* FrameFetchContext::CreateFetcherForCommittedDocument(
+   fetcher->SetResourceLoadObserver(
+       MakeGarbageCollected<ResourceLoadObserverForFrame>(
+           loader, document, fetcher->GetProperties()));
++  fetcher->SetImagesEnabled(frame->GetSettings()->GetImagesEnabled());
+   fetcher->SetAutoLoadImages(
+       frame->GetSettings()->GetLoadsImagesAutomatically());
+   fetcher->SetEarlyHintsPreloadedResources(
+@@ -416,16 +417,11 @@ void FrameFetchContext::AddResourceTiming(
+       ->AddResourceTiming(std::move(info), initiator_type);
+ }
+ 
+-bool FrameFetchContext::AllowImage() const {
++bool FrameFetchContext::AllowImage(bool images_enabled, const KURL& url) const {
+   if (GetResourceFetcherProperties().IsDetached())
+     return true;
+-
+-  bool images_enabled = GetFrame()->ImagesEnabled();
+-  if (!images_enabled) {
+-    if (auto* settings_client = GetContentSettingsClient()) {
+-      settings_client->DidNotAllowImage();
+-    }
+-  }
++  if (auto* settings_client = GetContentSettingsClient())
++    images_enabled = settings_client->AllowImage(images_enabled, url);
+   return images_enabled;
+ }
+ 
+diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/third_party/blink/renderer/core/loader/frame_fetch_context.h
+--- a/third_party/blink/renderer/core/loader/frame_fetch_context.h
++++ b/third_party/blink/renderer/core/loader/frame_fetch_context.h
+@@ -94,7 +94,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
+ 
+   void AddResourceTiming(mojom::blink::ResourceTimingInfoPtr,
+                          const AtomicString& initiator_type) override;
+-  bool AllowImage() const override;
++  bool AllowImage(bool images_enabled, const KURL&) const override;
+ 
+   void PopulateResourceRequest(ResourceType,
+                                const std::optional<float> resource_width,
+diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
+--- a/third_party/blink/renderer/core/page/page.cc
++++ b/third_party/blink/renderer/core/page/page.cc
+@@ -892,9 +892,8 @@ void Page::SettingsChanged(ChangeType change_type) {
+       for (Frame* frame = MainFrame(); frame;
+            frame = frame->Tree().TraverseNext()) {
+         if (auto* local_frame = DynamicTo<LocalFrame>(frame)) {
+-          // Notify the fetcher that the image loading setting has changed,
+-          // which may cause previously deferred requests to load.
+-          local_frame->GetDocument()->Fetcher()->ReloadImagesIfNotDeferred();
++          local_frame->GetDocument()->Fetcher()->SetImagesEnabled(
++              GetSettings().GetImagesEnabled());
+           local_frame->GetDocument()->Fetcher()->SetAutoLoadImages(
+               GetSettings().GetLoadsImagesAutomatically());
+         }
+diff --git a/third_party/blink/renderer/platform/loader/fetch/fetch_context.h b/third_party/blink/renderer/platform/loader/fetch/fetch_context.h
+--- a/third_party/blink/renderer/platform/loader/fetch/fetch_context.h
++++ b/third_party/blink/renderer/platform/loader/fetch/fetch_context.h
+@@ -106,7 +106,7 @@ class PLATFORM_EXPORT FetchContext : public GarbageCollected<FetchContext> {
+ 
+   virtual void AddResourceTiming(mojom::blink::ResourceTimingInfoPtr,
+                                  const AtomicString& initiator_type);
+-  virtual bool AllowImage() const { return false; }
++  virtual bool AllowImage(bool, const KURL&) const { return false; }
+   virtual std::optional<ResourceRequestBlockedReason> CanRequest(
+       ResourceType,
+       const ResourceRequest&,
+diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
+--- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
++++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
+@@ -768,6 +768,7 @@ ResourceFetcher::ResourceFetcher(const ResourceFetcherInit& init)
+       blob_registry_remote_(init.context_lifecycle_notifier),
+       context_lifecycle_notifier_(init.context_lifecycle_notifier),
+       auto_load_images_(true),
++      images_enabled_(true),
+       allow_stale_resources_(false),
+       image_fetched_(false) {
+   InstanceCounters::IncrementCounter(InstanceCounters::kResourceFetcherCounter);
+@@ -1818,7 +1819,7 @@ bool ResourceFetcher::IsImageResourceDisallowedToBeReused(
+   if (existing_resource.GetType() != ResourceType::kImage)
+     return false;
+ 
+-  return !Context().AllowImage();
++  return !Context().AllowImage(images_enabled_, existing_resource.Url());
+ }
+ 
+ ResourceFetcher::RevalidationPolicy
+@@ -2061,8 +2062,20 @@ void ResourceFetcher::SetAutoLoadImages(bool enable) {
+   ReloadImagesIfNotDeferred();
+ }
+ 
++void ResourceFetcher::SetImagesEnabled(bool enable) {
++  if (enable == images_enabled_)
++    return;
++
++  images_enabled_ = enable;
++
++  if (!images_enabled_)
++    return;
++
++  ReloadImagesIfNotDeferred();
++}
++
+ bool ResourceFetcher::ShouldDeferImageLoad(const KURL& url) const {
+-  return !Context().AllowImage() ||
++  return !Context().AllowImage(images_enabled_, url) ||
+          (!auto_load_images_ && !url.ProtocolIsData());
+ }
+ 
+diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
+--- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
++++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
+@@ -225,6 +225,7 @@ class PLATFORM_EXPORT ResourceFetcher
+   bool StartLoad(Resource*, bool is_potentially_unused_preload = false);
+ 
+   void SetAutoLoadImages(bool);
++  void SetImagesEnabled(bool);
+ 
+   FetchContext& Context() const;
+   void ClearContext();
+@@ -675,8 +676,9 @@ class PLATFORM_EXPORT ResourceFetcher
+   // This is not in the bit field below because we want to use AutoReset.
+   bool is_in_request_resource_ = false;
+ 
+-  // 28 bits left
++  // 27 bits left
+   bool auto_load_images_ : 1;
++  bool images_enabled_ : 1;
+   bool allow_stale_resources_ : 1;
+   bool image_fetched_ : 1;
+   bool stale_while_revalidate_enabled_ : 1;
 -- 
 
