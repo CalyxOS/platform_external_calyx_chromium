@@ -59,7 +59,7 @@ diff --git a/components/embedder_support/origin_trials/origin_trial_policy_impl.
 --- a/components/embedder_support/origin_trials/origin_trial_policy_impl.h
 +++ b/components/embedder_support/origin_trials/origin_trial_policy_impl.h
 @@ -34,6 +34,7 @@ class OriginTrialPolicyImpl : public blink::OriginTrialPolicy {
-   bool IsTokenDisabled(base::StringPiece token_signature) const override;
+   bool IsTokenDisabled(std::string_view token_signature) const override;
    bool IsOriginSecure(const GURL& url) const override;
  
 + private:
@@ -77,7 +77,7 @@ diff --git a/components/embedder_support/origin_trials/origin_trial_policy_impl.
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -8858,7 +8858,6 @@ void NavigationRequest::SetSourceSiteInstanceToInitiatorIfNeeded() {
+@@ -8867,7 +8867,6 @@ void NavigationRequest::SetSourceSiteInstanceToInitiatorIfNeeded() {
  void NavigationRequest::ForceEnableOriginTrials(
      const std::vector<std::string>& trials) {
    DCHECK(!HasCommitted());
@@ -184,7 +184,7 @@ diff --git a/content/shell/common/shell_origin_trial_policy.cc b/content/shell/c
 diff --git a/third_party/blink/common/origin_trials/trial_token_validator.cc b/third_party/blink/common/origin_trials/trial_token_validator.cc
 --- a/third_party/blink/common/origin_trials/trial_token_validator.cc
 +++ b/third_party/blink/common/origin_trials/trial_token_validator.cc
-@@ -425,6 +425,7 @@ TrialTokenValidator::GetValidTokens(const url::Origin& origin,
+@@ -427,6 +427,7 @@ TrialTokenValidator::GetValidTokens(const url::Origin& origin,
  
  // static
  bool TrialTokenValidator::IsTrialPossibleOnOrigin(const GURL& url) {
@@ -195,7 +195,7 @@ diff --git a/third_party/blink/common/origin_trials/trial_token_validator.cc b/t
 diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_party/blink/renderer/core/loader/document_loader.cc
 --- a/third_party/blink/renderer/core/loader/document_loader.cc
 +++ b/third_party/blink/renderer/core/loader/document_loader.cc
-@@ -183,13 +183,6 @@ namespace {
+@@ -186,13 +186,6 @@ namespace {
  Vector<mojom::blink::OriginTrialFeature> CopyInitiatorOriginTrials(
      const WebVector<int>& initiator_origin_trial_features) {
    Vector<mojom::blink::OriginTrialFeature> result;
@@ -209,7 +209,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -203,18 +196,12 @@ WebVector<int> CopyInitiatorOriginTrials(
+@@ -206,18 +199,12 @@ WebVector<int> CopyInitiatorOriginTrials(
  Vector<String> CopyForceEnabledOriginTrials(
      const WebVector<WebString>& force_enabled_origin_trials) {
    Vector<String> result;
@@ -228,7 +228,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -3033,10 +3020,6 @@ void DocumentLoader::CreateParserPostCommit() {
+@@ -3080,10 +3067,6 @@ void DocumentLoader::CreateParserPostCommit() {
            mojom::blink::OriginTrialFeature::kTouchEventFeatureDetection);
      }
  
@@ -264,7 +264,7 @@ diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.
    Vector<OriginInfo> script_origins;
    for (const scoped_refptr<SecurityOrigin>& origin : external_origins) {
      OriginInfo origin_info = {.origin = origin,
-@@ -467,8 +470,6 @@ bool OriginTrialContext::InstallSettingFeature(
+@@ -470,8 +473,6 @@ bool OriginTrialContext::InstallSettingFeature(
  }
  
  void OriginTrialContext::AddFeature(mojom::blink::OriginTrialFeature feature) {
@@ -273,7 +273,7 @@ diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.
  }
  
  bool OriginTrialContext::IsFeatureEnabled(
-@@ -512,6 +513,7 @@ void OriginTrialContext::AddForceEnabledTrials(
+@@ -515,6 +516,7 @@ void OriginTrialContext::AddForceEnabledTrials(
  }
  
  bool OriginTrialContext::CanEnableTrialFromName(const StringView& trial_name) {

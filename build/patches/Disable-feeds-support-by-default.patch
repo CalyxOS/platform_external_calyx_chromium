@@ -5,22 +5,24 @@ Subject: Disable feeds support by default
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I59cfe031bfb2b8c55d19e4449a4280ec2bb9daa6
 ---
- chrome/browser/feed/android/web_feed_bridge.cc  |  3 +--
+ chrome/browser/feed/android/web_feed_bridge.cc  |  5 +----
  chrome/browser/prefs/browser_prefs.cc           |  4 ++--
  components/feed/core/common/pref_names.cc       | 13 +------------
  components/feed/core/shared_prefs/pref_names.cc |  2 +-
  components/feed/feed_feature_list.cc            |  1 +
- 5 files changed, 6 insertions(+), 17 deletions(-)
+ 5 files changed, 6 insertions(+), 19 deletions(-)
 
 diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/feed/android/web_feed_bridge.cc
 --- a/chrome/browser/feed/android/web_feed_bridge.cc
 +++ b/chrome/browser/feed/android/web_feed_bridge.cc
-@@ -227,8 +227,7 @@ static jboolean JNI_WebFeedBridge_IsCormorantEnabledForLocale(JNIEnv* env) {
+@@ -228,10 +228,7 @@ static jboolean JNI_WebFeedBridge_IsCormorantEnabledForLocale(JNIEnv* env) {
  }
  
  static jboolean JNI_WebFeedBridge_IsWebFeedEnabled(JNIEnv* env) {
--  return feed::IsWebFeedEnabledForLocale(
--      country_codes::GetCurrentCountryCode());
+-  return l10n_util::GetLanguage(g_browser_process->GetApplicationLocale()) ==
+-             "en" &&
+-         feed::IsWebFeedEnabledForLocale(
+-             country_codes::GetCurrentCountryCode());
 +  return false;
  }
  
@@ -28,7 +30,7 @@ diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/fee
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1920,10 +1920,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+@@ -2013,10 +2013,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
    ChromeRLZTrackerDelegate::RegisterProfilePrefs(registry);
  #endif
  
