@@ -1,28 +1,35 @@
 From: uazo <uazo@users.noreply.github.com>
 Date: Sat, 13 Nov 2021 09:17:06 +0000
-Subject: Disable FLoC and privacy sandbox
+Subject: Disable privacy sandbox
 
 Remove UI from the settings and set the flags to inactive
 Permanently removes FLoC support, disabling the download of LSH clusters,
 the marking the history navigation and the javascript API and permission policies.
+Also disable FirstPartySets and StorageAccessAPI.
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
 ---
  .../browser/chrome_content_browser_client.cc  |  3 +++
+ .../first_party_sets_navigation_throttle.cc   |  2 +-
+ .../first_party_sets_policy_service.cc        |  3 ++-
+ chrome/browser/prefs/browser_prefs.cc         |  2 +-
+ .../privacy_sandbox_service_impl.cc           |  2 +-
  .../privacy_sandbox_settings_delegate.cc      |  1 +
  .../privacy_sandbox/privacy_sandbox_prompt.cc |  1 +
  .../history/core/browser/history_backend.cc   | 13 +------------
  .../privacy_sandbox_attestations.cc           |  2 --
  .../privacy_sandbox_features.cc               |  4 ++++
- .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
+ .../privacy_sandbox/privacy_sandbox_prefs.cc  |  4 ++--
  .../privacy_sandbox_settings_impl.cc          | 19 ++++++++++++++-----
- .../Disable-FLoC-and-privacy-sandbox.inc      |  1 +
+ .../tracking_protection_prefs.cc              |  4 ++--
+ .../identity_manager/account_capabilities.cc  |  2 +-
+ .../features_cc/Disable-privacy-sandbox.inc   |  1 +
+ .../features_cc/Disable-privacy-sandbox.inc   |  4 ++++
  third_party/blink/common/features.cc          |  1 +
- 10 files changed, 27 insertions(+), 20 deletions(-)
- create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc
+ 17 files changed, 40 insertions(+), 28 deletions(-)
+ create mode 100644 cromite_flags/content/common/features_cc/Disable-privacy-sandbox.inc
+ create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-privacy-sandbox.inc
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
@@ -37,6 +44,62 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    Profile* profile = Profile::FromBrowserContext(browser_context);
  
    auto* privacy_sandbox_settings =
+diff --git a/chrome/browser/first_party_sets/first_party_sets_navigation_throttle.cc b/chrome/browser/first_party_sets/first_party_sets_navigation_throttle.cc
+--- a/chrome/browser/first_party_sets/first_party_sets_navigation_throttle.cc
++++ b/chrome/browser/first_party_sets/first_party_sets_navigation_throttle.cc
+@@ -77,7 +77,7 @@ FirstPartySetsNavigationThrottle::MaybeCreateNavigationThrottle(
+   // The `service` might be null for some irregular profiles.
+   // TODO(crbug.com/40233408): regular profiles and guest sessions
+   // aren't mutually exclusive on ChromeOS.
+-  if (!profile->IsRegularProfile() || profile->IsGuestSession())
++  if (((true)) || !profile->IsRegularProfile() || profile->IsGuestSession())
+     return nullptr;
+ 
+   FirstPartySetsPolicyService* service =
+diff --git a/chrome/browser/first_party_sets/first_party_sets_policy_service.cc b/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
+--- a/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
++++ b/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
+@@ -59,6 +59,7 @@ const base::Value::Dict* GetOverridesPolicyForProfile(
+ }
+ 
+ ServiceState GetServiceState(Profile* profile, bool pref_enabled) {
++  if ((true)) return ServiceState::kPermanentlyDisabled;
+   if (profile->IsSystemProfile() || profile->IsGuestSession() ||
+       profile->IsOffTheRecord()) {
+     return ServiceState::kPermanentlyDisabled;
+@@ -112,7 +113,7 @@ void FirstPartySetsPolicyService::Init() {
+       profile, profile->GetPrefs() &&
+                    profile->GetPrefs()->GetBoolean(
+                        prefs::kPrivacySandboxRelatedWebsiteSetsEnabled));
+-
++  service_state_ = ServiceState::kPermanentlyDisabled;
+   if (service_state_ == ServiceState::kPermanentlyDisabled) {
+     OnReadyToNotifyDelegates(net::FirstPartySetsContextConfig(),
+                              net::FirstPartySetsCacheFilter());
+diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -1577,7 +1577,7 @@ void RegisterProfilePrefsForMigration(
+   registry->RegisterTimePref(kPlusAddressLastFetchedTime, base::Time());
+ 
+   // Deprecated 03/2024.
+-  registry->RegisterBooleanPref(kPrivacySandboxApisEnabled, true);
++  registry->RegisterBooleanPref(kPrivacySandboxApisEnabled, false);
+ 
+   // Deprecated 03/2024.
+   registry->RegisterBooleanPref(kShowInternalAccessibilityTree, false);
+diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
+--- a/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
++++ b/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
+@@ -471,7 +471,7 @@ bool PrivacySandboxServiceImpl::IsRestrictedNoticeEnabled() {
+ void PrivacySandboxServiceImpl::SetFirstPartySetsDataAccessEnabled(
+     bool enabled) {
+   pref_service_->SetBoolean(prefs::kPrivacySandboxRelatedWebsiteSetsEnabled,
+-                            enabled);
++                            false);
+ }
+ 
+ bool PrivacySandboxServiceImpl::IsFirstPartySetsDataAccessEnabled() const {
 diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 --- a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 +++ b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
@@ -117,6 +180,15 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/pr
  
    registry->RegisterTimePref(prefs::kPrivacySandboxTopicsDataAccessibleSince,
                               base::Time());
+@@ -48,7 +48,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterBooleanPref(
+       prefs::kPrivacySandboxFirstPartySetsDataAccessAllowedInitialized, false);
+   registry->RegisterBooleanPref(
+-      prefs::kPrivacySandboxRelatedWebsiteSetsEnabled, true,
++      prefs::kPrivacySandboxRelatedWebsiteSetsEnabled, false,  // must be disabled
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+ 
+   registry->RegisterBooleanPref(prefs::kPrivacySandboxTopicsConsentGiven,
 diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 --- a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
@@ -195,12 +267,53 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    if (delegate_->IsIncognitoProfile()) {
      return Status::kIncognitoProfile;
    }
-diff --git a/cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc b/cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc
+diff --git a/components/privacy_sandbox/tracking_protection_prefs.cc b/components/privacy_sandbox/tracking_protection_prefs.cc
+--- a/components/privacy_sandbox/tracking_protection_prefs.cc
++++ b/components/privacy_sandbox/tracking_protection_prefs.cc
+@@ -53,14 +53,14 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+ 
+   // Tracking Protection Settings Prefs
+   registry->RegisterBooleanPref(
+-      prefs::kBlockAll3pcToggleEnabled, false,
++      prefs::kBlockAll3pcToggleEnabled, false, // with true enables FPS
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterBooleanPref(prefs::kAllowAll3pcToggleEnabled, false);
+   registry->RegisterIntegerPref(
+       prefs::kTrackingProtectionLevel,
+       static_cast<int>(TrackingProtectionLevel::kStandard),
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+-  registry->RegisterBooleanPref(prefs::kTrackingProtection3pcdEnabled, false);
++  registry->RegisterBooleanPref(prefs::kTrackingProtection3pcdEnabled, false); // with true enables FPS
+   registry->RegisterBooleanPref(
+       prefs::kIpProtectionEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+diff --git a/components/signin/public/identity_manager/account_capabilities.cc b/components/signin/public/identity_manager/account_capabilities.cc
+--- a/components/signin/public/identity_manager/account_capabilities.cc
++++ b/components/signin/public/identity_manager/account_capabilities.cc
+@@ -82,7 +82,7 @@ signin::Tribool AccountCapabilities::
+ 
+ signin::Tribool AccountCapabilities::can_run_chrome_privacy_sandbox_trials()
+     const {
+-  return GetCapabilityByName(kCanRunChromePrivacySandboxTrialsCapabilityName);
++  return signin::Tribool::kFalse;
+ }
+ 
+ signin::Tribool AccountCapabilities::is_opted_in_to_parental_supervision()
+diff --git a/cromite_flags/content/common/features_cc/Disable-privacy-sandbox.inc b/cromite_flags/content/common/features_cc/Disable-privacy-sandbox.inc
 new file mode 100644
 --- /dev/null
-+++ b/cromite_flags/third_party/blink/common/features_cc/Disable-FLoC-and-privacy-sandbox.inc
++++ b/cromite_flags/content/common/features_cc/Disable-privacy-sandbox.inc
 @@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxAdsAPIsM1Override);
+diff --git a/cromite_flags/third_party/blink/common/features_cc/Disable-privacy-sandbox.inc b/cromite_flags/third_party/blink/common/features_cc/Disable-privacy-sandbox.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/Disable-privacy-sandbox.inc
+@@ -0,0 +1,4 @@
 +SET_CROMITE_FEATURE_DISABLED(kFencedFrames);
++SET_CROMITE_FEATURE_DISABLED(kSharedStorageAPI);
++SET_CROMITE_FEATURE_DISABLED(kSharedStorageAPIM118);
++SET_CROMITE_FEATURE_DISABLED(kSharedStorageAPIM125);
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
@@ -212,5 +325,4 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
    return base::FeatureList::IsEnabled(blink::features::kAllowURNsInIframes);
  }
  
--- 
-
+--
