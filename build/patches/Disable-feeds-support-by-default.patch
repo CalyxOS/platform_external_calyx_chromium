@@ -3,30 +3,112 @@ Date: Thu, 19 Dec 2019 22:52:53 +0100
 Subject: Disable feeds support by default
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: I59cfe031bfb2b8c55d19e4449a4280ec2bb9daa6
 ---
- chrome/browser/feed/android/web_feed_bridge.cc  |  5 +----
- chrome/browser/prefs/browser_prefs.cc           |  4 ++--
- components/feed/core/common/pref_names.cc       | 13 +------------
- components/feed/core/shared_prefs/pref_names.cc |  2 +-
- components/feed/feed_feature_list.cc            |  1 +
- 5 files changed, 6 insertions(+), 19 deletions(-)
+ chrome/browser/BUILD.gn                        |  9 +++++++++
+ chrome/browser/feed/android/web_feed_bridge.cc | 18 ++++++++++++++++++
+ chrome/browser/prefs/browser_prefs.cc          |  4 ++--
+ components/feed/core/common/pref_names.cc      | 13 +------------
+ .../feed/core/shared_prefs/pref_names.cc       |  6 +++---
+ components/feed/feed_feature_list.cc           |  3 +++
+ 6 files changed, 36 insertions(+), 17 deletions(-)
 
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -2654,6 +2654,15 @@ static_library("browser") {
+     ]
+   }
+ 
++  if (is_android && !enable_feed_v2) {
++    sources += [
++      "feed/feed_service_factory.cc",
++      "feed/feed_service_factory.h",
++    ]
++    deps += [
++      "//components/feed:feature_list",
++    ]
++  }
+   if (enable_feed_v2) {
+     sources += [
+       "feed/feed_service_factory.cc",
 diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/feed/android/web_feed_bridge.cc
 --- a/chrome/browser/feed/android/web_feed_bridge.cc
 +++ b/chrome/browser/feed/android/web_feed_bridge.cc
-@@ -230,10 +230,7 @@ static jboolean JNI_WebFeedBridge_IsCormorantEnabledForLocale(JNIEnv* env) {
+@@ -24,6 +24,7 @@
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/profiles/profile_manager.h"
+ #include "components/country_codes/country_codes.h"
++#include "components/feed/buildflags.h"
+ #include "components/feed/core/v2/config.h"
+ #include "components/feed/core/v2/public/feed_service.h"
+ #include "components/feed/core/v2/public/types.h"
+@@ -80,10 +81,14 @@ base::android::ScopedJavaLocalRef<jbyteArray> ToJavaWebFeedId(
  }
  
- static jboolean JNI_WebFeedBridge_IsWebFeedEnabled(JNIEnv* env) {
--  return l10n_util::GetLanguage(g_browser_process->GetApplicationLocale()) ==
--             "en" &&
--         feed::IsWebFeedEnabledForLocale(
--             country_codes::GetCurrentCountryCode());
-+  return false;
+ WebFeedSubscriptions* GetSubscriptions() {
++#if BUILDFLAG(ENABLE_FEED_V2)
+   Profile* profile = ProfileManager::GetLastUsedProfile();
+   if (!profile)
+     return nullptr;
+   return GetSubscriptionsForProfile(profile);
++#else
++  return nullptr;
++#endif
  }
  
- static void JNI_WebFeedBridge_FollowWebFeedById(
+ FeedApi* GetStream() {
+@@ -219,10 +224,14 @@ static void JNI_WebFeedBridge_FollowWebFeed(
+     return;
+   }
+ 
++#if BUILDFLAG(ENABLE_FEED_V2)
+   FollowWebFeed(
+       page_info.web_contents,
+       static_cast<feedwire::webfeed::WebFeedChangeReason>(change_reason),
+       std::move(callback));
++#else
++  std::move(callback).Run({});
++#endif
+ }
+ 
+ static jboolean JNI_WebFeedBridge_IsCormorantEnabledForLocale(JNIEnv* env) {
+@@ -266,11 +275,16 @@ static void JNI_WebFeedBridge_UnfollowWebFeed(
+   auto callback =
+       AdaptCallbackForJava<WebFeedSubscriptions::UnfollowWebFeedResult>(
+           env, j_callback);
++
++#if BUILDFLAG(ENABLE_FEED_V2)
+   UnfollowWebFeed(
+       ToNativeWebFeedId(env, webFeedId),
+       /*is_durable_request=*/is_durable,
+       static_cast<feedwire::webfeed::WebFeedChangeReason>(change_reason),
+       std::move(callback));
++#else
++  std::move(callback).Run({});
++#endif
+ }
+ 
+ static void JNI_WebFeedBridge_FindWebFeedInfoForPage(
+@@ -282,6 +296,7 @@ static void JNI_WebFeedBridge_FindWebFeedInfoForPage(
+       AdaptCallbackForJava<WebFeedMetadata>(env, j_callback);
+ 
+   PageInformation page_info = ToNativePageInformation(env, pageInfo);
++#if BUILDFLAG(ENABLE_FEED_V2)
+   // Make sure web_contents is not NULL since the user might navigate away from
+   // the current tab that is requested to find info.
+   if (!page_info.web_contents) {
+@@ -292,6 +307,9 @@ static void JNI_WebFeedBridge_FindWebFeedInfoForPage(
+       page_info.web_contents,
+       static_cast<WebFeedPageInformationRequestReason>(reason),
+       std::move(callback));
++#else
++  std::move(callback).Run({});
++#endif
+ }
+ 
+ static void JNI_WebFeedBridge_FindWebFeedInfoForWebFeedId(
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
@@ -69,11 +151,15 @@ diff --git a/components/feed/core/common/pref_names.cc b/components/feed/core/co
 diff --git a/components/feed/core/shared_prefs/pref_names.cc b/components/feed/core/shared_prefs/pref_names.cc
 --- a/components/feed/core/shared_prefs/pref_names.cc
 +++ b/components/feed/core/shared_prefs/pref_names.cc
-@@ -26,7 +26,7 @@ const char kEnableSnippetsByDse[] = "ntp_snippets_by_dse.enable";
+@@ -24,9 +24,9 @@ const char kArticlesListVisible[] = "ntp_snippets.list_visible";
+ const char kEnableSnippetsByDse[] = "ntp_snippets_by_dse.enable";
+ 
  void RegisterFeedSharedProfilePrefs(PrefRegistrySimple* registry) {
-   registry->RegisterBooleanPref(kEnableSnippets, true);
-   registry->RegisterBooleanPref(kArticlesListVisible, true);
+-  registry->RegisterBooleanPref(kEnableSnippets, true);
+-  registry->RegisterBooleanPref(kArticlesListVisible, true);
 -  registry->RegisterBooleanPref(kEnableSnippetsByDse, true);
++  registry->RegisterBooleanPref(kEnableSnippets, false);
++  registry->RegisterBooleanPref(kArticlesListVisible, false);
 +  registry->RegisterBooleanPref(kEnableSnippetsByDse, false);
  }
  
@@ -81,11 +167,19 @@ diff --git a/components/feed/core/shared_prefs/pref_names.cc b/components/feed/c
 diff --git a/components/feed/feed_feature_list.cc b/components/feed/feed_feature_list.cc
 --- a/components/feed/feed_feature_list.cc
 +++ b/components/feed/feed_feature_list.cc
-@@ -161,4 +161,5 @@ bool IsWebFeedEnabledForLocale(const std::string& country) {
+@@ -155,10 +155,13 @@ BASE_FEATURE(kWebFeedKillSwitch,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ bool IsWebFeedEnabledForLocale(const std::string& country) {
++  if ((true)) return false;
+   const std::vector<std::string> launched_countries = {"AU", "CA", "GB",
+                                                        "NZ", "US", "ZA"};
+   return base::Contains(launched_countries, country) &&
           !base::FeatureList::IsEnabled(kWebFeedKillSwitch);
  }
  
 +SET_CROMITE_FEATURE_DISABLED(kInterestFeedV2);
++
  }  // namespace feed
 -- 
 

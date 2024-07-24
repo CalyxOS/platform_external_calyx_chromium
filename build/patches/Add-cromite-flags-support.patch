@@ -13,16 +13,18 @@ Currently in wip
 
 Need: bromite-build-utils.patch
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+
 Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
 ---
  base/BUILD.gn                                 |   4 +-
  base/android/feature_map.cc                   |   5 +
  .../base/cached_flags/CachedFlag.java         |   8 +-
- base/feature_list.cc                          |  78 +++++++++
- base/feature_list.h                           |  77 ++++++++-
+ base/feature_list.cc                          |  76 +++++++++
+ base/feature_list.h                           |  72 ++++++++-
  build/android/gyp/java_cpp_features.py        |  17 ++
  chrome/android/java/res/values/values.xml     |   3 +
  .../java/res/xml/privacy_preferences.xml      |   4 +
+ .../settings/AccessibilitySettings.java       |   5 +-
  .../homepage/settings/HomepageSettings.java   |   2 +-
  .../privacy/settings/PrivacySettings.java     |   2 +-
  .../browser/settings/SettingsActivity.java    |  36 +++++
@@ -40,12 +42,13 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  .../placeholder.txt                           |   1 +
  chrome/browser/ui/ui_features.cc              |   1 +
  chrome/common/chrome_features.cc              |   1 +
+ .../res/xml/accessibility_preferences.xml     |   3 +-
  .../android/java/res/values/attrs.xml         |   4 +
- .../settings/ChromeSwitchPreference.java      |  18 +++
+ .../settings/ChromeSwitchPreference.java      |  20 +++
  components/components_strings.grd             |   1 +
  .../content_settings/core/common/features.cc  |   1 +
  .../placeholder.txt                           |   1 +
- components/flags_ui/flags_state.cc            |  56 ++++++-
+ components/flags_ui/flags_state.cc            |  55 ++++++-
  components/flags_ui/resources/app.html        |  42 ++++-
  components/flags_ui/resources/app.ts          |  41 ++++-
  components/flags_ui/resources/experiment.html |   7 +-
@@ -89,7 +92,7 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  services/network/public/cpp/features.h        |   1 +
  third_party/blink/common/features.cc          |   1 +
  third_party/blink/public/common/features.h    |   1 +
- 74 files changed, 739 insertions(+), 19 deletions(-)
+ 76 files changed, 738 insertions(+), 22 deletions(-)
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl
  create mode 100644 chrome/browser/ui/android/strings/cromite_android_chrome_strings_grd/placeholder.txt
@@ -214,7 +217,7 @@ diff --git a/base/feature_list.cc b/base/feature_list.cc
  namespace {
  
  // Pointer to the FeatureList instance singleton that was set via
-@@ -472,6 +497,48 @@ bool FeatureList::IsEnabled(const Feature& feature) {
+@@ -472,6 +497,46 @@ bool FeatureList::IsEnabled(const Feature& feature) {
    return g_feature_list_instance->IsFeatureEnabled(feature);
  }
  
@@ -235,8 +238,7 @@ diff --git a/base/feature_list.cc b/base/feature_list.cc
 +      return key;
 +    }
 +  }
-+  NOTREACHED();
-+  return nullptr;
++  NOTREACHED_NORETURN();
 +}
 +
 +// static
@@ -256,14 +258,13 @@ diff --git a/base/feature_list.cc b/base/feature_list.cc
 +      return value == base::FEATURE_ENABLED_BY_DEFAULT;
 +    }
 +  }
-+  NOTREACHED();
-+  return false;
++  NOTREACHED_NORETURN();
 +}
 +
  // static
  bool FeatureList::IsValidFeatureOrFieldTrialName(std::string_view name) {
    return IsStringASCII(name) && name.find_first_of(",<*") == std::string::npos;
-@@ -718,6 +785,17 @@ void FeatureList::VisitFeaturesAndParams(FeatureVisitor& visitor) {
+@@ -718,6 +783,17 @@ void FeatureList::VisitFeaturesAndParams(FeatureVisitor& visitor) {
  
  void FeatureList::FinalizeInitialization() {
    DCHECK(!initialized_);
@@ -284,32 +285,20 @@ diff --git a/base/feature_list.cc b/base/feature_list.cc
 diff --git a/base/feature_list.h b/base/feature_list.h
 --- a/base/feature_list.h
 +++ b/base/feature_list.h
-@@ -78,6 +78,10 @@ enum FeatureState {
-   constinit const base::Feature feature(           \
-       name, default_state, base::internal::FeatureMacroHandshake::kSecret)
- 
-+#define BASE_FEATURE_CROMITE(feature, name, default_state, cromite, is_new_flag) \
-+  constinit const base::Feature feature(           \
-+      name, default_state, base::internal::FeatureMacroHandshake::kSecret, cromite, is_new_flag)
-+
- // Secret handshake to (try to) ensure all places that construct a base::Feature
- // go through the helper `BASE_FEATURE()` macro above.
- namespace internal {
-@@ -108,8 +112,11 @@ enum class FeatureMacroHandshake { kSecret };
+@@ -108,8 +108,10 @@ enum class FeatureMacroHandshake { kSecret };
  struct BASE_EXPORT LOGICALLY_CONST Feature {
    constexpr Feature(const char* name,
                      FeatureState default_state,
 -                    internal::FeatureMacroHandshake)
 -      : name(name), default_state(default_state) {
 +                    internal::FeatureMacroHandshake,
-+                    bool cromite = false,
-+                    bool is_new_flag = false)
++                    bool cromite = false, bool is_new_flag = false)
 +      : name(name), default_state(default_state),
 +        is_cromite(cromite), is_new(is_new_flag) {
  #if BUILDFLAG(ENABLE_BANNED_BASE_FEATURE_PREFIX)
      if (std::string_view(name).find(BUILDFLAG(BANNED_BASE_FEATURE_PREFIX)) ==
          0) {
-@@ -136,6 +143,9 @@ struct BASE_EXPORT LOGICALLY_CONST Feature {
+@@ -136,6 +138,9 @@ struct BASE_EXPORT LOGICALLY_CONST Feature {
    // command line switch.
    const FeatureState default_state;
  
@@ -319,7 +308,7 @@ diff --git a/base/feature_list.h b/base/feature_list.h
   private:
    friend class FeatureList;
  
-@@ -411,6 +421,11 @@ class BASE_EXPORT FeatureList {
+@@ -411,6 +416,11 @@ class BASE_EXPORT FeatureList {
    // instance, which is checked in builds with DCHECKs enabled.
    static bool IsEnabled(const Feature& feature);
  
@@ -331,7 +320,7 @@ diff --git a/base/feature_list.h b/base/feature_list.h
    // Some characters are not allowed to appear in feature names or the
    // associated field trial names, as they are used as special characters for
    // command-line serialization. This function checks that the strings are ASCII
-@@ -676,4 +691,62 @@ class BASE_EXPORT FeatureList {
+@@ -676,4 +686,62 @@ class BASE_EXPORT FeatureList {
  
  }  // namespace base
  
@@ -353,7 +342,7 @@ diff --git a/base/feature_list.h b/base/feature_list.h
 +}  // namespace base
 +
 +#define CROMITE_FEATURE(feature, name, default_state) \
-+  BASE_FEATURE_CROMITE(feature, name, default_state, true, true); \
++  constinit const base::Feature feature(name, default_state, base::internal::FeatureMacroHandshake::kSecret, true, true); \
 +  _Pragma("clang diagnostic push")                              \
 +  _Pragma("clang diagnostic ignored \"-Wglobal-constructors\"") \
 +  static const ::base::internal::FeatureDefaultStateOverrider   \
@@ -452,6 +441,35 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      <Preference
          android:key="preload_pages"
          android:title="@string/preload_pages_title"
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/AccessibilitySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/AccessibilitySettings.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/AccessibilitySettings.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/AccessibilitySettings.java
+@@ -16,6 +16,7 @@ import org.chromium.chrome.R;
+ import org.chromium.chrome.browser.image_descriptions.ImageDescriptionsController;
+ import org.chromium.chrome.browser.preferences.Pref;
+ import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
++import org.chromium.chrome.browser.settings.ChromeBaseSettingsFragment;
+ import org.chromium.components.browser_ui.accessibility.AccessibilitySettingsDelegate;
+ import org.chromium.components.browser_ui.accessibility.FontSizePrefs;
+ import org.chromium.components.browser_ui.accessibility.FontSizePrefs.FontSizePrefsObserver;
+@@ -33,7 +34,7 @@ import org.chromium.content_public.browser.ContentFeatureList;
+ import org.chromium.content_public.browser.ContentFeatureMap;
+ 
+ /** Fragment to keep track of all the accessibility related preferences. */
+-public class AccessibilitySettings extends PreferenceFragmentCompat
++public class AccessibilitySettings extends ChromeBaseSettingsFragment
+         implements Preference.OnPreferenceChangeListener {
+     public static final String PREF_TEXT_SCALE = "text_scale";
+     public static final String PREF_PAGE_ZOOM_DEFAULT_ZOOM = "page_zoom_default_zoom";
+@@ -92,7 +93,7 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
+     }
+ 
+     @Override
+-    public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
++    public void onCreatePreferencesCromite(Bundle savedInstanceState, String rootKey) {
+         SettingsUtils.addPreferencesFromResource(this, R.xml.accessibility_preferences);
+ 
+         mTextScalePref = (TextScalePreference) findPreference(PREF_TEXT_SCALE);
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/homepage/settings/HomepageSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/homepage/settings/HomepageSettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/homepage/settings/HomepageSettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/homepage/settings/HomepageSettings.java
@@ -532,17 +550,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
      @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
      public static final String EXTRA_SHOW_FRAGMENT = "show_fragment";
  
-@@ -389,6 +421,10 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
-         if (fragment instanceof SafetyHubBaseFragment) {
-             ((SafetyHubBaseFragment) fragment).setSnackbarManager(mSnackbarManager);
+@@ -377,6 +409,10 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+         if (fragment instanceof INeedSnackbarManager) {
+             ((INeedSnackbarManager)fragment).setSnackbarManager(mSnackbarManager);
          }
 +        if (fragment instanceof ChromeBaseSettingsFragment) {
 +            ((ChromeBaseSettingsFragment)fragment).setRequestRestartDelegate(
 +                new RequestRestartDelegate(mSnackbarManager, this));
 +        }
-         initBackPressHandler();
-     }
- 
+         if (fragment instanceof AccountManagementFragment) {
+             ((AccountManagementFragment) fragment).setSnackbarManager(mSnackbarManager);
+         }
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
@@ -852,6 +870,19 @@ diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
  
 +#include "cromite_flags/chrome_common_chrome_features_cc.inc"
  }  // namespace features
+diff --git a/components/browser_ui/accessibility/android/java/res/xml/accessibility_preferences.xml b/components/browser_ui/accessibility/android/java/res/xml/accessibility_preferences.xml
+--- a/components/browser_ui/accessibility/android/java/res/xml/accessibility_preferences.xml
++++ b/components/browser_ui/accessibility/android/java/res/xml/accessibility_preferences.xml
+@@ -5,7 +5,8 @@ Use of this source code is governed by a BSD-style license that can be
+ found in the LICENSE file.
+ -->
+ 
+-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
++<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
++                  xmlns:app="http://schemas.android.com/apk/res-auto">
+ 
+     <org.chromium.chrome.browser.accessibility.settings.TextScalePreference
+         android:key="text_scale"
 diff --git a/components/browser_ui/settings/android/java/res/values/attrs.xml b/components/browser_ui/settings/android/java/res/values/attrs.xml
 --- a/components/browser_ui/settings/android/java/res/values/attrs.xml
 +++ b/components/browser_ui/settings/android/java/res/values/attrs.xml
@@ -869,15 +900,17 @@ diff --git a/components/browser_ui/settings/android/java/res/values/attrs.xml b/
 diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/ChromeSwitchPreference.java b/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/ChromeSwitchPreference.java
 --- a/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/ChromeSwitchPreference.java
 +++ b/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/ChromeSwitchPreference.java
-@@ -5,6 +5,7 @@
- package org.chromium.components.browser_ui.settings;
+@@ -12,6 +12,9 @@ import android.view.accessibility.AccessibilityEvent;
+ import android.view.accessibility.AccessibilityNodeInfo;
+ import android.widget.TextView;
  
- import android.content.Context;
++import androidx.annotation.Nullable;
 +import android.content.res.TypedArray;
- import android.text.TextUtils;
- import android.util.AttributeSet;
- import android.view.View;
-@@ -31,6 +32,11 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat {
++
+ import androidx.annotation.ColorInt;
+ import androidx.annotation.Nullable;
+ import androidx.annotation.VisibleForTesting;
+@@ -31,6 +34,11 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat {
      /** Indicates if the preference uses a custom layout. */
      private final boolean mHasCustomLayout;
  
@@ -889,7 +922,7 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
      // TOOD(crbug.com/1451550): This is an interim solution. In the long-term, we should migrate
      // away from a switch with dynamically changing summaries onto a radio group.
      /**
-@@ -50,6 +56,18 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat {
+@@ -50,6 +58,18 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat {
  
          mHasCustomLayout = ManagedPreferencesUtils.isCustomLayoutApplied(context, attrs);
          mUseSummaryAsTitle = true;
@@ -911,14 +944,14 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
 diff --git a/components/components_strings.grd b/components/components_strings.grd
 --- a/components/components_strings.grd
 +++ b/components/components_strings.grd
-@@ -338,6 +338,7 @@
+@@ -337,6 +337,7 @@
+       <part file="user_education_strings.grdp" />
        <part file="version_ui_strings.grdp" />
        <part file="webapps_strings.grdp" />
-       <part file="history_clusters_strings.grdp" />
 +      <part file="cromite_components_strings_grd/placeholder.txt"/>
+       <part file="history_clusters_strings.grdp" />
        <if expr="is_android">
          <part file="android_system_error_page_strings.grdp" />
-         <part file="external_intents_strings.grdp" />
 diff --git a/components/content_settings/core/common/features.cc b/components/content_settings/core/common/features.cc
 --- a/components/content_settings/core/common/features.cc
 +++ b/components/content_settings/core/common/features.cc
@@ -938,7 +971,7 @@ new file mode 100644
 diff --git a/components/flags_ui/flags_state.cc b/components/flags_ui/flags_state.cc
 --- a/components/flags_ui/flags_state.cc
 +++ b/components/flags_ui/flags_state.cc
-@@ -359,7 +359,22 @@ void FlagsState::GetSwitchesAndFeaturesFromFlags(
+@@ -359,7 +359,21 @@ void FlagsState::GetSwitchesAndFeaturesFromFlags(
  
    for (const std::string& entry_name : enabled_entries) {
      const auto& entry_it = name_to_switch_map.find(entry_name);
@@ -956,13 +989,12 @@ diff --git a/components/flags_ui/flags_state.cc b/components/flags_ui/flags_stat
 +          continue;
 +        }
 +      }
-+      NOTREACHED();
-+      continue;
++      NOTREACHED_NORETURN();
 +    }
  
      const SwitchEntry& entry = entry_it->second;
      if (!entry.switch_name.empty())
-@@ -676,6 +691,27 @@ void FlagsState::GetFlagFeatureEntries(
+@@ -676,6 +690,27 @@ void FlagsState::GetFlagFeatureEntries(
        data.Set("links", std::move(links));
      }
  
@@ -990,7 +1022,7 @@ diff --git a/components/flags_ui/flags_state.cc b/components/flags_ui/flags_stat
      switch (entry.type) {
        case FeatureEntry::SINGLE_VALUE:
        case FeatureEntry::SINGLE_DISABLE_VALUE:
-@@ -804,6 +840,16 @@ void FlagsState::AddSwitchesToCommandLine(
+@@ -804,6 +839,16 @@ void FlagsState::AddSwitchesToCommandLine(
    for (const std::string& entry_name : enabled_entries) {
      const auto& entry_it = name_to_switch_map.find(entry_name);
      if (entry_it == name_to_switch_map.end()) {
@@ -1007,7 +1039,7 @@ diff --git a/components/flags_ui/flags_state.cc b/components/flags_ui/flags_stat
        NOTREACHED_IN_MIGRATION();
        continue;
      }
-@@ -1056,6 +1102,14 @@ const FeatureEntry* FlagsState::FindFeatureEntryByName(
+@@ -1056,6 +1101,14 @@ const FeatureEntry* FlagsState::FindFeatureEntryByName(
  bool FlagsState::IsSupportedFeature(const FlagsStorage* storage,
                                      const std::string& name,
                                      int platform_mask) const {
@@ -1361,7 +1393,7 @@ diff --git a/content/common/features.cc b/content/common/features.cc
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -1293,4 +1293,5 @@ bool IsVideoCaptureServiceEnabledForBrowserProcess() {
+@@ -1295,4 +1295,5 @@ bool IsVideoCaptureServiceEnabledForBrowserProcess() {
           VideoCaptureServiceConfiguration::kEnabledForBrowserProcess;
  }
  

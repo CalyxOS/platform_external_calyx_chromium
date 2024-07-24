@@ -59,6 +59,7 @@ Change-Id: Idebdd2b882432fcc3704fba2f4a9da3c91b3497f
  .../one_time_permissions_tracker.h            |  5 +-
  .../one_time_permissions_tracker_factory.cc   |  2 +-
  .../permissions/embedded_permission_prompt.cc |  2 +-
+ ...exclusive_access_permission_prompt_view.cc |  2 +-
  .../permission_prompt_bubble_base_view.cc     |  2 +-
  .../site_settings/PermissionInfo.java         |  1 +
  .../site_settings/SingleWebsiteSettings.java  |  9 ++
@@ -88,7 +89,7 @@ Change-Id: Idebdd2b882432fcc3704fba2f4a9da3c91b3497f
  components/permissions/permission_request.h   | 16 +++-
  .../permissions/permission_request_manager.cc | 45 ++++++----
  .../permissions/permission_request_manager.h  | 11 ++-
- 34 files changed, 488 insertions(+), 61 deletions(-)
+ 35 files changed, 489 insertions(+), 62 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -230,15 +231,27 @@ diff --git a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc 
 diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 --- a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 +++ b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
-@@ -436,7 +436,7 @@ void EmbeddedPermissionPrompt::AllowThisTime() {
-   PrecalculateVariantsForMetrics();
-   RecordPermissionActionUKM(
-       permissions::ElementAnchoredBubbleAction::kGrantedOnce);
--  SendDelegateAction(Action::kAllowThisTime);
-+  SendDelegateAction(content_settings::mojom::LifetimeMode::ONLY_THIS_TIME);
-   CloseCurrentViewAndMaybeShowNext(/*first_prompt=*/false);
- }
- 
+@@ -658,7 +658,7 @@ void EmbeddedPermissionPrompt::SendDelegateAction(Action action) {
+       delegate_->Accept();
+       break;
+     case Action::kAllowThisTime:
+-      delegate_->AcceptThisTime();
++      delegate_->AcceptThisTime(content_settings::mojom::LifetimeMode::ONLY_THIS_TIME);
+       break;
+     case Action::kDeny:
+       delegate_->Deny();
+diff --git a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_view.cc b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_view.cc
+--- a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_view.cc
++++ b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_view.cc
+@@ -99,7 +99,7 @@ void ExclusiveAccessPermissionPromptView::RunButtonCallback(int button_id) {
+   }
+   ButtonType button = GetButtonType(button_id);
+   if (button == ButtonType::kAllowThisTime) {
+-    delegate_->AcceptThisTime();
++    delegate_->AcceptThisTime(content_settings::mojom::LifetimeMode::ONLY_THIS_TIME);
+   } else if (button == ButtonType::kAlwaysAllow) {
+     delegate_->Accept();
+   } else if (button == ButtonType::kNeverAllow) {
 diff --git a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
 --- a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
 +++ b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
@@ -380,11 +393,10 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.h b
 diff --git a/components/content_settings/core/common/content_settings_enums.mojom b/components/content_settings/core/common/content_settings_enums.mojom
 --- a/components/content_settings/core/common/content_settings_enums.mojom
 +++ b/components/content_settings/core/common/content_settings_enums.mojom
-@@ -77,3 +77,12 @@ enum SessionModel {
-     kProviderForTests,
-     kOtherProviderForTests,
-   };
-+
+@@ -58,6 +58,15 @@ enum SessionModel {
+   ONE_TIME,
+ };
+ 
 +// GENERATED_JAVA_ENUM_PACKAGE: org.chromium.components.content_settings
 +// GENERATED_JAVA_CLASS_NAME_OVERRIDE: LifetimeMode
 +enum LifetimeMode {
@@ -393,6 +405,10 @@ diff --git a/components/content_settings/core/common/content_settings_enums.mojo
 +  UNTIL_ORIGIN_CLOSED = 2,
 +  UNTIL_BROWSER_CLOSED = 0,
 +};
++
+ // Identifies the content settings provider of a content setting.
+ // GENERATED_JAVA_ENUM_PACKAGE: org.chromium.components.content_settings
+ // GENERATED_JAVA_CLASS_NAME_OVERRIDE: ProviderType
 diff --git a/components/page_info/android/java/src/org/chromium/components/page_info/PageInfoController.java b/components/page_info/android/java/src/org/chromium/components/page_info/PageInfoController.java
 --- a/components/page_info/android/java/src/org/chromium/components/page_info/PageInfoController.java
 +++ b/components/page_info/android/java/src/org/chromium/components/page_info/PageInfoController.java

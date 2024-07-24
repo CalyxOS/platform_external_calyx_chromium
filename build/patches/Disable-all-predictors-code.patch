@@ -18,6 +18,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  chrome/browser/ui/tab_helpers.cc                  |  1 -
  .../ui/webui/omnibox/omnibox_page_handler.cc      |  2 ++
  chrome/utility/BUILD.gn                           |  2 +-
+ chrome/utility/services.cc                        |  8 --------
  .../core/browser/autofill_optimization_guide.cc   |  5 +++--
  .../omnibox/browser/autocomplete_controller.cc    |  4 ++++
  .../optimization_guide/core/hints_fetcher.cc      |  1 +
@@ -35,7 +36,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  services/webnn/features.gni                       |  2 +-
  .../document_speculation_rules.cc                 |  1 +
  .../platform/runtime_enabled_features.json5       |  2 +-
- 28 files changed, 66 insertions(+), 27 deletions(-)
+ 29 files changed, 66 insertions(+), 35 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/components/permissions/features_cc/Disable-all-predictors-code.inc
@@ -226,6 +227,31 @@ diff --git a/chrome/utility/BUILD.gn b/chrome/utility/BUILD.gn
      "//services/passage_embeddings/public/mojom",
      "//services/screen_ai/buildflags",
      "//services/service_manager/public/cpp",
+diff --git a/chrome/utility/services.cc b/chrome/utility/services.cc
+--- a/chrome/utility/services.cc
++++ b/chrome/utility/services.cc
+@@ -250,13 +250,6 @@ auto RunMirroringService(
+       std::move(receiver), content::UtilityThread::Get()->GetIOTaskRunner());
+ }
+ 
+-auto RunPassageEmbeddingsService(
+-    mojo::PendingReceiver<passage_embeddings::mojom::PassageEmbeddingsService>
+-        receiver) {
+-  return std::make_unique<passage_embeddings::PassageEmbeddingsService>(
+-      std::move(receiver));
+-}
+-
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+ #if BUILDFLAG(ENABLE_BROWSER_SPEECH_SERVICE)
+@@ -463,7 +456,6 @@ void RegisterMainThreadServices(mojo::ServiceFactory& services) {
+ #if !BUILDFLAG(IS_ANDROID)
+   services.Add(RunProfileImporter);
+   services.Add(RunMirroringService);
+-  services.Add(RunPassageEmbeddingsService);
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+ #if BUILDFLAG(ENABLE_BROWSER_SPEECH_SERVICE)
 diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/components/autofill/core/browser/autofill_optimization_guide.cc
 --- a/components/autofill/core/browser/autofill_optimization_guide.cc
 +++ b/components/autofill/core/browser/autofill_optimization_guide.cc
@@ -505,7 +531,7 @@ diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculat
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3095,7 +3095,7 @@
+@@ -3105,7 +3105,7 @@
        //
        // It also has some feature params defined throughout the codebase.
        name: "Prerender2",
