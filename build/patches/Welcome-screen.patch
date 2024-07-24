@@ -4,30 +4,26 @@ Subject: Welcome screen
 
 Allow toggling automatic updates
 
-TODO:
-Removed auto update code for now, need to add it back
-
-CalyxOS Port Note: Regarding ad blocker automatic updates, we remove
-"; they cannot be disabled" from the first-launch text because the
-legacy ad blocker can now have its updates turned off in Settings.
-
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I4a722acfabcd9a4da886d2d164e69ac36e734813
 ---
  chrome/android/chrome_java_resources.gni      |   1 +
  chrome/android/chrome_java_sources.gni        |   2 +
- .../android/java/res/layout/fre_tosanduma.xml | 151 ++++++++
+ .../android/java/res/layout/fre_tosanduma.xml | 160 +++++++++
  chrome/android/java/res/values/dimens.xml     |  10 +
  chrome/android/java/res/values/styles.xml     |  24 ++
  .../firstrun/ChildAccountStatusSupplier.java  |  13 -
- .../browser/firstrun/FirstRunActivity.java    |  35 +-
+ .../DefaultSearchEngineFirstRunFragment.java  |   3 -
+ .../browser/firstrun/FirstRunActivity.java    |  31 +-
  .../firstrun/FirstRunActivityBase.java        |   6 +-
- .../firstrun/FirstRunFlowSequencer.java       |  93 +----
- .../firstrun/ToSAndUMAFirstRunFragment.java   | 307 ++++++++++++++++
+ .../firstrun/FirstRunFlowSequencer.java       |  68 +---
+ .../browser/firstrun/FirstRunUtils.java       |   1 +
+ .../firstrun/ToSAndUMAFirstRunFragment.java   | 335 +++++++++++++++++
  .../firstrun/TosAndUmaFragmentView.java       | 336 ++++++++++++++++++
- .../strings/android_chrome_strings.grd        |  17 +-
- 12 files changed, 869 insertions(+), 126 deletions(-)
+ .../browser/locale/LocaleManagerDelegate.java |   5 +-
+ .../strings/android_chrome_strings.grd        |  24 +-
+ 15 files changed, 911 insertions(+), 108 deletions(-)
  create mode 100644 chrome/android/java/res/layout/fre_tosanduma.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/firstrun/TosAndUmaFragmentView.java
@@ -59,7 +55,7 @@ diff --git a/chrome/android/java/res/layout/fre_tosanduma.xml b/chrome/android/j
 new file mode 100644
 --- /dev/null
 +++ b/chrome/android/java/res/layout/fre_tosanduma.xml
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,160 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<!--
 +Copyright 2015 The Chromium Authors
@@ -145,6 +141,15 @@ new file mode 100644
 +                        android:layout_marginTop="@dimen/fre_vertical_spacing"
 +                        android:layout_marginBottom="@dimen/fre_tos_bottom_margin"
 +                        android:lineSpacingMultiplier="1.4"
++                        android:textAppearance="@style/TextAppearance.TextMedium.Primary" />
++
++                    <CheckBox
++                        android:id="@+id/auto_updater_checkbox"
++                        android:layout_width="wrap_content"
++                        android:layout_height="wrap_content"
++                        android:lineSpacingMultiplier="1.4"
++                        android:text="@string/auto_updater_check"
++                        android:paddingStart="@dimen/fre_tos_checkbox_padding"
 +                        android:textAppearance="@style/TextAppearance.TextMedium.Primary" />
 +                </LinearLayout>
 +
@@ -295,25 +300,39 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildA
      }
  
      @Override
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/DefaultSearchEngineFirstRunFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/DefaultSearchEngineFirstRunFragment.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/DefaultSearchEngineFirstRunFragment.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/DefaultSearchEngineFirstRunFragment.java
+@@ -59,15 +59,12 @@ public class DefaultSearchEngineFirstRunFragment extends Fragment implements Fir
+         Profile profile = getPageDelegate().getProfileProviderSupplier().get().getOriginalProfile();
+ 
+         assert TemplateUrlServiceFactory.getForProfile(profile).isLoaded();
+-        mSearchEnginePromoDialogType = LocaleManager.getInstance().getSearchEnginePromoShowType();
+-        if (mSearchEnginePromoDialogType != SearchEnginePromoType.DONT_SHOW) {
+             new DefaultSearchEngineDialogHelper(
+                     mSearchEnginePromoDialogType,
+                     LocaleManager.getInstance(),
+                     mEngineLayout,
+                     mButton,
+                     getPageDelegate()::advanceToNextPage);
+-        }
+ 
+         return rootView;
+     }
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-@@ -31,13 +31,10 @@ import org.chromium.chrome.browser.fonts.FontPreloader;
+@@ -31,8 +31,7 @@ import org.chromium.chrome.browser.fonts.FontPreloader;
  import org.chromium.chrome.browser.metrics.UmaUtils;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 -import org.chromium.chrome.browser.signin.SigninCheckerProvider;
 -import org.chromium.chrome.browser.signin.SigninFirstRunFragment;
--import org.chromium.chrome.browser.ui.signin.history_sync.HistorySyncHelper;
 +import org.chromium.chrome.browser.firstrun.ToSAndUMAFirstRunFragment;
+ import org.chromium.chrome.browser.ui.signin.history_sync.HistorySyncHelper;
  import org.chromium.components.browser_ui.modaldialog.AppModalPresenter;
  import org.chromium.components.feature_engagement.EventConstants;
- import org.chromium.components.metrics.LowEntropySource;
--import org.chromium.components.signin.metrics.SigninAccessPoint;
- import org.chromium.ui.base.ActivityWindowAndroid;
- import org.chromium.ui.base.LocalizationUtils;
- import org.chromium.ui.modaldialog.ModalDialogManager;
-@@ -124,7 +121,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -124,7 +123,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      /** Creates first page and sets up adapter. Should result UI being shown on the screen. */
      private void createFirstPage() {
          BooleanSupplier showWelcomePage = () -> !FirstRunStatus.shouldSkipWelcomePage();
@@ -322,17 +341,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          mFreProgressStates.add(MobileFreProgress.WELCOME_SHOWN);
          mPagerAdapter = new FirstRunPagerAdapter(FirstRunActivity.this, mPages);
          mPager.setAdapter(mPagerAdapter);
-@@ -145,8 +142,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
-         // Initialize SigninChecker, to kick off sign-in for child accounts as early as possible.
+@@ -146,7 +145,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          //
          // TODO(b/245912657): explicitly sign in supervised users in {@link
--        // FullscreenSigninMediator#handleContinueWithNative} rather than relying on SigninChecker.
+         // FullscreenSigninMediator#handleContinueWithNative} rather than relying on SigninChecker.
 -        SigninCheckerProvider.get(getProfileProviderSupplier().get().getOriginalProfile());
-+        // SigninFirstRunMediator#handleContinueWithNative} rather than relying on SigninChecker.
  
          mFirstRunFlowSequencer.updateFirstRunProperties(mFreProperties);
  
-@@ -161,26 +157,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -161,26 +159,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
              mFreProgressStates.add(MobileFreProgress.DEFAULT_SEARCH_ENGINE_SHOWN);
          }
  
@@ -359,7 +376,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          if (mPagerAdapter != null) {
              mPagerAdapter.notifyDataSetChanged();
          }
-@@ -537,11 +513,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -537,11 +515,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      public void acceptTermsOfService(boolean allowMetricsAndCrashUploading) {
          assert mNativeInitializationPromise.isFulfilled();
  
@@ -412,7 +429,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  /**
   * A helper to determine what should be the sequence of First Run Experience screens, and whether
-@@ -63,46 +58,19 @@ public abstract class FirstRunFlowSequencer {
+@@ -63,46 +58,17 @@ public abstract class FirstRunFlowSequencer {
  
          /** Returns true if the sync consent promo page should be shown. */
          boolean shouldShowSyncConsentPage(boolean isChild) {
@@ -430,9 +447,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -            }
 -            // Show the sync consent page only to the signed-in users.
 -            return identityManager.hasPrimaryAccount(ConsentLevel.SIGNIN);
--        }
--
--        boolean shouldShowHistorySyncOptIn(boolean isChild) {
++            return false;
+         }
+ 
+         boolean shouldShowHistorySyncOptIn(boolean isChild) {
 -            assert mProfileSupplier.get() != null;
 -            Profile profile = mProfileSupplier.get().getOriginalProfile();
 -            HistorySyncHelper historySyncHelper = HistorySyncHelper.getForProfile(profile);
@@ -457,17 +475,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -            int searchPromoType = LocaleManager.getInstance().getSearchEnginePromoShowType();
 -            return searchPromoType == SearchEnginePromoType.SHOW_NEW
 -                    || searchPromoType == SearchEnginePromoType.SHOW_EXISTING;
-+            return false;
-+        }
-+
-+        /** @return true if Sync is allowed for the current user. */
-+        @VisibleForTesting
-+        protected boolean isSyncAllowed() {
-+            return false;
++            return true;
          }
      }
  
-@@ -154,18 +122,8 @@ public abstract class FirstRunFlowSequencer {
+@@ -154,18 +120,8 @@ public abstract class FirstRunFlowSequencer {
       * method.
       */
      void start() {
@@ -488,18 +500,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @VisibleForTesting
-@@ -177,10 +135,6 @@ public abstract class FirstRunFlowSequencer {
-         return mDelegate.shouldShowSyncConsentPage(mIsChild);
-     }
- 
--    private boolean shouldShowHistorySyncOptIn() {
--        return mDelegate.shouldShowHistorySyncOptIn(mIsChild);
--    }
--
-     private void setChildAccountStatus(boolean isChild) {
-         assert mIsChild == null;
-         mIsChild = isChild;
-@@ -188,14 +142,10 @@ public abstract class FirstRunFlowSequencer {
+@@ -188,14 +144,10 @@ public abstract class FirstRunFlowSequencer {
      }
  
      private void maybeProcessFreEnvironmentPreNative() {
@@ -514,29 +515,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          onFlowIsKnown(freProperties);
      }
-@@ -206,19 +156,8 @@ public abstract class FirstRunFlowSequencer {
+@@ -206,6 +158,8 @@ public abstract class FirstRunFlowSequencer {
       * @param freProperties Resulting FRE properties bundle.
       */
      public void updateFirstRunProperties(Bundle freProperties) {
--        boolean isHistorySyncEnabled =
--                ChromeFeatureList.isEnabled(
--                        ChromeFeatureList.REPLACE_SYNC_PROMOS_WITH_SIGN_IN_PROMOS);
--        if (isHistorySyncEnabled) {
--            freProperties.putBoolean(FirstRunActivity.SHOW_SYNC_CONSENT_PAGE, false);
--            freProperties.putBoolean(
--                    FirstRunActivity.SHOW_HISTORY_SYNC_PAGE, shouldShowHistorySyncOptIn());
--        } else {
--            freProperties.putBoolean(
--                    FirstRunActivity.SHOW_SYNC_CONSENT_PAGE, shouldShowSyncConsentPage());
--            freProperties.putBoolean(FirstRunActivity.SHOW_HISTORY_SYNC_PAGE, false);
--        }
--
 +        if (freProperties == null)
 +          throw new RuntimeException("attempting to update null FRE properties");
-         freProperties.putBoolean(
-                 FirstRunActivity.SHOW_SEARCH_ENGINE_PAGE, shouldShowSearchEnginePage());
-     }
-@@ -320,13 +259,17 @@ public abstract class FirstRunFlowSequencer {
+         boolean isHistorySyncEnabled =
+                 ChromeFeatureList.isEnabled(
+                         ChromeFeatureList.REPLACE_SYNC_PROMOS_WITH_SIGN_IN_PROMOS);
+@@ -320,13 +274,17 @@ public abstract class FirstRunFlowSequencer {
              if (!(caller instanceof Activity)) {
                  freIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
              }
@@ -556,11 +544,22 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          }
          return true;
      }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
+@@ -63,6 +63,7 @@ public class FirstRunUtils {
+      *         collect stats.
+      */
+     static void acceptTermsOfService(boolean allowMetricsAndCrashUploading) {
++        allowMetricsAndCrashUploading = false;
+         UmaSessionStats.changeMetricsReportingConsent(
+                 allowMetricsAndCrashUploading, ChangeMetricsReportingStateCalledFrom.UI_FIRST_RUN);
+         ChromeSharedPreferences.getInstance()
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
 new file mode 100644
 --- /dev/null
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,335 @@
 +// Copyright 2015 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -580,7 +579,7 @@ new file mode 100644
 +import android.widget.TextView;
 +
 +import android.content.SharedPreferences;
-+import org.chromium.chrome.browser.omaha.OmahaBase;
++import org.chromium.chrome.browser.omaha.OmahaPrefUtils;
 +
 +import androidx.annotation.NonNull;
 +import androidx.annotation.Nullable;
@@ -589,7 +588,6 @@ new file mode 100644
 +
 +import org.chromium.base.Log;
 +import org.chromium.base.metrics.RecordHistogram;
-+import org.chromium.base.version_info.VersionInfo;
 +import org.chromium.chrome.R;
 +import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManagerImpl;
 +import org.chromium.ui.modaldialog.ModalDialogManagerHolder;
@@ -627,6 +625,8 @@ new file mode 100644
 +    private boolean mUserInteractedWithUmaCheckbox;
 +
 +    private Button mAcceptButton;
++    private CheckBox mAutoUpdaterCheckBox;
++    private boolean mAutoUpdaterChecked;
 +    private TextView mTosAndPrivacy;
 +    private View mTitle;
 +    private View mProgressSpinner;
@@ -653,10 +653,15 @@ new file mode 100644
 +        mProgressSpinner = view.findViewById(R.id.progress_spinner);
 +        mProgressSpinner.setVisibility(View.GONE);
 +        mAcceptButton = (Button) view.findViewById(R.id.terms_accept);
++        mAutoUpdaterCheckBox = (CheckBox) view.findViewById(R.id.auto_updater_checkbox);
 +        mTosAndPrivacy = (TextView) view.findViewById(R.id.tos_and_privacy);
 +
 +        // Register event listeners.
 +        mAcceptButton.setOnClickListener((v) -> onTosButtonClicked());
++        mAutoUpdaterCheckBox.setOnCheckedChangeListener(
++                ((compoundButton, isChecked) -> {
++            mAutoUpdaterChecked = isChecked;
++        }));
 +
 +        // Make TextView links clickable.
 +        mTosAndPrivacy.setMovementMethod(LinkMovementMethod.getInstance());
@@ -696,6 +701,11 @@ new file mode 100644
 +        if (!isVisibleToUser) {
 +            // Restore original enabled & visibility states, in case the user returns to the page.
 +            setSpinnerVisible(false);
++        } else {
++            // On certain versions of Android, the checkbox will appear unchecked upon revisiting
++            // the page.  Force it to the end state of the drawable animation as a work around.
++            // crbug.com/666258
++            mAutoUpdaterCheckBox.jumpDrawablesToCurrentState();
 +        }
 +    }
 +
@@ -722,6 +732,7 @@ new file mode 100644
 +        assert !isWaitingForNativeAndPolicyInit();
 +
 +        setSpinnerVisible(false);
++        mAutoUpdaterCheckBox.setChecked(false);
 +    }
 +
 +    private void updateView() {
@@ -731,6 +742,8 @@ new file mode 100644
 +        }
 +
 +        updateTosText();
++
++        updateReportCheckbox();
 +    }
 +
 +    private SpanInfo buildPrivacyPolicyLink(String suffix, int url) {
@@ -750,9 +763,17 @@ new file mode 100644
 +
 +        spans.add(buildPrivacyPolicyLink("2", R.string.adblock_updater_privacy_policy_url));
 +
++        spans.add(buildPrivacyPolicyLink("3", R.string.auto_updates_wiki_url));
++
++        spans.add(buildPrivacyPolicyLink("4", R.string.bromite_updater_privacy_policy_url));
++
 +        String tosString = getString(R.string.bromite_fre_footer_privacy_policy);
 +
 +        mTosAndPrivacy.setText(SpanApplier.applySpans(tosString, spans.toArray(new SpanInfo[0])));
++    }
++
++    private void updateReportCheckbox() {
++        mAutoUpdaterCheckBox.setChecked(false);
 +    }
 +
 +    private void onPolicyServiceInitialized(boolean onDevicePolicyFound) {
@@ -779,6 +800,11 @@ new file mode 100644
 +    private void onTosButtonClicked() {
 +        mTosButtonClicked = true;
 +        mTosAcceptedTime = SystemClock.elapsedRealtime();
++
++        // save updater configuration only on button click
++        SharedPreferences.Editor sharedPreferenceEditor = OmahaPrefUtils.getSharedPreferences().edit();
++        sharedPreferenceEditor.putBoolean(OmahaPrefUtils.PREF_ALLOW_INLINE_UPDATE, mAutoUpdaterChecked);
++        sharedPreferenceEditor.apply();
 +
 +        tryMarkTermsAccepted(true);
 +    }
@@ -845,6 +871,7 @@ new file mode 100644
 +
 +        mAcceptButton.setVisibility(visibility);
 +        mTosAndPrivacy.setVisibility(visibility);
++        mAutoUpdaterCheckBox.setVisibility(visibility);
 +    }
 +
 +    protected View getToSAndPrivacyText() {
@@ -1209,10 +1236,25 @@ new file mode 100644
 +        return mLastWidth > mLastHeight;
 +    }
 +}
+diff --git a/chrome/browser/locale/java/src/org/chromium/chrome/browser/locale/LocaleManagerDelegate.java b/chrome/browser/locale/java/src/org/chromium/chrome/browser/locale/LocaleManagerDelegate.java
+--- a/chrome/browser/locale/java/src/org/chromium/chrome/browser/locale/LocaleManagerDelegate.java
++++ b/chrome/browser/locale/java/src/org/chromium/chrome/browser/locale/LocaleManagerDelegate.java
+@@ -344,8 +344,9 @@ public class LocaleManagerDelegate {
+ 
+     /** @see LocaleManager#getSearchEnginesForPromoDialog  */
+     public List<TemplateUrl> getSearchEnginesForPromoDialog(@SearchEnginePromoType int promoType) {
+-        throw new IllegalStateException(
+-                "Not applicable unless existing or new promos are required");
++        TemplateUrlService templateUrlService =
++            TemplateUrlServiceFactory.getForProfile(ProfileManager.getLastUsedRegularProfile());
++        return templateUrlService.getTemplateUrls();
+     }
+ 
+     /** @see LocaleManager#onUserSearchEngineChoice */
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3386,7 +3386,22 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
+@@ -3386,7 +3386,29 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
          <ph name="APP_NAME">%1$s<ex>Google Maps</ex></ph> will open in Chrome. By continuing, you agree to the <ph name="BEGIN_LINK1">&lt;LINK1&gt;</ph>Google Terms of Service<ph name="END_LINK1">&lt;/LINK1&gt;</ph>, and the <ph name="BEGIN_LINK2">&lt;LINK2&gt;</ph>Google Chrome and ChromeOS Additional Terms of Service<ph name="END_LINK2">&lt;/LINK2&gt;</ph>. The <ph name="BEGIN_LINK3">&lt;LINK3&gt;</ph>Privacy Policy<ph name="END_LINK3">&lt;/LINK3&gt;</ph> also applies.
        </message>
        <message name="IDS_FRE_ACCEPT_CONTINUE" desc="Text for first page accept and continue button [CHAR_LIMIT=20]">
@@ -1222,8 +1264,15 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 +      <message name="IDS_ADBLOCK_UPDATER_PRIVACY_POLICY_URL" desc="URL for privacy policy for the ad block updater" translateable="false">
 +        https://docs.github.com/en/github/site-policy/github-privacy-statement#github-pages
 +      </message>
-+      <message name="IDS_BROMITE_FRE_FOOTER_PRIVACY_POLICY" desc="Message explaining the privacy policy of the file hosting service provider for adblock updates">
-+        <ph name="BEGIN_PRIVACY_LINK1">&lt;PRIVACY_LINK1&gt;</ph>Automatic ad block filters updates<ph name="END_PRIVACY_LINK1">&lt;/PRIVACY_LINK1&gt;</ph> are subject to the <ph name="BEGIN_PRIVACY_LINK2">&lt;PRIVACY_LINK2&gt;</ph>GitHub Privacy statement<ph name="END_PRIVACY_LINK2">&lt;/PRIVACY_LINK2&gt;</ph>.
++      <message name="IDS_BROMITE_UPDATER_PRIVACY_POLICY_URL" desc="URL for privacy policy for the Bromite auto updater" translateable="false">
++        https://docs.github.com/en/github/site-policy/github-privacy-statement#github-pages
++      </message>
++      <message name="IDS_BROMITE_FRE_FOOTER_PRIVACY_POLICY" desc="Message explaining the privacy policy of the file hosting service provider for adblock updates and Bromite app automatic updates">
++        <ph name="BEGIN_PRIVACY_LINK1">&lt;PRIVACY_LINK1&gt;</ph>Automatic ad block filters updates<ph name="END_PRIVACY_LINK1">&lt;/PRIVACY_LINK1&gt;</ph> are subject to the <ph name="BEGIN_PRIVACY_LINK2">&lt;PRIVACY_LINK2&gt;</ph>GitHub Privacy statement<ph name="END_PRIVACY_LINK2">&lt;/PRIVACY_LINK2&gt;</ph>; they cannot be disabled.
++        The following checkbox controls instead <ph name="BEGIN_PRIVACY_LINK3">&lt;PRIVACY_LINK3&gt;</ph>automatic app updates<ph name="END_PRIVACY_LINK3">&lt;/PRIVACY_LINK3&gt;</ph> which are also subject to the <ph name="BEGIN_PRIVACY_LINK4">&lt;PRIVACY_LINK4&gt;</ph>GitHub Privacy statement<ph name="END_PRIVACY_LINK4">&lt;/PRIVACY_LINK4&gt;</ph>.
++      </message>
++      <message name="IDS_AUTO_UPDATER_CHECK" desc="Message for the checkbox for automatic Bromite updates">
++        Automatic checks for Bromite app updates
 +      </message>
 +      <message name="IDS_UPDATER_PRIVACY_POLICY_URL" desc="URL for GitHub privacy statement" translateable="false">
 +        https://docs.github.com/en/github/site-policy/github-privacy-statement#github-pages

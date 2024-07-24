@@ -3,29 +3,32 @@ Date: Sun, 8 Oct 2023 16:04:56 +0000
 Subject: Disable ranker_url_fetcher
 
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+
 Change-Id: I6a69f42d688f81d5f6e2e05ef0a52bfc0f6a3271
 ---
- .../translate/core/browser/translate_ranker_impl.cc       | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ components/translate/core/browser/translate_ranker_impl.cc | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/components/translate/core/browser/translate_ranker_impl.cc b/components/translate/core/browser/translate_ranker_impl.cc
 --- a/components/translate/core/browser/translate_ranker_impl.cc
 +++ b/components/translate/core/browser/translate_ranker_impl.cc
-@@ -94,11 +94,11 @@ const char kDefaultTranslateRankerModelURL[] =
- #endif
+@@ -234,7 +234,7 @@ bool TranslateRankerImpl::ShouldOfferTranslation(
+   // absence of a model or if enforcement is disabled. As this is ranker is
+   // subsumed into a more general assist ranker, this default will go away
+   // (or become False).
+-  const bool kDefaultResponse = true;
++  const bool kDefaultResponse = false;
  
- BASE_FEATURE(kTranslateRankerQuery,
--             "TranslateRankerQuery",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "TranslateRankerQuery",             // disable
-+             base::FEATURE_DISABLED_BY_DEFAULT); // by default
- BASE_FEATURE(kTranslateRankerEnforcement,
--             "TranslateRankerEnforcement",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "TranslateRankerEnforcement",        // disable
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // by default
+   translate_event->set_ranker_request_timestamp_sec(
+       (base::TimeTicks::Now() - base::TimeTicks()).InSeconds());
+@@ -389,6 +389,8 @@ bool TranslateRankerImpl::ShouldOverrideMatchesPreviousLanguageDecision(
+   }
+ }
  
- BASE_FEATURE(kTranslateRankerPreviousLanguageMatchesOverride,
-              "TranslateRankerPreviousLanguageMatchesOverride",
++SET_CROMITE_FEATURE_DISABLED(kTranslateRankerQuery);
++SET_CROMITE_FEATURE_DISABLED(kTranslateRankerEnforcement);
+ }  // namespace translate
+ 
+ std::ostream& operator<<(std::ostream& stream,
 -- 
 

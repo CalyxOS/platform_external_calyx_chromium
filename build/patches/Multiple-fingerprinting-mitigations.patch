@@ -25,6 +25,7 @@ Added flag --fingerprinting-canvas-image-data-noise to disable Canvas image data
 Add noise also to SVGs (credits to uazo)
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: I5c083699db91443331e3cc4ac059e4f21ec79ca7
 ---
  chrome/browser/BUILD.gn                       |   1 +
@@ -44,17 +45,17 @@ Change-Id: I5c083699db91443331e3cc4ac059e4f21ec79ca7
  .../renderer/core/html/canvas/text_metrics.h  |   2 +
  .../renderer/core/svg/svg_graphics_element.cc |   2 +
  .../core/svg/svg_text_content_element.cc      |  28 +++-
- .../canvas2d/base_rendering_context_2d.cc     |  23 ++-
+ .../canvas2d/base_rendering_context_2d.cc     |  25 ++-
  third_party/blink/renderer/platform/BUILD.gn  |   5 +-
  .../platform/exported/web_runtime_features.cc |  13 ++
- .../platform/graphics/image_data_buffer.cc    |   7 +
+ .../platform/graphics/image_data_buffer.cc    |   8 +
  .../platform/graphics/static_bitmap_image.cc  | 155 ++++++++++++++++++
  .../platform/graphics/static_bitmap_image.h   |   2 +
  .../platform/runtime_enabled_features.json5   |   9 +
  third_party/ungoogled/BUILD.gn                |  10 ++
  third_party/ungoogled/ungoogled_switches.cc   |  18 ++
  third_party/ungoogled/ungoogled_switches.h    |  18 ++
- 27 files changed, 390 insertions(+), 8 deletions(-)
+ 27 files changed, 393 insertions(+), 8 deletions(-)
  create mode 100755 cromite_flags/chrome/browser/about_flags_cc/Multiple-fingerprinting-mitigations.inc
  create mode 100644 third_party/ungoogled/BUILD.gn
  create mode 100644 third_party/ungoogled/ungoogled_switches.cc
@@ -470,17 +471,19 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
 diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc b/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
 --- a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
 +++ b/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
-@@ -214,6 +214,9 @@ class Isolate;
- class Value;
- }  // namespace v8
- 
+@@ -184,6 +184,11 @@
+ #include "ui/gfx/geometry/size.h"
+ #include "ui/gfx/geometry/size_f.h"
+ #include "ui/gfx/geometry/skia_conversions.h"
++
 +#include "third_party/blink/renderer/core/offscreencanvas/offscreen_canvas.h"
 +#include "third_party/blink/renderer/core/frame/local_dom_window.h"
++#include "third_party/blink/renderer/platform/graphics/static_bitmap_image.h"
 +
- namespace blink {
- 
- class DOMMatrixInit;
-@@ -2740,6 +2743,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
+ #include "ui/gfx/geometry/vector2d.h"
+ #include "ui/gfx/geometry/vector2d_f.h"
+ #include "v8/include/v8-local-handle.h"
+@@ -2740,6 +2745,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
            snapshot->PaintImageForCurrentFrame().GetSkImageInfo().bounds();
        DCHECK(!bounds.intersect(SkIRect::MakeXYWH(sx, sy, sw, sh)));
      }
@@ -491,7 +494,7 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_c
    }
  
    return image_data;
-@@ -3419,8 +3426,22 @@ TextMetrics* BaseRenderingContext2D::measureText(const String& text) {
+@@ -3419,8 +3428,22 @@ TextMetrics* BaseRenderingContext2D::measureText(const String& text) {
    const CanvasRenderingContext2DState& state = GetState();
    TextDirection direction = ToTextDirection(state.GetDirection(), canvas);
  
@@ -561,7 +564,7 @@ diff --git a/third_party/blink/renderer/platform/exported/web_runtime_features.c
 diff --git a/third_party/blink/renderer/platform/graphics/image_data_buffer.cc b/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
 --- a/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
 +++ b/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
-@@ -36,6 +36,8 @@
+@@ -36,8 +36,11 @@
  
  #include "base/compiler_specific.h"
  #include "base/memory/ptr_util.h"
@@ -569,8 +572,11 @@ diff --git a/third_party/blink/renderer/platform/graphics/image_data_buffer.cc b
 +#include "base/logging.h"
  #include "third_party/blink/renderer/platform/graphics/static_bitmap_image.h"
  #include "third_party/blink/renderer/platform/image-encoders/image_encoder.h"
++#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
  #include "third_party/blink/renderer/platform/wtf/text/base64.h"
-@@ -145,6 +147,11 @@ bool ImageDataBuffer::EncodeImageInternal(const ImageEncodingMimeType mime_type,
+ #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
+ #include "third_party/blink/renderer/platform/wtf/vector.h"
+@@ -145,6 +148,11 @@ bool ImageDataBuffer::EncodeImageInternal(const ImageEncodingMimeType mime_type,
                                            const SkPixmap& pixmap) const {
    DCHECK(is_valid_);
  
@@ -774,9 +780,9 @@ diff --git a/third_party/blink/renderer/platform/graphics/static_bitmap_image.h 
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3258,6 +3258,15 @@
-       name: "RegionCapture",
-       status: {"Android": "", "default": "stable"},
+@@ -2693,6 +2693,15 @@
+       status: {"Mac": "test", "default": "stable"},
+       base_feature: "none",
      },
 +    {
 +      name: "FingerprintingClientRectsNoise",
@@ -788,7 +794,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 +      name: "FingerprintingCanvasImageDataNoise",
 +    },
      {
-       name: "RemotePlayback",
+       name: "Notifications",
        public: true,
 diff --git a/third_party/ungoogled/BUILD.gn b/third_party/ungoogled/BUILD.gn
 new file mode 100644
