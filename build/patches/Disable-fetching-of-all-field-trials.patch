@@ -6,8 +6,11 @@ Disable seed-based field trials.
 Disable reporting of Omnibox suggestions header.
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
 Change-Id: Ibc8a7b748877a8480a5c2e7228a99a9e8990c5b8
 ---
+ .../origin_trials_component_loader.cc         |  1 +
+ android_webview/common/aw_content_client.cc   |  2 ++
  android_webview/nonembedded/BUILD.gn          |  2 --
  ...eddedFastVariationsSeedSafeModeAction.java |  2 --
  ...SafeModeVariationsSeedContentProvider.java |  5 ---
@@ -27,9 +30,32 @@ Change-Id: Ibc8a7b748877a8480a5c2e7228a99a9e8990c5b8
  .../variations_render_thread_observer.cc      |  9 -----
  .../Disable-fetching-of-all-field-trials.inc  |  1 +
  .../renderer/core/loader/document_loader.cc   |  7 ----
- 19 files changed, 26 insertions(+), 89 deletions(-)
+ 21 files changed, 29 insertions(+), 89 deletions(-)
  create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-fetching-of-all-field-trials.inc
 
+diff --git a/android_webview/browser/component_updater/origin_trials_component_loader.cc b/android_webview/browser/component_updater/origin_trials_component_loader.cc
+--- a/android_webview/browser/component_updater/origin_trials_component_loader.cc
++++ b/android_webview/browser/component_updater/origin_trials_component_loader.cc
+@@ -14,6 +14,7 @@ namespace android_webview {
+ 
+ void LoadOriginTrialsComponent(
+     component_updater::ComponentLoaderPolicyVector& policies) {
++  if ((true)) return;
+   policies.push_back(std::make_unique<OriginTrialsComponentLoaderPolicy>());
+ }
+ 
+diff --git a/android_webview/common/aw_content_client.cc b/android_webview/common/aw_content_client.cc
+--- a/android_webview/common/aw_content_client.cc
++++ b/android_webview/common/aw_content_client.cc
+@@ -115,6 +115,8 @@ void AwContentClient::ExposeInterfacesToBrowser(
+ }
+ 
+ blink::OriginTrialPolicy* AwContentClient::GetOriginTrialPolicy() {
++  if ((true)) return nullptr;
++
+   // Prevent initialization race (see crbug.com/721144). There may be a
+   // race when the policy is needed for worker startup (which happens on a
+   // separate worker thread).
 diff --git a/android_webview/nonembedded/BUILD.gn b/android_webview/nonembedded/BUILD.gn
 --- a/android_webview/nonembedded/BUILD.gn
 +++ b/android_webview/nonembedded/BUILD.gn

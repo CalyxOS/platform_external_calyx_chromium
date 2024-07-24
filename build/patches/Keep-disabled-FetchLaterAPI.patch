@@ -8,16 +8,17 @@ start from the same origin.
 It also inhibits the blocked request exception to javascript.
 
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+
 Change-Id: I1f1ec46a06be09724c30e3898b6c58d92de47b40
 ---
  .../browser/loader/keep_alive_url_loader.cc   | 33 +++++++++++++++++--
  .../browser/loader/keep_alive_url_loader.h    |  3 --
  .../Keep-disabled-FetchLaterAPI.inc           |  2 ++
- .../renderer/core/fetch/fetch_manager.cc      |  8 +++--
+ .../renderer/core/fetch/fetch_manager.cc      | 12 +++++--
  .../loader/child_url_loader_factory_bundle.cc | 14 ++++----
  .../platform/loader/fetch/resource_fetcher.cc |  2 +-
  .../platform/runtime_enabled_features.json5   |  5 ++-
- 7 files changed, 50 insertions(+), 17 deletions(-)
+ 7 files changed, 54 insertions(+), 17 deletions(-)
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Keep-disabled-FetchLaterAPI.inc
 
 diff --git a/content/browser/loader/keep_alive_url_loader.cc b/content/browser/loader/keep_alive_url_loader.cc
@@ -100,24 +101,28 @@ new file mode 100644
 diff --git a/third_party/blink/renderer/core/fetch/fetch_manager.cc b/third_party/blink/renderer/core/fetch/fetch_manager.cc
 --- a/third_party/blink/renderer/core/fetch/fetch_manager.cc
 +++ b/third_party/blink/renderer/core/fetch/fetch_manager.cc
-@@ -1163,7 +1163,9 @@ void FetchManager::Loader::Failed(
+@@ -1163,7 +1163,11 @@ void FetchManager::Loader::Failed(
    if (resolver_) {
      ScriptState::Scope scope(GetScriptState());
      if (dom_exception) {
 -      resolver_->Reject(dom_exception);
 +      if (!GetFetchRequestData()->Keepalive()) {
 +        resolver_->Reject(dom_exception);
++      } else {
++        resolver_->Detach();
 +      }
      } else {
        v8::Local<v8::Value> value =
            exception_.Get(GetScriptState()->GetIsolate());
-@@ -1183,7 +1185,9 @@ void FetchManager::Loader::Failed(
+@@ -1183,7 +1187,11 @@ void FetchManager::Loader::Failed(
              V8String(GetScriptState()->GetIsolate(),
                       IdentifiersFactory::IdFromToken(*issue_id)));
        }
 -      resolver_->Reject(value);
 +      if (!GetFetchRequestData()->Keepalive()) {
 +        resolver_->Reject(value);;
++      } else {
++        resolver_->Detach();
 +      }
        LogIfKeepalive("Failed");
      }
@@ -166,7 +171,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1651,10 +1651,9 @@
+@@ -1652,10 +1652,9 @@
      },
      {
        // The Blink runtime-enabled feature name for the API's IDL.
