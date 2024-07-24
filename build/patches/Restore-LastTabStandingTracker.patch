@@ -13,11 +13,11 @@ Change-Id: Ic63f7c7ddd4fc2336cb4e4f6b7fc14cfa44ca9fd
  .../last_tab_standing_tracker_factory.cc      | 35 +++++++++++
  .../last_tab_standing_tracker_factory.h       | 40 +++++++++++++
  .../last_tab_standing_tracker_observer.h      | 24 ++++++++
- .../last_tab_standing_tracker_tab_helper.cc   | 42 +++++++++++++
+ .../last_tab_standing_tracker_tab_helper.cc   | 45 ++++++++++++++
  .../last_tab_standing_tracker_tab_helper.h    | 37 ++++++++++++
  ...hrome_browser_main_extra_parts_profiles.cc |  2 +
  chrome/browser/ui/tab_helpers.cc              |  2 +
- 11 files changed, 293 insertions(+)
+ 11 files changed, 296 insertions(+)
  create mode 100644 chrome/browser/permissions/last_tab_standing_tracker.cc
  create mode 100644 chrome/browser/permissions/last_tab_standing_tracker.h
  create mode 100644 chrome/browser/permissions/last_tab_standing_tracker_factory.cc
@@ -57,14 +57,14 @@ diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.c
  #include "chrome/browser/profiles/off_the_record_profile_impl.h"
  #include "chrome/browser/profiles/profile.h"
  #include "chrome/browser/profiles/profile_key.h"
-@@ -55,6 +56,7 @@ HostContentSettingsMapFactory::HostContentSettingsMapFactory()
-               // Guest mode.
+@@ -56,6 +57,7 @@ HostContentSettingsMapFactory::HostContentSettingsMapFactory()
                .WithGuest(ProfileSelection::kOwnInstance)
                .Build()) {
-+  DependsOn(LastTabStandingTrackerFactory::GetInstance());
    DependsOn(SupervisedUserSettingsServiceFactory::GetInstance());
++  DependsOn(LastTabStandingTrackerFactory::GetInstance());
  #if BUILDFLAG(IS_ANDROID)
    DependsOn(TemplateURLServiceFactory::GetInstance());
+ #endif
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 new file mode 100644
 --- /dev/null
@@ -292,7 +292,7 @@ diff --git a/chrome/browser/permissions/last_tab_standing_tracker_tab_helper.cc 
 new file mode 100644
 --- /dev/null
 +++ b/chrome/browser/permissions/last_tab_standing_tracker_tab_helper.cc
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,45 @@
 +// Copyright 2020 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -320,12 +320,15 @@ new file mode 100644
 +  auto* last_tab_standing_tracker =
 +      LastTabStandingTrackerFactory::GetForBrowserContext(
 +          web_contents()->GetBrowserContext());
-+  if (last_committed_origin_) {
-+    last_tab_standing_tracker->WebContentsUnloadedOrigin(
-+        *last_committed_origin_);
++  // can be null in guest profiles
++  if (last_tab_standing_tracker) {
++    if (last_committed_origin_) {
++      last_tab_standing_tracker->WebContentsUnloadedOrigin(
++          *last_committed_origin_);
++    }
++    last_tab_standing_tracker->WebContentsLoadedOrigin(new_origin);
++    last_committed_origin_ = std::move(new_origin);
 +  }
-+  last_tab_standing_tracker->WebContentsLoadedOrigin(new_origin);
-+  last_committed_origin_ = std::move(new_origin);
 +}
 +
 +LastTabStandingTrackerTabHelper::LastTabStandingTrackerTabHelper(
@@ -371,7 +374,7 @@ new file mode 100644
 + private:
 +  explicit LastTabStandingTrackerTabHelper(content::WebContents* webContents);
 +  friend class content::WebContentsUserData<LastTabStandingTrackerTabHelper>;
-+  absl::optional<url::Origin> last_committed_origin_;
++  std::optional<url::Origin> last_committed_origin_;
 +
 +  WEB_CONTENTS_USER_DATA_KEY_DECL();
 +};
