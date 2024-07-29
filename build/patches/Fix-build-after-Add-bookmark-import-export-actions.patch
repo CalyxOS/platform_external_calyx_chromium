@@ -1,0 +1,49 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Tue, 30 Jul 2024 13:30:28 +0000
+Subject: Fix build after "Add bookmark import/export actions"
+
+Include necessary changes that were part of another patch.
+
+Partial commit of: Add-menu-item-to-bookmark-all-tabs.patch
+
+Change-Id: If92c80b5dbfee600906b439590a62c60802e1879
+---
+ chrome/browser/bookmarks/android/bookmark_bridge.cc           | 2 +-
+ .../browser/download/dialogs/DownloadLocationCustomView.java  | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browser/bookmarks/android/bookmark_bridge.cc
+--- a/chrome/browser/bookmarks/android/bookmark_bridge.cc
++++ b/chrome/browser/bookmarks/android/bookmark_bridge.cc
+@@ -178,7 +178,7 @@ class FileBookmarksExportObserver: public BookmarksExportObserver {
+ 
+     JNIEnv* env = AttachCurrentThread();
+     Java_BookmarkBridge_bookmarksExported(env, obj_, window_->GetJavaObject(),
+-                                          ConvertUTF8ToJavaString(env, export_path_),
++                                          base::android::ConvertUTF8ToJavaString(env, export_path_),
+                                           result == Result::kSuccess);
+     delete this;
+   }
+diff --git a/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java b/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
+--- a/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
++++ b/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
+@@ -85,7 +85,7 @@ public class DownloadLocationCustomView extends ScrollView
+         mDirectoryAdapter.update();
+     }
+ 
+-    void setTitle(CharSequence title) {
++    public void setTitle(CharSequence title) {
+         mTitle.setText(title);
+     }
+ 
+@@ -93,7 +93,7 @@ public class DownloadLocationCustomView extends ScrollView
+         mSubtitleView.setText(subtitle);
+     }
+ 
+-    void setFileName(CharSequence fileName) {
++    public void setFileName(CharSequence fileName) { 
+         mFileName.setText(fileName);
+     }
+ 
+-- 
+
