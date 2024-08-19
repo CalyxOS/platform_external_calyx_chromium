@@ -10,16 +10,16 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I5a8d7fac019b3ee382562c67d0d1302e470112c7
 ---
- storage/browser/blob/blob_url_store_impl.cc   | 37 ++++++++++++++++++-
- storage/browser/blob/blob_url_store_impl.h    | 14 ++++++-
- .../public/mojom/blob/blob_url_store.mojom    | 12 ++++--
- .../core/fileapi/public_url_manager.cc        | 17 +++++++++
- 4 files changed, 75 insertions(+), 5 deletions(-)
+ storage/browser/blob/blob_url_store_impl.cc   | 28 +++++++++++++++++++
+ storage/browser/blob/blob_url_store_impl.h    |  9 ++++++
+ .../public/mojom/blob/blob_url_store.mojom    |  8 ++++--
+ .../core/fileapi/public_url_manager.cc        | 17 +++++++++++
+ 4 files changed, 60 insertions(+), 2 deletions(-)
 
 diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/blob_url_store_impl.cc
 --- a/storage/browser/blob/blob_url_store_impl.cc
 +++ b/storage/browser/blob/blob_url_store_impl.cc
-@@ -84,6 +84,20 @@ BlobURLStoreImpl::~BlobURLStoreImpl() {
+@@ -80,6 +80,20 @@ BlobURLStoreImpl::~BlobURLStoreImpl() {
    }
  }
  
@@ -40,27 +40,7 @@ diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/
  void BlobURLStoreImpl::Register(
      mojo::PendingRemote<blink::mojom::Blob> blob,
      const GURL& url,
-@@ -114,11 +128,18 @@ void BlobURLStoreImpl::Revoke(const GURL& url) {
-   urls_.erase(url);
- }
- 
--void BlobURLStoreImpl::Resolve(const GURL& url, ResolveCallback callback) {
-+void BlobURLStoreImpl::Resolve(const GURL& url,
-+    const base::UnguessableToken& unsafe_agent_cluster_id,
-+    const std::optional<net::SchemefulSite>& unsafe_top_level_site,
-+    ResolveCallback callback) {
-   if (!registry_) {
-     std::move(callback).Run(mojo::NullRemote(), std::nullopt);
-     return;
-   }
-+  if (!IsSamePartition(url, unsafe_agent_cluster_id, unsafe_top_level_site)) {
-+    std::move(callback).Run(mojo::NullRemote(), std::nullopt);
-+    return;
-+  }
-   mojo::PendingRemote<blink::mojom::Blob> blob = registry_->GetBlobFromUrl(url);
-   std::move(callback).Run(std::move(blob),
-                           registry_->GetUnsafeAgentClusterID(url));
-@@ -127,6 +148,8 @@ void BlobURLStoreImpl::Resolve(const GURL& url, ResolveCallback callback) {
+@@ -113,6 +127,8 @@ void BlobURLStoreImpl::Revoke(const GURL& url) {
  void BlobURLStoreImpl::ResolveAsURLLoaderFactory(
      const GURL& url,
      mojo::PendingReceiver<network::mojom::URLLoaderFactory> receiver,
@@ -69,7 +49,7 @@ diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/
      ResolveAsURLLoaderFactoryCallback callback) {
    if (!registry_) {
      BlobURLLoaderFactory::Create(mojo::NullRemote(), url, std::move(receiver));
-@@ -134,6 +157,12 @@ void BlobURLStoreImpl::ResolveAsURLLoaderFactory(
+@@ -120,6 +136,12 @@ void BlobURLStoreImpl::ResolveAsURLLoaderFactory(
      return;
    }
  
@@ -82,7 +62,7 @@ diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/
    BlobURLLoaderFactory::Create(registry_->GetBlobFromUrl(url), url,
                                 std::move(receiver));
    std::move(callback).Run(registry_->GetUnsafeAgentClusterID(url),
-@@ -143,11 +172,17 @@ void BlobURLStoreImpl::ResolveAsURLLoaderFactory(
+@@ -129,11 +151,17 @@ void BlobURLStoreImpl::ResolveAsURLLoaderFactory(
  void BlobURLStoreImpl::ResolveForNavigation(
      const GURL& url,
      mojo::PendingReceiver<blink::mojom::BlobURLToken> token,
@@ -103,15 +83,7 @@ diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/
 diff --git a/storage/browser/blob/blob_url_store_impl.h b/storage/browser/blob/blob_url_store_impl.h
 --- a/storage/browser/blob/blob_url_store_impl.h
 +++ b/storage/browser/blob/blob_url_store_impl.h
-@@ -42,14 +42,21 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
-       const std::optional<net::SchemefulSite>& unsafe_top_level_site,
-       RegisterCallback callback) override;
-   void Revoke(const GURL& url) override;
--  void Resolve(const GURL& url, ResolveCallback callback) override;
-+  void Resolve(const GURL& url,
-+               const base::UnguessableToken& unsafe_agent_cluster_id,
-+               const std::optional<net::SchemefulSite>& unsafe_top_level_site,
-+               ResolveCallback callback) override;
+@@ -46,10 +46,14 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
    void ResolveAsURLLoaderFactory(
        const GURL& url,
        mojo::PendingReceiver<network::mojom::URLLoaderFactory> receiver,
@@ -126,7 +98,7 @@ diff --git a/storage/browser/blob/blob_url_store_impl.h b/storage/browser/blob/b
        ResolveForNavigationCallback callback) override;
  
   private:
-@@ -59,6 +66,11 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
+@@ -59,6 +63,11 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
    // `Revoke()`.
    bool BlobUrlIsValid(const GURL& url, const char* method) const;
  
@@ -141,18 +113,7 @@ diff --git a/storage/browser/blob/blob_url_store_impl.h b/storage/browser/blob/b
 diff --git a/third_party/blink/public/mojom/blob/blob_url_store.mojom b/third_party/blink/public/mojom/blob/blob_url_store.mojom
 --- a/third_party/blink/public/mojom/blob/blob_url_store.mojom
 +++ b/third_party/blink/public/mojom/blob/blob_url_store.mojom
-@@ -33,7 +33,9 @@ interface BlobURLStore {
-   Revoke(url.mojom.Url url);
- 
-   // Resolves a public Blob URL.
--  Resolve(url.mojom.Url url) => (
-+  Resolve(url.mojom.Url url,
-+          mojo_base.mojom.UnguessableToken unsafe_agent_cluster_id,
-+          network.mojom.SchemefulSite? unsafe_top_level_site) => (
-     pending_remote<blink.mojom.Blob>? blob,
-     // TODO(https://crbug.com/1224926): Remove this once experiment is over.
-     mojo_base.mojom.UnguessableToken? unsafe_agent_cluster_id);
-@@ -47,7 +49,9 @@ interface BlobURLStore {
+@@ -41,7 +41,9 @@ interface BlobURLStore {
    // both the blob URL and all other references to the blob have been dropped.
    ResolveAsURLLoaderFactory(
      url.mojom.Url url,
@@ -163,7 +124,7 @@ diff --git a/third_party/blink/public/mojom/blob/blob_url_store.mojom b/third_pa
      // TODO(https://crbug.com/1224926): Remove these once experiment is over.
      mojo_base.mojom.UnguessableToken? unsafe_agent_cluster_id,
      network.mojom.SchemefulSite? unsafe_top_level_site);
-@@ -57,7 +61,9 @@ interface BlobURLStore {
+@@ -51,7 +53,9 @@ interface BlobURLStore {
    // refer to, even after the URL is revoked.
    // As long as the token is alive, the resolved blob will also be kept alive.
    ResolveForNavigation(url.mojom.Url url,
@@ -199,7 +160,7 @@ diff --git a/third_party/blink/renderer/core/fileapi/public_url_manager.cc b/thi
  }  // namespace
  
  PublicURLManager::PublicURLManager(ExecutionContext* execution_context)
-@@ -278,6 +293,7 @@ void PublicURLManager::Resolve(
+@@ -269,6 +284,7 @@ void PublicURLManager::Resolve(
  
    GetBlobURLStore().ResolveAsURLLoaderFactory(
        url, std::move(factory_receiver),
@@ -207,7 +168,7 @@ diff --git a/third_party/blink/renderer/core/fileapi/public_url_manager.cc b/thi
        WTF::BindOnce(metrics_callback, WrapPersistent(GetExecutionContext())));
  }
  
-@@ -301,6 +317,7 @@ void PublicURLManager::Resolve(
+@@ -292,6 +308,7 @@ void PublicURLManager::Resolve(
  
    GetBlobURLStore().ResolveForNavigation(
        url, std::move(token_receiver),

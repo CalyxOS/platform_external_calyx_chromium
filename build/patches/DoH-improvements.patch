@@ -9,11 +9,16 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I22497a1236fa58ac934eb0591cc18b6e593b314e
 ---
- chrome/browser/net/secure_dns_config.cc           |  2 +-
- chrome/browser/net/stub_resolver_config_reader.cc |  3 +++
- net/dns/dns_client.cc                             | 11 ++++++++---
- net/dns/host_resolver_manager.cc                  |  1 +
- 4 files changed, 13 insertions(+), 4 deletions(-)
+ chrome/browser/net/secure_dns_config.cc               |  2 +-
+ chrome/browser/net/secure_dns_util.cc                 |  2 +-
+ chrome/browser/net/stub_resolver_config_reader.cc     |  3 +++
+ chrome/browser/privacy/secure_dns_bridge.cc           |  2 +-
+ .../ui/webui/settings/settings_secure_dns_handler.cc  |  2 +-
+ net/dns/dns_client.cc                                 | 11 ++++++++---
+ net/dns/host_resolver_manager.cc                      |  1 +
+ net/dns/public/doh_provider_entry.cc                  |  9 +++------
+ net/dns/public/doh_provider_entry.h                   |  4 ++--
+ 9 files changed, 21 insertions(+), 15 deletions(-)
 
 diff --git a/chrome/browser/net/secure_dns_config.cc b/chrome/browser/net/secure_dns_config.cc
 --- a/chrome/browser/net/secure_dns_config.cc
@@ -27,6 +32,18 @@ diff --git a/chrome/browser/net/secure_dns_config.cc b/chrome/browser/net/secure
    } else if (name == kModeOff) {
      return net::SecureDnsMode::kOff;
    }
+diff --git a/chrome/browser/net/secure_dns_util.cc b/chrome/browser/net/secure_dns_util.cc
+--- a/chrome/browser/net/secure_dns_util.cc
++++ b/chrome/browser/net/secure_dns_util.cc
+@@ -42,7 +42,7 @@ bool EntryIsForCountry(const net::DohProviderEntry* entry, int country_id) {
+                country_id;
+       });
+   if (matches) {
+-    DCHECK(!entry->ui_name.empty());
++    DCHECK(!entry->ui_name_cromite.empty());
+     DCHECK(!entry->privacy_policy.empty());
+   }
+   return matches;
 diff --git a/chrome/browser/net/stub_resolver_config_reader.cc b/chrome/browser/net/stub_resolver_config_reader.cc
 --- a/chrome/browser/net/stub_resolver_config_reader.cc
 +++ b/chrome/browser/net/stub_resolver_config_reader.cc
@@ -54,6 +71,30 @@ diff --git a/chrome/browser/net/stub_resolver_config_reader.cc b/chrome/browser/
    if (parental_controls_testing_override_.has_value())
      return parental_controls_testing_override_.value();
  
+diff --git a/chrome/browser/privacy/secure_dns_bridge.cc b/chrome/browser/privacy/secure_dns_bridge.cc
+--- a/chrome/browser/privacy/secure_dns_bridge.cc
++++ b/chrome/browser/privacy/secure_dns_bridge.cc
+@@ -109,7 +109,7 @@ static ScopedJavaLocalRef<jobjectArray> JNI_SecureDnsBridge_GetProviders(
+       providers, std::back_inserter(ret),
+       [](const net::DohProviderEntry* entry) -> std::vector<std::u16string> {
+         net::DnsOverHttpsConfig config({entry->doh_server_config});
+-        return {base::UTF8ToUTF16(entry->ui_name),
++        return {base::UTF8ToUTF16(entry->ui_name_cromite.empty() ? entry->provider : entry->ui_name_cromite),
+                 base::UTF8ToUTF16(config.ToString()),
+                 base::UTF8ToUTF16(entry->privacy_policy)};
+       });
+diff --git a/chrome/browser/ui/webui/settings/settings_secure_dns_handler.cc b/chrome/browser/ui/webui/settings/settings_secure_dns_handler.cc
+--- a/chrome/browser/ui/webui/settings/settings_secure_dns_handler.cc
++++ b/chrome/browser/ui/webui/settings/settings_secure_dns_handler.cc
+@@ -120,7 +120,7 @@ base::Value::List SecureDnsHandler::GetSecureDnsResolverList() {
+   for (const net::DohProviderEntry* entry : providers_) {
+     net::DnsOverHttpsConfig doh_config({entry->doh_server_config});
+     base::Value::Dict dict;
+-    dict.Set("name", entry->ui_name);
++    dict.Set("name", entry->ui_name_cromite.empty() ? entry->provider : entry->ui_name_cromite);
+     dict.Set("value", doh_config.ToString());
+     dict.Set("policy", entry->privacy_policy);
+     resolvers.Append(std::move(dict));
 diff --git a/net/dns/dns_client.cc b/net/dns/dns_client.cc
 --- a/net/dns/dns_client.cc
 +++ b/net/dns/dns_client.cc
@@ -89,7 +130,7 @@ diff --git a/net/dns/dns_client.cc b/net/dns/dns_client.cc
 diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
 --- a/net/dns/host_resolver_manager.cc
 +++ b/net/dns/host_resolver_manager.cc
-@@ -638,6 +638,7 @@ void HostResolverManager::SetDnsConfigOverrides(DnsConfigOverrides overrides) {
+@@ -639,6 +639,7 @@ void HostResolverManager::SetDnsConfigOverrides(DnsConfigOverrides overrides) {
    bool changed = dns_client_->SetConfigOverrides(std::move(overrides));
  
    if (changed) {
@@ -97,5 +138,49 @@ diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
      NetworkChangeNotifier::TriggerNonSystemDnsChange();
  
      // Only invalidate cache if new overrides have resulted in a config change.
+diff --git a/net/dns/public/doh_provider_entry.cc b/net/dns/public/doh_provider_entry.cc
+--- a/net/dns/public/doh_provider_entry.cc
++++ b/net/dns/public/doh_provider_entry.cc
+@@ -350,16 +350,13 @@ DohProviderEntry::DohProviderEntry(
+       doh_server_config(
+           ParseValidDohTemplate(std::move(dns_over_https_template),
+                                 std::move(dns_over_https_server_ip_strs))),
+-      ui_name(std::move(ui_name)),
++      ui_name_cromite(std::move(ui_name)),
+       privacy_policy(std::move(privacy_policy)),
+-      display_globally(display_globally),
++      display_globally(true),
+       display_countries(std::move(display_countries)),
+       logging_level(logging_level) {
+   DCHECK(!display_globally || this->display_countries.empty());
+-  if (display_globally || !this->display_countries.empty()) {
+-    DCHECK(!this->ui_name.empty());
+-    DCHECK(!this->privacy_policy.empty());
+-  }
++  if (this->privacy_policy.empty()) this->display_globally = false;
+   for (const auto& display_country : this->display_countries) {
+     DCHECK_EQ(2u, display_country.size());
+   }
+diff --git a/net/dns/public/doh_provider_entry.h b/net/dns/public/doh_provider_entry.h
+--- a/net/dns/public/doh_provider_entry.h
++++ b/net/dns/public/doh_provider_entry.h
+@@ -55,7 +55,7 @@ struct NET_EXPORT DohProviderEntry {
+   std::set<IPAddress> ip_addresses;
+   std::set<std::string> dns_over_tls_hostnames;
+   DnsOverHttpsServerConfig doh_server_config;
+-  std::string ui_name;
++  std::string ui_name_cromite;
+   std::string privacy_policy;
+   bool display_globally;
+   std::set<std::string> display_countries;
+@@ -95,7 +95,7 @@ struct NET_EXPORT DohProviderEntry {
+       std::set<std::string_view> dns_over_53_server_ip_strs,
+       std::set<std::string> dns_over_tls_hostnames,
+       std::string dns_over_https_template,
+-      std::string ui_name,
++      std::string ui_name_cromite,
+       std::string privacy_policy,
+       bool display_globally,
+       std::set<std::string> display_countries,
 -- 
 

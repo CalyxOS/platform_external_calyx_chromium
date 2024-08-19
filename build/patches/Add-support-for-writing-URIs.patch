@@ -11,14 +11,14 @@ Change-Id: I3843dce4ce3ee107f36de0aec45607602c3f526d
 ---
  base/android/content_uri_utils.cc             | 10 ++++++
  base/android/content_uri_utils.h              |  4 +++
- .../org/chromium/base/ContentUriUtils.java    | 33 +++++++++++++++++++
- 3 files changed, 47 insertions(+)
+ .../org/chromium/base/ContentUriUtils.java    | 34 +++++++++++++++++++
+ 3 files changed, 48 insertions(+)
 
 diff --git a/base/android/content_uri_utils.cc b/base/android/content_uri_utils.cc
 --- a/base/android/content_uri_utils.cc
 +++ b/base/android/content_uri_utils.cc
-@@ -32,6 +32,16 @@ File OpenContentUriForRead(const FilePath& content_uri) {
-   return File(fd);
+@@ -39,6 +39,16 @@ int64_t GetContentUriFileSize(const FilePath& content_uri) {
+   return Java_ContentUriUtils_getContentUriFileSize(env, j_uri);
  }
  
 +File OpenContentUriForWrite(const FilePath& content_uri) {
@@ -45,13 +45,21 @@ diff --git a/base/android/content_uri_utils.h b/base/android/content_uri_utils.h
 +// Returns -1 if the URI is invalid.
 +BASE_EXPORT File OpenContentUriForWrite(const FilePath& content_uri);
 +
- // Check whether a content URI exists.
- BASE_EXPORT bool ContentUriExists(const FilePath& content_uri);
+ // Gets file size, or -1 if file is unknown length.
+ BASE_EXPORT int64_t GetContentUriFileSize(const FilePath& content_uri);
  
 diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base/android/java/src/org/chromium/base/ContentUriUtils.java
 --- a/base/android/java/src/org/chromium/base/ContentUriUtils.java
 +++ b/base/android/java/src/org/chromium/base/ContentUriUtils.java
-@@ -23,6 +23,9 @@ import org.jni_zero.CalledByNative;
+@@ -10,6 +10,7 @@ import android.content.res.AssetFileDescriptor;
+ import android.database.Cursor;
+ import android.net.Uri;
+ import android.os.Build;
++import android.os.ParcelFileDescriptor;
+ import android.provider.DocumentsContract;
+ import android.provider.MediaStore;
+ import android.text.TextUtils;
+@@ -22,6 +23,9 @@ import org.jni_zero.CalledByNative;
  import java.io.File;
  import java.io.IOException;
  
@@ -61,7 +69,7 @@ diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base
  /** This class provides methods to access content URI schemes. */
  public abstract class ContentUriUtils {
      private static final String TAG = "ContentUriUtils";
-@@ -87,6 +90,36 @@ public abstract class ContentUriUtils {
+@@ -86,6 +90,36 @@ public abstract class ContentUriUtils {
          return -1;
      }
  
