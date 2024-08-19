@@ -74,7 +74,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -959,6 +959,7 @@ chrome_java_sources = [
+@@ -955,6 +955,7 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/settings/AdBlockPreferences.java",
    "java/src/org/chromium/chrome/browser/policy/PolicyAuditor.java",
    "java/src/org/chromium/chrome/browser/policy/PolicyAuditorBridge.java",
@@ -113,9 +113,9 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 +        android:key="gpc"
 +        android:title="@string/gpc_title"
 +        android:fragment="org.chromium.chrome.browser.privacy.settings.GpcSettings" />
-     <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
-         android:key="allow_custom_tab_intents"
-         android:title="@string/allow_custom_tab_intents_title"
+     <org.chromium.chrome.browser.about_settings.HyperlinkPreference
+         android:key="cromite_flags"
+         android:title="@string/cromite_flags_title"
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/GpcSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/GpcSettings.java
 new file mode 100644
 --- /dev/null
@@ -184,7 +184,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -2294,6 +2294,21 @@
+@@ -2296,6 +2296,21 @@
    <message name="IDS_SETTINGS_ENABLE_DO_NOT_TRACK_DIALOG_LEARN_MORE_ACCESSIBILITY_LABEL" desc="The accessibility label for a link to learn more about Do Not Track">
      Learn more about Do Not Track
    </message>
@@ -209,7 +209,7 @@ diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 diff --git a/chrome/browser/extensions/api/settings_private/prefs_util.cc b/chrome/browser/extensions/api/settings_private/prefs_util.cc
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -362,6 +362,7 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
+@@ -366,6 +366,7 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
    (*s_allowlist)[::prefs::kTrackingProtectionLevel] =
        settings_api::PrefType::kNumber;
    (*s_allowlist)[::prefs::kEnableDoNotTrack] = settings_api::PrefType::kBoolean;
@@ -233,19 +233,19 @@ diff --git a/chrome/browser/renderer_preferences_util.cc b/chrome/browser/render
 diff --git a/chrome/browser/resources/settings/BUILD.gn b/chrome/browser/resources/settings/BUILD.gn
 --- a/chrome/browser/resources/settings/BUILD.gn
 +++ b/chrome/browser/resources/settings/BUILD.gn
-@@ -115,6 +115,7 @@ build_webui("build") {
+@@ -118,6 +118,7 @@ build_webui("build") {
      "privacy_page/cookies_page.ts",
      "privacy_page/fingerprint_progress_arc.ts",
      "privacy_page/do_not_track_toggle.ts",
 +    "privacy_page/gpc_toggle.ts",
      "privacy_page/personalization_options.ts",
+     "privacy_page/privacy_guide/privacy_guide_ad_topics_fragment.ts",
      "privacy_page/privacy_guide/privacy_guide_completion_fragment.ts",
-     "privacy_page/privacy_guide/privacy_guide_cookies_fragment.ts",
 diff --git a/chrome/browser/resources/settings/privacy_page/cookies_page.html b/chrome/browser/resources/settings/privacy_page/cookies_page.html
 --- a/chrome/browser/resources/settings/privacy_page/cookies_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/cookies_page.html
-@@ -256,6 +256,8 @@
-     </settings-toggle-button>
+@@ -295,6 +295,8 @@
+     </template>
      <settings-do-not-track-toggle id="doNotTrack" prefs="{{prefs}}">
      </settings-do-not-track-toggle>
 +    <settings-gpc-toggle id="gpc" prefs="{{prefs}}">
@@ -441,7 +441,7 @@ new file mode 100644
 diff --git a/chrome/browser/ui/prefs/pref_watcher.cc b/chrome/browser/ui/prefs/pref_watcher.cc
 --- a/chrome/browser/ui/prefs/pref_watcher.cc
 +++ b/chrome/browser/ui/prefs/pref_watcher.cc
-@@ -162,6 +162,10 @@ void PrefWatcher::OnDoNotTrackEnabledChanged() {
+@@ -163,6 +163,10 @@ void PrefWatcher::OnDoNotTrackEnabledChanged() {
    UpdateRendererPreferences();
  }
  
@@ -466,7 +466,7 @@ diff --git a/chrome/browser/ui/prefs/pref_watcher.h b/chrome/browser/ui/prefs/pr
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -1741,6 +1741,9 @@ void AddPrivacyStrings(content::WebUIDataSource* html_source,
+@@ -1758,6 +1758,9 @@ void AddPrivacyStrings(content::WebUIDataSource* html_source,
        {"doNotTrackDialogMessage", IDS_SETTINGS_ENABLE_DO_NOT_TRACK_DIALOG_TEXT},
        {"doNotTrackDialogLearnMoreA11yLabel",
         IDS_SETTINGS_ENABLE_DO_NOT_TRACK_DIALOG_LEARN_MORE_ACCESSIBILITY_LABEL},
@@ -479,10 +479,10 @@ diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provide
 diff --git a/components/privacy_sandbox/tracking_protection_prefs.cc b/components/privacy_sandbox/tracking_protection_prefs.cc
 --- a/components/privacy_sandbox/tracking_protection_prefs.cc
 +++ b/components/privacy_sandbox/tracking_protection_prefs.cc
-@@ -72,6 +72,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
-   registry->RegisterBooleanPref(
+@@ -81,6 +81,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
        prefs::kEnableDoNotTrack, false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterBooleanPref(prefs::kUserBypass3pcExceptionsMigrated, false);
 +  registry->RegisterBooleanPref(prefs::kEnableGPC, true);
  }
  
@@ -490,19 +490,19 @@ diff --git a/components/privacy_sandbox/tracking_protection_prefs.cc b/component
 diff --git a/components/privacy_sandbox/tracking_protection_prefs.h b/components/privacy_sandbox/tracking_protection_prefs.h
 --- a/components/privacy_sandbox/tracking_protection_prefs.h
 +++ b/components/privacy_sandbox/tracking_protection_prefs.h
-@@ -110,6 +110,8 @@ inline constexpr char kFingerprintingProtectionEnabled[] =
+@@ -120,6 +120,8 @@ inline constexpr char kFingerprintingProtectionEnabled[] =
  // Whether to send the DNT header.
  inline constexpr char kEnableDoNotTrack[] = "enable_do_not_track";
  
 +inline constexpr char kEnableGPC[] = "enable_gpc";
 +
- }  // namespace prefs
- 
- namespace privacy_sandbox::tracking_protection {
+ // Whether User Bypass 3PC exceptions have been migrated to Tracking Protection
+ // exceptions.
+ inline constexpr char kUserBypass3pcExceptionsMigrated[] =
 diff --git a/components/privacy_sandbox/tracking_protection_settings.cc b/components/privacy_sandbox/tracking_protection_settings.cc
 --- a/components/privacy_sandbox/tracking_protection_settings.cc
 +++ b/components/privacy_sandbox/tracking_protection_settings.cc
-@@ -39,6 +39,11 @@ TrackingProtectionSettings::TrackingProtectionSettings(
+@@ -40,6 +40,11 @@ TrackingProtectionSettings::TrackingProtectionSettings(
        base::BindRepeating(
            &TrackingProtectionSettings::OnDoNotTrackEnabledPrefChanged,
            base::Unretained(this)));
@@ -514,7 +514,7 @@ diff --git a/components/privacy_sandbox/tracking_protection_settings.cc b/compon
    pref_change_registrar_.Add(
        prefs::kFingerprintingProtectionEnabled,
        base::BindRepeating(
-@@ -185,6 +190,10 @@ void TrackingProtectionSettings::MaybeInitializeIppPref() {
+@@ -200,6 +205,10 @@ void TrackingProtectionSettings::MaybeInitializeIppPref() {
    pref_service_->SetBoolean(prefs::kIpProtectionInitializedByDogfood, true);
  }
  
@@ -525,7 +525,7 @@ diff --git a/components/privacy_sandbox/tracking_protection_settings.cc b/compon
  void TrackingProtectionSettings::OnEnterpriseControlForPrefsChanged() {
    if (!IsTrackingProtection3pcdEnabled()) {
      return;
-@@ -223,6 +232,12 @@ void TrackingProtectionSettings::OnDoNotTrackEnabledPrefChanged() {
+@@ -267,6 +276,12 @@ void TrackingProtectionSettings::OnDoNotTrackEnabledPrefChanged() {
    }
  }
  
@@ -541,7 +541,7 @@ diff --git a/components/privacy_sandbox/tracking_protection_settings.cc b/compon
 diff --git a/components/privacy_sandbox/tracking_protection_settings.h b/components/privacy_sandbox/tracking_protection_settings.h
 --- a/components/privacy_sandbox/tracking_protection_settings.h
 +++ b/components/privacy_sandbox/tracking_protection_settings.h
-@@ -42,6 +42,8 @@ class TrackingProtectionSettings
+@@ -43,6 +43,8 @@ class TrackingProtectionSettings
    // Returns whether "do not track" is enabled.
    bool IsDoNotTrackEnabled() const;
  
@@ -550,7 +550,7 @@ diff --git a/components/privacy_sandbox/tracking_protection_settings.h b/compone
    // Returns whether tracking protection for 3PCD (prefs + UX) is enabled.
    bool IsTrackingProtection3pcdEnabled() const;
  
-@@ -86,6 +88,7 @@ class TrackingProtectionSettings
+@@ -89,6 +91,7 @@ class TrackingProtectionSettings
  
    // Callbacks for pref observation.
    void OnDoNotTrackEnabledPrefChanged();
@@ -589,7 +589,7 @@ diff --git a/content/browser/loader/browser_initiated_resource_request.cc b/cont
 diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_frame_impl.cc
 --- a/content/renderer/render_frame_impl.cc
 +++ b/content/renderer/render_frame_impl.cc
-@@ -4475,6 +4475,10 @@ void RenderFrameImpl::WillSendRequestInternal(
+@@ -4477,6 +4477,10 @@ void RenderFrameImpl::WillSendRequestInternal(
      request.SetHttpHeaderField(
          blink::WebString::FromUTF8(blink::kDoNotTrackHeader), "1");
    }
@@ -673,7 +673,7 @@ diff --git a/third_party/blink/public/mojom/renderer_preferences.mojom b/third_p
 diff --git a/third_party/blink/renderer/bindings/idl_in_modules.gni b/third_party/blink/renderer/bindings/idl_in_modules.gni
 --- a/third_party/blink/renderer/bindings/idl_in_modules.gni
 +++ b/third_party/blink/renderer/bindings/idl_in_modules.gni
-@@ -1265,6 +1265,11 @@ static_idl_files_in_modules = [
+@@ -1261,6 +1261,11 @@ static_idl_files_in_modules = [
    "//third_party/blink/renderer/modules/xr/xr_webgl_sub_image.idl",
  ]
  
@@ -688,7 +688,7 @@ diff --git a/third_party/blink/renderer/bindings/idl_in_modules.gni b/third_part
 diff --git a/third_party/blink/renderer/core/exported/web_view_impl.cc b/third_party/blink/renderer/core/exported/web_view_impl.cc
 --- a/third_party/blink/renderer/core/exported/web_view_impl.cc
 +++ b/third_party/blink/renderer/core/exported/web_view_impl.cc
-@@ -3502,6 +3502,9 @@ void WebViewImpl::UpdateRendererPreferences(
+@@ -3540,6 +3540,9 @@ void WebViewImpl::UpdateRendererPreferences(
    GetSettings()->SetCaretBrowsingEnabled(
        renderer_preferences_.caret_browsing_enabled);
  
@@ -701,7 +701,7 @@ diff --git a/third_party/blink/renderer/core/exported/web_view_impl.cc b/third_p
 diff --git a/third_party/blink/renderer/modules/BUILD.gn b/third_party/blink/renderer/modules/BUILD.gn
 --- a/third_party/blink/renderer/modules/BUILD.gn
 +++ b/third_party/blink/renderer/modules/BUILD.gn
-@@ -174,6 +174,10 @@ component("modules") {
+@@ -173,6 +173,10 @@ component("modules") {
      "//third_party/blink/renderer/modules/xr",
    ]
  
@@ -813,7 +813,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/url_loader/dedicat
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1882,6 +1882,11 @@
+@@ -2018,6 +2018,11 @@
        status: "stable",
        base_feature: "none",
      },

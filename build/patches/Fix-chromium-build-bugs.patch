@@ -10,20 +10,22 @@ Change-Id: I9afc6e66b4ab03ccf33ec9b73dcb4e821906da07
  BUILD.gn                                           |  1 -
  .../navigation_predictor_metrics_document_data.h   |  2 ++
  chrome/browser/safe_browsing/BUILD.gn              |  1 +
+ chrome/browser/ui/browser_commands.cc              |  1 +
+ .../webid/fedcm_account_selection_view_desktop.cc  |  1 +
  .../omnibox/browser/autocomplete_classifier.cc     |  4 ++--
  components/omnibox/browser/omnibox_field_trial.cc  |  4 ++--
  .../phishing_classifier/phishing_image_embedder.cc | 14 +++-----------
  content/browser/browser_interface_binders.cc       |  1 +
  net/BUILD.gn                                       |  1 +
- 8 files changed, 12 insertions(+), 16 deletions(-)
+ 10 files changed, 14 insertions(+), 16 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -415,7 +415,6 @@ group("gn_all") {
+@@ -413,7 +413,6 @@ group("gn_all") {
            "//android_webview:empty_group",
            "//android_webview/test",
-           "//android_webview/tools/automated_ui_tests:webview_ui_test_app",
+           "//android_webview/tools/automated_ui_tests:webview_ui_test_app_test_apk",
 -          "//android_webview/tools/captured_sites_tests:captured_sites_test_app",
            "//android_webview/tools/sdk_sandbox",
            "//android_webview/tools/system_webview_shell",
@@ -43,7 +45,7 @@ diff --git a/chrome/browser/navigation_predictor/navigation_predictor_metrics_do
 diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsing/BUILD.gn
 --- a/chrome/browser/safe_browsing/BUILD.gn
 +++ b/chrome/browser/safe_browsing/BUILD.gn
-@@ -186,6 +186,7 @@ static_library("safe_browsing") {
+@@ -198,6 +198,7 @@ static_library("safe_browsing") {
        "//components/version_info",
        "//content/public/browser",
        "//services/preferences/public/mojom:mojom",
@@ -51,10 +53,32 @@ diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsin
      ]
      if (safe_browsing_mode == 1) {
        # "Safe Browsing Full" files in addition to the "basic" ones to use for
+diff --git a/chrome/browser/ui/browser_commands.cc b/chrome/browser/ui/browser_commands.cc
+--- a/chrome/browser/ui/browser_commands.cc
++++ b/chrome/browser/ui/browser_commands.cc
+@@ -5,6 +5,7 @@
+ #include "chrome/browser/ui/browser_commands.h"
+ 
+ #include <memory>
++#include <numeric>
+ #include <optional>
+ #include <utility>
+ #include <vector>
+diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
+--- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
++++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
+@@ -6,6 +6,7 @@
+ 
+ #include "base/functional/bind.h"
+ #include "base/metrics/histogram_macros.h"
++#include "base/metrics/histogram_functions.h"
+ #include "chrome/browser/accessibility/accessibility_state_utils.h"
+ #include "chrome/browser/net/system_network_context_manager.h"
+ #include "chrome/browser/ui/browser_finder.h"
 diff --git a/components/omnibox/browser/autocomplete_classifier.cc b/components/omnibox/browser/autocomplete_classifier.cc
 --- a/components/omnibox/browser/autocomplete_classifier.cc
 +++ b/components/omnibox/browser/autocomplete_classifier.cc
-@@ -96,8 +96,8 @@ void AutocompleteClassifier::Classify(
+@@ -102,8 +102,8 @@ void AutocompleteClassifier::Classify(
      metrics::OmniboxEventProto::PageClassification page_classification,
      AutocompleteMatch* match,
      GURL* alternate_nav_url) {
@@ -68,7 +92,7 @@ diff --git a/components/omnibox/browser/autocomplete_classifier.cc b/components/
 diff --git a/components/omnibox/browser/omnibox_field_trial.cc b/components/omnibox/browser/omnibox_field_trial.cc
 --- a/components/omnibox/browser/omnibox_field_trial.cc
 +++ b/components/omnibox/browser/omnibox_field_trial.cc
-@@ -1064,11 +1064,11 @@ MLConfig& MLConfig::operator=(const MLConfig& other) = default;
+@@ -1043,11 +1043,11 @@ MLConfig& MLConfig::operator=(const MLConfig& other) = default;
  
  ScopedMLConfigForTesting::ScopedMLConfigForTesting()
      : original_config_(std::make_unique<MLConfig>(GetMLConfig())) {
@@ -120,7 +144,7 @@ diff --git a/content/browser/browser_interface_binders.cc b/content/browser/brow
 diff --git a/net/BUILD.gn b/net/BUILD.gn
 --- a/net/BUILD.gn
 +++ b/net/BUILD.gn
-@@ -1628,6 +1628,7 @@ component("net") {
+@@ -1664,6 +1664,7 @@ component("net") {
    if (!is_cronet_build) {
      deps += [ "//mojo/public/cpp/bindings:default_construct_tag" ]
    }

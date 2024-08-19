@@ -10,9 +10,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: Id32e4bd6c443ebbd30e67e0c20329ffc5d04f647
 ---
- .../browser/language/AppLocaleUtils.java      | 20 +++++++++++++++++++
- .../renderer_host/render_process_host_impl.cc |  6 +++++-
- 2 files changed, 25 insertions(+), 1 deletion(-)
+ .../browser/language/AppLocaleUtils.java      | 22 ++++++++++++++++++-
+ .../renderer_host/render_process_host_impl.cc |  6 ++++-
+ 2 files changed, 26 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java
 --- a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java
@@ -51,18 +51,27 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
      /**
       * Gets the first original system locale from {@link LocaleManager}. This is the language that
       * Chrome would use if there was no override set. If there are no possible UI languages en-US is
+@@ -231,7 +251,7 @@ public class AppLocaleUtils {
+      */
+     @ChecksSdkIntAtLeast(api = 33)
+     public static boolean shouldUseSystemManagedLocale() {
+-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
++        return false; // Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
+     }
+ 
+     /**
 diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
 --- a/content/browser/renderer_host/render_process_host_impl.cc
 +++ b/content/browser/renderer_host/render_process_host_impl.cc
-@@ -71,6 +71,7 @@
- #include "components/discardable_memory/public/mojom/discardable_shared_memory_manager.mojom.h"
- #include "components/discardable_memory/service/discardable_shared_memory_manager.h"
+@@ -70,6 +70,7 @@
+ #include "build/chromeos_buildflags.h"
+ #include "cc/base/switches.h"
  #include "components/metrics/histogram_controller.h"
 +#include "components/language/core/browser/language_prefs.h"
  #include "components/metrics/single_sample_metrics.h"
  #include "components/services/storage/privileged/mojom/indexed_db_control.mojom.h"
  #include "components/services/storage/public/cpp/buckets/bucket_id.h"
-@@ -3380,8 +3381,11 @@ void RenderProcessHostImpl::AppendRendererCommandLine(
+@@ -3082,8 +3083,11 @@ void RenderProcessHostImpl::AppendRendererCommandLine(
    PropagateBrowserCommandLineToRenderer(browser_command_line, command_line);
  
    // Pass on the browser locale.

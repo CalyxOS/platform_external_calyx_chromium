@@ -78,7 +78,7 @@ diff --git a/components/embedder_support/origin_trials/origin_trial_policy_impl.
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -8971,7 +8971,6 @@ void NavigationRequest::SetSourceSiteInstanceToInitiatorIfNeeded() {
+@@ -9048,7 +9048,6 @@ void NavigationRequest::SetSourceSiteInstanceToInitiatorIfNeeded() {
  void NavigationRequest::ForceEnableOriginTrials(
      const std::vector<std::string>& trials) {
    DCHECK(!HasCommitted());
@@ -143,7 +143,7 @@ diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_fra
    blink::NavigationDownloadPolicy download_policy;
    download_policy.ApplyDownloadFramePolicy(
        info->is_opener_navigation, info->url_request.HasUserGesture(),
-@@ -662,7 +647,7 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
+@@ -667,7 +652,7 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
        info->url_request.HasUserGesture(),
        info->url_request.HasTextFragmentToken(),
        info->should_check_main_world_content_security_policy,
@@ -195,7 +195,7 @@ diff --git a/third_party/blink/common/origin_trials/trial_token_validator.cc b/t
 diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_party/blink/renderer/core/loader/document_loader.cc
 --- a/third_party/blink/renderer/core/loader/document_loader.cc
 +++ b/third_party/blink/renderer/core/loader/document_loader.cc
-@@ -188,13 +188,6 @@ namespace {
+@@ -191,13 +191,6 @@ namespace {
  Vector<mojom::blink::OriginTrialFeature> CopyInitiatorOriginTrials(
      const WebVector<int>& initiator_origin_trial_features) {
    Vector<mojom::blink::OriginTrialFeature> result;
@@ -209,7 +209,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -208,18 +201,12 @@ WebVector<int> CopyInitiatorOriginTrials(
+@@ -211,18 +204,12 @@ WebVector<int> CopyInitiatorOriginTrials(
  Vector<String> CopyForceEnabledOriginTrials(
      const WebVector<WebString>& force_enabled_origin_trials) {
    Vector<String> result;
@@ -228,7 +228,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -3070,10 +3057,6 @@ void DocumentLoader::CreateParserPostCommit() {
+@@ -3096,10 +3083,6 @@ void DocumentLoader::CreateParserPostCommit() {
            mojom::blink::OriginTrialFeature::kTouchEventFeatureDetection);
      }
  
@@ -254,7 +254,7 @@ diff --git a/third_party/blink/renderer/core/loader/http_equiv.cc b/third_party/
 diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc b/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
 --- a/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
 +++ b/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
-@@ -315,6 +315,9 @@ void OriginTrialContext::AddToken(const String& token) {
+@@ -312,6 +312,9 @@ void OriginTrialContext::AddToken(const String& token) {
  void OriginTrialContext::AddTokenFromExternalScript(
      const String& token,
      const Vector<scoped_refptr<SecurityOrigin>>& external_origins) {
@@ -264,7 +264,7 @@ diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.
    Vector<OriginInfo> script_origins;
    for (const scoped_refptr<SecurityOrigin>& origin : external_origins) {
      OriginInfo origin_info = {.origin = origin,
-@@ -470,8 +473,6 @@ bool OriginTrialContext::InstallSettingFeature(
+@@ -449,8 +452,6 @@ bool OriginTrialContext::InstallSettingFeature(
  }
  
  void OriginTrialContext::AddFeature(mojom::blink::OriginTrialFeature feature) {
@@ -273,13 +273,13 @@ diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.
  }
  
  bool OriginTrialContext::IsFeatureEnabled(
-@@ -515,6 +516,7 @@ void OriginTrialContext::AddForceEnabledTrials(
+@@ -494,6 +495,7 @@ void OriginTrialContext::AddForceEnabledTrials(
  }
  
  bool OriginTrialContext::CanEnableTrialFromName(const StringView& trial_name) {
 +  if ((true)) return false;
-   if (trial_name == "PrivacySandboxAdsAPIs")
-     return base::FeatureList::IsEnabled(features::kPrivacySandboxAdsAPIs);
- 
+   if (trial_name == "FledgeBiddingAndAuctionServer") {
+     return base::FeatureList::IsEnabled(features::kInterestGroupStorage) &&
+            base::FeatureList::IsEnabled(
 -- 
 
