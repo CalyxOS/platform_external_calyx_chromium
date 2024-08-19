@@ -7,30 +7,42 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I170ffd473248041f776dd87c3bcae825c4b6113f
 ---
- .../chrome/browser/tabmodel/TabPersistentStore.java  | 12 ------------
- 1 file changed, 12 deletions(-)
+ .../browser/tabmodel/TabPersistentStore.java   | 18 ------------------
+ 1 file changed, 18 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPersistentStore.java
-@@ -817,18 +817,6 @@ public class TabPersistentStore {
+@@ -1152,30 +1152,12 @@ public class TabPersistentStore {
+                 continue;
              }
  
-         } else {
--            if (!mSkipSavingNonActiveNtps
--                    && UrlUtilities.isNtpUrl(tabToRestore.url)
--                    && !setAsActive
--                    && !tabToRestore.fromMerge) {
--                Log.i(TAG, "Skipping restore of non-selected NTP.");
--                RecordHistogram.recordEnumeratedHistogram(
--                        "Tabs.TabRestoreMethod",
--                        TabRestoreMethod.SKIPPED_NTP,
--                        TabRestoreMethod.NUM_ENTRIES);
--                return;
+-            if (i == activeIndex) {
+-                // If any non-active NTPs have been skipped, the serialized tab model index
+-                // needs to be adjusted.
+-                modelInfo.index = modelInfo.ids.size();
+-            } else if (shouldSkipTab(tab)) {
+-                continue;
 -            }
+             modelInfo.ids.add(tab.getId());
+             modelInfo.urls.add(tab.getUrl().getSpec());
+         }
+         return modelInfo;
+     }
+ 
+-    private static boolean shouldSkipTab(@NonNull Tab tab) {
+-        boolean isNtp = tab.isNativePage() && UrlUtilities.isNtpUrl(tab.getUrl());
+-        if (!isNtp) return false;
 -
-             Log.w(TAG, "Failed to restore TabState; creating Tab with last known URL.");
-             Tab fallbackTab =
-                     mTabCreatorManager
+-        if (ChromeFeatureList.sAndroidTabGroupStableIds.isEnabled()) {
+-            // Only skip NTP tabs that are not in a tab group.
+-            return tab.getTabGroupId() == null;
+-        }
+-        return true;
+-    }
+-
+     private void saveListToFile(TabModelSelectorMetadata listData) {
+         if (Objects.equals(mLastSavedMetadata, listData)) return;
+         // Save the index file containing the list of tabs to restore.
 -- 
 

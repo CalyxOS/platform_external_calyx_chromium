@@ -19,7 +19,7 @@ Change-Id: I9e71112a185671ce7aae2f836840bf949597eb0a
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
-@@ -1312,6 +1312,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -1310,6 +1310,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
      }
  
      private boolean maybeShowPromo(Profile profile) {
@@ -30,7 +30,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
 diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -144,7 +144,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -148,7 +148,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
  
    registry->RegisterBooleanPref(prefs::kEnterpriseHardwarePlatformAPIEnabled,
                                  false);
@@ -42,18 +42,18 @@ diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_u
 diff --git a/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc b/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
 --- a/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
 +++ b/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
-@@ -75,6 +75,7 @@ ui::ElementContext BrowserFeaturePromoController::GetAnchorContext() const {
+@@ -78,6 +78,7 @@ ui::ElementContext BrowserFeaturePromoController::GetAnchorContext() const {
  
  bool BrowserFeaturePromoController::CanShowPromoForElement(
      ui::TrackedElement* anchor_element) const {
 +  if ((true)) return false;
-   auto* const profile = browser_view_->GetProfile();
- 
-   // Turn off IPH while a required privacy interstitial is visible or pending.
+   // Trying to show an IPH while the browser is closing can cause problems;
+   // see crbug.com/346461762 for an example.
+   if (browser_view_->browser()->IsBrowserClosing()) {
 diff --git a/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java b/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
 --- a/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
 +++ b/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
-@@ -125,6 +125,7 @@ public class UserEducationHelper {
+@@ -126,6 +126,7 @@ public class UserEducationHelper {
      }
  
      private void showIPH(Tracker tracker, IPHCommand iphCommand) {

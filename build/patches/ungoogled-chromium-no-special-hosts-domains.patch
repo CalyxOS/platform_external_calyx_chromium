@@ -10,7 +10,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
 ---
  .../chrome/browser/ui/RootUiCoordinator.java  |   3 -
- chrome/browser/BUILD.gn                       |   8 -
+ chrome/browser/BUILD.gn                       |  10 -
  .../android/metrics/uma_session_stats.cc      |  10 -
  .../android/signin/signin_manager_android.cc  |  39 +--
  chrome/browser/browser_process_impl.cc        |   1 -
@@ -26,11 +26,10 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  .../chrome_metrics_services_manager_client.cc |   5 +-
  .../metrics/metrics_reporting_state.cc        |  72 +---
  .../net/system_network_context_manager.cc     |   1 -
- .../modules/recipes/recipes_service.cc        |   3 +-
  .../one_google_bar_loader_impl.cc             |   3 +-
  .../new_tab_page/promos/promo_service.cc      |   6 +-
  .../from_gws_page_load_metrics_observer.cc    |   6 +-
- .../page_load_metrics_initialize.cc           |   2 -
+ .../page_load_metrics_initialize.cc           |   4 -
  chrome/browser/safe_browsing/BUILD.gn         |   1 -
  chrome/browser/search_engines/BUILD.gn        |   1 -
  .../ui_thread_search_terms_data.cc            |   4 -
@@ -66,13 +65,13 @@ Change-Id: I3dae6dbb89a90686eb1fc199685a3e7a06f8cfc7
  ...gled-chromium-no-special-hosts-domains.inc |   1 +
  net/base/url_util.cc                          |  25 +-
  services/network/network_context.cc           |   2 +-
- 57 files changed, 57 insertions(+), 845 deletions(-)
+ 56 files changed, 55 insertions(+), 848 deletions(-)
  create mode 100644 cromite_flags/content/public/common/content_features_cc/ungoogled-chromium-no-special-hosts-domains.inc
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
-@@ -92,7 +92,6 @@ import org.chromium.chrome.browser.messages.MessageContainerCoordinator;
+@@ -94,7 +94,6 @@ import org.chromium.chrome.browser.messages.MessageContainerCoordinator;
  import org.chromium.chrome.browser.messages.MessageContainerObserver;
  import org.chromium.chrome.browser.messages.MessagesResourceMapperInitializer;
  import org.chromium.chrome.browser.omnibox.OmniboxFocusReason;
@@ -80,7 +79,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
  import org.chromium.chrome.browser.omnibox.suggestions.action.OmniboxActionDelegateImpl;
  import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler;
  import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler.VoiceInteractionSource;
-@@ -1091,10 +1090,8 @@ public class RootUiCoordinator
+@@ -1197,10 +1196,8 @@ public class RootUiCoordinator
          String url =
                  TemplateUrlServiceFactory.getForProfile(tab.getProfile())
                          .getUrlForSearchQuery(query);
@@ -94,18 +93,20 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1006,10 +1006,6 @@ static_library("browser") {
+@@ -1006,12 +1006,6 @@ static_library("browser") {
      "page_load_metrics/observers/foreground_duration_ukm_observer.h",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.cc",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.h",
 -    "page_load_metrics/observers/from_gws_page_load_metrics_observer.cc",
 -    "page_load_metrics/observers/from_gws_page_load_metrics_observer.h",
+-    "page_load_metrics/observers/gws_abandoned_page_load_metrics_observer.cc",
+-    "page_load_metrics/observers/gws_abandoned_page_load_metrics_observer.h",
 -    "page_load_metrics/observers/gws_page_load_metrics_observer.cc",
 -    "page_load_metrics/observers/gws_page_load_metrics_observer.h",
      "page_load_metrics/observers/histogram_suffixes.cc",
      "page_load_metrics/observers/histogram_suffixes.h",
      "page_load_metrics/observers/https_engagement_metrics/https_engagement_page_load_metrics_observer.cc",
-@@ -1720,8 +1716,6 @@ static_library("browser") {
+@@ -1724,8 +1718,6 @@ static_library("browser") {
      "supervised_user/chrome_supervised_user_web_content_handler_base.h",
      "supervised_user/supervised_user_browser_utils.cc",
      "supervised_user/supervised_user_browser_utils.h",
@@ -114,7 +115,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "supervised_user/supervised_user_interstitial_tab_closer.cc",
      "supervised_user/supervised_user_interstitial_tab_closer.h",
      "supervised_user/supervised_user_metrics_service_factory.cc",
-@@ -1958,7 +1952,6 @@ static_library("browser") {
+@@ -1986,7 +1978,6 @@ static_library("browser") {
      "//chrome/browser/autofill",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -122,14 +123,14 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
  
      # Circular dependency due to SystemNetworkContextManager.
      "//chrome/browser/image_fetcher",
-@@ -1995,7 +1988,6 @@ static_library("browser") {
- 
-   public_deps = [
-     "//base",
+@@ -2030,7 +2021,6 @@ static_library("browser") {
+     # New dependencies inside of //chrome/browser that generate header files
+     # should be added to browser_generated_files.
+     ":browser_public_dependencies",
 -    "//chrome/browser/google",
      "//chrome/browser/headless",
      "//chrome/browser/profiles",
-     "//chrome/browser/ui/tabs:tab_enums",
+     "//chrome/browser/resource_coordinator:tab_lifecycle_observer",
 diff --git a/chrome/browser/android/metrics/uma_session_stats.cc b/chrome/browser/android/metrics/uma_session_stats.cc
 --- a/chrome/browser/android/metrics/uma_session_stats.cc
 +++ b/chrome/browser/android/metrics/uma_session_stats.cc
@@ -213,7 +214,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -559,11 +559,6 @@ void ProcessSingletonNotificationCallbackImpl(
+@@ -563,11 +563,6 @@ void ProcessSingletonNotificationCallbackImpl(
  
    StartupBrowserCreator::ProcessCommandLineAlreadyRunning(
        command_line, current_directory, startup_profile_path_info);
@@ -225,7 +226,7 @@ diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_brows
  }
  #endif  // BUILDFLAG(ENABLE_PROCESS_SINGLETON)
  
-@@ -1811,11 +1806,6 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
+@@ -1821,11 +1816,6 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
      upgrade_util::SaveLastModifiedTimeOfExe();
  #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
  
@@ -240,7 +241,7 @@ diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_brows
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -2836,7 +2836,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
+@@ -2973,7 +2973,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
        switches::kForcePNaClSubzero,
  #endif
        switches::kForceUIDirection,
@@ -248,7 +249,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
        switches::kJavaScriptHarmony,
        switches::kEnableExperimentalWebAssemblyFeatures,
        embedder_support::kOriginTrialDisabledFeatures,
-@@ -5202,9 +5201,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+@@ -5415,9 +5414,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
    }
  #endif
  
@@ -258,7 +259,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  
    MaybeAddThrottle(
        SupervisedUserNavigationThrottle::MaybeCreateThrottleFor(handle),
-@@ -5775,7 +5771,8 @@ GetClientDataHeader(int frame_tree_node_id) {
+@@ -5988,7 +5984,8 @@ GetClientDataHeader(int frame_tree_node_id) {
  }
  #endif
  
@@ -268,7 +269,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  #if BUILDFLAG(IS_ANDROID)
      const std::string& client_data_header,
  #endif
-@@ -5815,7 +5812,7 @@ std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
+@@ -6028,7 +6025,7 @@ std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
        std::move(bound_session_request_throttled_handler),
  #endif
        std::move(dynamic_params));
@@ -277,7 +278,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  
  std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
  ChromeContentBrowserClient::CreateURLLoaderThrottles(
-@@ -5863,15 +5860,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
+@@ -6082,15 +6079,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
        GetClientDataHeader(frame_tree_node_id);
  #endif
  
@@ -293,7 +294,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    {
      auto* factory =
          ProtocolHandlerRegistryFactory::GetForBrowserContext(browser_context);
-@@ -5926,20 +5914,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottlesForKeepAlive(
+@@ -6145,20 +6133,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottlesForKeepAlive(
    }
  #endif
  
@@ -374,7 +375,7 @@ diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUIL
 diff --git a/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log_source.cc b/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log_source.cc
 --- a/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log_source.cc
 +++ b/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log_source.cc
-@@ -123,7 +123,6 @@ constexpr char kOsVersionTag[] = "OS VERSION";
+@@ -124,7 +124,6 @@ constexpr char kOsVersionTag[] = "OS VERSION";
  #if BUILDFLAG(IS_WIN)
  constexpr char kUsbKeyboardDetected[] = "usb_keyboard_detected";
  constexpr char kIsEnrolledToDomain[] = "enrolled_to_domain";
@@ -382,7 +383,7 @@ diff --git a/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
  constexpr char kUpdateErrorCode[] = "update_error_code";
  constexpr char kUpdateHresult[] = "update_hresult";
-@@ -626,10 +625,6 @@ void ChromeInternalLogSource::PopulateEnrolledToDomain(
+@@ -633,10 +632,6 @@ void ChromeInternalLogSource::PopulateEnrolledToDomain(
  
  void ChromeInternalLogSource::PopulateInstallerBrandCode(
      SystemLogsResponse* response) {
@@ -423,7 +424,7 @@ diff --git a/chrome/browser/google/BUILD.gn b/chrome/browser/google/BUILD.gn
    sources = [
      "google_brand.cc",
      "google_brand.h",
-@@ -84,7 +84,7 @@ source_set("unit_tests") {
+@@ -87,7 +87,7 @@ source_set("unit_tests") {
    sources = [ "google_update_settings_unittest.cc" ]
  
    deps = [
@@ -479,7 +480,7 @@ diff --git a/chrome/browser/long_screenshots/long_screenshots_tab_service.cc b/c
 diff --git a/chrome/browser/metrics/chrome_metrics_service_client.cc b/chrome/browser/metrics/chrome_metrics_service_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_service_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_service_client.cc
-@@ -594,7 +594,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
+@@ -595,7 +595,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
  }
  
  bool ChromeMetricsServiceClient::GetBrand(std::string* brand_code) {
@@ -609,7 +610,7 @@ diff --git a/chrome/browser/metrics/metrics_reporting_state.cc b/chrome/browser/
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -857,7 +857,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
+@@ -837,7 +837,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
  void SystemNetworkContextManager::ConfigureDefaultNetworkContextParams(
      network::mojom::NetworkContextParams* network_context_params) {
    variations::UpdateCorsExemptHeaderForVariations(network_context_params);
@@ -617,21 +618,6 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
  
    network_context_params->enable_brotli = true;
  
-diff --git a/chrome/browser/new_tab_page/modules/recipes/recipes_service.cc b/chrome/browser/new_tab_page/modules/recipes/recipes_service.cc
---- a/chrome/browser/new_tab_page/modules/recipes/recipes_service.cc
-+++ b/chrome/browser/new_tab_page/modules/recipes/recipes_service.cc
-@@ -53,9 +53,10 @@ const char* GetExperimentGroupParam() {
- }
- 
- GURL GetApiUrl(const std::string& application_locale) {
-+  if ((true)) return GURL();
-   GURL google_base_url = google_util::CommandLineGoogleBaseURL();
-   if (!google_base_url.is_valid()) {
--    google_base_url = GURL(google_util::kGoogleHomepageURL);
-+    google_base_url = GURL();
-   }
-   auto url = net::AppendQueryParameter(google_base_url.Resolve(kPath), "hl",
-                                        application_locale);
 diff --git a/chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc b/chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc
 --- a/chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc
 +++ b/chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc
@@ -690,19 +676,22 @@ diff --git a/chrome/browser/page_load_metrics/observers/from_gws_page_load_metri
 diff --git a/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc b/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc
 --- a/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc
 +++ b/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc
-@@ -145,8 +145,6 @@ void PageLoadMetricsEmbedder::RegisterEmbedderObservers(
+@@ -169,11 +169,7 @@ void PageLoadMetricsEmbedder::RegisterEmbedderObservers(
      tracker->AddObserver(std::make_unique<AMPPageLoadMetricsObserver>());
      tracker->AddObserver(std::make_unique<JavascriptFrameworksUkmObserver>());
      tracker->AddObserver(std::make_unique<SchemePageLoadMetricsObserver>());
 -    tracker->AddObserver(std::make_unique<FromGWSPageLoadMetricsObserver>());
 -    tracker->AddObserver(std::make_unique<GWSPageLoadMetricsObserver>());
+     tracker->AddObserver(std::make_unique<AbandonedPageLoadMetricsObserver>());
+-    tracker->AddObserver(
+-        std::make_unique<GWSAbandonedPageLoadMetricsObserver>());
      tracker->AddObserver(std::make_unique<ForegroundDurationUKMObserver>());
      tracker->AddObserver(
          std::make_unique<DocumentWritePageLoadMetricsObserver>());
 diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsing/BUILD.gn
 --- a/chrome/browser/safe_browsing/BUILD.gn
 +++ b/chrome/browser/safe_browsing/BUILD.gn
-@@ -24,7 +24,6 @@ static_library("safe_browsing") {
+@@ -26,7 +26,6 @@ static_library("safe_browsing") {
      "//build:branding_buildflags",
      "//chrome/app:generated_resources",
      "//chrome/browser:browser_process",
@@ -738,18 +727,18 @@ diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data.cc b/chro
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -458,7 +458,6 @@ static_library("ui") {
+@@ -456,7 +456,6 @@ static_library("ui") {
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
      "//chrome/browser/fingerprinting_protection",
 -    "//chrome/browser/google",
      "//chrome/browser/image_decoder",
      "//chrome/browser/image_fetcher",
-     "//chrome/browser/media:mojo_bindings",
+     "//chrome/browser/media/router:media_router_feature",
 diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/android/omnibox/BUILD.gn
 --- a/chrome/browser/ui/android/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/android/omnibox/BUILD.gn
-@@ -47,8 +47,6 @@ android_library("java") {
+@@ -48,8 +48,6 @@ android_library("java") {
      "java/src/org/chromium/chrome/browser/omnibox/UrlBarProperties.java",
      "java/src/org/chromium/chrome/browser/omnibox/UrlBarViewBinder.java",
      "java/src/org/chromium/chrome/browser/omnibox/UrlFocusChangeListener.java",
@@ -769,7 +758,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
  import org.chromium.chrome.browser.omnibox.status.StatusCoordinator;
  import org.chromium.chrome.browser.omnibox.status.StatusCoordinator.PageInfoAction;
  import org.chromium.chrome.browser.omnibox.status.StatusView;
-@@ -385,7 +384,6 @@ public class LocationBarCoordinator
+@@ -384,7 +383,6 @@ public class LocationBarCoordinator
  
          mLocationBarMediator.destroy();
          mLocationBarMediator = null;
@@ -788,7 +777,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
  import org.chromium.chrome.browser.omnibox.status.StatusCoordinator;
  import org.chromium.chrome.browser.omnibox.styles.OmniboxResourceProvider;
  import org.chromium.chrome.browser.omnibox.suggestions.AutocompleteCoordinator;
-@@ -314,24 +313,6 @@ class LocationBarMediator
+@@ -316,24 +315,6 @@ class LocationBarMediator
  
          if (!mUrlFocusedWithoutAnimations) handleUrlFocusAnimation(hasFocus);
  
@@ -813,7 +802,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
          if (!hasFocus && mLocationBarDataProvider.hasTab()) {
              setUrl(
                      mLocationBarDataProvider.getCurrentGurl(),
-@@ -347,8 +328,6 @@ class LocationBarMediator
+@@ -349,8 +330,6 @@ class LocationBarMediator
                      templateUrlService.addObserver(this);
                      if (OmniboxFeatures.sUseFusedLocationProvider.isEnabled()
                              && templateUrlService.isDefaultSearchEngineGoogle()) {
@@ -822,7 +811,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
                      }
                  });
  
-@@ -583,7 +562,6 @@ class LocationBarMediator
+@@ -588,7 +567,6 @@ class LocationBarMediator
              LoadUrlParams loadUrlParams = new LoadUrlParams(url);
              try (TimingMetric record =
                      TimingMetric.shortUptime("Android.Omnibox.SetGeolocationHeadersTime")) {
@@ -830,7 +819,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
              }
              loadUrlParams.setTransitionType(
                      omniboxLoadUrlParams.transitionType | PageTransition.FROM_ADDRESS_BAR);
-@@ -1610,15 +1588,12 @@ class LocationBarMediator
+@@ -1607,15 +1585,12 @@ class LocationBarMediator
          if (OmniboxFeatures.sUseFusedLocationProvider.isEnabled()
                  && mProfileSupplier.hasValue()
                  && mTemplateUrlServiceSupplier.hasValue()) {
@@ -849,7 +838,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 --- a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 +++ b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
-@@ -693,11 +693,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
+@@ -436,11 +436,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
    // chrome-untrusted://new-tab-page for other external content and resources.
    // NOTE: Use caution when overriding content security policies as that cean
    // lead to subtle security bugs such as https://crbug.com/1251541.
@@ -891,7 +880,7 @@ diff --git a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc b/chrome/b
 diff --git a/chrome/common/BUILD.gn b/chrome/common/BUILD.gn
 --- a/chrome/common/BUILD.gn
 +++ b/chrome/common/BUILD.gn
-@@ -141,8 +141,6 @@ static_library("common_lib") {
+@@ -146,8 +146,6 @@ static_library("common_lib") {
      "content_restriction.h",
      "crash_keys.cc",
      "crash_keys.h",
@@ -935,7 +924,7 @@ diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/rende
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
-@@ -6932,7 +6932,6 @@ test("unit_tests") {
+@@ -6709,7 +6709,6 @@ test("unit_tests") {
      "//chrome/browser/favicon",
      "//chrome/browser/fingerprinting_protection",
      "//chrome/browser/first_party_sets",
@@ -1095,7 +1084,7 @@ diff --git a/components/domain_reliability/monitor.cc b/components/domain_reliab
 diff --git a/components/domain_reliability/uploader.cc b/components/domain_reliability/uploader.cc
 --- a/components/domain_reliability/uploader.cc
 +++ b/components/domain_reliability/uploader.cc
-@@ -80,7 +80,7 @@ class DomainReliabilityUploaderImpl : public DomainReliabilityUploader,
+@@ -81,7 +81,7 @@ class DomainReliabilityUploaderImpl : public DomainReliabilityUploader,
      if (discard_uploads_)
        discarded_upload_count_++;
  
@@ -1603,7 +1592,7 @@ diff --git a/components/search_engines/search_terms_data.cc b/components/search_
 diff --git a/components/search_engines/template_url.cc b/components/search_engines/template_url.cc
 --- a/components/search_engines/template_url.cc
 +++ b/components/search_engines/template_url.cc
-@@ -593,11 +593,7 @@ std::u16string TemplateURLRef::SearchTermToString16(
+@@ -589,11 +589,7 @@ std::u16string TemplateURLRef::SearchTermToString16(
  bool TemplateURLRef::HasGoogleBaseURLs(
      const SearchTermsData& search_terms_data) const {
    ParseIfNecessary(search_terms_data);
@@ -1837,7 +1826,7 @@ diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -2813,7 +2813,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
+@@ -2834,7 +2834,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
    }
  #endif  // BUILDFLAG(IS_CT_SUPPORTED)
  
