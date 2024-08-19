@@ -29,7 +29,7 @@ Change-Id: Ic63f7c7ddd4fc2336cb4e4f6b7fc14cfa44ca9fd
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1942,6 +1942,16 @@ static_library("browser") {
+@@ -1958,6 +1958,16 @@ static_library("browser") {
      ]
    }
  
@@ -43,9 +43,9 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 +    "permissions/last_tab_standing_tracker_tab_helper.h",
 +  ]
 +
-   configs += [
-     "//build/config/compiler:wexit_time_destructors",
-     "//build/config:precompiled_headers",
+   if (is_android) {
+     sources += [
+       "importer/profile_writer.cc",
 diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.cc b/chrome/browser/content_settings/host_content_settings_map_factory.cc
 --- a/chrome/browser/content_settings/host_content_settings_map_factory.cc
 +++ b/chrome/browser/content_settings/host_content_settings_map_factory.cc
@@ -57,8 +57,8 @@ diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.c
  #include "chrome/browser/profiles/off_the_record_profile_impl.h"
  #include "chrome/browser/profiles/profile.h"
  #include "chrome/browser/profiles/profile_key.h"
-@@ -56,6 +57,7 @@ HostContentSettingsMapFactory::HostContentSettingsMapFactory()
-               .WithGuest(ProfileSelection::kOwnInstance)
+@@ -59,6 +60,7 @@ HostContentSettingsMapFactory::HostContentSettingsMapFactory()
+               .WithAshInternals(ProfileSelection::kOwnInstance)
                .Build()) {
    DependsOn(SupervisedUserSettingsServiceFactory::GetInstance());
 +  DependsOn(LastTabStandingTrackerFactory::GetInstance());
@@ -383,7 +383,7 @@ new file mode 100644
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -114,6 +114,7 @@
+@@ -120,6 +120,7 @@
  #include "chrome/browser/password_manager/password_reuse_manager_factory.h"
  #include "chrome/browser/password_manager/profile_password_store_factory.h"
  #include "chrome/browser/permissions/adaptive_quiet_notification_permission_ui_enabler.h"
@@ -391,7 +391,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #include "chrome/browser/permissions/notifications_engagement_service_factory.h"
  #include "chrome/browser/permissions/one_time_permissions_tracker_factory.h"
  #include "chrome/browser/permissions/origin_keyed_permission_action_service_factory.h"
-@@ -1002,6 +1003,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -1019,6 +1020,7 @@ void ChromeBrowserMainExtraPartsProfiles::
  #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
    OnDeviceTailModelServiceFactory::GetInstance();
  #endif
@@ -410,7 +410,7 @@ diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
  #include "chrome/browser/permissions/one_time_permissions_tracker_helper.h"
  #include "chrome/browser/predictors/loading_predictor_factory.h"
  #include "chrome/browser/predictors/loading_predictor_tab_helper.h"
-@@ -423,6 +424,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -421,6 +422,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    HistoryEmbeddingsTabHelper::CreateForWebContents(web_contents);
    HttpsOnlyModeTabHelper::CreateForWebContents(web_contents);
    webapps::InstallableManager::CreateForWebContents(web_contents);

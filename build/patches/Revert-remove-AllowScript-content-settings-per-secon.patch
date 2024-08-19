@@ -11,7 +11,8 @@ Change-Id: I33552e9becf86e353f133250885fff59b30e7dd3
  .../renderer/content_settings_agent_impl.cc   | 38 ++++++++++++++++++-
  .../renderer/content_settings_agent_impl.h    |  6 +++
  .../platform/web_content_settings_client.h    | 12 ++++++
- .../blink/renderer/core/frame/local_frame.cc  |  8 ----
+ .../renderer/core/frame/local_dom_window.cc   |  6 ++-
+ .../blink/renderer/core/frame/local_frame.cc  | 13 -------
  .../blink/renderer/core/frame/local_frame.h   |  6 ---
  .../renderer/core/html/html_meta_element.cc   |  4 +-
  .../core/loader/base_fetch_context.cc         |  2 +-
@@ -20,7 +21,7 @@ Change-Id: I33552e9becf86e353f133250885fff59b30e7dd3
  .../core/loader/frame_fetch_context.h         | 13 ++++++-
  .../core/loader/worker_fetch_context.cc       | 12 ++++--
  .../core/loader/worker_fetch_context.h        |  2 +-
- 14 files changed, 139 insertions(+), 33 deletions(-)
+ 15 files changed, 144 insertions(+), 39 deletions(-)
 
 diff --git a/chrome/renderer/worker_content_settings_client.cc b/chrome/renderer/worker_content_settings_client.cc
 --- a/chrome/renderer/worker_content_settings_client.cc
@@ -186,18 +187,46 @@ diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/t
    // Controls whether insecure scripts are allowed to execute for this frame.
    virtual bool AllowRunningInsecureContent(bool enabled_per_settings,
                                             const WebURL&) {
+diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_party/blink/renderer/core/frame/local_dom_window.cc
+--- a/third_party/blink/renderer/core/frame/local_dom_window.cc
++++ b/third_party/blink/renderer/core/frame/local_dom_window.cc
+@@ -50,6 +50,7 @@
+ #include "third_party/blink/public/platform/task_type.h"
+ #include "third_party/blink/public/platform/web_string.h"
+ #include "third_party/blink/public/web/web_picture_in_picture_window_options.h"
++#include "third_party/blink/renderer/core/loader/frame_fetch_context.h"
+ #include "third_party/blink/renderer/bindings/core/v8/binding_security.h"
+ #include "third_party/blink/renderer/bindings/core/v8/capture_source_location.h"
+ #include "third_party/blink/renderer/bindings/core/v8/isolated_world_csp.h"
+@@ -485,7 +486,10 @@ bool LocalDOMWindow::CanExecuteScripts(
+     }
+     return false;
+   }
+-  bool script_enabled = GetFrame()->ScriptEnabled();
++  bool script_enabled =
++    FrameFetchContext::AllowScriptFromSourceWithoutNotifying(
++      Url(), GetFrame()->GetContentSettingsClient(),
++        GetFrame()->GetSettings());
+   if (!script_enabled && reason == kAboutToExecuteScript) {
+     WebContentSettingsClient* settings_client =
+         GetFrame()->GetContentSettingsClient();
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
-@@ -4040,14 +4040,6 @@ const mojom::RendererContentSettingsPtr& LocalFrame::GetContentSettings() {
+@@ -4039,19 +4039,6 @@ bool LocalFrame::IsSameOrigin() {
+   return security_origin->IsSameOriginWith(top_security_origin);
  }
- 
  
 -bool LocalFrame::ScriptEnabled() {
 -  DCHECK(!IsDetached());
--
+-  // If this is called in the middle of detach, GetDocumentLoader() might
+-  // already be nullptr.
+-  if (!loader_.GetDocumentLoader()) {
+-    return false;
+-  }
 -  bool allow_script_renderer = GetSettings()->GetScriptEnabled();
--  bool allow_script_content_setting = GetContentSettings()->allow_script;
+-  bool allow_script_content_setting =
+-      loader_.GetDocumentLoader()->GetContentSettings()->allow_script;
 -  return allow_script_renderer && allow_script_content_setting;
 -}
 -
@@ -207,9 +236,9 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
-@@ -930,12 +930,6 @@ class CORE_EXPORT LocalFrame final
-   // Can only be called while the frame is not detached.
-   const mojom::RendererContentSettingsPtr& GetContentSettings();
+@@ -927,12 +927,6 @@ class CORE_EXPORT LocalFrame final
+     return *v8_local_compile_hints_producer_;
+   }
  
 -  // Returns whether script is allowed to run for the current frame. This is a
 -  // convenience method that checks both renderer content settings and frame
@@ -223,7 +252,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/b
 diff --git a/third_party/blink/renderer/core/html/html_meta_element.cc b/third_party/blink/renderer/core/html/html_meta_element.cc
 --- a/third_party/blink/renderer/core/html/html_meta_element.cc
 +++ b/third_party/blink/renderer/core/html/html_meta_element.cc
-@@ -773,7 +773,9 @@ void HTMLMetaElement::ProcessMetaCH(Document& document,
+@@ -778,7 +778,9 @@ void HTMLMetaElement::ProcessMetaCH(Document& document,
      return;
    }
  
@@ -237,7 +266,7 @@ diff --git a/third_party/blink/renderer/core/html/html_meta_element.cc b/third_p
 diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.cc b/third_party/blink/renderer/core/loader/base_fetch_context.cc
 --- a/third_party/blink/renderer/core/loader/base_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/base_fetch_context.cc
-@@ -574,7 +574,7 @@ BaseFetchContext::CanRequestInternal(
+@@ -589,7 +589,7 @@ BaseFetchContext::CanRequestInternal(
    }
  
    if (type == ResourceType::kScript) {
@@ -249,7 +278,7 @@ diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.cc b/thir
 diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third_party/blink/renderer/core/loader/base_fetch_context.h
 --- a/third_party/blink/renderer/core/loader/base_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/base_fetch_context.h
-@@ -117,7 +117,7 @@ class CORE_EXPORT BaseFetchContext : public FetchContext {
+@@ -125,7 +125,7 @@ class CORE_EXPORT BaseFetchContext : public FetchContext {
        : fetcher_properties_(properties), console_logger_(logger) {}
  
    // Used for security checks.
@@ -261,7 +290,7 @@ diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
-@@ -451,7 +451,8 @@ void FrameFetchContext::AddClientHintsIfNecessary(
+@@ -448,7 +448,8 @@ void FrameFetchContext::AddClientHintsIfNecessary(
  
    // Check if |url| is allowed to run JavaScript. If not, client hints are not
    // attached to the requests that initiate on the render side.
@@ -271,7 +300,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
      return;
    }
  
-@@ -588,15 +589,26 @@ void FrameFetchContext::SetFirstPartyCookie(ResourceRequest& request) {
+@@ -575,15 +576,26 @@ void FrameFetchContext::SetFirstPartyCookie(ResourceRequest& request) {
      request.SetSiteForCookies(GetSiteForCookies());
  }
  

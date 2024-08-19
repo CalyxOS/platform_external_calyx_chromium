@@ -11,8 +11,8 @@ Change-Id: I4c47b74616ad4ad448c9dd3cfea44331450c1937
  services/network/cors/preflight_controller.cc | 4 ++++
  services/network/cors/preflight_controller.h  | 2 ++
  services/network/cors/preflight_result.cc     | 2 +-
- services/network/network_context.cc           | 2 ++
- 6 files changed, 15 insertions(+), 1 deletion(-)
+ services/network/network_context.cc           | 1 +
+ 6 files changed, 14 insertions(+), 1 deletion(-)
 
 diff --git a/services/network/cors/preflight_cache.cc b/services/network/cors/preflight_cache.cc
 --- a/services/network/cors/preflight_cache.cc
@@ -43,7 +43,7 @@ diff --git a/services/network/cors/preflight_cache.h b/services/network/cors/pre
 diff --git a/services/network/cors/preflight_controller.cc b/services/network/cors/preflight_controller.cc
 --- a/services/network/cors/preflight_controller.cc
 +++ b/services/network/cors/preflight_controller.cc
-@@ -811,6 +811,10 @@ void PreflightController::ClearCorsPreflightCache(
+@@ -835,6 +835,10 @@ void PreflightController::ClearCorsPreflightCache(
    cache_.ClearCache(std::move(url_filter));
  }
  
@@ -53,7 +53,7 @@ diff --git a/services/network/cors/preflight_controller.cc b/services/network/co
 +
  void PreflightController::RemoveLoader(PreflightLoader* loader) {
    auto it = loaders_.find(loader);
-   DCHECK(it != loaders_.end());
+   CHECK(it != loaders_.end(), base::NotFatalUntil::M130);
 diff --git a/services/network/cors/preflight_controller.h b/services/network/cors/preflight_controller.h
 --- a/services/network/cors/preflight_controller.h
 +++ b/services/network/cors/preflight_controller.h
@@ -81,14 +81,13 @@ diff --git a/services/network/cors/preflight_result.cc b/services/network/cors/p
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -1246,6 +1246,8 @@ void NetworkContext::ClearHttpCache(base::Time start_time,
-       base::BindOnce(&NetworkContext::OnHttpCacheCleared,
-                      base::Unretained(this), std::move(callback))));
- 
+@@ -1254,6 +1254,7 @@ void NetworkContext::ClearHttpCache(base::Time start_time,
+                                     base::Time end_time,
+                                     mojom::ClearDataFilterPtr filter,
+                                     ClearHttpCacheCallback callback) {
 +  cors_preflight_controller_.ClearCache();
-+
-   NetworkServiceMemoryCache* memory_cache = GetMemoryCache();
-   if (memory_cache)
-     memory_cache->Clear();
+   // It's safe to use Unretained below as the HttpCacheDataRemover is owned by
+   // |this| and guarantees it won't call its callback if deleted.
+   http_cache_data_removers_.push_back(HttpCacheDataRemover::CreateAndStart(
 -- 
 
