@@ -24,7 +24,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../android/java/res/xml/main_preferences.xml |   5 +
  .../browser/settings/AdBlockEditor.java       |  91 ++++++
  .../browser/settings/AdBlockPreferences.java  |  58 ++++
- .../chrome/browser/tabmodel/TabModelImpl.java |   2 +-
+ .../chrome/browser/tabmodel/TabModelImpl.java |   4 +-
  chrome/app/generated_resources.grd            |  10 +
  chrome/browser/after_startup_task_utils.cc    |   4 +
  chrome/browser/browser_process.h              |   6 +
@@ -54,7 +54,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../core/browser/verified_ruleset_dealer.cc   |   4 +
  .../core/common/indexed_ruleset.cc            |   5 +-
  .../Bromite-subresource-adblocker.inc         |   3 +
- 40 files changed, 1256 insertions(+), 127 deletions(-)
+ 40 files changed, 1256 insertions(+), 129 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -70,7 +70,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -363,6 +363,7 @@ if (current_toolchain == default_toolchain) {
+@@ -367,6 +367,7 @@ if (current_toolchain == default_toolchain) {
        "//chrome/android/modules/cablev2_authenticator/public:java",
        "//chrome/android/modules/stack_unwinder/provider:java",
        "//chrome/android/webapk/libs/client:client_java",
@@ -81,7 +81,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -428,6 +428,7 @@ chrome_java_resources = [
+@@ -433,6 +433,7 @@ chrome_java_resources = [
    "java/res/layout/account_divider_preference.xml",
    "java/res/layout/account_management_account_row.xml",
    "java/res/layout/app_history_filter.xml",
@@ -89,7 +89,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_name_and_number.xml",
-@@ -620,6 +621,7 @@ chrome_java_resources = [
+@@ -623,6 +624,7 @@ chrome_java_resources = [
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
    "java/res/xml/ad_services_config.xml",
@@ -100,7 +100,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -951,6 +951,8 @@ chrome_java_sources = [
+@@ -942,6 +942,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -430,19 +430,21 @@ new file mode 100644
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
-@@ -860,7 +860,7 @@ public class TabModelImpl extends TabModelJniBridge {
-     protected boolean createTabWithWebContents(
-             Tab parent, Profile profile, WebContents webContents) {
-         return getTabCreator(profile.isOffTheRecord())
--                .createTabWithWebContents(parent, webContents, TabLaunchType.FROM_RECENT_TABS);
-+                .createTabWithWebContents(parent, webContents, TabLaunchType.FROM_LINK);
+@@ -853,9 +853,7 @@ public class TabModelImpl extends TabModelJniBridge {
+                 .createTabWithWebContents(
+                         parent,
+                         webContents,
+-                        select
+-                                ? TabLaunchType.FROM_RECENT_TABS_FOREGROUND
+-                                : TabLaunchType.FROM_RECENT_TABS);
++                        TabLaunchType.FROM_LINK);
      }
  
      @Override
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -15805,6 +15805,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -15905,6 +15905,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -483,7 +485,7 @@ diff --git a/chrome/browser/after_startup_task_utils.cc b/chrome/browser/after_s
 diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 --- a/chrome/browser/browser_process.h
 +++ b/chrome/browser/browser_process.h
-@@ -21,6 +21,7 @@
+@@ -31,6 +31,7 @@
  #include "build/chromeos_buildflags.h"
  #include "chrome/common/buildflags.h"
  #include "media/media_buildflags.h"
@@ -491,7 +493,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
  
  class BackgroundModeManager;
  class BrowserProcessPlatformPart;
-@@ -72,6 +73,10 @@ namespace component_updater {
+@@ -86,6 +87,10 @@ namespace component_updater {
  class ComponentUpdateService;
  }
  
@@ -499,10 +501,10 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 +class AdBlockUpdaterService;
 +}
 +
- namespace extensions {
- class EventRouterForwarder;
+ namespace gcm {
+ class GCMDriver;
  }
-@@ -255,6 +260,7 @@ class BrowserProcess {
+@@ -264,6 +269,7 @@ class BrowserProcess {
  #endif
  
    virtual component_updater::ComponentUpdateService* component_updater() = 0;
@@ -552,7 +554,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
    MediaFileSystemRegistry* media_file_system_registry() override;
    WebRtcLogUploader* webrtc_log_uploader() override;
    network_time::NetworkTimeTracker* network_time_tracker() override;
-@@ -420,6 +421,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -419,6 +420,7 @@ class BrowserProcessImpl : public BrowserProcess,
    // to concerns over integrity of data shared between profiles,
    // but some users of component updater only install per-user.
    std::unique_ptr<component_updater::ComponentUpdateService> component_updater_;
@@ -563,7 +565,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -474,6 +474,9 @@ StartupProfileInfo CreateInitialProfile(
+@@ -470,6 +470,9 @@ StartupProfileInfo CreateInitialProfile(
    // missing code in the above test.
    CHECK(profile_info.profile) << "Cannot get default profile.";
  
@@ -674,7 +676,7 @@ new file mode 100755
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -630,6 +630,10 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
+@@ -635,6 +635,10 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
  void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    StubResolverConfigReader::RegisterPrefs(registry);
  
@@ -688,7 +690,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
 diff --git a/chrome/browser/sessions/session_restore_android.cc b/chrome/browser/sessions/session_restore_android.cc
 --- a/chrome/browser/sessions/session_restore_android.cc
 +++ b/chrome/browser/sessions/session_restore_android.cc
-@@ -56,8 +56,10 @@ content::WebContents* SessionRestore::RestoreForeignSessionTab(
+@@ -57,8 +57,10 @@ content::WebContents* SessionRestore::RestoreForeignSessionTab(
    DCHECK(current_tab);
    // If swapped, return the current tab's most up-to-date web contents.
    if (disposition == WindowOpenDisposition::CURRENT_TAB) {
@@ -728,7 +730,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -2779,6 +2779,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2824,6 +2824,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  inline constexpr char kAudioCaptureAllowedUrls[] =
      "hardware.audio_capture_allowed_urls";
  
@@ -1570,7 +1572,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
        web_contents_helper_(web_contents_helper) {}
  
  ContentSubresourceFilterThrottleManager::
-@@ -668,6 +672,17 @@ ContentSubresourceFilterThrottleManager::
+@@ -667,6 +671,17 @@ ContentSubresourceFilterThrottleManager::
        throttle->NotifyPageActivationWithRuleset(EnsureRulesetHandle(),
                                                  ad_tagging_state);
      }
