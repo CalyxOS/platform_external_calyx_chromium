@@ -17,7 +17,7 @@ Change-Id: I3843dce4ce3ee107f36de0aec45607602c3f526d
 diff --git a/base/android/content_uri_utils.cc b/base/android/content_uri_utils.cc
 --- a/base/android/content_uri_utils.cc
 +++ b/base/android/content_uri_utils.cc
-@@ -39,6 +39,16 @@ int64_t GetContentUriFileSize(const FilePath& content_uri) {
+@@ -68,6 +68,16 @@ int64_t GetContentUriFileSize(const FilePath& content_uri) {
    return Java_ContentUriUtils_getContentUriFileSize(env, j_uri);
  }
  
@@ -37,9 +37,9 @@ diff --git a/base/android/content_uri_utils.cc b/base/android/content_uri_utils.
 diff --git a/base/android/content_uri_utils.h b/base/android/content_uri_utils.h
 --- a/base/android/content_uri_utils.h
 +++ b/base/android/content_uri_utils.h
-@@ -18,6 +18,10 @@ namespace base {
- // Returns -1 if the URI is invalid.
- BASE_EXPORT File OpenContentUriForRead(const FilePath& content_uri);
+@@ -27,6 +27,10 @@ BASE_EXPORT std::optional<std::string> TranslateOpenFlagsToJavaMode(
+ BASE_EXPORT File OpenContentUri(const FilePath& content_uri,
+                                 uint32_t open_flags);
  
 +// Opens a content URI for write and returns the file descriptor to the caller.
 +// Returns -1 if the URI is invalid.
@@ -69,7 +69,7 @@ diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base
  /** This class provides methods to access content URI schemes. */
  public abstract class ContentUriUtils {
      private static final String TAG = "ContentUriUtils";
-@@ -86,6 +90,36 @@ public abstract class ContentUriUtils {
+@@ -89,6 +93,36 @@ public abstract class ContentUriUtils {
          return -1;
      }
  

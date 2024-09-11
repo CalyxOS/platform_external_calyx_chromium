@@ -19,17 +19,18 @@ we now behave as we did when they were disabled, prior to their removal:
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 Change-Id: Ie9b492700a5112e280b90652eae69735239a9d9f
 ---
- chrome/browser/cart/cart_service.cc           |  1 -
- chrome/browser/cart/fetch_discount_worker.cc  |  6 +--
- .../ui/commerce/commerce_ui_tab_helper.cc     |  4 +-
- .../offer_notification_bubble_views.cc        | 41 -------------------
- .../commerce/core/commerce_feature_list.cc    | 10 +++++
- 5 files changed, 12 insertions(+), 50 deletions(-)
+ chrome/browser/cart/cart_service.cc                    |  1 -
+ chrome/browser/cart/fetch_discount_worker.cc           |  6 +-----
+ chrome/browser/ui/BUILD.gn                             |  6 ------
+ .../views/page_action/page_action_icon_controller.cc   |  6 ------
+ components/commerce/core/BUILD.gn                      |  2 --
+ components/commerce/core/commerce_feature_list.cc      | 10 ++++++++++
+ 6 files changed, 11 insertions(+), 20 deletions(-)
 
 diff --git a/chrome/browser/cart/cart_service.cc b/chrome/browser/cart/cart_service.cc
 --- a/chrome/browser/cart/cart_service.cc
 +++ b/chrome/browser/cart/cart_service.cc
-@@ -495,7 +495,6 @@ void CartService::ShouldShowDiscountConsentCallback(
+@@ -490,7 +490,6 @@ void CartService::ShouldShowDiscountConsentCallback(
      for (auto proto_pair : proto_pairs) {
        auto cart_url = proto_pair.second.merchant_cart_url();
        should_show |= commerce::IsPartnerMerchant(GURL(cart_url));
@@ -58,75 +59,61 @@ diff --git a/chrome/browser/cart/fetch_discount_worker.cc b/chrome/browser/cart/
      backend_task_runner_->PostTask(
          FROM_HERE,
          base::BindOnce(
-diff --git a/chrome/browser/ui/commerce/commerce_ui_tab_helper.cc b/chrome/browser/ui/commerce/commerce_ui_tab_helper.cc
---- a/chrome/browser/ui/commerce/commerce_ui_tab_helper.cc
-+++ b/chrome/browser/ui/commerce/commerce_ui_tab_helper.cc
-@@ -323,9 +323,7 @@ void CommerceUiTabHelper::HandleDiscountsResponse(const DiscountsMap& map) {
+diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -4298,12 +4298,6 @@ static_library("ui") {
+       "views/chrome_web_dialog_view.h",
+       "views/color_provider_browser_helper.cc",
+       "views/color_provider_browser_helper.h",
+-      "views/commerce/discounts_bubble_dialog_view.cc",
+-      "views/commerce/discounts_bubble_dialog_view.h",
+-      "views/commerce/discounts_coupon_code_label_view.cc",
+-      "views/commerce/discounts_coupon_code_label_view.h",
+-      "views/commerce/discounts_icon_view.cc",
+-      "views/commerce/discounts_icon_view.h",
+       "views/commerce/ntp_discount_consent_dialog_view.cc",
+       "views/commerce/ntp_discount_consent_dialog_view.h",
+       "views/commerce/price_insights_icon_view.cc",
+diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
+--- a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
++++ b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
+@@ -25,7 +25,6 @@
+ #include "chrome/browser/ui/views/autofill/payments/save_payment_icon_view.h"
+ #include "chrome/browser/ui/views/autofill/payments/virtual_card_enroll_icon_view.h"
+ #include "chrome/browser/ui/views/autofill/payments/virtual_card_manual_fallback_icon_view.h"
+-#include "chrome/browser/ui/views/commerce/discounts_icon_view.h"
+ #include "chrome/browser/ui/views/commerce/price_insights_icon_view.h"
+ #include "chrome/browser/ui/views/commerce/price_tracking_icon_view.h"
+ #include "chrome/browser/ui/views/commerce/product_specifications_icon_view.h"
+@@ -130,11 +129,6 @@ void PageActionIconController::Init(const PageActionIconParams& params,
+                       params.browser, params.icon_label_bubble_delegate,
+                       params.page_action_icon_delegate));
+         break;
+-      case PageActionIconType::kDiscounts:
+-        add_page_action_icon(type, std::make_unique<DiscountsIconView>(
+-                                       params.icon_label_bubble_delegate,
+-                                       params.page_action_icon_delegate));
+-        break;
+       case PageActionIconType::kFind:
+         add_page_action_icon(
+             type, std::make_unique<FindBarIcon>(
+diff --git a/components/commerce/core/BUILD.gn b/components/commerce/core/BUILD.gn
+--- a/components/commerce/core/BUILD.gn
++++ b/components/commerce/core/BUILD.gn
+@@ -81,8 +81,6 @@ source_set("feature_list_unittests") {
  
-   page_has_discounts_ =
-       response_has_discounts
--          ? shopping_service_->IsDiscountEligibleToShowOnNavigation() ||
--                commerce::UrlContainsDiscountUtmTag(
--                    web_contents()->GetLastCommittedURL())
-+          ? shopping_service_->IsDiscountEligibleToShowOnNavigation()
-           : false;
- 
-   got_discounts_response_for_page_ = true;
-diff --git a/chrome/browser/ui/views/autofill/payments/offer_notification_bubble_views.cc b/chrome/browser/ui/views/autofill/payments/offer_notification_bubble_views.cc
---- a/chrome/browser/ui/views/autofill/payments/offer_notification_bubble_views.cc
-+++ b/chrome/browser/ui/views/autofill/payments/offer_notification_bubble_views.cc
-@@ -193,47 +193,6 @@ OfferNotificationBubbleViews::CreateFreeListingCouponOfferMainPageContent(
-               &OfferNotificationBubbleViews::OnPromoCodeButtonClicked,
-               base::Unretained(this))));
- 
--  auto promo_code_value_prop_string = l10n_util::GetStringUTF16(
--      IDS_AUTOFILL_PROMO_CODE_OFFERS_USE_THIS_CODE_TEXT);
--  auto expiration_date_text = l10n_util::GetStringFUTF16(
--      IDS_DISCOUNT_EXPIRATION_DATE, TimeFormatShortDate(offer.GetExpiry()));
--  if (promo_code_value_prop_string.empty()) {
--    promo_code_value_prop_string = expiration_date_text;
--  } else {
--    promo_code_value_prop_string = l10n_util::GetStringFUTF16(
--        IDS_TWO_STRINGS_CONNECTOR, promo_code_value_prop_string,
--        expiration_date_text);
--  }
--
--  promo_code_value_prop_label_ = main_page_view->AddChildView(
--      views::Builder<views::StyledLabel>()
--          .SetDefaultTextStyle(views::style::STYLE_SECONDARY)
--          .SetTextContext(views::style::CONTEXT_DIALOG_BODY_TEXT)
--          .SetHorizontalAlignment(gfx::ALIGN_LEFT)
--          .Build());
--
--  if (offer.GetTermsAndConditions().has_value() &&
--      !offer.GetTermsAndConditions().value().empty()) {
--    std::vector<size_t> offsets;
--    promo_code_value_prop_string = l10n_util::GetStringFUTF16(
--        IDS_TWO_STRINGS_CONNECTOR_WITH_SPACE, promo_code_value_prop_string,
--        l10n_util::GetStringUTF16(IDS_SEE_SELLER_TERMS_AND_CONDITIONS),
--        &offsets);
--    promo_code_value_prop_label_->SetText(promo_code_value_prop_string);
--    size_t terms_and_conditions_offset = offsets[1];
--    base::RepeatingCallback<void()> callback = base::BindRepeating(
--        &OfferNotificationBubbleViews::OpenTermsAndConditionsPage,
--        weak_factory_.GetWeakPtr(), offer, seller_domain);
--    views::StyledLabel::RangeStyleInfo terms_and_conditions_style_info =
--        views::StyledLabel::RangeStyleInfo::CreateForLink(std::move(callback));
--    promo_code_value_prop_label_->AddStyleRange(
--        gfx::Range(terms_and_conditions_offset,
--                   promo_code_value_prop_string.length()),
--        terms_and_conditions_style_info);
--  } else {
--    promo_code_value_prop_label_->SetText(promo_code_value_prop_string);
--  }
--
-   UpdateButtonTooltipsAndAccessibleNames();
-   return main_page_view;
- }
+ static_library("metrics") {
+   sources = [
+-    "metrics/discounts_metric_collector.cc",
+-    "metrics/discounts_metric_collector.h",
+     "metrics/metrics_utils.cc",
+     "metrics/metrics_utils.h",
+   ]
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -343,6 +343,16 @@ const char kParcelTrackingTestDataParamDelivered[] = "Delivered";
+@@ -354,6 +354,16 @@ const char kParcelTrackingTestDataParamDelivered[] = "Delivered";
  const char kParcelTrackingTestDataParamInProgress[] = "InProgress";
  const char kParcelTrackingTestDataParamOutForDelivery[] = "OutForDelivery";
  
