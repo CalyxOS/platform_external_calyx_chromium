@@ -36,7 +36,7 @@ Change-Id: I4a722acfabcd9a4da886d2d164e69ac36e734813
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -502,6 +502,7 @@ chrome_java_resources = [
+@@ -507,6 +507,7 @@ chrome_java_resources = [
    "java/res/layout/find_in_page.xml",
    "java/res/layout/find_toolbar.xml",
    "java/res/layout/fre_tos_privacy_disclaimer.xml",
@@ -47,9 +47,9 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -651,6 +651,8 @@ chrome_java_sources = [
+@@ -653,6 +653,8 @@ chrome_java_sources = [
+   "java/src/org/chromium/chrome/browser/firstrun/SkipTosDialogPolicyListener.java",
    "java/src/org/chromium/chrome/browser/firstrun/SyncConsentFirstRunFragment.java",
-   "java/src/org/chromium/chrome/browser/firstrun/TabbedModeFirstRunActivity.java",
    "java/src/org/chromium/chrome/browser/firstrun/TosDialogBehaviorSharedPrefInvalidator.java",
 +  "java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java",
 +  "java/src/org/chromium/chrome/browser/firstrun/TosAndUmaFragmentView.java",
@@ -299,14 +299,21 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildA
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-@@ -30,13 +30,10 @@ import org.chromium.chrome.browser.fonts.FontPreloader;
+@@ -26,20 +26,17 @@ import org.chromium.chrome.R;
+ import org.chromium.chrome.browser.back_press.SecondaryActivityBackPressUma.SecondaryActivity;
+ import org.chromium.chrome.browser.customtabs.CustomTabActivity;
+ import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
++import org.chromium.chrome.browser.firstrun.ToSAndUMAFirstRunFragment;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.chrome.browser.fonts.FontPreloader;
  import org.chromium.chrome.browser.metrics.UmaUtils;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 -import org.chromium.chrome.browser.signin.SigninCheckerProvider;
 -import org.chromium.chrome.browser.signin.SigninFirstRunFragment;
+ import org.chromium.chrome.browser.ui.signin.SigninUtils;
 -import org.chromium.chrome.browser.ui.signin.history_sync.HistorySyncHelper;
-+import org.chromium.chrome.browser.firstrun.ToSAndUMAFirstRunFragment;
+ import org.chromium.chrome.browser.ui.system.StatusBarColorController;
  import org.chromium.components.browser_ui.modaldialog.AppModalPresenter;
  import org.chromium.components.feature_engagement.EventConstants;
  import org.chromium.components.metrics.LowEntropySource;
@@ -314,7 +321,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  import org.chromium.ui.base.ActivityWindowAndroid;
  import org.chromium.ui.base.LocalizationUtils;
  import org.chromium.ui.modaldialog.ModalDialogManager;
-@@ -123,7 +120,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -126,7 +123,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      /** Creates first page and sets up adapter. Should result UI being shown on the screen. */
      private void createFirstPage() {
          BooleanSupplier showWelcomePage = () -> !FirstRunStatus.shouldSkipWelcomePage();
@@ -323,7 +330,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          mFreProgressStates.add(MobileFreProgress.WELCOME_SHOWN);
          mPagerAdapter = new FirstRunPagerAdapter(FirstRunActivity.this, mPages);
          mPager.setAdapter(mPagerAdapter);
-@@ -144,8 +141,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -147,8 +144,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          // Initialize SigninChecker, to kick off sign-in for child accounts as early as possible.
          //
          // TODO(b/245912657): explicitly sign in supervised users in {@link
@@ -333,7 +340,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          mFirstRunFlowSequencer.updateFirstRunProperties(mFreProperties);
  
-@@ -160,26 +156,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -163,26 +159,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
              mFreProgressStates.add(MobileFreProgress.DEFAULT_SEARCH_ENGINE_SHOWN);
          }
  
@@ -360,7 +367,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          if (mPagerAdapter != null) {
              mPagerAdapter.notifyDataSetChanged();
          }
-@@ -536,11 +512,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -559,11 +535,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      public void acceptTermsOfService(boolean allowMetricsAndCrashUploading) {
          assert mNativeInitializationPromise.isFulfilled();
  
@@ -1213,7 +1220,7 @@ new file mode 100644
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3630,7 +3630,22 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
+@@ -3576,7 +3576,22 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
          <ph name="APP_NAME">%1$s<ex>Google Maps</ex></ph> will open in Chrome. By continuing, you agree to the <ph name="BEGIN_LINK1">&lt;LINK1&gt;</ph>Google Terms of Service<ph name="END_LINK1">&lt;/LINK1&gt;</ph>, and the <ph name="BEGIN_LINK2">&lt;LINK2&gt;</ph>Google Chrome and ChromeOS Additional Terms of Service<ph name="END_LINK2">&lt;/LINK2&gt;</ph>. The <ph name="BEGIN_LINK3">&lt;LINK3&gt;</ph>Privacy Policy<ph name="END_LINK3">&lt;/LINK3&gt;</ph> also applies.
        </message>
        <message name="IDS_FRE_ACCEPT_CONTINUE" desc="Text for first page accept and continue button [CHAR_LIMIT=20]">

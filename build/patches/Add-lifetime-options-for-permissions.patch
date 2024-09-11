@@ -231,7 +231,7 @@ diff --git a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc 
 diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 --- a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 +++ b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
-@@ -650,7 +650,7 @@ void EmbeddedPermissionPrompt::SendDelegateAction(Action action) {
+@@ -654,7 +654,7 @@ void EmbeddedPermissionPrompt::SendDelegateAction(Action action) {
        delegate_->Accept();
        break;
      case Action::kAllowThisTime:
@@ -290,7 +290,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      private void setUpClearDataPreference() {
          ClearWebsiteStorage preference = findPreference(PREF_CLEAR_DATA);
          long usage = mSite.getTotalUsage();
-@@ -1091,6 +1096,10 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
+@@ -1092,6 +1097,10 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
                      AppCompatResources.getColorStateList(getContext(), mHighlightColor)
                              .getDefaultColor());
          }
@@ -331,7 +331,7 @@ diff --git a/components/browser_ui/strings/android/browser_ui_strings.grd b/comp
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -155,6 +155,42 @@ bool IsConstraintPersistent(const ContentSettingConstraints& constraints) {
+@@ -160,6 +160,42 @@ bool IsConstraintPersistent(const ContentSettingConstraints& constraints) {
    return constraints.session_model() == mojom::SessionModel::DURABLE;
  }
  
@@ -511,7 +511,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
 diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.cc
 --- a/components/page_info/page_info.cc
 +++ b/components/page_info/page_info.cc
-@@ -1178,6 +1178,8 @@ void PageInfo::PopulatePermissionInfo(PermissionInfo& permission_info,
+@@ -1179,6 +1179,8 @@ void PageInfo::PopulatePermissionInfo(PermissionInfo& permission_info,
    permission_info.is_one_time =
        (info.metadata.session_model() ==
         content_settings::mojom::SessionModel::ONE_TIME);
@@ -669,7 +669,7 @@ diff --git a/components/permissions/android/java/src/org/chromium/components/per
 diff --git a/components/permissions/android/permission_prompt/permission_dialog_delegate.cc b/components/permissions/android/permission_prompt/permission_dialog_delegate.cc
 --- a/components/permissions/android/permission_prompt/permission_dialog_delegate.cc
 +++ b/components/permissions/android/permission_prompt/permission_dialog_delegate.cc
-@@ -159,6 +159,11 @@ void PermissionDialogJavaDelegate::DismissDialog() {
+@@ -158,6 +158,11 @@ void PermissionDialogJavaDelegate::DismissDialog() {
    Java_PermissionDialogDelegate_dismissFromNative(env, j_delegate_);
  }
  
@@ -681,7 +681,7 @@ diff --git a/components/permissions/android/permission_prompt/permission_dialog_
  // static
  void PermissionDialogDelegate::Create(
      content::WebContents* web_contents,
-@@ -187,6 +192,13 @@ PermissionDialogDelegate* PermissionDialogDelegate::CreateForTesting(
+@@ -186,6 +191,13 @@ PermissionDialogDelegate* PermissionDialogDelegate::CreateForTesting(
  void PermissionDialogDelegate::Accept(JNIEnv* env,
                                        const JavaParamRef<jobject>& obj) {
    CHECK(permission_prompt_);
@@ -695,7 +695,7 @@ diff --git a/components/permissions/android/permission_prompt/permission_dialog_
    permission_prompt_->Accept();
  }
  
-@@ -194,12 +206,22 @@ void PermissionDialogDelegate::AcceptThisTime(
+@@ -193,12 +205,22 @@ void PermissionDialogDelegate::AcceptThisTime(
      JNIEnv* env,
      const JavaParamRef<jobject>& obj) {
    CHECK(permission_prompt_);
@@ -1214,8 +1214,8 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
  
    if (should_auto_approve_request) {
      if (should_auto_approve_request == PermissionAction::GRANTED) {
--      request->PermissionGranted(/*is_one_time=*/false);
-+      request->PermissionGranted(/*is_one_time=*/false, content_settings::mojom::LifetimeMode::ALWAYS);
+-      request->PermissionGranted(/*is_one_time=*/true);
++      request->PermissionGranted(/*is_one_time=*/true, content_settings::mojom::LifetimeMode::ONLY_THIS_TIME);
      }
      request->RequestFinished();
      return;
