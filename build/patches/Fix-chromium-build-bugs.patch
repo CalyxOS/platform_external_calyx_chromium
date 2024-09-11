@@ -11,18 +11,21 @@ Change-Id: I9afc6e66b4ab03ccf33ec9b73dcb4e821906da07
  .../navigation_predictor_metrics_document_data.h   |  2 ++
  chrome/browser/safe_browsing/BUILD.gn              |  1 +
  chrome/browser/ui/browser_commands.cc              |  1 +
+ chrome/browser/ui/lens/lens_overlay_controller.cc  |  1 +
  .../webid/fedcm_account_selection_view_desktop.cc  |  1 +
+ .../component_updater/installer_policies/BUILD.gn  |  1 +
  .../omnibox/browser/autocomplete_classifier.cc     |  4 ++--
  components/omnibox/browser/omnibox_field_trial.cc  |  4 ++--
+ components/plus_addresses/BUILD.gn                 |  1 +
  .../phishing_classifier/phishing_image_embedder.cc | 14 +++-----------
  content/browser/browser_interface_binders.cc       |  1 +
  net/BUILD.gn                                       |  1 +
- 10 files changed, 14 insertions(+), 16 deletions(-)
+ 13 files changed, 17 insertions(+), 16 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -413,7 +413,6 @@ group("gn_all") {
+@@ -410,7 +410,6 @@ group("gn_all") {
            "//android_webview:empty_group",
            "//android_webview/test",
            "//android_webview/tools/automated_ui_tests:webview_ui_test_app_test_apk",
@@ -64,17 +67,39 @@ diff --git a/chrome/browser/ui/browser_commands.cc b/chrome/browser/ui/browser_c
  #include <optional>
  #include <utility>
  #include <vector>
+diff --git a/chrome/browser/ui/lens/lens_overlay_controller.cc b/chrome/browser/ui/lens/lens_overlay_controller.cc
+--- a/chrome/browser/ui/lens/lens_overlay_controller.cc
++++ b/chrome/browser/ui/lens/lens_overlay_controller.cc
+@@ -11,6 +11,7 @@
+ #include "base/system/sys_info.h"
+ #include "base/task/bind_post_task.h"
+ #include "base/task/sequenced_task_runner.h"
++#include "base/task/thread_pool.h"
+ #include "chrome/browser/feedback/show_feedback_page.h"
+ #include "chrome/browser/lens/core/mojom/geometry.mojom.h"
+ #include "chrome/browser/lens/core/mojom/overlay_object.mojom.h"
 diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
 --- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
 +++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
-@@ -6,6 +6,7 @@
- 
+@@ -7,6 +7,7 @@
+ #include "base/debug/dump_without_crashing.h"
  #include "base/functional/bind.h"
  #include "base/metrics/histogram_macros.h"
 +#include "base/metrics/histogram_functions.h"
  #include "chrome/browser/accessibility/accessibility_state_utils.h"
  #include "chrome/browser/net/system_network_context_manager.h"
  #include "chrome/browser/ui/browser_finder.h"
+diff --git a/components/component_updater/installer_policies/BUILD.gn b/components/component_updater/installer_policies/BUILD.gn
+--- a/components/component_updater/installer_policies/BUILD.gn
++++ b/components/component_updater/installer_policies/BUILD.gn
+@@ -45,6 +45,7 @@ static_library("installer_policies_no_content_deps") {
+     "//components/update_client",
+     "//mojo/public/cpp/base:protobuf_support",
+     "//services/network/public/cpp",
++    "//third_party/re2",
+   ]
+ 
+   # Disallow depending on content.
 diff --git a/components/omnibox/browser/autocomplete_classifier.cc b/components/omnibox/browser/autocomplete_classifier.cc
 --- a/components/omnibox/browser/autocomplete_classifier.cc
 +++ b/components/omnibox/browser/autocomplete_classifier.cc
@@ -92,7 +117,7 @@ diff --git a/components/omnibox/browser/autocomplete_classifier.cc b/components/
 diff --git a/components/omnibox/browser/omnibox_field_trial.cc b/components/omnibox/browser/omnibox_field_trial.cc
 --- a/components/omnibox/browser/omnibox_field_trial.cc
 +++ b/components/omnibox/browser/omnibox_field_trial.cc
-@@ -1046,11 +1046,11 @@ MLConfig& MLConfig::operator=(const MLConfig& other) = default;
+@@ -1070,11 +1070,11 @@ MLConfig& MLConfig::operator=(const MLConfig& other) = default;
  
  ScopedMLConfigForTesting::ScopedMLConfigForTesting()
      : original_config_(std::make_unique<MLConfig>(GetMLConfig())) {
@@ -106,6 +131,17 @@ diff --git a/components/omnibox/browser/omnibox_field_trial.cc b/components/omni
  }
  
  MLConfig& ScopedMLConfigForTesting::GetMLConfig() {
+diff --git a/components/plus_addresses/BUILD.gn b/components/plus_addresses/BUILD.gn
+--- a/components/plus_addresses/BUILD.gn
++++ b/components/plus_addresses/BUILD.gn
+@@ -96,6 +96,7 @@ source_set("plus_addresses") {
+     "//services/data_decoder/public/cpp",
+     "//services/network/public/cpp",
+     "//ui/base",
++    "//third_party/re2",
+   ]
+   public_deps = [
+     # While not strictly public by h file inclusion, this is a temporary move
 diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc b/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
 --- a/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
 +++ b/components/safe_browsing/content/renderer/phishing_classifier/phishing_image_embedder.cc
@@ -133,7 +169,7 @@ diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phish
 diff --git a/content/browser/browser_interface_binders.cc b/content/browser/browser_interface_binders.cc
 --- a/content/browser/browser_interface_binders.cc
 +++ b/content/browser/browser_interface_binders.cc
-@@ -370,6 +370,7 @@ void BindDateTimeChooserForFrame(
+@@ -375,6 +375,7 @@ void BindDateTimeChooserForFrame(
  void BindTextSuggestionHostForFrame(
      RenderFrameHost* host,
      mojo::PendingReceiver<blink::mojom::TextSuggestionHost> receiver) {
@@ -144,7 +180,7 @@ diff --git a/content/browser/browser_interface_binders.cc b/content/browser/brow
 diff --git a/net/BUILD.gn b/net/BUILD.gn
 --- a/net/BUILD.gn
 +++ b/net/BUILD.gn
-@@ -1664,6 +1664,7 @@ component("net") {
+@@ -1672,6 +1672,7 @@ component("net") {
    if (!is_cronet_build) {
      deps += [ "//mojo/public/cpp/bindings:default_construct_tag" ]
    }
