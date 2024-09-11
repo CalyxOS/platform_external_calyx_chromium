@@ -1,0 +1,39 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Mon, 16 Sep 2024 15:12:20 +0000
+Subject: Temp build fix - work around missing re2 headers
+
+Not sure why this is needed, since `//third_party/re2` should be
+included via `//components/plus_addresses:blocklist_data`, but without
+this, we get an error:
+`fatal error: 're2/stringpiece.h' file not found`.
+
+Change-Id: Ica12ebfe29d8b1bc6076306362ba2cdfe17b7331
+---
+ components/component_updater/installer_policies/BUILD.gn | 1 +
+ components/plus_addresses/BUILD.gn                       | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/components/component_updater/installer_policies/BUILD.gn b/components/component_updater/installer_policies/BUILD.gn
+--- a/components/component_updater/installer_policies/BUILD.gn
++++ b/components/component_updater/installer_policies/BUILD.gn
+@@ -45,6 +45,7 @@ static_library("installer_policies_no_content_deps") {
+     "//components/update_client",
+     "//mojo/public/cpp/base:protobuf_support",
+     "//services/network/public/cpp",
++    "//third_party/re2",
+   ]
+ 
+   # Disallow depending on content.
+diff --git a/components/plus_addresses/BUILD.gn b/components/plus_addresses/BUILD.gn
+--- a/components/plus_addresses/BUILD.gn
++++ b/components/plus_addresses/BUILD.gn
+@@ -95,6 +95,7 @@ source_set("plus_addresses") {
+     "//net",
+     "//services/data_decoder/public/cpp",
+     "//services/network/public/cpp",
++    "//third_party/re2",
+     "//ui/base",
+   ]
+   public_deps = [
+-- 
+
