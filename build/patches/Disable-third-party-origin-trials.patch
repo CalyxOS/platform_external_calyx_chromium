@@ -10,14 +10,14 @@ Change-Id: I3e5ec3477997954b99b12f7d5c7a475b2ff45472
  .../origin_trials/origin_trial_policy_impl.cc   |  7 ++++---
  .../origin_trials/origin_trial_policy_impl.h    |  2 +-
  .../browser/renderer_host/navigation_request.cc |  1 -
- .../origin_trial_state_host_impl.cc             |  8 --------
+ .../origin_trial_state_host_impl.cc             | 12 ++++++++++++
  content/renderer/render_frame_impl.cc           | 17 +----------------
  .../shell/common/shell_origin_trial_policy.cc   | 10 ++++------
  .../origin_trials/trial_token_validator.cc      |  1 +
  .../renderer/core/loader/document_loader.cc     | 17 -----------------
  .../blink/renderer/core/loader/http_equiv.cc    |  2 +-
  .../core/origin_trials/origin_trial_context.cc  |  6 ++++--
- 11 files changed, 16 insertions(+), 56 deletions(-)
+ 11 files changed, 28 insertions(+), 48 deletions(-)
 
 diff --git a/android_webview/common/aw_content_client.cc b/android_webview/common/aw_content_client.cc
 --- a/android_webview/common/aw_content_client.cc
@@ -78,7 +78,7 @@ diff --git a/components/embedder_support/origin_trials/origin_trial_policy_impl.
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -9048,7 +9048,6 @@ void NavigationRequest::SetSourceSiteInstanceToInitiatorIfNeeded() {
+@@ -9142,7 +9142,6 @@ void NavigationRequest::SetSourceSiteInstanceToInitiatorIfNeeded() {
  void NavigationRequest::ForceEnableOriginTrials(
      const std::vector<std::string>& trials) {
    DCHECK(!HasCommitted());
@@ -89,18 +89,29 @@ diff --git a/content/browser/renderer_host/navigation_request.cc b/content/brows
 diff --git a/content/browser/renderer_host/origin_trial_state_host_impl.cc b/content/browser/renderer_host/origin_trial_state_host_impl.cc
 --- a/content/browser/renderer_host/origin_trial_state_host_impl.cc
 +++ b/content/browser/renderer_host/origin_trial_state_host_impl.cc
-@@ -108,14 +108,6 @@ void OriginTrialStateHostImpl::ApplyFeatureDiffForOriginTrial(
+@@ -109,6 +109,7 @@ void OriginTrialStateHostImpl::ApplyFeatureDiffForOriginTrial(
    // This issue should be revisited to avoid silently dropping any feature
    // overrides that are stored in the RFSDocumentData, in these corner cases
    // when the data has become a nullptr.
--  RuntimeFeatureStateDocumentData* document_data =
--      RuntimeFeatureStateDocumentData::GetOrCreateForCurrentDocument(
--          &render_frame_host());
--  CHECK(document_data);
--  document_data
--      ->GetMutableRuntimeFeatureStateReadContext(
--          base::PassKey<OriginTrialStateHostImpl>())
--      .ApplyFeatureChange(validated_features, possible_third_party_features);
++<<<<<<< HEAD
+   RuntimeFeatureStateDocumentData* document_data =
+       RuntimeFeatureStateDocumentData::GetForCurrentDocument(
+           &render_frame_host());
+@@ -128,6 +129,17 @@ void OriginTrialStateHostImpl::ApplyFeatureDiffForOriginTrial(
+       ->GetMutableRuntimeFeatureStateReadContext(
+           base::PassKey<OriginTrialStateHostImpl>())
+       .ApplyFeatureChange(validated_features, possible_third_party_features);
++||||||| parent of cc99f5c64cfa6 (Disable third-party origin trials)
++  RuntimeFeatureStateDocumentData* document_data =
++      RuntimeFeatureStateDocumentData::GetOrCreateForCurrentDocument(
++          &render_frame_host());
++  CHECK(document_data);
++  document_data
++      ->GetMutableRuntimeFeatureStateReadContext(
++          base::PassKey<OriginTrialStateHostImpl>())
++      .ApplyFeatureChange(validated_features, possible_third_party_features);
++=======
++>>>>>>> cc99f5c64cfa6 (Disable third-party origin trials)
  }
  
  void OriginTrialStateHostImpl::EnablePersistentTrial(
@@ -195,7 +206,7 @@ diff --git a/third_party/blink/common/origin_trials/trial_token_validator.cc b/t
 diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_party/blink/renderer/core/loader/document_loader.cc
 --- a/third_party/blink/renderer/core/loader/document_loader.cc
 +++ b/third_party/blink/renderer/core/loader/document_loader.cc
-@@ -191,13 +191,6 @@ namespace {
+@@ -193,13 +193,6 @@ namespace {
  Vector<mojom::blink::OriginTrialFeature> CopyInitiatorOriginTrials(
      const WebVector<int>& initiator_origin_trial_features) {
    Vector<mojom::blink::OriginTrialFeature> result;
@@ -209,7 +220,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -211,18 +204,12 @@ WebVector<int> CopyInitiatorOriginTrials(
+@@ -213,18 +206,12 @@ WebVector<int> CopyInitiatorOriginTrials(
  Vector<String> CopyForceEnabledOriginTrials(
      const WebVector<WebString>& force_enabled_origin_trials) {
    Vector<String> result;
@@ -228,7 +239,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -3096,10 +3083,6 @@ void DocumentLoader::CreateParserPostCommit() {
+@@ -3123,10 +3110,6 @@ void DocumentLoader::CreateParserPostCommit() {
            mojom::blink::OriginTrialFeature::kTouchEventFeatureDetection);
      }
  

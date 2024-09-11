@@ -27,13 +27,13 @@ Change-Id: I708110ab421d1710ff5c5bc1774512691d49ff3f
  .../bookmarks/BookmarkToolbarProperties.java  |   8 +-
  .../bookmarks/BookmarkToolbarViewBinder.java  |   6 +
  .../native_page/NativePageFactory.java        |  11 +-
- chrome/browser/BUILD.gn                       |  11 +-
+ chrome/browser/BUILD.gn                       | 169 +++++++++++
  .../bookmarks/android/bookmark_bridge.cc      | 282 +++++++++++++++++
  .../bookmarks/android/bookmark_bridge.h       |  29 +-
  .../browser/bookmarks/bookmark_html_writer.cc |  11 +
  .../dialogs/DownloadLocationCustomView.java   |   8 +-
  .../DownloadLocationDialogCoordinator.java    |  10 +-
- .../flags/android/chrome_feature_list.cc      |   1 +
+ .../flags/android/chrome_feature_list.cc      |   7 +
  .../browser/flags/ChromeFeatureList.java      |   1 +
  chrome/browser/importer/profile_writer.cc     |  10 +
  chrome/browser/importer/profile_writer.h      |   6 +
@@ -55,7 +55,7 @@ Change-Id: I708110ab421d1710ff5c5bc1774512691d49ff3f
  ui/shell_dialogs/select_file_dialog_linux.cc  |   4 +
  ui/shell_dialogs/select_file_dialog_linux.h   |   2 +
  ui/shell_dialogs/select_file_dialog_win.cc    |   5 +
- 42 files changed, 913 insertions(+), 30 deletions(-)
+ 42 files changed, 1079 insertions(+), 28 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/about_flags_cc/add-bookmark-import-export-actions.inc
  create mode 100644 cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/add-bookmark-import-export-actions.inc
  create mode 100644 cromite_flags/chrome/browser/flags/android/chrome_feature_list_h/add-bookmark-import-export-actions.inc
@@ -816,7 +816,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/native_page/Nat
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -201,6 +201,8 @@ static_library("browser") {
+@@ -200,6 +200,8 @@ static_library("browser") {
      "bluetooth/chrome_bluetooth_delegate_impl_client.h",
      "bookmarks/bookmark_model_factory.cc",
      "bookmarks/bookmark_model_factory.h",
@@ -825,10 +825,163 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "bookmarks/chrome_bookmark_client.cc",
      "bookmarks/chrome_bookmark_client.h",
      "bookmarks/managed_bookmark_service_factory.cc",
-@@ -1958,6 +1960,13 @@ static_library("browser") {
-     ]
-   }
+@@ -1803,6 +1805,167 @@ static_library("browser") {
+     "webid/identity_provider_permission_request.h",
+   ]
  
++<<<<<<< HEAD
++||||||| parent of f0dc098aea908 (Add bookmark import/export actions)
++  if (!is_android) {
++    sources += [
++      "accessibility/embedded_a11y_extension_loader.cc",
++      "accessibility/embedded_a11y_extension_loader.h",
++      "component_updater/iwa_key_distribution_component_installer.cc",
++      "component_updater/iwa_key_distribution_component_installer.h",
++      "digital_credentials/digital_identity_provider_desktop.cc",
++      "digital_credentials/digital_identity_provider_desktop.h",
++      "global_desktop_features.cc",
++      "global_desktop_features.h",
++      "picture_in_picture/auto_pip_setting_helper.cc",
++      "picture_in_picture/auto_pip_setting_helper.h",
++      "picture_in_picture/auto_pip_setting_overlay_view.cc",
++      "picture_in_picture/auto_pip_setting_overlay_view.h",
++      "picture_in_picture/auto_pip_setting_view.cc",
++      "picture_in_picture/auto_pip_setting_view.h",
++      "preloading/preview/preview_manager.cc",
++      "preloading/preview/preview_manager.h",
++      "preloading/preview/preview_navigation_throttle.cc",
++      "preloading/preview/preview_navigation_throttle.h",
++      "preloading/preview/preview_tab.cc",
++      "preloading/preview/preview_tab.h",
++      "preloading/preview/preview_zoom_controller.cc",
++      "preloading/preview/preview_zoom_controller.h",
++      "privacy_sandbox/tracking_protection_notice_factory.cc",
++      "privacy_sandbox/tracking_protection_notice_factory.h",
++      "privacy_sandbox/tracking_protection_notice_service.cc",
++      "privacy_sandbox/tracking_protection_notice_service.h",
++      "privacy_sandbox/tracking_protection_reminder_desktop_ui_controller.cc",
++      "privacy_sandbox/tracking_protection_reminder_desktop_ui_controller.h",
++      "privacy_sandbox/tracking_protection_reminder_desktop_ui_controller_factory.cc",
++      "privacy_sandbox/tracking_protection_reminder_desktop_ui_controller_factory.h",
++      "search_engine_choice/search_engine_choice_dialog_service.cc",
++      "search_engine_choice/search_engine_choice_dialog_service.h",
++      "search_engine_choice/search_engine_choice_dialog_service_factory.cc",
++      "search_engine_choice/search_engine_choice_dialog_service_factory.h",
++      "supervised_user/desktop/supervised_user_service_platform_delegate.cc",
++      "supervised_user/desktop/supervised_user_service_platform_delegate.h",
++      "user_education/browser_feature_promo_storage_service.cc",
++      "user_education/browser_feature_promo_storage_service.h",
++      "user_education/browser_tutorial_service.cc",
++      "user_education/browser_tutorial_service.h",
++      "user_education/recent_session_observer.cc",
++      "user_education/recent_session_observer.h",
++      "user_education/recent_session_tracker.cc",
++      "user_education/recent_session_tracker.h",
++      "user_education/tutorial_identifiers.h",
++      "user_education/user_education_configuration_provider.cc",
++      "user_education/user_education_configuration_provider.h",
++      "user_education/user_education_service.cc",
++      "user_education/user_education_service.h",
++      "user_education/user_education_service_factory.cc",
++      "user_education/user_education_service_factory.h",
++      "visited_url_ranking/desktop_tab_model_url_visit_data_fetcher.cc",
++      "visited_url_ranking/desktop_tab_model_url_visit_data_fetcher.h",
++      "webapps/webapps_client_desktop.cc",
++      "webapps/webapps_client_desktop.h",
++    ]
++  }
++
++  if (!is_fuchsia) {
++    sources += [
++      "history_embeddings/chrome_history_embeddings_service.cc",
++      "history_embeddings/chrome_history_embeddings_service.h",
++      "history_embeddings/chrome_passage_embeddings_service_controller.cc",
++      "history_embeddings/chrome_passage_embeddings_service_controller.h",
++      "history_embeddings/history_embeddings_service_factory.cc",
++      "history_embeddings/history_embeddings_service_factory.h",
++      "history_embeddings/history_embeddings_tab_helper.cc",
++      "history_embeddings/history_embeddings_tab_helper.h",
++      "history_embeddings/history_embeddings_utils.cc",
++      "history_embeddings/history_embeddings_utils.h",
++    ]
++  }
++
++=======
++  if (!is_android) {
++    sources += [
++      "accessibility/embedded_a11y_extension_loader.cc",
++      "accessibility/embedded_a11y_extension_loader.h",
++      "component_updater/iwa_key_distribution_component_installer.cc",
++      "component_updater/iwa_key_distribution_component_installer.h",
++      "digital_credentials/digital_identity_provider_desktop.cc",
++      "digital_credentials/digital_identity_provider_desktop.h",
++      "global_desktop_features.cc",
++      "global_desktop_features.h",
++      "picture_in_picture/auto_pip_setting_helper.cc",
++      "picture_in_picture/auto_pip_setting_helper.h",
++      "picture_in_picture/auto_pip_setting_overlay_view.cc",
++      "picture_in_picture/auto_pip_setting_overlay_view.h",
++      "picture_in_picture/auto_pip_setting_view.cc",
++      "picture_in_picture/auto_pip_setting_view.h",
++      "preloading/preview/preview_manager.cc",
++      "preloading/preview/preview_manager.h",
++      "preloading/preview/preview_navigation_throttle.cc",
++      "preloading/preview/preview_navigation_throttle.h",
++      "preloading/preview/preview_tab.cc",
++      "preloading/preview/preview_tab.h",
++      "preloading/preview/preview_zoom_controller.cc",
++      "preloading/preview/preview_zoom_controller.h",
++      "privacy_sandbox/tracking_protection_notice_factory.cc",
++      "privacy_sandbox/tracking_protection_notice_factory.h",
++      "privacy_sandbox/tracking_protection_notice_service.cc",
++      "privacy_sandbox/tracking_protection_notice_service.h",
++      "privacy_sandbox/tracking_protection_reminder_desktop_ui_controller.cc",
++      "privacy_sandbox/tracking_protection_reminder_desktop_ui_controller.h",
++      "privacy_sandbox/tracking_protection_reminder_desktop_ui_controller_factory.cc",
++      "privacy_sandbox/tracking_protection_reminder_desktop_ui_controller_factory.h",
++      "search_engine_choice/search_engine_choice_dialog_service.cc",
++      "search_engine_choice/search_engine_choice_dialog_service.h",
++      "search_engine_choice/search_engine_choice_dialog_service_factory.cc",
++      "search_engine_choice/search_engine_choice_dialog_service_factory.h",
++      "supervised_user/desktop/supervised_user_service_platform_delegate.cc",
++      "supervised_user/desktop/supervised_user_service_platform_delegate.h",
++      "user_education/browser_feature_promo_storage_service.cc",
++      "user_education/browser_feature_promo_storage_service.h",
++      "user_education/browser_tutorial_service.cc",
++      "user_education/browser_tutorial_service.h",
++      "user_education/recent_session_observer.cc",
++      "user_education/recent_session_observer.h",
++      "user_education/recent_session_tracker.cc",
++      "user_education/recent_session_tracker.h",
++      "user_education/tutorial_identifiers.h",
++      "user_education/user_education_configuration_provider.cc",
++      "user_education/user_education_configuration_provider.h",
++      "user_education/user_education_service.cc",
++      "user_education/user_education_service.h",
++      "user_education/user_education_service_factory.cc",
++      "user_education/user_education_service_factory.h",
++      "visited_url_ranking/desktop_tab_model_url_visit_data_fetcher.cc",
++      "visited_url_ranking/desktop_tab_model_url_visit_data_fetcher.h",
++      "webapps/webapps_client_desktop.cc",
++      "webapps/webapps_client_desktop.h",
++    ]
++  }
++
++  if (!is_fuchsia) {
++    sources += [
++      "history_embeddings/chrome_history_embeddings_service.cc",
++      "history_embeddings/chrome_history_embeddings_service.h",
++      "history_embeddings/chrome_passage_embeddings_service_controller.cc",
++      "history_embeddings/chrome_passage_embeddings_service_controller.h",
++      "history_embeddings/history_embeddings_service_factory.cc",
++      "history_embeddings/history_embeddings_service_factory.h",
++      "history_embeddings/history_embeddings_tab_helper.cc",
++      "history_embeddings/history_embeddings_tab_helper.h",
++      "history_embeddings/history_embeddings_utils.cc",
++      "history_embeddings/history_embeddings_utils.h",
++    ]
++  }
++
 +  if (is_android) {
 +    sources += [
 +      "importer/profile_writer.cc",
@@ -836,22 +989,33 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 +    ]
 +  }
 +
++>>>>>>> f0dc098aea908 (Add bookmark import/export actions)
    configs += [
      "//build/config/compiler:wexit_time_destructors",
      "//build/config:precompiled_headers",
-@@ -3727,8 +3736,6 @@ static_library("browser") {
+@@ -3498,12 +3661,18 @@ static_library("browser") {
        "badging/badge_manager_factory.h",
        "banners/app_banner_manager_desktop.cc",
        "banners/app_banner_manager_desktop.h",
--      "bookmarks/bookmark_html_writer.cc",
--      "bookmarks/bookmark_html_writer.h",
++<<<<<<< HEAD
+       "bookmarks/bookmark_expanded_state_tracker.cc",
+       "bookmarks/bookmark_expanded_state_tracker.h",
+       "bookmarks/bookmark_expanded_state_tracker_factory.cc",
+       "bookmarks/bookmark_expanded_state_tracker_factory.h",
+       "bookmarks/bookmark_html_writer.cc",
+       "bookmarks/bookmark_html_writer.h",
++||||||| parent of f0dc098aea908 (Add bookmark import/export actions)
++      "bookmarks/bookmark_html_writer.cc",
++      "bookmarks/bookmark_html_writer.h",
++=======
++>>>>>>> f0dc098aea908 (Add bookmark import/export actions)
        "bookmarks/url_and_id.h",
        "cart/cart_db.cc",
        "cart/cart_db.h",
 diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browser/bookmarks/android/bookmark_bridge.cc
 --- a/chrome/browser/bookmarks/android/bookmark_bridge.cc
 +++ b/chrome/browser/bookmarks/android/bookmark_bridge.cc
-@@ -59,6 +59,28 @@
+@@ -64,6 +64,28 @@
  #include "content/public/browser/web_contents.h"
  #include "url/gurl.h"
  
@@ -880,7 +1044,7 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browse
  // Must come after all headers that specialize FromJniType() / ToJniType().
  #include "chrome/android/chrome_jni_headers/BookmarkBridge_jni.h"
  
-@@ -77,12 +99,97 @@ using bookmarks::android::JavaBookmarkIdGetType;
+@@ -82,12 +104,97 @@ using bookmarks::android::JavaBookmarkIdGetType;
  using content::BrowserThread;
  using power_bookmarks::PowerBookmarkMeta;
  
@@ -978,7 +1142,7 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browse
  class BookmarkTitleComparer {
   public:
    explicit BookmarkTitleComparer(BookmarkBridge* bookmark_bridge,
-@@ -223,6 +330,10 @@ BookmarkBridge::~BookmarkBridge() {
+@@ -228,6 +335,10 @@ BookmarkBridge::~BookmarkBridge() {
    partner_bookmarks_shim_observation_.Reset();
    bookmark_model_observation_.Reset();
    profile_observation_.Reset();
@@ -989,7 +1153,7 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browse
  }
  
  void BookmarkBridge::Destroy(JNIEnv* env) {
-@@ -762,6 +873,177 @@ jint BookmarkBridge::GetTotalBookmarkCount(
+@@ -767,6 +878,177 @@ jint BookmarkBridge::GetTotalBookmarkCount(
    return count;
  }
  
@@ -1361,18 +1525,25 @@ diff --git a/chrome/browser/download/android/java/src/org/chromium/chrome/browse
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -192,6 +192,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -199,7 +199,14 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kBrowserControlsEarlyResize,
      &kCacheActivityTaskID,
      &kCastDeviceFilter,
-     &kCCTAuthView,
++<<<<<<< HEAD
+     &kCCTAuthTab,
++||||||| parent of f0dc098aea908 (Add bookmark import/export actions)
++    &kCCTAuthView,
++=======
++    &kCCTAuthView,
 +    &kBookmarksExportUseSaf,
++>>>>>>> f0dc098aea908 (Add bookmark import/export actions)
      &kCCTBeforeUnload,
      &kCCTClientDataHeader,
      &kCCTExtendTrustedCdnPublisher,
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -538,6 +538,7 @@ public abstract class ChromeFeatureList {
+@@ -530,6 +530,7 @@ public abstract class ChromeFeatureList {
      public static final String VERTICAL_AUTOMOTIVE_BACK_BUTTON_TOOLBAR =
              "VerticalAutomotiveBackButtonToolbar";
      public static final String VISITED_URL_RANKING_SERVICE = "VisitedURLRankingService";
@@ -1435,7 +1606,7 @@ diff --git a/chrome/browser/preferences/android/java/src/org/chromium/chrome/bro
  
      /** Whether Chrome is set as the default browser. Default value is false. */
      public static final String CHROME_DEFAULT_BROWSER = "applink.chrome_default_browser";
-@@ -914,6 +916,7 @@ public final class ChromePreferenceKeys {
+@@ -920,6 +922,7 @@ public final class ChromePreferenceKeys {
                  AUTOFILL_ASSISTANT_PROACTIVE_HELP_ENABLED,
                  APP_LAUNCH_LAST_KNOWN_ACTIVE_TAB_STATE,
                  APP_LAUNCH_SEARCH_ENGINE_HAD_LOGO,
@@ -1474,7 +1645,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/BUILD.gn b/chrome/common/BUILD.gn
 --- a/chrome/common/BUILD.gn
 +++ b/chrome/common/BUILD.gn
-@@ -402,6 +402,9 @@ static_library("common_lib") {
+@@ -355,6 +355,9 @@ static_library("common_lib") {
      sources += [
        "media/chrome_media_drm_bridge_client.cc",
        "media/chrome_media_drm_bridge_client.h",
@@ -1496,7 +1667,7 @@ diff --git a/chrome/utility/BUILD.gn b/chrome/utility/BUILD.gn
        "importer/bookmarks_file_importer.cc",
        "importer/bookmarks_file_importer.h",
        "importer/external_process_importer_bridge.cc",
-@@ -228,6 +226,11 @@ static_library("utility") {
+@@ -225,6 +223,11 @@ static_library("utility") {
      ]
    }
  
@@ -1674,7 +1845,7 @@ diff --git a/ui/android/java/src/org/chromium/ui/base/SelectFileDialog.java b/ui
      private static final String AUDIO_TYPE = "audio";
      private static final String ALL_TYPES = "*/*";
  
-@@ -306,6 +308,11 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
+@@ -307,6 +309,11 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
          ResettersForTesting.register(() -> mFileTypes = oldValue);
      }
  
@@ -1685,8 +1856,8 @@ diff --git a/ui/android/java/src/org/chromium/ui/base/SelectFileDialog.java b/ui
 +
      /**
       * Creates and starts an intent based on the passed fileTypes and capture value.
-      * @param fileTypes MIME types requested (i.e. "image/*")
-@@ -332,7 +339,7 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
+      *
+@@ -343,7 +350,7 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
          List<String> missingPermissions = new ArrayList<>();
          String storagePermission = Manifest.permission.READ_EXTERNAL_STORAGE;
          boolean shouldUsePhotoPicker = shouldUsePhotoPicker();
@@ -1695,7 +1866,7 @@ diff --git a/ui/android/java/src/org/chromium/ui/base/SelectFileDialog.java b/ui
              // The permission scenario for accessing media has evolved a bit over the years:
              // Early on, READ_EXTERNAL_STORAGE was required to access media, but that permission was
              // later deprecated. In its place (starting with Android T) READ_MEDIA_IMAGES and
-@@ -385,7 +392,7 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
+@@ -396,7 +403,7 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
  
                                  // TODO(finnur): Remove once we figure out the cause of
                                  // crbug.com/950024.
@@ -1704,7 +1875,7 @@ diff --git a/ui/android/java/src/org/chromium/ui/base/SelectFileDialog.java b/ui
                                      if (permissions.length != requestPermissions.length) {
                                          throw new RuntimeException(
                                                  String.format(
-@@ -402,7 +409,7 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
+@@ -413,7 +420,7 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
                                      }
                                  }
  
@@ -1713,7 +1884,7 @@ diff --git a/ui/android/java/src/org/chromium/ui/base/SelectFileDialog.java b/ui
                                      if (permissions[i].equals(storagePermission)
                                              || permissions[i].equals(
                                                      Manifest.permission.READ_MEDIA_IMAGES)
-@@ -685,6 +692,7 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
+@@ -701,6 +708,7 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
              }
              if (!mimeTypes.contains(mimeType)) mimeTypes.add(mimeType);
          }
@@ -1721,7 +1892,7 @@ diff --git a/ui/android/java/src/org/chromium/ui/base/SelectFileDialog.java b/ui
          return mimeTypes;
      }
  
-@@ -1034,6 +1042,10 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
+@@ -1062,6 +1070,10 @@ public class SelectFileDialog implements WindowAndroid.IntentCallback, PhotoPick
          return countAcceptTypesFor(superType) == mFileTypes.size();
      }
  
@@ -1748,7 +1919,7 @@ diff --git a/ui/android/java/strings/android_ui_strings.grd b/ui/android/java/st
 diff --git a/ui/shell_dialogs/select_file_dialog.h b/ui/shell_dialogs/select_file_dialog.h
 --- a/ui/shell_dialogs/select_file_dialog.h
 +++ b/ui/shell_dialogs/select_file_dialog.h
-@@ -220,6 +220,8 @@ class SHELL_DIALOGS_EXPORT SelectFileDialog
+@@ -224,6 +224,8 @@ class SHELL_DIALOGS_EXPORT SelectFileDialog
                    const GURL* caller = nullptr);
    bool HasMultipleFileTypeChoices();
  
@@ -1760,8 +1931,8 @@ diff --git a/ui/shell_dialogs/select_file_dialog.h b/ui/shell_dialogs/select_fil
 diff --git a/ui/shell_dialogs/select_file_dialog_android.cc b/ui/shell_dialogs/select_file_dialog_android.cc
 --- a/ui/shell_dialogs/select_file_dialog_android.cc
 +++ b/ui/shell_dialogs/select_file_dialog_android.cc
-@@ -129,6 +129,12 @@ void SelectFileDialogImpl::SelectFileImpl(
-                                    owning_window->GetJavaObject());
+@@ -160,6 +160,12 @@ void SelectFileDialogImpl::SelectFileImpl(
+       accept_multiple_files, owning_window->GetJavaObject());
  }
  
 +void SelectFileDialogImpl::ShowToast(const std::string& message) {
@@ -1776,7 +1947,7 @@ diff --git a/ui/shell_dialogs/select_file_dialog_android.cc b/ui/shell_dialogs/s
 diff --git a/ui/shell_dialogs/select_file_dialog_android.h b/ui/shell_dialogs/select_file_dialog_android.h
 --- a/ui/shell_dialogs/select_file_dialog_android.h
 +++ b/ui/shell_dialogs/select_file_dialog_android.h
-@@ -52,6 +52,8 @@ class SelectFileDialogImpl : public SelectFileDialog {
+@@ -53,6 +53,8 @@ class SelectFileDialogImpl : public SelectFileDialog {
                        gfx::NativeWindow owning_window,
                        const GURL* caller) override;
  
