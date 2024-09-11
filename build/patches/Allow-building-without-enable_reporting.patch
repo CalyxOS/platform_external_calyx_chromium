@@ -19,14 +19,14 @@ Change-Id: I80bdf53df8e93dc0dd36e516b3bdc2e215b4481b
  net/reporting/reporting_service.cc               |  6 ++++++
  services/network/network_context.h               |  6 +++---
  services/network/public/mojom/BUILD.gn           |  1 -
- .../network/public/mojom/network_context.mojom   |  3 +++
+ .../network/public/mojom/network_context.mojom   |  9 +++++++++
  .../core/frame/csp/content_security_policy.cc    |  3 +++
  .../blink/renderer/core/frame/local_frame.cc     |  3 +++
  .../blink/renderer/core/frame/local_frame.h      |  4 +++-
  .../renderer/core/frame/reporting_context.cc     |  9 +++++++++
  .../renderer/core/frame/reporting_context.h      |  7 +++++--
  .../renderer/core/frame/reporting_observer.cc    |  3 +--
- 20 files changed, 60 insertions(+), 26 deletions(-)
+ 20 files changed, 66 insertions(+), 26 deletions(-)
  create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Allow-building-without-enable_reporting.inc
 
 diff --git a/chrome/browser/net/chrome_report_sender.cc b/chrome/browser/net/chrome_report_sender.cc
@@ -126,7 +126,7 @@ diff --git a/content/browser/network/reporting_service_proxy.cc b/content/browse
 diff --git a/content/browser/renderer_host/render_frame_host_impl.cc b/content/browser/renderer_host/render_frame_host_impl.cc
 --- a/content/browser/renderer_host/render_frame_host_impl.cc
 +++ b/content/browser/renderer_host/render_frame_host_impl.cc
-@@ -14675,12 +14675,6 @@ void RenderFrameHostImpl::MaybeGenerateCrashReport(
+@@ -14727,12 +14727,6 @@ void RenderFrameHostImpl::MaybeGenerateCrashReport(
        }
      }
    }
@@ -256,7 +256,7 @@ new file mode 100644
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -201,6 +201,7 @@ extern const base::FeatureParam<base::TimeDelta> kTimeoutTcpConnectAttemptMax(
+@@ -217,6 +217,7 @@ extern const base::FeatureParam<base::TimeDelta> kTimeoutTcpConnectAttemptMax(
      base::Seconds(30));
  
  #if BUILDFLAG(ENABLE_REPORTING)
@@ -267,7 +267,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
 diff --git a/net/reporting/reporting_service.cc b/net/reporting/reporting_service.cc
 --- a/net/reporting/reporting_service.cc
 +++ b/net/reporting/reporting_service.cc
-@@ -216,6 +216,12 @@ class ReportingServiceImpl : public ReportingService {
+@@ -225,6 +225,12 @@ class ReportingServiceImpl : public ReportingService {
        int depth,
        base::TimeTicks queued_ticks,
        ReportingTargetType target_type) {
@@ -283,7 +283,7 @@ diff --git a/net/reporting/reporting_service.cc b/net/reporting/reporting_servic
 diff --git a/services/network/network_context.h b/services/network/network_context.h
 --- a/services/network/network_context.h
 +++ b/services/network/network_context.h
-@@ -463,14 +463,14 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
+@@ -467,14 +467,14 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
        const GURL& url,
        const std::optional<base::UnguessableToken>& reporting_source,
        const net::NetworkAnonymizationKey& network_anonymization_key,
@@ -315,15 +315,15 @@ diff --git a/services/network/public/mojom/BUILD.gn b/services/network/public/mo
 diff --git a/services/network/public/mojom/network_context.mojom b/services/network/public/mojom/network_context.mojom
 --- a/services/network/public/mojom/network_context.mojom
 +++ b/services/network/public/mojom/network_context.mojom
-@@ -1241,6 +1241,7 @@ interface NetworkContext {
-   // provided |network_isolation_key|.
+@@ -1257,6 +1257,7 @@ interface NetworkContext {
+   // provided `network_anonymization_key`.
    //
    // Spec: https://w3c.github.io/reporting/#concept-reports
 +  [EnableIf=enable_reporting]
    QueueReport(string type,
                string group,
                url.mojom.Url url,
-@@ -1248,6 +1249,7 @@ interface NetworkContext {
+@@ -1264,6 +1265,7 @@ interface NetworkContext {
                NetworkAnonymizationKey network_anonymization_key,
                mojo_base.mojom.DictionaryValue body);
  
@@ -331,11 +331,18 @@ diff --git a/services/network/public/mojom/network_context.mojom b/services/netw
    QueueEnterpriseReport(string type,
                string group,
                url.mojom.Url url,
-@@ -1258,6 +1260,7 @@ interface NetworkContext {
+@@ -1273,7 +1275,14 @@ interface NetworkContext {
+   //
    // Note that this queued report will never be delivered if no reporting
    // endpoint matching is registered for with the provided
-   // |network_isolation_key|.
++<<<<<<< HEAD
+   // `network_anonymization_key`.
++||||||| parent of 78d2c5b099ed2 (Allow building without enable_reporting)
++  // |network_isolation_key|.
++=======
++  // |network_isolation_key|.
 +  [EnableIf=enable_reporting]
++>>>>>>> 78d2c5b099ed2 (Allow building without enable_reporting)
    QueueSignedExchangeReport(SignedExchangeReport report,
                              NetworkAnonymizationKey network_anonymization_key);
  
@@ -377,7 +384,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
  #include "services/network/public/mojom/source_location.mojom-blink.h"
-@@ -2769,9 +2770,11 @@ void LocalFrame::MainFrameFirstMeaningfulPaint() {
+@@ -2771,9 +2772,11 @@ void LocalFrame::MainFrameFirstMeaningfulPaint() {
    v8_local_compile_hints_producer_->GenerateData(kIsFinalData);
  }
  
@@ -400,7 +407,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/b
  #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
  #include "mojo/public/cpp/bindings/pending_receiver.h"
  #include "services/metrics/public/cpp/ukm_source_id.h"
-@@ -662,8 +663,9 @@ class CORE_EXPORT LocalFrame final
+@@ -658,8 +659,9 @@ class CORE_EXPORT LocalFrame final
    void FinishedScrollSequence();
  
    SmoothScrollSequencer* GetSmoothScrollSequencer() const;

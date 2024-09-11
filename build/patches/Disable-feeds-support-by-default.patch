@@ -6,20 +6,163 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I59cfe031bfb2b8c55d19e4449a4280ec2bb9daa6
 ---
- chrome/browser/BUILD.gn                        |  9 +++++++++
- chrome/browser/feed/android/web_feed_bridge.cc | 18 ++++++++++++++++++
- chrome/browser/prefs/browser_prefs.cc          | 10 +++++-----
- .../feed/core/shared_prefs/pref_names.cc       |  2 +-
- components/feed/feed_feature_list.cc           |  3 +++
- 5 files changed, 36 insertions(+), 6 deletions(-)
+ chrome/browser/BUILD.gn                       | 233 ++++++++++++++++++
+ .../browser/feed/android/web_feed_bridge.cc   |  18 ++
+ chrome/browser/prefs/browser_prefs.cc         |  44 +++-
+ .../feed/core/shared_prefs/pref_names.cc      |   2 +-
+ components/feed/feed_feature_list.cc          |   3 +
+ 5 files changed, 298 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -2658,6 +2658,15 @@ static_library("browser") {
-     ]
-   }
+@@ -2661,6 +2661,239 @@ static_library("browser") {
+     "//ui/webui",
+   ]
  
++<<<<<<< HEAD
++||||||| parent of b56dd9b4dd504 (Disable feeds support by default)
++  if (!is_android) {
++    deps += [
++      "//chrome/browser/companion/core",
++      "//chrome/browser/lens/region_search",
++      "//chrome/browser/new_tab_page/chrome_colors",
++      "//chrome/browser/search/background",
++      "//chrome/browser/ui/exclusive_access",
++      "//chrome/browser/ui/lens",
++      "//chrome/browser/ui/views/side_panel",
++      "//chrome/browser/ui/webui/cr_components/theme_color_picker",
++      "//components/manta",
++      "//components/manta/proto",
++      "//components/user_education/common",
++      "//components/user_education/webui:webui",
++      "//ui/web_dialogs",
++    ]
++
++    # Any circular includes must depend on the target
++    # "browser_public_dependencies".
++    allow_circular_includes_from += [
++      # TODO(crbug.com/339497734): Remove circular dependencies.
++      "//chrome/browser/ui/lens",
++
++      # TODO(crbug.com/345487716): Remove this circular dependency.
++      "//chrome/browser/ui/views/side_panel",
++
++      "//chrome/browser/ui/exclusive_access",
++    ]
++  }
++
++  if (enable_feed_v2) {
++    sources += [
++      "feed/feed_service_factory.cc",
++      "feed/feed_service_factory.h",
++      "feed/rss_links_fetcher.cc",
++      "feed/rss_links_fetcher.h",
++      "feed/web_feed_page_information_fetcher.cc",
++      "feed/web_feed_page_information_fetcher.h",
++      "feed/web_feed_tab_helper.cc",
++      "feed/web_feed_tab_helper.h",
++      "feed/web_feed_ui_util.cc",
++      "feed/web_feed_ui_util.h",
++      "feed/web_feed_util.cc",
++      "feed/web_feed_util.h",
++    ]
++    deps += [
++      "//components/feed:feature_list",
++      "//components/feed/core/v2:feed_core_v2",
++      "//components/feed/mojom:mojo_bindings",
++    ]
++  }
++
++  if (enable_screen_ai_service) {
++    sources += [
++      "accessibility/ax_main_node_annotator_controller.cc",
++      "accessibility/ax_main_node_annotator_controller.h",
++      "accessibility/ax_main_node_annotator_controller_factory.cc",
++      "accessibility/ax_main_node_annotator_controller_factory.h",
++      "accessibility/pdf_ocr_controller.cc",
++      "accessibility/pdf_ocr_controller.h",
++      "accessibility/pdf_ocr_controller_factory.cc",
++      "accessibility/pdf_ocr_controller_factory.h",
++    ]
++    deps += [
++      "//chrome/browser/screen_ai:prefs",
++      "//chrome/browser/screen_ai:screen_ai_install_state",
++      "//chrome/browser/screen_ai:screen_ai_service_router_factory",
++      "//chrome/browser/screen_ai/public:optical_character_recognizer",
++      "//services/screen_ai",
++      "//services/screen_ai/public/cpp:utilities",
++      "//services/screen_ai/public/mojom",
++    ]
++
++    if (is_chromeos) {
++      sources += [
++        "screen_ai/screen_ai_downloader_chromeos.cc",
++        "screen_ai/screen_ai_downloader_chromeos.h",
++      ]
++    } else {
++      sources += [
++        "component_updater/screen_ai_component_installer.cc",
++        "component_updater/screen_ai_component_installer.h",
++        "screen_ai/screen_ai_downloader_non_chromeos.cc",
++        "screen_ai/screen_ai_downloader_non_chromeos.h",
++      ]
++    }
++
++    if (is_chromeos_ash) {
++      deps += [ "//chrome/browser/screen_ai:screen_ai_dlc_installer" ]
++    }
++  }
++
++  if (!is_chromeos) {
++    deps += [
++      "//components/reporting/storage:storage_configuration",
++      "//components/reporting/storage:storage_module",
++    ]
++  }
++
++  if (is_linux || is_chromeos) {
++    deps += [ "//chrome/browser/error_reporting" ]
++  }
++
++  if (use_ozone) {
++    deps += [
++      "//ui/events/ozone",
++      "//ui/ozone",
++    ]
++  }
++
++=======
++  if (!is_android) {
++    deps += [
++      "//chrome/browser/companion/core",
++      "//chrome/browser/lens/region_search",
++      "//chrome/browser/new_tab_page/chrome_colors",
++      "//chrome/browser/search/background",
++      "//chrome/browser/ui/exclusive_access",
++      "//chrome/browser/ui/lens",
++      "//chrome/browser/ui/views/side_panel",
++      "//chrome/browser/ui/webui/cr_components/theme_color_picker",
++      "//components/manta",
++      "//components/manta/proto",
++      "//components/user_education/common",
++      "//components/user_education/webui:webui",
++      "//ui/web_dialogs",
++    ]
++
++    # Any circular includes must depend on the target
++    # "browser_public_dependencies".
++    allow_circular_includes_from += [
++      # TODO(crbug.com/339497734): Remove circular dependencies.
++      "//chrome/browser/ui/lens",
++
++      # TODO(crbug.com/345487716): Remove this circular dependency.
++      "//chrome/browser/ui/views/side_panel",
++
++      "//chrome/browser/ui/exclusive_access",
++    ]
++  }
++
 +  if (is_android && !enable_feed_v2) {
 +    sources += [
 +      "feed/feed_service_factory.cc",
@@ -29,9 +172,90 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 +      "//components/feed:feature_list",
 +    ]
 +  }
-   if (enable_feed_v2) {
-     sources += [
-       "feed/feed_service_factory.cc",
++  if (enable_feed_v2) {
++    sources += [
++      "feed/feed_service_factory.cc",
++      "feed/feed_service_factory.h",
++      "feed/rss_links_fetcher.cc",
++      "feed/rss_links_fetcher.h",
++      "feed/web_feed_page_information_fetcher.cc",
++      "feed/web_feed_page_information_fetcher.h",
++      "feed/web_feed_tab_helper.cc",
++      "feed/web_feed_tab_helper.h",
++      "feed/web_feed_ui_util.cc",
++      "feed/web_feed_ui_util.h",
++      "feed/web_feed_util.cc",
++      "feed/web_feed_util.h",
++    ]
++    deps += [
++      "//components/feed:feature_list",
++      "//components/feed/core/v2:feed_core_v2",
++      "//components/feed/mojom:mojo_bindings",
++    ]
++  }
++
++  if (enable_screen_ai_service) {
++    sources += [
++      "accessibility/ax_main_node_annotator_controller.cc",
++      "accessibility/ax_main_node_annotator_controller.h",
++      "accessibility/ax_main_node_annotator_controller_factory.cc",
++      "accessibility/ax_main_node_annotator_controller_factory.h",
++      "accessibility/pdf_ocr_controller.cc",
++      "accessibility/pdf_ocr_controller.h",
++      "accessibility/pdf_ocr_controller_factory.cc",
++      "accessibility/pdf_ocr_controller_factory.h",
++    ]
++    deps += [
++      "//chrome/browser/screen_ai:prefs",
++      "//chrome/browser/screen_ai:screen_ai_install_state",
++      "//chrome/browser/screen_ai:screen_ai_service_router_factory",
++      "//chrome/browser/screen_ai/public:optical_character_recognizer",
++      "//services/screen_ai",
++      "//services/screen_ai/public/cpp:utilities",
++      "//services/screen_ai/public/mojom",
++    ]
++
++    if (is_chromeos) {
++      sources += [
++        "screen_ai/screen_ai_downloader_chromeos.cc",
++        "screen_ai/screen_ai_downloader_chromeos.h",
++      ]
++    } else {
++      sources += [
++        "component_updater/screen_ai_component_installer.cc",
++        "component_updater/screen_ai_component_installer.h",
++        "screen_ai/screen_ai_downloader_non_chromeos.cc",
++        "screen_ai/screen_ai_downloader_non_chromeos.h",
++      ]
++    }
++
++    if (is_chromeos_ash) {
++      deps += [ "//chrome/browser/screen_ai:screen_ai_dlc_installer" ]
++    }
++  }
++
++  if (!is_chromeos) {
++    deps += [
++      "//components/reporting/storage:storage_configuration",
++      "//components/reporting/storage:storage_module",
++    ]
++  }
++
++  if (is_linux || is_chromeos) {
++    deps += [ "//chrome/browser/error_reporting" ]
++  }
++
++  if (use_ozone) {
++    deps += [
++      "//ui/events/ozone",
++      "//ui/ozone",
++    ]
++  }
++
++>>>>>>> b56dd9b4dd504 (Disable feeds support by default)
+   # Platforms that have a network diagnostics dialog. All others fall through
+   # to the stub which is not implemented.
+   if (is_chromeos_ash) {
 diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/feed/android/web_feed_bridge.cc
 --- a/chrome/browser/feed/android/web_feed_bridge.cc
 +++ b/chrome/browser/feed/android/web_feed_bridge.cc
@@ -111,34 +335,66 @@ diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/fee
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -249,11 +249,11 @@
- #endif
+@@ -245,6 +245,32 @@
+ #include "chrome/browser/pdf/pdf_pref_names.h"
+ #endif  // BUILDFLAG(ENABLE_PDF)
  
- #include "components/feed/buildflags.h"
--#if BUILDFLAG(ENABLE_FEED_V2)
++<<<<<<< HEAD
++||||||| parent of b56dd9b4dd504 (Disable feeds support by default)
++#if BUILDFLAG(ENABLE_SCREEN_AI_SERVICE)
++#include "chrome/browser/screen_ai/pref_names.h"
++#endif
++
++#include "components/feed/buildflags.h"
++#if BUILDFLAG(ENABLE_FEED_V2)
++#include "components/feed/core/common/pref_names.h"        // nogncheck
++#include "components/feed/core/shared_prefs/pref_names.h"  // nogncheck
++#include "components/feed/core/v2/ios_shared_prefs.h"      // nogncheck
++#endif
++
++=======
++#if BUILDFLAG(ENABLE_SCREEN_AI_SERVICE)
++#include "chrome/browser/screen_ai/pref_names.h"
++#endif
++
++#include "components/feed/buildflags.h"
 +//#if BUILDFLAG(ENABLE_FEED_V2)
- #include "components/feed/core/common/pref_names.h"        // nogncheck
- #include "components/feed/core/shared_prefs/pref_names.h"  // nogncheck
- #include "components/feed/core/v2/ios_shared_prefs.h"      // nogncheck
--#endif
++#include "components/feed/core/common/pref_names.h"        // nogncheck
++#include "components/feed/core/shared_prefs/pref_names.h"  // nogncheck
++#include "components/feed/core/v2/ios_shared_prefs.h"      // nogncheck
 +//#endif
- 
++
++>>>>>>> b56dd9b4dd504 (Disable feeds support by default)
  #if BUILDFLAG(IS_ANDROID)
  #include "chrome/browser/accessibility/accessibility_prefs/android/accessibility_prefs_controller.h"
-@@ -1894,10 +1894,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+ #include "chrome/browser/history/history_tab_helper.h"
+@@ -1933,9 +1959,25 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
    ChromeRLZTrackerDelegate::RegisterProfilePrefs(registry);
  #endif
  
--#if BUILDFLAG(ENABLE_FEED_V2)
++<<<<<<< HEAD
+ #if BUILDFLAG(IS_ANDROID)
++||||||| parent of b56dd9b4dd504 (Disable feeds support by default)
++#if BUILDFLAG(ENABLE_FEED_V2)
++=======
 +//#if BUILDFLAG(ENABLE_FEED_V2)
++>>>>>>> b56dd9b4dd504 (Disable feeds support by default)
    feed::prefs::RegisterFeedSharedProfilePrefs(registry);
    feed::RegisterProfilePrefs(registry);
--#endif
++<<<<<<< HEAD
++||||||| parent of b56dd9b4dd504 (Disable feeds support by default)
++#endif
++
++#if BUILDFLAG(IS_ANDROID)
++=======
 +//#endif
- 
- #if BUILDFLAG(IS_ANDROID)
++
++#if BUILDFLAG(IS_ANDROID)
++>>>>>>> b56dd9b4dd504 (Disable feeds support by default)
    cdm::MediaDrmStorageImpl::RegisterProfilePrefs(registry);
-@@ -2684,7 +2684,7 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
+   KnownInterceptionDisclosureInfoBarDelegate::RegisterProfilePrefs(registry);
+   MediaDrmOriginIdManager::RegisterProfilePrefs(registry);
+@@ -2691,7 +2733,7 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
    syncer::SyncPrefs::MaybeMigrateAutofillToPerAccountPref(profile_prefs);
  #endif  // !BUILDFLAG(IS_ANDROID)
  
@@ -162,7 +418,7 @@ diff --git a/components/feed/core/shared_prefs/pref_names.cc b/components/feed/c
 diff --git a/components/feed/feed_feature_list.cc b/components/feed/feed_feature_list.cc
 --- a/components/feed/feed_feature_list.cc
 +++ b/components/feed/feed_feature_list.cc
-@@ -150,4 +150,7 @@ bool IsWebFeedEnabledForLocale(const std::string& country) {
+@@ -149,4 +149,7 @@ bool IsWebFeedEnabledForLocale(const std::string& country) {
           !base::FeatureList::IsEnabled(kWebFeedKillSwitch);
  }
  

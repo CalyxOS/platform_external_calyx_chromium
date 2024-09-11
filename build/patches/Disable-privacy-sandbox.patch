@@ -21,16 +21,16 @@ Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
  .../privacy_sandbox/privacy_sandbox_prompt.cc |  1 +
  .../history/core/browser/history_backend.cc   | 13 +------------
  .../privacy_sandbox_attestations.cc           |  2 --
- .../privacy_sandbox_features.cc               |  4 ++++
+ .../privacy_sandbox_features.cc               |  8 ++++++++
  .../privacy_sandbox/privacy_sandbox_prefs.cc  |  4 ++--
  .../privacy_sandbox_settings_impl.cc          | 19 ++++++++++++++-----
- .../tracking_protection_prefs.cc              |  4 ++--
+ .../tracking_protection_prefs.cc              |  8 +++++++-
  .../identity_manager/account_capabilities.cc  |  2 +-
  .../features_cc/Disable-privacy-sandbox.inc   |  1 +
  .../Disable-privacy-sandbox.inc               |  1 +
  .../features_cc/Disable-privacy-sandbox.inc   |  4 ++++
  third_party/blink/common/features.cc          |  1 +
- 18 files changed, 41 insertions(+), 28 deletions(-)
+ 18 files changed, 50 insertions(+), 27 deletions(-)
  create mode 100644 cromite_flags/content/common/features_cc/Disable-privacy-sandbox.inc
  create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-privacy-sandbox.inc
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-privacy-sandbox.inc
@@ -38,7 +38,7 @@ Change-Id: I86d3bfd11881e48146811465ea8e5c699100cd63
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3483,6 +3483,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -3532,6 +3532,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin,
      bool* can_bypass) {
@@ -63,7 +63,7 @@ diff --git a/chrome/browser/first_party_sets/first_party_sets_navigation_throttl
 diff --git a/chrome/browser/first_party_sets/first_party_sets_policy_service.cc b/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
 --- a/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
 +++ b/chrome/browser/first_party_sets/first_party_sets_policy_service.cc
-@@ -59,6 +59,7 @@ const base::Value::Dict* GetOverridesPolicyForProfile(
+@@ -60,6 +60,7 @@ const base::Value::Dict* GetOverridesPolicyForProfile(
  }
  
  ServiceState GetServiceState(Profile* profile, bool pref_enabled) {
@@ -71,7 +71,7 @@ diff --git a/chrome/browser/first_party_sets/first_party_sets_policy_service.cc 
    if (profile->IsSystemProfile() || profile->IsGuestSession() ||
        profile->IsOffTheRecord()) {
      return ServiceState::kPermanentlyDisabled;
-@@ -112,7 +113,7 @@ void FirstPartySetsPolicyService::Init() {
+@@ -114,7 +115,7 @@ void FirstPartySetsPolicyService::Init() {
        profile, profile->GetPrefs() &&
                     profile->GetPrefs()->GetBoolean(
                         prefs::kPrivacySandboxRelatedWebsiteSetsEnabled));
@@ -83,7 +83,7 @@ diff --git a/chrome/browser/first_party_sets/first_party_sets_policy_service.cc 
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1286,7 +1286,7 @@ void RegisterProfilePrefsForMigration(
+@@ -1296,7 +1296,7 @@ void RegisterProfilePrefsForMigration(
    registry->RegisterTimePref(kPlusAddressLastFetchedTime, base::Time());
  
    // Deprecated 03/2024.
@@ -95,7 +95,7 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
 --- a/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
 +++ b/chrome/browser/privacy_sandbox/privacy_sandbox_service_impl.cc
-@@ -477,7 +477,7 @@ bool PrivacySandboxServiceImpl::IsRestrictedNoticeEnabled() {
+@@ -519,7 +519,7 @@ bool PrivacySandboxServiceImpl::IsRestrictedNoticeEnabled() {
  void PrivacySandboxServiceImpl::SetFirstPartySetsDataAccessEnabled(
      bool enabled) {
    pref_service_->SetBoolean(prefs::kPrivacySandboxRelatedWebsiteSetsEnabled,
@@ -163,14 +163,22 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_attestations/privacy_san
 diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
 --- a/components/privacy_sandbox/privacy_sandbox_features.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_features.cc
-@@ -288,4 +288,8 @@ BASE_FEATURE(kPrivacySandboxMigratePrefsToNoticeConsentDataModel,
+@@ -232,8 +232,16 @@ BASE_FEATURE(kPrivacySandboxMigratePrefsToNoticeConsentDataModel,
               "PrivacySandboxMigratePrefsToNoticeConsentDataModel",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
++<<<<<<< HEAD
+ BASE_FEATURE(kPrivacySandboxPrivacyPolicy,
+              "PrivacySandboxPrivacyPolicy",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
++||||||| parent of c59bfabebffa9 (Disable privacy sandbox)
++=======
 +SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxSettings4);
 +SET_CROMITE_FEATURE_ENABLED(kDisablePrivacySandboxPrompts);
 +SET_CROMITE_FEATURE_DISABLED(kEnforcePrivacySandboxAttestations);
 +SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxFirstPartySetsUI);
++>>>>>>> c59bfabebffa9 (Disable privacy sandbox)
  }  // namespace privacy_sandbox
 diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
 --- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
@@ -274,20 +282,25 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
 diff --git a/components/privacy_sandbox/tracking_protection_prefs.cc b/components/privacy_sandbox/tracking_protection_prefs.cc
 --- a/components/privacy_sandbox/tracking_protection_prefs.cc
 +++ b/components/privacy_sandbox/tracking_protection_prefs.cc
-@@ -61,14 +61,14 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+@@ -53,7 +53,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
  
-   // Tracking Protection Settings Prefs
+   // TODO(https://b/333527273): Deprecate
    registry->RegisterBooleanPref(
 -      prefs::kBlockAll3pcToggleEnabled, false,
 +      prefs::kBlockAll3pcToggleEnabled, false, // with true enables FPS
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterBooleanPref(prefs::kTrackingProtection3pcdEnabled, false);
    registry->RegisterBooleanPref(prefs::kAllowAll3pcToggleEnabled, false);
-   registry->RegisterIntegerPref(
+@@ -61,6 +61,12 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
        prefs::kTrackingProtectionLevel,
        static_cast<int>(TrackingProtectionLevel::kStandard),
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
--  registry->RegisterBooleanPref(prefs::kTrackingProtection3pcdEnabled, false);
++<<<<<<< HEAD
++||||||| parent of c59bfabebffa9 (Disable privacy sandbox)
++  registry->RegisterBooleanPref(prefs::kTrackingProtection3pcdEnabled, false);
++=======
 +  registry->RegisterBooleanPref(prefs::kTrackingProtection3pcdEnabled, false); // with true enables FPS
++>>>>>>> c59bfabebffa9 (Disable privacy sandbox)
    registry->RegisterBooleanPref(
        prefs::kIpProtectionEnabled, false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
@@ -327,7 +340,7 @@ new file mode 100644
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -2618,6 +2618,7 @@ BASE_FEATURE(kWebviewAccelerateSmallCanvases,
+@@ -2625,6 +2625,7 @@ BASE_FEATURE(kWebviewAccelerateSmallCanvases,
  // constants for features in the section above.
  
  bool IsAllowURNsInIframeEnabled() {
