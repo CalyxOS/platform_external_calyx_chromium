@@ -6,15 +6,33 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I1d06a92894f347fbd84a3305b7cb4614ae30a961
 ---
- .../Disable-some-signed-exchange-features.inc                    | 1 +
- 1 file changed, 1 insertion(+)
- create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-some-signed-exchange-features.inc
+ chrome/browser/chrome_content_browser_client.cc      | 2 +-
+ content/browser/web_package/signed_exchange_utils.cc | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/cromite_flags/content/public/common/content_features_cc/Disable-some-signed-exchange-features.inc b/cromite_flags/content/public/common/content_features_cc/Disable-some-signed-exchange-features.inc
-new file mode 100644
---- /dev/null
-+++ b/cromite_flags/content/public/common/content_features_cc/Disable-some-signed-exchange-features.inc
-@@ -0,0 +1 @@
-+SET_CROMITE_FEATURE_DISABLED(kSignedHTTPExchange);
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -1613,7 +1613,7 @@ void ChromeContentBrowserClient::RegisterProfilePrefs(
+       site_isolation::prefs::kWebTriggeredIsolatedOrigins);
+   registry->RegisterDictionaryPref(
+       prefs::kDevToolsBackgroundServicesExpirationDict);
+-  registry->RegisterBooleanPref(prefs::kSignedHTTPExchangeEnabled, true);
++  registry->RegisterBooleanPref(prefs::kSignedHTTPExchangeEnabled, false);
+ #if !BUILDFLAG(IS_ANDROID)
+   registry->RegisterBooleanPref(prefs::kAutoplayAllowed, false);
+   registry->RegisterListPref(prefs::kAutoplayAllowlist);
+diff --git a/content/browser/web_package/signed_exchange_utils.cc b/content/browser/web_package/signed_exchange_utils.cc
+--- a/content/browser/web_package/signed_exchange_utils.cc
++++ b/content/browser/web_package/signed_exchange_utils.cc
+@@ -51,7 +51,7 @@ void ReportErrorAndTraceEvent(
+ }
+ 
+ bool IsSignedExchangeHandlingEnabled(BrowserContext* context) {
+-  return GetContentClient()->browser()->AllowSignedExchange(context);
++  return false;
+ }
+ 
+ bool IsSignedExchangeReportingForDistributorsEnabled() {
 -- 
 
