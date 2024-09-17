@@ -1,0 +1,141 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Tue, 22 Nov 2022 16:49:58 +0000
+Subject: Partial "Add browser policy" to prevent sign-in
+
+Bring in the parts of "Add browser policy" that look like they may
+affect sign-in, to prevent the browser from regularly communicating
+with accounts.google.com.
+
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+Issue: calyxos#2703
+Change-Id: Ic02dc33e5e860061eb903c412c98b06fb3389359
+---
+ chrome/browser/signin/account_consistency_mode_manager.cc  | 7 ++++---
+ .../signin/account_consistency_mode_manager_factory.cc     | 2 +-
+ .../throttled_gaia_auth_fetcher.cc                         | 5 +++++
+ chrome/browser/signin/chrome_signin_client.cc              | 7 ++++++-
+ chrome/browser/signin/dice_response_handler.cc             | 2 ++
+ 5 files changed, 18 insertions(+), 5 deletions(-)
+
+diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/browser/signin/account_consistency_mode_manager.cc
+--- a/chrome/browser/signin/account_consistency_mode_manager.cc
++++ b/chrome/browser/signin/account_consistency_mode_manager.cc
+@@ -172,7 +172,7 @@ void AccountConsistencyModeManager::SetIgnoreMissingOAuthClientForTesting() {
+ // static
+ bool AccountConsistencyModeManager::ShouldBuildServiceForProfile(
+     Profile* profile) {
+-  return profile->IsRegularProfile();
++  return false;
+ }
+ 
+ AccountConsistencyMethod
+@@ -210,7 +210,8 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
+ #endif
+ 
+ #if BUILDFLAG(ENABLE_MIRROR)
+-  return AccountConsistencyMethod::kMirror;
++  // always disabled
++  return AccountConsistencyMethod::kDisabled;
+ #endif
+ 
+ #if BUILDFLAG(ENABLE_DICE_SUPPORT)
+@@ -220,7 +221,7 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
+     return AccountConsistencyMethod::kDisabled;
+   }
+ 
+-  return AccountConsistencyMethod::kDice;
++  return AccountConsistencyMethod::kDisabled;
+ #endif
+ 
+   NOTREACHED_IN_MIGRATION();
+diff --git a/chrome/browser/signin/account_consistency_mode_manager_factory.cc b/chrome/browser/signin/account_consistency_mode_manager_factory.cc
+--- a/chrome/browser/signin/account_consistency_mode_manager_factory.cc
++++ b/chrome/browser/signin/account_consistency_mode_manager_factory.cc
+@@ -51,5 +51,5 @@ void AccountConsistencyModeManagerFactory::RegisterProfilePrefs(
+ 
+ bool AccountConsistencyModeManagerFactory::ServiceIsCreatedWithBrowserContext()
+     const {
+-  return true;
++  return false;
+ }
+diff --git a/chrome/browser/signin/bound_session_credentials/throttled_gaia_auth_fetcher.cc b/chrome/browser/signin/bound_session_credentials/throttled_gaia_auth_fetcher.cc
+--- a/chrome/browser/signin/bound_session_credentials/throttled_gaia_auth_fetcher.cc
++++ b/chrome/browser/signin/bound_session_credentials/throttled_gaia_auth_fetcher.cc
+@@ -15,6 +15,7 @@
+ #include "net/cookies/cookie_util.h"
+ #include "services/network/public/cpp/shared_url_loader_factory.h"
+ #include "services/network/public/mojom/fetch_api.mojom-shared.h"
++#include "build/build_config.h"
+ 
+ ThrottledGaiaAuthFetcher::ThrottledGaiaAuthFetcher(
+     GaiaAuthConsumer* consumer,
+@@ -41,6 +42,7 @@ void ThrottledGaiaAuthFetcher::CreateAndStartGaiaFetcher(
+     const GURL& gaia_gurl,
+     network::mojom::CredentialsMode credentials_mode,
+     const net::NetworkTrafficAnnotationTag& traffic_annotation) {
++#if BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
+   if ((IsListAccountsUrl(gaia_gurl) || IsMultiloginUrl(gaia_gurl)) &&
+       credentials_mode == network::mojom::CredentialsMode::kInclude &&
+       GoogleURLLoaderThrottle::GetRequestBoundSessionStatus(
+@@ -59,6 +61,7 @@ void ThrottledGaiaAuthFetcher::CreateAndStartGaiaFetcher(
+   GaiaAuthFetcher::CreateAndStartGaiaFetcher(body, body_content_type, headers,
+                                              gaia_gurl, credentials_mode,
+                                              traffic_annotation);
++#endif
+ }
+ 
+ void ThrottledGaiaAuthFetcher::OnGaiaFetcherResumedOrCancelled(
+@@ -70,6 +73,7 @@ void ThrottledGaiaAuthFetcher::OnGaiaFetcherResumedOrCancelled(
+     const net::NetworkTrafficAnnotationTag& traffic_annotation,
+     BoundSessionRequestThrottledHandler::UnblockAction unblock_action,
+     chrome::mojom::ResumeBlockedRequestsTrigger resume_trigger) {
++#if BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
+   switch (unblock_action) {
+     case BoundSessionRequestThrottledHandler::UnblockAction::kResume:
+       GaiaAuthFetcher::CreateAndStartGaiaFetcher(
+@@ -81,4 +85,5 @@ void ThrottledGaiaAuthFetcher::OnGaiaFetcherResumedOrCancelled(
+                              /*response_code=*/0);
+       break;
+   }
++#endif
+ }
+diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/signin/chrome_signin_client.cc
+--- a/chrome/browser/signin/chrome_signin_client.cc
++++ b/chrome/browser/signin/chrome_signin_client.cc
+@@ -231,7 +231,9 @@ void ChromeSigninClient::DoFinalInit() {
+ bool ChromeSigninClient::ProfileAllowsSigninCookies(Profile* profile) {
+   scoped_refptr<content_settings::CookieSettings> cookie_settings =
+       CookieSettingsFactory::GetForProfile(profile);
+-  return signin::SettingsAllowSigninCookies(cookie_settings.get());
++  // Make ChromeSigninClient compliant to SigninAllowed policy
++  bool cookiesAllowed = signin::SettingsAllowSigninCookies(cookie_settings.get());
++  return cookiesAllowed && profile->GetPrefs()->GetBoolean(prefs::kSigninAllowed);
+ }
+ 
+ PrefService* ChromeSigninClient::GetPrefs() {
+@@ -354,6 +356,9 @@ bool ChromeSigninClient::AreNetworkCallsDelayed() {
+ }
+ 
+ void ChromeSigninClient::DelayNetworkCall(base::OnceClosure callback) {
++  // Make ChromeSigninClient compliant to SigninAllowed policy
++  if (!AreSigninCookiesAllowed()) return;
++
+   wait_for_network_callback_helper_->DelayNetworkCall(std::move(callback));
+ }
+ 
+diff --git a/chrome/browser/signin/dice_response_handler.cc b/chrome/browser/signin/dice_response_handler.cc
+--- a/chrome/browser/signin/dice_response_handler.cc
++++ b/chrome/browser/signin/dice_response_handler.cc
+@@ -513,8 +513,10 @@ void DiceResponseHandler::ProcessDiceSignoutHeader(
+   // - If there is a policy restriction on removing the primary account.
+   bool invalidate_only_primary_account =
+       identity_manager_->HasPrimaryAccount(signin::ConsentLevel::kSync) ||
++#if BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
+       !signin::IsImplicitBrowserSigninOrExplicitDisabled(
+           identity_manager_, signin_client_->GetPrefs()) ||
++#endif
+       !signin_client_->IsClearPrimaryAccountAllowed(
+           /*has_sync_account=*/false);
+ 
+-- 
+
