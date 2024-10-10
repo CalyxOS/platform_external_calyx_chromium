@@ -8,13 +8,13 @@ Change-Id: I43f85c75293e3e6a75b2ff8c469ba88fd0e9a2da
 ---
  chrome/browser/component_updater/registration.cc          | 1 +
  components/component_updater/component_installer.cc       | 1 +
- components/component_updater/component_updater_service.cc | 2 +-
- 3 files changed, 3 insertions(+), 1 deletion(-)
+ components/component_updater/component_updater_service.cc | 8 +-------
+ 3 files changed, 3 insertions(+), 7 deletions(-)
 
 diff --git a/chrome/browser/component_updater/registration.cc b/chrome/browser/component_updater/registration.cc
 --- a/chrome/browser/component_updater/registration.cc
 +++ b/chrome/browser/component_updater/registration.cc
-@@ -98,6 +98,7 @@
+@@ -99,6 +99,7 @@
  namespace component_updater {
  
  void RegisterComponentsForUpdate() {
@@ -36,12 +36,19 @@ diff --git a/components/component_updater/component_installer.cc b/components/co
 diff --git a/components/component_updater/component_updater_service.cc b/components/component_updater/component_updater_service.cc
 --- a/components/component_updater/component_updater_service.cc
 +++ b/components/component_updater/component_updater_service.cc
-@@ -546,7 +546,7 @@ std::unique_ptr<ComponentUpdateService> ComponentUpdateServiceFactory(
+@@ -546,14 +546,8 @@ std::unique_ptr<ComponentUpdateService> ComponentUpdateServiceFactory(
+ 
  // Register prefs required by the component update service.
  void RegisterComponentUpdateServicePrefs(PrefRegistrySimple* registry) {
-   // The component updates are enabled by default, if the preference is not set.
--  registry->RegisterBooleanPref(prefs::kComponentUpdatesEnabled, true);
-+  registry->RegisterBooleanPref(prefs::kComponentUpdatesEnabled, false);
+-  // If the preference is not set the component updates are enabled by default
+-  // unless in Chrome for Testing where we never want components to be updated
+-  // automatically.
+-  constexpr bool kComponentUpdatesEnabledByDefault =
+-      !BUILDFLAG(CHROME_FOR_TESTING);
+-
+   registry->RegisterBooleanPref(prefs::kComponentUpdatesEnabled,
+-                                kComponentUpdatesEnabledByDefault);
++                                false);
  }
  
  }  // namespace component_updater

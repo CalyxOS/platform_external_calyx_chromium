@@ -28,7 +28,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  chrome/app/generated_resources.grd            |  10 +
  chrome/browser/after_startup_task_utils.cc    |   4 +
  chrome/browser/browser_process.h              |   6 +
- chrome/browser/browser_process_impl.cc        |  21 ++
+ chrome/browser/browser_process_impl.cc        |  28 ++
  chrome/browser/browser_process_impl.h         |   2 +
  chrome/browser/chrome_browser_main.cc         |   3 +
  chrome/browser/flags/BUILD.gn                 |   3 +
@@ -39,10 +39,10 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../strings/android_chrome_strings.grd        |  14 +
  chrome/common/pref_names.h                    |   5 +
  .../strings/android/site_settings.grdp        |   3 +
- components/component_updater/BUILD.gn         |   7 +
+ components/component_updater/BUILD.gn         |   8 +
  .../adblock_updater_service.cc                | 281 ++++++++++++++++++
  .../adblock_updater_service.h                 | 103 +++++++
- .../download_filters_task.cc                  | 239 +++++++++++++++
+ .../download_filters_task.cc                  | 250 ++++++++++++++++
  .../component_updater/download_filters_task.h | 129 ++++++++
  ...ent_subresource_filter_throttle_manager.cc |  15 +
  ...tent_subresource_filter_throttle_manager.h |   2 +
@@ -53,7 +53,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../browser/subresource_filter_features.cc    | 116 +-------
  .../core/browser/verified_ruleset_dealer.cc   |   4 +
  .../core/common/indexed_ruleset.cc            |   5 +-
- 39 files changed, 1254 insertions(+), 129 deletions(-)
+ 39 files changed, 1273 insertions(+), 129 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -68,7 +68,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -367,6 +367,7 @@ if (current_toolchain == default_toolchain) {
+@@ -370,6 +370,7 @@ if (current_toolchain == default_toolchain) {
        "//chrome/android/modules/cablev2_authenticator/public:java",
        "//chrome/android/modules/stack_unwinder/provider:java",
        "//chrome/android/webapk/libs/client:client_java",
@@ -79,7 +79,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -433,6 +433,7 @@ chrome_java_resources = [
+@@ -434,6 +434,7 @@ chrome_java_resources = [
    "java/res/layout/account_divider_preference.xml",
    "java/res/layout/account_management_account_row.xml",
    "java/res/layout/app_history_filter.xml",
@@ -98,7 +98,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -942,6 +942,8 @@ chrome_java_sources = [
+@@ -943,6 +943,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -216,7 +216,7 @@ diff --git a/chrome/android/java/res/values/values.xml b/chrome/android/java/res
  
 +    <string name="adblock_on">Autoupdate enabled</string>
 +    <string name="adblock_off">Autoupdate disabled</string>
-+    <string name="adblock_help_url">https://www.bromite.org/custom-filters</string>
++    <string name="adblock_help_url">https://github.com/uazo/cromite/blob/master/docs/BROMITE_LEGACY_ADBLOCK.md</string>
 +
      <!-- Download InfoBar animation. -->
      <integer name="download_infobar_fill_in_delay">1200</integer>
@@ -254,10 +254,10 @@ new file mode 100644
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
 +++ b/chrome/android/java/res/xml/main_preferences.xml
-@@ -83,6 +83,11 @@ found in the LICENSE file.
-         android:key="safety_hub"
-         android:order="14"
-         android:title="@string/prefs_safety_check"/>
+@@ -122,6 +122,11 @@ for the previous order (main_preferences_legacy). -->
+         android:key="toolbar_shortcut"
+         android:order="21"
+         android:title="@string/toolbar_shortcut"/>
 +    <Preference
 +        android:fragment="org.chromium.chrome.browser.settings.AdBlockPreferences"
 +        android:key="adblock"
@@ -265,7 +265,7 @@ diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/j
 +        android:title="@string/prefs_adblock"/>
      <Preference
          android:key="notifications"
-         android:order="15"
+         android:order="22"
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
 new file mode 100644
 --- /dev/null
@@ -428,7 +428,7 @@ new file mode 100644
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
-@@ -853,9 +853,7 @@ public class TabModelImpl extends TabModelJniBridge {
+@@ -855,9 +855,7 @@ public class TabModelImpl extends TabModelJniBridge {
                  .createTabWithWebContents(
                          parent,
                          webContents,
@@ -442,7 +442,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -15905,6 +15905,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -15940,6 +15940,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -513,7 +513,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1197,6 +1197,27 @@ BrowserProcessImpl::component_updater() {
+@@ -1227,6 +1227,34 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -527,6 +527,13 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 +
 +  std::unique_ptr<component_updater::UpdateScheduler> scheduler =
 +      std::make_unique<component_updater::TimerUpdateScheduler>();
++
++  auto adblock_updater_url =
++    local_state()->GetString(prefs::kAdBlockFiltersURL);
++  if (base::StartsWith(adblock_updater_url,
++        "https://www.bromite.org", base::CompareCase::INSENSITIVE_ASCII)) {
++    local_state()->SetString(prefs::kAdBlockFiltersURL, "about:blank");
++  }
 +
 +  adblock_updater_ = std::make_unique<adblock_updater::AdBlockUpdaterService>(
 +          g_browser_process->system_network_context_manager()->GetSharedURLLoaderFactory(),
@@ -552,7 +559,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
    MediaFileSystemRegistry* media_file_system_registry() override;
    WebRtcLogUploader* webrtc_log_uploader() override;
    network_time::NetworkTimeTracker* network_time_tracker() override;
-@@ -419,6 +420,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -421,6 +422,7 @@ class BrowserProcessImpl : public BrowserProcess,
    // to concerns over integrity of data shared between profiles,
    // but some users of component updater only install per-user.
    std::unique_ptr<component_updater::ComponentUpdateService> component_updater_;
@@ -563,7 +570,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -470,6 +470,9 @@ StartupProfileInfo CreateInitialProfile(
+@@ -472,6 +472,9 @@ StartupProfileInfo CreateInitialProfile(
    // missing code in the above test.
    CHECK(profile_info.profile) << "Cannot get default profile.";
  
@@ -674,13 +681,13 @@ new file mode 100755
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -635,6 +635,10 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
- void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -637,6 +637,10 @@ void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    StubResolverConfigReader::RegisterPrefs(registry);
+   DefaultDnsOverHttpsConfigSource::RegisterPrefs(registry);
  
 +  registry->RegisterBooleanPref(prefs::kAdBlockEnabled, false);
 +  registry->RegisterStringPref(prefs::kAdBlockFiltersURL,
-+    "https://www.bromite.org/filters/filters.dat");
++    "about:blank");
 +
    // Static auth params
    registry->RegisterStringPref(prefs::kAuthSchemes,
@@ -729,7 +736,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -2824,6 +2824,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2840,6 +2840,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  inline constexpr char kAudioCaptureAllowedUrls[] =
      "hardware.audio_capture_allowed_urls";
  
@@ -744,7 +751,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
 +++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -371,6 +371,9 @@
+@@ -374,6 +374,9 @@
    <message name="IDS_INTRUSIVE_ADS_INFORMATION" desc="The extra information at the top of the Site Details page when the site tends to show intrusive ads">
      This site shows intrusive or misleading ads
    </message>
@@ -770,7 +777,7 @@ diff --git a/components/component_updater/BUILD.gn b/components/component_update
      "component_updater_service.cc",
      "component_updater_service.h",
      "component_updater_service_internal.h",
-@@ -48,6 +54,7 @@ static_library("component_updater") {
+@@ -49,9 +55,11 @@ static_library("component_updater") {
      "//components/update_client",
      "//components/version_info",
      "//net",
@@ -778,6 +785,10 @@ diff --git a/components/component_updater/BUILD.gn b/components/component_update
      "//third_party/boringssl",
      "//ui/base",
      "//url",
++    "//content/common:buildflags"
+   ]
+ }
+ 
 diff --git a/components/component_updater/adblock_updater_service.cc b/components/component_updater/adblock_updater_service.cc
 new file mode 100644
 --- /dev/null
@@ -1176,7 +1187,7 @@ diff --git a/components/component_updater/download_filters_task.cc b/components/
 new file mode 100644
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.cc
-@@ -0,0 +1,239 @@
+@@ -0,0 +1,250 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1346,10 +1357,21 @@ new file mode 100644
 +  final_url_ = final_url;
 +  response_code_ = response_head.headers ? response_head.headers->response_code() : -1;
 +
-+  if (!response_head.headers->GetLastModifiedValue(&last_modified_))
-+    LOG(WARNING) << "DownloadFiltersTask: fetching URL '" << final_url.spec() << "' with method " << (min_last_modified_.is_null() ? "GET" : "HEAD") << " (no Last-Modified header)";
-+  else
-+    LOG(INFO) << "DownloadFiltersTask: fetching URL '" << final_url.spec() << "' with method " << (min_last_modified_.is_null() ? "GET" : "HEAD");
++  std::optional<base::Time> last_modified_value =
++          response_head.headers->GetLastModifiedValue();
++  if (last_modified_value) {
++    last_modified_ = last_modified_value.value();
++    LOG(INFO) << "DownloadFiltersTask: fetching URL '"
++              << final_url.spec()
++              << "' with method "
++              << (min_last_modified_.is_null() ? "GET" : "HEAD");
++  } else {
++    LOG(WARNING) << "DownloadFiltersTask: fetching URL '"
++                 << final_url.spec()
++                 << "' with method "
++                 << (min_last_modified_.is_null() ? "GET" : "HEAD")
++                 << " (no Last-Modified header)";
++  }
 +}
 +
 +void DownloadFiltersTask::OnDownloadComplete(base::FilePath file_path) {
@@ -1563,7 +1585,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
  #include "components/subresource_filter/content/browser/ad_tagging_utils.h"
  #include "components/subresource_filter/content/browser/content_subresource_filter_web_contents_helper.h"
  #include "components/subresource_filter/content/browser/profile_interaction_manager.h"
-@@ -110,6 +113,7 @@ ContentSubresourceFilterThrottleManager::
+@@ -111,6 +114,7 @@ ContentSubresourceFilterThrottleManager::
        profile_interaction_manager_(
            std::make_unique<subresource_filter::ProfileInteractionManager>(
                profile_context)),
@@ -1571,7 +1593,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
        web_contents_helper_(web_contents_helper) {}
  
  ContentSubresourceFilterThrottleManager::
-@@ -667,6 +671,17 @@ ContentSubresourceFilterThrottleManager::
+@@ -671,6 +675,17 @@ ContentSubresourceFilterThrottleManager::
        throttle->NotifyPageActivationWithRuleset(EnsureRulesetHandle(),
                                                  ad_tagging_state);
      }
@@ -1592,7 +1614,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
 diff --git a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.h b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.h
 --- a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.h
 +++ b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.h
-@@ -411,6 +411,8 @@ class ContentSubresourceFilterThrottleManager
+@@ -414,6 +414,8 @@ class ContentSubresourceFilterThrottleManager
  
    std::unique_ptr<ProfileInteractionManager> profile_interaction_manager_;
  
