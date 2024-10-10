@@ -1,0 +1,70 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 9 Oct 2024 18:09:39 +0000
+Subject: Temp revert snackbar stuff from cromite flags patch
+
+Change-Id: I9b818c43f685571fbffbe6c939f833ba03c512ff
+---
+ .../browser/settings/SettingsActivity.java    | 35 -------------------
+ 1 file changed, 35 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
+@@ -47,7 +47,6 @@ import org.chromium.chrome.browser.profiles.ProfileManagerUtils;
+ import org.chromium.chrome.browser.ui.device_lock.MissingDeviceLockLauncher;
+ import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
+ import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager.SnackbarManageable;
+-import org.chromium.chrome.browser.ui.messages.snackbar.Snackbar;
+ import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
+ import org.chromium.components.browser_ui.bottomsheet.BottomSheetControllerFactory;
+ import org.chromium.components.browser_ui.bottomsheet.ManagedBottomSheetController;
+@@ -84,35 +83,6 @@ import java.util.Locale;
+  */
+ public class SettingsActivity extends ChromeBaseAppCompatActivity
+         implements PreferenceFragmentCompat.OnPreferenceStartFragmentCallback, SnackbarManageable {
+-    private static class RequestRestartDelegate implements ChromeBaseSettingsFragment.RequireRestartDelegate {
+-        private SnackbarManager mSnackbarManager;
+-        private Activity mActivity;
+-
+-        RequestRestartDelegate(SnackbarManager snackbarManager, Activity activity) {
+-            mSnackbarManager = snackbarManager;
+-            mActivity = activity;
+-        }
+-
+-        @Override
+-        public void RequireRestart() {
+-            Snackbar mSnackbar = Snackbar.make(mActivity.getString(R.string.ui_relaunch_notice),
+-                new SnackbarManager.SnackbarController() {
+-                    @Override
+-                    public void onDismissNoAction(Object actionData) { }
+-
+-                    @Override
+-                    public void onAction(Object actionData) {
+-                            ApplicationLifetime.terminate(true);
+-                    }
+-                }, Snackbar.TYPE_NOTIFICATION, Snackbar.UMA_UNKNOWN)
+-                .setSingleLine(false)
+-                .setAction(mActivity.getString(R.string.relaunch),
+-                        /*actionData*/null)
+-                .setDuration(/*durationMs*/70000);
+-            if (!mSnackbarManager.isShowing())
+-                mSnackbarManager.showSnackbar(mSnackbar);
+-        }
+-    }
+ 
+     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+     public static final String EXTRA_SHOW_FRAGMENT = "show_fragment";
+@@ -300,11 +270,6 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+     @Override
+     public void onAttachedToWindow() {
+         super.onAttachedToWindow();
+-        Fragment fragment = getMainFragment();
+-        if (fragment instanceof ChromeBaseSettingsFragment) {
+-            ((ChromeBaseSettingsFragment)fragment).setRequestRestartDelegate(
+-                new RequestRestartDelegate(mSnackbarManager, this));
+-        }
+         initBackPressHandler();
+     }
+ 
+-- 
+

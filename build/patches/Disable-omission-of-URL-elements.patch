@@ -8,28 +8,15 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 
 Change-Id: Ia5e913b0c031953155077a111287446bde377cde
 ---
- .../ephemeraltab/EphemeralTabSheetContent.java    |  3 +--
- .../share_sheet/ShareSheetBottomSheetContent.java |  4 +---
- .../toolbar/chrome_location_bar_model_delegate.cc |  2 +-
- .../ui/views/page_info/page_info_main_view.cc     | 15 ++++++++++-----
- .../components/bookmarks/BookmarkItem.java        |  1 +
- .../omnibox/browser/titled_url_match_utils.cc     |  2 +-
- .../components/page_info/PageInfoController.java  |  3 +--
- 7 files changed, 16 insertions(+), 14 deletions(-)
+ .../ShareSheetBottomSheetContent.java         |  4 +-
+ .../EphemeralTabSheetContent.java             |  3 +-
+ .../chrome_location_bar_model_delegate.cc     |  2 +-
+ .../ui/views/page_info/page_info_main_view.cc | 67 ++++++++++---------
+ .../components/bookmarks/BookmarkItem.java    |  1 +
+ .../omnibox/browser/titled_url_match_utils.cc |  2 +-
+ .../page_info/PageInfoController.java         |  3 +-
+ 7 files changed, 41 insertions(+), 41 deletions(-)
 
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/bottombar/ephemeraltab/EphemeralTabSheetContent.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/bottombar/ephemeraltab/EphemeralTabSheetContent.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/bottombar/ephemeraltab/EphemeralTabSheetContent.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/bottombar/ephemeraltab/EphemeralTabSheetContent.java
-@@ -235,8 +235,7 @@ public class EphemeralTabSheetContent implements BottomSheetContent {
-     /** Sets the ephemeral tab URL. */
-     public void updateURL(GURL url) {
-         TextView originView = mToolbarView.findViewById(R.id.origin);
--        originView.setText(
--                UrlFormatter.formatUrlForSecurityDisplay(url, SchemeDisplay.OMIT_HTTP_AND_HTTPS));
-+        originView.setText(url.getSpec());
-     }
- 
-     /** Sets the security icon. */
 diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/share_sheet/ShareSheetBottomSheetContent.java b/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/share_sheet/ShareSheetBottomSheetContent.java
 --- a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/share_sheet/ShareSheetBottomSheetContent.java
 +++ b/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/share_sheet/ShareSheetBottomSheetContent.java
@@ -44,6 +31,19 @@ diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/s
  
          if (contentTypes.contains(ContentType.IMAGE)
                  || contentTypes.contains(ContentType.IMAGE_AND_LINK)) {
+diff --git a/chrome/browser/ui/android/ephemeraltab/java/src/org/chromium/chrome/browser/ephemeraltab/EphemeralTabSheetContent.java b/chrome/browser/ui/android/ephemeraltab/java/src/org/chromium/chrome/browser/ephemeraltab/EphemeralTabSheetContent.java
+--- a/chrome/browser/ui/android/ephemeraltab/java/src/org/chromium/chrome/browser/ephemeraltab/EphemeralTabSheetContent.java
++++ b/chrome/browser/ui/android/ephemeraltab/java/src/org/chromium/chrome/browser/ephemeraltab/EphemeralTabSheetContent.java
+@@ -234,8 +234,7 @@ public class EphemeralTabSheetContent implements BottomSheetContent {
+     /** Sets the ephemeral tab URL. */
+     public void updateURL(GURL url) {
+         TextView originView = mToolbarView.findViewById(R.id.origin);
+-        originView.setText(
+-                UrlFormatter.formatUrlForSecurityDisplay(url, SchemeDisplay.OMIT_HTTP_AND_HTTPS));
++        originView.setText(url.getSpec());
+     }
+ 
+     /** Sets the security icon. */
 diff --git a/chrome/browser/ui/toolbar/chrome_location_bar_model_delegate.cc b/chrome/browser/ui/toolbar/chrome_location_bar_model_delegate.cc
 --- a/chrome/browser/ui/toolbar/chrome_location_bar_model_delegate.cc
 +++ b/chrome/browser/ui/toolbar/chrome_location_bar_model_delegate.cc
@@ -57,33 +57,76 @@ diff --git a/chrome/browser/ui/toolbar/chrome_location_bar_model_delegate.cc b/c
 diff --git a/chrome/browser/ui/views/page_info/page_info_main_view.cc b/chrome/browser/ui/views/page_info/page_info_main_view.cc
 --- a/chrome/browser/ui/views/page_info/page_info_main_view.cc
 +++ b/chrome/browser/ui/views/page_info/page_info_main_view.cc
-@@ -562,10 +562,14 @@ void PageInfoMainView::ChildPreferredSizeChanged(views::View* child) {
+@@ -562,38 +562,41 @@ void PageInfoMainView::ChildPreferredSizeChanged(views::View* child) {
  }
  
  std::unique_ptr<views::View> PageInfoMainView::CreateBubbleHeaderView() {
--  auto header = std::make_unique<views::View>();
--  header->SetLayoutManager(std::make_unique<views::FlexLayout>())
+-  return views::Builder<views::FlexLayoutView>()
+-      .SetInteriorMargin(gfx::Insets::VH(0, 20))
+-      .AddChildren(
+-          views::Builder<views::Label>(
+-              std::make_unique<views::Label>(
+-                  std::u16string(), views::style::CONTEXT_DIALOG_TITLE,
+-                  views::style::STYLE_HEADLINE_4,
+-                  gfx::DirectionalityMode::DIRECTIONALITY_AS_URL))
+-              .CopyAddressTo(&title_)
+-              .SetMultiLine(true)
+-              .SetAllowCharacterBreak(true)
+-              .SetHorizontalAlignment(gfx::ALIGN_LEFT)
+-              .SetProperty(views::kFlexBehaviorKey,
+-                           views::FlexSpecification(
+-                               views::LayoutOrientation::kHorizontal,
+-                               views::MinimumFlexSizeRule::kScaleToZero,
+-                               views::MaximumFlexSizeRule::kUnbounded)
+-                               .WithWeight(1)),
+-          views::Builder<views::View>(
+-              views::BubbleFrameView::CreateCloseButton(
+-                  base::BindRepeating(&PageInfoNavigationHandler::CloseBubble,
+-                                      base::Unretained(navigation_handler_))))
+-              .SetVisible(true)
+-              .SetProperty(views::kCrossAxisAlignmentKey,
+-                           views::LayoutAlignment::kStart)
+-              .CustomConfigure(base::BindOnce([](views::View* button) {
+-                // Set views::kInternalPaddingKey for flex layout to account for
+-                // internal button padding when calculating margins.
+-                button->SetProperty(views::kInternalPaddingKey,
+-                                    button->GetInsets());
+-              })))
+-      .Build();
 +  auto cromite_header = std::make_unique<views::ScrollView>();
 +  cromite_header->SetVerticalScrollBarMode(views::ScrollView::ScrollBarMode::kHiddenButEnabled);
 +  cromite_header->SetHorizontalScrollBarMode(views::ScrollView::ScrollBarMode::kDisabled);
 +  cromite_header->ClipHeightTo(0, 150);
 +  auto scroll_contents = std::make_unique<views::View>();
 +  scroll_contents->SetLayoutManager(std::make_unique<views::FlexLayout>())
-       ->SetInteriorMargin(gfx::Insets::VH(0, 20));
--  title_ = header->AddChildView(std::make_unique<views::Label>(
++      ->SetInteriorMargin(gfx::Insets::VH(0, 20));
 +  title_ = scroll_contents->AddChildView(std::make_unique<views::Label>(
-       std::u16string(), views::style::CONTEXT_DIALOG_TITLE,
-       views::style::STYLE_HEADLINE_4,
-       gfx::DirectionalityMode::DIRECTIONALITY_AS_URL));
-@@ -589,9 +593,10 @@ std::unique_ptr<views::View> PageInfoMainView::CreateBubbleHeaderView() {
-   // button padding when calculating margins.
-   close_button->SetProperty(views::kInternalPaddingKey,
-                             close_button->GetInsets());
--  header->AddChildView(close_button.release());
++      std::u16string(), views::style::CONTEXT_DIALOG_TITLE,
++      views::style::STYLE_HEADLINE_4,
++      gfx::DirectionalityMode::DIRECTIONALITY_AS_URL));
++  title_->SetMultiLine(true);
++  title_->SetAllowCharacterBreak(true);
++  title_->SetProperty(
++      views::kFlexBehaviorKey,
++      views::FlexSpecification(views::MinimumFlexSizeRule::kScaleToZero,
++                               views::MaximumFlexSizeRule::kUnbounded,
++                               /*adjust_height_for_width =*/true)
++          .WithWeight(1));
++  title_->SetHorizontalAlignment(gfx::ALIGN_LEFT);
++  auto close_button = views::BubbleFrameView::CreateCloseButton(
++      base::BindRepeating(&PageInfoNavigationHandler::CloseBubble,
++                          base::Unretained(navigation_handler_)));
++
++  close_button->SetVisible(true);
++  close_button->SetProperty(views::kCrossAxisAlignmentKey,
++                            views::LayoutAlignment::kStart);
++  // Set views::kInternalPaddingKey for flex layout to account for internal
++  // button padding when calculating margins.
++  close_button->SetProperty(views::kInternalPaddingKey,
++                            close_button->GetInsets());
 +  scroll_contents->AddChildView(close_button.release());
 +  cromite_header->SetContents(std::move(scroll_contents));
- 
--  return header;
++
 +  return cromite_header;
  }
  

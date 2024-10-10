@@ -325,7 +325,7 @@ diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/t
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
-@@ -4025,19 +4025,6 @@ bool LocalFrame::IsSameOrigin() {
+@@ -4040,19 +4040,6 @@ bool LocalFrame::IsSameOrigin() {
    return security_origin->IsSameOriginWith(top_security_origin);
  }
  
@@ -383,7 +383,7 @@ diff --git a/third_party/blink/renderer/core/html/image_document.cc b/third_part
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
-@@ -301,6 +301,7 @@ ResourceFetcher* FrameFetchContext::CreateFetcherForCommittedDocument(
+@@ -302,6 +302,7 @@ ResourceFetcher* FrameFetchContext::CreateFetcherForCommittedDocument(
    fetcher->SetResourceLoadObserver(
        MakeGarbageCollected<ResourceLoadObserverForFrame>(
            loader, document, fetcher->GetProperties()));
@@ -391,7 +391,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
    fetcher->SetAutoLoadImages(
        frame->GetSettings()->GetLoadsImagesAutomatically());
    fetcher->SetEarlyHintsPreloadedResources(
-@@ -473,16 +474,11 @@ void FrameFetchContext::AddResourceTiming(
+@@ -483,16 +484,11 @@ void FrameFetchContext::AddResourceTiming(
        ->AddResourceTiming(std::move(info), initiator_type);
  }
  
@@ -421,12 +421,12 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/thir
 -  bool AllowImage() const override;
 +  bool AllowImage(bool images_enabled, const KURL&) const override;
  
-   void PopulateResourceRequest(ResourceType,
-                                const std::optional<float> resource_width,
+   void PopulateResourceRequestBeforeCacheAccess(
+       const ResourceLoaderOptions& options,
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -988,9 +988,8 @@ void Page::SettingsChanged(ChangeType change_type) {
+@@ -1030,9 +1030,8 @@ void Page::SettingsChanged(ChangeType change_type) {
        for (Frame* frame = MainFrame(); frame;
             frame = frame->Tree().TraverseNext()) {
          if (auto* local_frame = DynamicTo<LocalFrame>(frame)) {
@@ -453,7 +453,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/fetch_context.h b/
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
-@@ -777,6 +777,7 @@ ResourceFetcher::ResourceFetcher(const ResourceFetcherInit& init)
+@@ -790,6 +790,7 @@ ResourceFetcher::ResourceFetcher(const ResourceFetcherInit& init)
        blob_registry_remote_(init.context_lifecycle_notifier),
        context_lifecycle_notifier_(init.context_lifecycle_notifier),
        auto_load_images_(true),
@@ -461,7 +461,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
        allow_stale_resources_(false),
        image_fetched_(false),
        transparent_image_optimization_enabled_(base::FeatureList::IsEnabled(
-@@ -1925,7 +1926,7 @@ bool ResourceFetcher::IsImageResourceDisallowedToBeReused(
+@@ -1920,7 +1921,7 @@ bool ResourceFetcher::IsImageResourceDisallowedToBeReused(
    if (existing_resource.GetType() != ResourceType::kImage)
      return false;
  
@@ -470,7 +470,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
  }
  
  ResourceFetcher::RevalidationPolicy
-@@ -2168,8 +2169,20 @@ void ResourceFetcher::SetAutoLoadImages(bool enable) {
+@@ -2163,8 +2164,20 @@ void ResourceFetcher::SetAutoLoadImages(bool enable) {
    ReloadImagesIfNotDeferred();
  }
  
@@ -503,7 +503,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
  
    FetchContext& Context() const;
    void ClearContext();
-@@ -692,6 +693,7 @@ class PLATFORM_EXPORT ResourceFetcher
+@@ -686,6 +687,7 @@ class PLATFORM_EXPORT ResourceFetcher
  
    // 27 bits left
    bool auto_load_images_ : 1;

@@ -1,0 +1,114 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 9 Oct 2024 17:55:33 +0000
+Subject: Revert "Add exit menu item"
+
+This reverts commit aebff1ccf6314a9527b4a27a2e038d807b74a78f.
+---
+ chrome/android/java/res/menu/main_menu.xml                  | 6 ------
+ .../org/chromium/chrome/browser/ChromeTabbedActivity.java   | 4 ----
+ .../src/org/chromium/chrome/browser/app/ChromeActivity.java | 6 ------
+ .../chrome/browser/lifetime/ApplicationLifetime.java        | 2 --
+ .../browser/ui/android/strings/android_chrome_strings.grd   | 3 ---
+ 5 files changed, 21 deletions(-)
+
+diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
+--- a/chrome/android/java/res/menu/main_menu.xml
++++ b/chrome/android/java/res/menu/main_menu.xml
+@@ -154,9 +154,6 @@ found in the LICENSE file.
+         <item android:id="@+id/managed_by_menu_id"
+             android:title="@string/managed_browser"
+             android:icon="@drawable/ic_business" />
+-        <item android:id="@+id/exit_id"
+-            android:title="@string/menu_exit"
+-            android:icon="@drawable/ic_exit_to_app_white_24dp" />
+     </group>
+ 
+     <!-- Items shown only in the tab switcher -->
+@@ -186,9 +183,6 @@ found in the LICENSE file.
+         <item android:id="@id/preferences_id"
+             android:title="@string/menu_settings"
+             android:icon="@drawable/settings_cog" />
+-        <item android:id="@+id/exit_id"
+-            android:title="@string/menu_exit"
+-            android:icon="@drawable/ic_exit_to_app_white_24dp" />
+     </group>
+ 
+     <!-- Items shown only when the tablet has no visible tabs -->
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+@@ -277,8 +277,6 @@ import java.util.Set;
+ import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.DoubleConsumer;
+ 
+-import org.chromium.chrome.browser.ApplicationLifetime;
+-
+ /**
+  * This is the main activity for ChromeMobile when not running in document mode. All the tabs are
+  * accessible via a chrome specific tab switching UI.
+@@ -2837,8 +2835,6 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+         } else if (id == R.id.close_tab) {
+             getCurrentTabModel().closeTabs(TabClosureParams.closeTab(currentTab).build());
+             RecordUserAction.record("MobileTabClosed");
+-        } else if (id == R.id.exit_id) {
+-            ApplicationLifetime.terminate(false);
+         } else if (id == R.id.close_all_tabs_menu_id) {
+             // Close both incognito and normal tabs.
+             Runnable closeAllTabsRunnable =
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
+@@ -61,7 +61,6 @@ import org.chromium.base.supplier.UnownedUserDataSupplier;
+ import org.chromium.chrome.R;
+ import org.chromium.chrome.browser.ActivityTabProvider;
+ import org.chromium.chrome.browser.ActivityUtils;
+-import org.chromium.chrome.browser.ApplicationLifetime;
+ import org.chromium.chrome.browser.ChromeActivitySessionTracker;
+ import org.chromium.chrome.browser.ChromeApplicationImpl;
+ import org.chromium.chrome.browser.ChromeKeyboardVisibilityDelegate;
+@@ -2500,11 +2499,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+             return true;
+         }
+ 
+-        if (id == R.id.exit_id) {
+-            ApplicationLifetime.terminate(false);
+-            return true;
+-        }
+-
+         if (id == R.id.update_menu_id) {
+             UpdateMenuItemHelper.getInstance(
+                             getProfileProviderSupplier().get().getOriginalProfile())
+diff --git a/chrome/browser/lifetime/android/java/src/org/chromium/chrome/browser/lifetime/ApplicationLifetime.java b/chrome/browser/lifetime/android/java/src/org/chromium/chrome/browser/lifetime/ApplicationLifetime.java
+--- a/chrome/browser/lifetime/android/java/src/org/chromium/chrome/browser/lifetime/ApplicationLifetime.java
++++ b/chrome/browser/lifetime/android/java/src/org/chromium/chrome/browser/lifetime/ApplicationLifetime.java
+@@ -7,7 +7,6 @@ package org.chromium.chrome.browser.lifetime;
+ import org.jni_zero.CalledByNative;
+ 
+ import org.chromium.base.ObserverList;
+-import org.chromium.chrome.browser.incognito.IncognitoNotificationManager;
+ 
+ /** Watches for when Chrome is told to restart itself. */
+ public class ApplicationLifetime {
+@@ -40,7 +39,6 @@ public class ApplicationLifetime {
+ 
+     @CalledByNative
+     public static void terminate(boolean restart) {
+-        IncognitoNotificationManager.dismissIncognitoNotification();
+         for (Observer observer : sObservers) {
+             observer.onTerminate(restart);
+         }
+diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
+--- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
++++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
+@@ -4421,9 +4421,6 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
+       <message name="IDS_MENU_AUTO_DARK_WEB_CONTENTS" desc="Menu item in Chrome's overflow/options menu. When Chrome's browser UI is set to dark theme and this option is checked, sites will have a dark theme automatically applied as well. [CHAR_LIMIT=24]">
+         Dark theme
+       </message>
+-      <message name="IDS_MENU_EXIT" desc="Menu item for exit browser. [CHAR-LIMIT=27]">
+-        Exit
+-      </message>
+       <message name="IDS_MENU_READER_MODE_PREFS" desc="Menu item to show reader mode preferences pane, which allows users to change the appearance (font size, theme, etc.) of the page. [CHAR_LIMIT=27]">
+         Appearance
+       </message>
+-- 
+

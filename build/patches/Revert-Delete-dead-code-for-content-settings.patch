@@ -1,0 +1,195 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 9 Oct 2024 14:57:18 +0000
+Subject: Revert "Delete dead code for content settings."
+
+This reverts commit 0b2cf1f0a0a9de98d815a2f7be610fddcd071139.
+
+Change-Id: Idb911d4496a974b1dc7718d2d2fab37f1f973836
+---
+ .../chrome_content_renderer_client.cc         |  6 +++-
+ .../renderer/content_settings_agent_impl.cc   | 35 +++++++++++++++++++
+ .../renderer/content_settings_agent_impl.h    | 11 ++++++
+ ...content_settings_agent_impl_browsertest.cc | 30 ++++++++++++++++
+ content/web_test/renderer/test_runner.h       |  1 +
+ 5 files changed, 82 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer/chrome_content_renderer_client.cc
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -597,6 +597,9 @@ void ChromeContentRendererClient::RenderFrameCreated(
+ 
+   new prerender::PrerenderRenderFrameObserver(render_frame);
+ 
++  bool should_allow_for_content_settings =
++      base::CommandLine::ForCurrentProcess()->HasSwitch(
++          switches::kInstantProcess);
+   auto content_settings_delegate =
+       std::make_unique<ChromeContentSettingsAgentDelegate>(render_frame);
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+@@ -605,7 +608,8 @@ void ChromeContentRendererClient::RenderFrameCreated(
+ #endif
+   content_settings::ContentSettingsAgentImpl* content_settings =
+       new content_settings::ContentSettingsAgentImpl(
+-          render_frame, std::move(content_settings_delegate));
++          render_frame, should_allow_for_content_settings,
++          std::move(content_settings_delegate));
+   if (chrome_observer_.get()) {
+     if (chrome_observer_->content_settings_manager()) {
+       mojo::Remote<content_settings::mojom::ContentSettingsManager> manager;
+diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
+--- a/components/content_settings/renderer/content_settings_agent_impl.cc
++++ b/components/content_settings/renderer/content_settings_agent_impl.cc
+@@ -79,10 +79,12 @@ std::optional<bool> ContentSettingsAgentImpl::Delegate::AllowMutationEvents() {
+ 
+ ContentSettingsAgentImpl::ContentSettingsAgentImpl(
+     content::RenderFrame* render_frame,
++    bool should_allowlist,
+     std::unique_ptr<Delegate> delegate)
+     : content::RenderFrameObserver(render_frame),
+       content::RenderFrameObserverTracker<ContentSettingsAgentImpl>(
+           render_frame),
++      should_allowlist_(should_allowlist),
+       delegate_(std::move(delegate)) {
+   DCHECK(delegate_);
+   ClearBlockedContentSettings();
+@@ -351,4 +353,37 @@ void ContentSettingsAgentImpl::ClearBlockedContentSettings() {
+   cached_storage_permissions_.clear();
+ }
+ 
++bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
++  if (should_allowlist_)
++    return true;
++
++  const WebDocument& document = render_frame()->GetWebFrame()->GetDocument();
++  WebSecurityOrigin origin = document.GetSecurityOrigin();
++  WebURL document_url = document.Url();
++  if (document_url.GetString() == content::kUnreachableWebDataURL)
++    return true;
++
++  if (origin.IsNull() || origin.IsOpaque())
++    return false;  // Uninitialized document?
++
++  blink::WebString protocol = origin.Protocol();
++
++  if (protocol == content::kChromeUIScheme)
++    return true;  // Browser UI elements should still work.
++
++  if (protocol == content::kChromeDevToolsScheme)
++    return true;  // DevTools UI elements should still work.
++
++  if (delegate_->IsSchemeAllowlisted(protocol.Utf8()))
++    return true;
++
++  // If the scheme is file:, an empty file name indicates a directory listing,
++  // which requires JavaScript to function properly.
++  if (protocol == url::kFileScheme &&
++      document_url.ProtocolIs(url::kFileScheme)) {
++    return GURL(document_url).ExtractFileName().empty();
++  }
++  return false;
++}
++
+ }  // namespace content_settings
+diff --git a/components/content_settings/renderer/content_settings_agent_impl.h b/components/content_settings/renderer/content_settings_agent_impl.h
+--- a/components/content_settings/renderer/content_settings_agent_impl.h
++++ b/components/content_settings/renderer/content_settings_agent_impl.h
+@@ -62,7 +62,10 @@ class ContentSettingsAgentImpl
+     virtual std::optional<bool> AllowMutationEvents();
+   };
+ 
++  // Set `should_allowlist` to true if `render_frame()` contains content that
++  // should be allowlisted for content settings.
+   ContentSettingsAgentImpl(content::RenderFrame* render_frame,
++                           bool should_allowlist,
+                            std::unique_ptr<Delegate> delegate);
+ 
+   ContentSettingsAgentImpl(const ContentSettingsAgentImpl&) = delete;
+@@ -129,6 +132,11 @@ class ContentSettingsAgentImpl
+   // Resets the `content_blocked_` array.
+   void ClearBlockedContentSettings();
+ 
++  // Helpers.
++  // True if `render_frame()` contains content that is allowlisted for content
++  // settings.
++  bool IsAllowlistedForContentSettings() const;
++
+   // A getter for `content_settings_manager_` that ensures it is bound.
+   mojom::ContentSettingsManager& GetContentSettingsManager();
+ 
+@@ -146,6 +154,9 @@ class ContentSettingsAgentImpl
+   using StoragePermissionsKey = std::pair<url::Origin, StorageType>;
+   base::flat_map<StoragePermissionsKey, bool> cached_storage_permissions_;
+ 
++  // If true, IsAllowlistedForContentSettings will always return true.
++  const bool should_allowlist_;
++
+   std::unique_ptr<Delegate> delegate_;
+ 
+   mojo::AssociatedReceiverSet<mojom::ContentSettingsAgent> receivers_;
+diff --git a/components/content_settings/renderer/content_settings_agent_impl_browsertest.cc b/components/content_settings/renderer/content_settings_agent_impl_browsertest.cc
+--- a/components/content_settings/renderer/content_settings_agent_impl_browsertest.cc
++++ b/components/content_settings/renderer/content_settings_agent_impl_browsertest.cc
+@@ -35,6 +35,7 @@ namespace content_settings {
+ namespace {
+ 
+ constexpr char kAllowlistScheme[] = "foo";
++constexpr char kEndUrl[] = ":something";
+ 
+ class MockContentSettingsManagerImpl : public mojom::ContentSettingsManager {
+  public:
+@@ -114,6 +115,7 @@ MockContentSettingsAgentImpl::MockContentSettingsAgentImpl(
+     content::RenderFrame* render_frame)
+     : ContentSettingsAgentImpl(
+           render_frame,
++          false,
+           std::make_unique<MockContentSettingsAgentDelegate>()),
+       image_url_("http://www.foo.com/image.jpg"),
+       image_origin_("http://www.foo.com") {}
+@@ -256,6 +258,34 @@ INSTANTIATE_TEST_SUITE_P(
+       }
+     });
+ 
++TEST_P(ContentSettingsAgentImplBrowserTest, AllowlistedSchemes) {
++  url::ScopedSchemeRegistryForTests scoped_registry;
++  url::AddStandardScheme(kAllowlistScheme, url::SCHEME_WITH_HOST);
++
++  MockContentSettingsAgentImpl mock_agent(GetMainRenderFrame());
++  GURL chrome_ui_url =
++      GURL(std::string(content::kChromeUIScheme).append(kEndUrl));
++  LoadHTMLWithUrlOverride("<html></html>", chrome_ui_url.spec().c_str());
++  EXPECT_TRUE(mock_agent.IsAllowlistedForContentSettings());
++
++  GURL chrome_dev_tools_url =
++      GURL(std::string(content::kChromeDevToolsScheme).append(kEndUrl));
++  LoadHTMLWithUrlOverride("<html></html>", chrome_dev_tools_url.spec().c_str());
++  EXPECT_TRUE(mock_agent.IsAllowlistedForContentSettings());
++
++  GURL allowlist_url = GURL(std::string(kAllowlistScheme).append(kEndUrl));
++  LoadHTMLWithUrlOverride("<html></html>", allowlist_url.spec().c_str());
++  EXPECT_TRUE(mock_agent.IsAllowlistedForContentSettings());
++
++  LoadHTMLWithUrlOverride("<html></html>", "file:///dir/");
++  EXPECT_TRUE(mock_agent.IsAllowlistedForContentSettings());
++  LoadHTMLWithUrlOverride("<html></html>", "file:///dir/file");
++  EXPECT_FALSE(mock_agent.IsAllowlistedForContentSettings());
++
++  LoadHTMLWithUrlOverride("<html></html>", "http://server.com/path");
++  EXPECT_FALSE(mock_agent.IsAllowlistedForContentSettings());
++}
++
+ TEST_P(ContentSettingsAgentImplBrowserTest, DidBlockContentType) {
+   MockContentSettingsAgentImpl mock_agent(GetMainRenderFrame());
+   mock_agent.DidBlockContentType(ContentSettingsType::COOKIES);
+diff --git a/content/web_test/renderer/test_runner.h b/content/web_test/renderer/test_runner.h
+--- a/content/web_test/renderer/test_runner.h
++++ b/content/web_test/renderer/test_runner.h
+@@ -463,6 +463,7 @@ class TestRunner {
+   void DumpResourceResponseMIMETypes();
+ 
+   // WebContentSettingsClient related.
++  void SetImagesAllowed(bool allowed, WebFrameTestProxy& source);
+   void SetStorageAllowed(bool allowed, WebFrameTestProxy& source);
+   void SetAllowRunningOfInsecureContent(bool allowed,
+                                         WebFrameTestProxy& source);
+-- 
+

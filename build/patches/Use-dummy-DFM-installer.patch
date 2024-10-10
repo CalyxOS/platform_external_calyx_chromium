@@ -6,42 +6,39 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I6336b599175f31e7dd750d90d3b6f882e28a421c
 ---
- components/module_installer/android/BUILD.gn  |  2 -
- .../engine/SplitCompatEngine.java             | 77 +------------------
- .../engine/SplitCompatEngineFacade.java       | 29 ++-----
- .../module_installer/logger/Logger.java       | 16 +---
- .../logger/PlayCoreLogger.java                | 50 ++----------
- .../logger/SplitAvailabilityLogger.java       | 40 ----------
- .../logger/SplitInstallStatusLogger.java      | 30 +-------
- .../module_installer/util/ModuleUtil.java     |  5 --
- .../util/SplitCompatInitializer.java          |  6 --
- 9 files changed, 19 insertions(+), 236 deletions(-)
+ components/module_installer/android/BUILD.gn  |   1 -
+ .../engine/SplitCompatEngine.java             |  64 +-------
+ .../engine/SplitCompatEngineFacade.java       |  27 +---
+ .../module_installer/logger/Logger.java       |  46 ++++++
+ .../logger/PlayCoreLogger.java                |  41 +++++
+ .../logger/SplitAvailabilityLogger.java       | 150 ++++++++++++++++++
+ .../logger/SplitInstallStatusLogger.java      |  44 +++++
+ .../module_installer/util/ModuleUtil.java     |   3 -
+ .../util/SplitCompatInitializer.java          |   6 -
+ 9 files changed, 287 insertions(+), 95 deletions(-)
+ create mode 100644 components/module_installer/android/java/src/org/chromium/components/module_installer/logger/Logger.java
+ create mode 100644 components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java
+ create mode 100644 components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java
+ create mode 100644 components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitInstallStatusLogger.java
 
 diff --git a/components/module_installer/android/BUILD.gn b/components/module_installer/android/BUILD.gn
 --- a/components/module_installer/android/BUILD.gn
 +++ b/components/module_installer/android/BUILD.gn
-@@ -21,13 +21,11 @@ android_library("module_installer_java") {
-     "java/src/org/chromium/components/module_installer/logger/Logger.java",
-     "java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java",
-     "java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java",
--    "java/src/org/chromium/components/module_installer/logger/SplitInstallFailureLogger.java",
-     "java/src/org/chromium/components/module_installer/logger/SplitInstallStatusLogger.java",
-     "java/src/org/chromium/components/module_installer/observer/ActivityObserver.java",
+@@ -22,7 +22,6 @@ android_library("module_installer_java") {
      "java/src/org/chromium/components/module_installer/observer/ActivityObserverFacade.java",
      "java/src/org/chromium/components/module_installer/observer/InstallerObserver.java",
      "java/src/org/chromium/components/module_installer/util/ActivityObserverUtil.java",
 -    "java/src/org/chromium/components/module_installer/util/CrashKeyRecorder.java",
      "java/src/org/chromium/components/module_installer/util/ModuleUtil.java",
      "java/src/org/chromium/components/module_installer/util/SplitCompatInitializer.java",
-     "java/src/org/chromium/components/module_installer/util/Timer.java",
+   ]
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/engine/SplitCompatEngine.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/engine/SplitCompatEngine.java
 --- a/components/module_installer/android/java/src/org/chromium/components/module_installer/engine/SplitCompatEngine.java
 +++ b/components/module_installer/android/java/src/org/chromium/components/module_installer/engine/SplitCompatEngine.java
-@@ -8,11 +8,6 @@ import android.app.Activity;
+@@ -8,10 +8,6 @@ import android.app.Activity;
  
  import androidx.annotation.VisibleForTesting;
  
--import com.google.android.play.core.splitinstall.SplitInstallException;
 -import com.google.android.play.core.splitinstall.SplitInstallRequest;
 -import com.google.android.play.core.splitinstall.SplitInstallStateUpdatedListener;
 -import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus;
@@ -49,7 +46,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
  import org.chromium.base.ThreadUtils;
  
  import java.util.ArrayList;
-@@ -25,7 +20,6 @@ import java.util.Set;
+@@ -24,7 +20,6 @@ import java.util.Set;
  /** Install engine that uses Play Core and SplitCompat to install modules. */
  class SplitCompatEngine implements InstallEngine {
      private final SplitCompatEngineFacade mFacade;
@@ -57,7 +54,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
      private static final Map<String, List<InstallListener>> sSessions = new HashMap<>();
  
      public SplitCompatEngine() {
-@@ -43,83 +37,20 @@ class SplitCompatEngine implements InstallEngine {
+@@ -42,70 +37,19 @@ class SplitCompatEngine implements InstallEngine {
  
      @Override
      public boolean isInstalled(String moduleName) {
@@ -69,7 +66,6 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
      @Override
      public void installDeferred(String moduleName) {
 -        mFacade.getSplitManager().deferredInstall(Collections.singletonList(moduleName));
-         mFacade.getLogger().logRequestDeferredStart(moduleName);
      }
  
      @Override
@@ -94,18 +90,8 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
 -                .startInstall(request)
 -                .addOnFailureListener(
 -                        ex -> {
--                            int errorCode =
--                                    ex instanceof SplitInstallException
--                                            ? ((SplitInstallException) ex).getErrorCode()
--                                            : mFacade.getLogger().getUnknownRequestErrorCode();
--
--                            // TODO(fredmello): look into potential issues with mixing split error
--                            // code with our logger codes - fix accordingly.
--                            mFacade.getLogger().logRequestFailure(moduleName, errorCode);
 -                            notifyListeners(moduleName, false);
 -                        });
--
--        mFacade.getLogger().logRequestStart(moduleName);
 -    }
 -
 -    private SplitInstallStateUpdatedListener getStatusUpdateListener() {
@@ -126,10 +112,8 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
 -                        break;
 -                    case SplitInstallSessionStatus.FAILED:
 -                        notifyListeners(moduleName, false);
--                        mFacade.getLogger().logStatusFailure(moduleName, state.errorCode());
 -                        break;
 -                }
--                mFacade.getLogger().logStatus(moduleName, status);
 -            }
 -        };
      }
@@ -142,7 +126,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
          sSessions.remove(moduleName);
  
          unregisterUpdateListener();
-@@ -134,15 +65,9 @@ class SplitCompatEngine implements InstallEngine {
+@@ -120,15 +64,9 @@ class SplitCompatEngine implements InstallEngine {
      }
  
      private void registerUpdateListener() {
@@ -161,7 +145,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/engine/SplitCompatEngineFacade.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/engine/SplitCompatEngineFacade.java
 --- a/components/module_installer/android/java/src/org/chromium/components/module_installer/engine/SplitCompatEngineFacade.java
 +++ b/components/module_installer/android/java/src/org/chromium/components/module_installer/engine/SplitCompatEngineFacade.java
-@@ -6,32 +6,28 @@ package org.chromium.components.module_installer.engine;
+@@ -6,48 +6,31 @@ package org.chromium.components.module_installer.engine;
  
  import android.app.Activity;
  
@@ -173,40 +157,28 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
 +import com.google.android.play.core.splitinstall.SplitInstallRequest;*/
  
  import org.chromium.base.ContextUtils;
- import org.chromium.components.module_installer.logger.Logger;
- import org.chromium.components.module_installer.logger.PlayCoreLogger;
 -import org.chromium.components.module_installer.util.ModuleUtil;
 +//import org.chromium.components.module_installer.util.ModuleUtil;
  
  /**
-  * PlayCore SplitCompatEngine Context. Class used to segregate external dependencies that
-  * cannot be easily mocked and simplify the engine's design.
+  * PlayCore SplitCompatEngine Context. Class used to segregate external dependencies that cannot be
+  * easily mocked and simplify the engine's design.
   */
  class SplitCompatEngineFacade {
 -    private final SplitInstallManager mSplitManager;
-     private final Logger mLogger;
  
      public SplitCompatEngineFacade() {
--        this(
--                SplitInstallManagerFactory.create(ContextUtils.getApplicationContext()),
--                new PlayCoreLogger());
-+        this(new PlayCoreLogger());
-     }
- 
--    public SplitCompatEngineFacade(SplitInstallManager manager, Logger umaLogger) {
--        mSplitManager = manager;
-+    public SplitCompatEngineFacade(Logger umaLogger) {
-         mLogger = umaLogger;
-     }
- 
-@@ -39,25 +35,14 @@ class SplitCompatEngineFacade {
-         return mLogger;
-     }
- 
--    public SplitInstallManager getSplitManager() {
--        return mSplitManager;
+-        this(SplitInstallManagerFactory.create(ContextUtils.getApplicationContext()));
 -    }
 -
+-    public SplitCompatEngineFacade(SplitInstallManager manager) {
+-        mSplitManager = manager;
+-    }
+-
+-    public SplitInstallManager getSplitManager() {
+-        return mSplitManager;
+     }
+ 
      public void installActivity(Activity activity) {
 -        // Note that SplitCompat (install) needs to be called on the Application Context prior
 -        // to calling this method - this is guaranteed by the behavior of SplitCompatEngine.
@@ -228,272 +200,316 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
      }
  }
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/Logger.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/Logger.java
---- a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/Logger.java
+new file mode 100644
+--- /dev/null
 +++ b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/Logger.java
-@@ -4,9 +4,6 @@
- 
- package org.chromium.components.module_installer.logger;
- 
--import com.google.android.play.core.splitinstall.model.SplitInstallErrorCode;
--import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus;
--
- /** Logger for SplitCompat Engine. */
- public interface Logger {
-     /**
-@@ -15,7 +12,7 @@ public interface Logger {
-      * @param moduleName The module name.
-      * @param errorCode The error code.
-      */
--    void logRequestFailure(String moduleName, @SplitInstallErrorCode int errorCode);
+@@ -0,0 +1,46 @@
++// Copyright 2019 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++package org.chromium.components.module_installer.logger;
++
++/** Logger for SplitCompat Engine. */
++public interface Logger {
++    /**
++     * Logs exceptions that happen during module request.
++     *
++     * @param moduleName The module name.
++     * @param errorCode The error code.
++     */
 +    void logRequestFailure(String moduleName, int errorCode);
- 
-     /**
-      * Logs exceptions that happen during the installation process.
-@@ -23,7 +20,7 @@ public interface Logger {
-      * @param moduleName The module name.
-      * @param errorCode The error code.
-      */
--    void logStatusFailure(String moduleName, @SplitInstallErrorCode int errorCode);
++
++    /**
++     * Logs exceptions that happen during the installation process.
++     *
++     * @param moduleName The module name.
++     * @param errorCode The error code.
++     */
 +    void logStatusFailure(String moduleName, int errorCode);
- 
-     /**
-      * Logs the status count and duration during a module installation process.
-@@ -31,7 +28,7 @@ public interface Logger {
-      * @param moduleName The module name
-      * @param status The status code
-      */
--    void logStatus(String moduleName, @SplitInstallSessionStatus int status);
++
++    /**
++     * Logs the status count and duration during a module installation process.
++     *
++     * @param moduleName The module name
++     * @param status The status code
++     */
 +    void logStatus(String moduleName, int status);
- 
-     /**
-      * Logs the request start time.
-@@ -46,11 +43,4 @@ public interface Logger {
-      * @param moduleName The module name.
-      */
-     void logRequestDeferredStart(String moduleName);
--
--    /**
--     * Gets the error code for an unknown error thrown at module request time.
--     *
--     * @return The error code.
--     */
--    int getUnknownRequestErrorCode();
- }
++
++    /**
++     * Logs the request start time.
++     *
++     * @param moduleName The module name.
++     */
++    void logRequestStart(String moduleName);
++
++    /**
++     * Logs when a module has its install deferred.
++     *
++     * @param moduleName The module name.
++     */
++    void logRequestDeferredStart(String moduleName);
++}
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java
---- a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java
+new file mode 100644
+--- /dev/null
 +++ b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/PlayCoreLogger.java
-@@ -4,74 +4,38 @@
- 
- package org.chromium.components.module_installer.logger;
- 
--import com.google.android.play.core.splitinstall.model.SplitInstallErrorCode;
--import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus;
--
- /** Concrete Logger for SplitCompat Installers (proxy to specific loggers). */
- public class PlayCoreLogger implements Logger {
--    private final SplitInstallFailureLogger mFailureLogger;
--    private final SplitInstallStatusLogger mStatusLogger;
--    private final SplitAvailabilityLogger mAvailabilityLogger;
--
-     public PlayCoreLogger() {
-         this(
--                new SplitInstallFailureLogger(),
--                new SplitInstallStatusLogger(),
--                new SplitAvailabilityLogger());
+@@ -0,0 +1,41 @@
++// Copyright 2019 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++package org.chromium.components.module_installer.logger;
++
++/** Concrete Logger for SplitCompat Installers (proxy to specific loggers). */
++public class PlayCoreLogger implements Logger {
++    public PlayCoreLogger() {
++        this(
 +                null,
 +                null,
 +                null);
-     }
- 
-     public PlayCoreLogger(
--            SplitInstallFailureLogger failureLogger,
++    }
++
++    public PlayCoreLogger(
 +            Object failureLogger,
-             SplitInstallStatusLogger statusLogger,
-             SplitAvailabilityLogger availabilityLogger) {
--        mFailureLogger = failureLogger;
--        mStatusLogger = statusLogger;
--        mAvailabilityLogger = availabilityLogger;
-     }
- 
-     @Override
--    public void logRequestFailure(String moduleName, @SplitInstallErrorCode int errorCode) {
--        mFailureLogger.logRequestFailure(moduleName, errorCode);
++            SplitInstallStatusLogger statusLogger,
++            SplitAvailabilityLogger availabilityLogger) {
++    }
++
++    @Override
 +    public void logRequestFailure(String moduleName, int errorCode) {
-     }
- 
-     @Override
--    public void logStatusFailure(String moduleName, @SplitInstallErrorCode int errorCode) {
--        mFailureLogger.logStatusFailure(moduleName, errorCode);
++    }
++
++    @Override
 +    public void logStatusFailure(String moduleName, int errorCode) {
-     }
- 
-     @Override
--    public void logStatus(String moduleName, @SplitInstallSessionStatus int status) {
--        mStatusLogger.logStatusChange(moduleName, status);
--
--        if (status == SplitInstallSessionStatus.INSTALLED) {
--            mAvailabilityLogger.storeModuleInstalled(moduleName, status);
--            mAvailabilityLogger.logInstallTimes(moduleName);
--
--            // Keep old behavior where we log a 'success' bit with all other failures.
--            mFailureLogger.logStatusSuccess(moduleName);
--        } else if (status == SplitInstallSessionStatus.CANCELED) {
--            // Keep old behavior where we log a 'canceled' bit with all other failures.
--            mFailureLogger.logStatusCanceled(moduleName);
--        } else if (status == SplitInstallSessionStatus.DOWNLOADED) {
--            // Keep old behavior where we log a 'no split compat' bit with all other failures.
--            mFailureLogger.logStatusNoSplitCompat(moduleName);
--        }
++    }
++
++    @Override
 +    public void logStatus(String moduleName, int status) {
-     }
- 
-     @Override
-     public void logRequestStart(String moduleName) {
--        mStatusLogger.logRequestStart(moduleName);
--        mAvailabilityLogger.storeRequestStart(moduleName);
-     }
- 
-     @Override
-     public void logRequestDeferredStart(String moduleName) {
--        mStatusLogger.logRequestDeferredStart(moduleName);
--        mAvailabilityLogger.storeRequestDeferredStart(moduleName);
--    }
--
--    @Override
--    public int getUnknownRequestErrorCode() {
--        return SplitInstallFailureLogger.UNKNOWN_REQUEST_ERROR;
-     }
- }
++    }
++
++    @Override
++    public void logRequestStart(String moduleName) {
++    }
++
++    @Override
++    public void logRequestDeferredStart(String moduleName) {
++    }
++}
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java
---- a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java
+new file mode 100644
+--- /dev/null
 +++ b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitAvailabilityLogger.java
-@@ -9,10 +9,6 @@ import android.content.SharedPreferences;
- import android.os.SystemClock;
- import android.util.SparseLongArray;
- 
--import com.google.android.play.core.splitinstall.SplitInstallManager;
--import com.google.android.play.core.splitinstall.SplitInstallManagerFactory;
--import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus;
--
- import org.chromium.base.ContextUtils;
- import org.chromium.base.metrics.RecordHistogram;
- 
-@@ -50,21 +46,6 @@ public class SplitAvailabilityLogger {
-         Set<String> requestedModules = new HashSet<>();
-         requestedModules.addAll(prefs.getStringSet(ONDEMAND_REQ_PREV, new HashSet<>()));
-         requestedModules.addAll(prefs.getStringSet(DEFERRED_REQ_PREV, new HashSet<>()));
--
--        Context context = ContextUtils.getApplicationContext();
--        SplitInstallManager manager = SplitInstallManagerFactory.create(context);
--        Set<String> installedModules = manager.getInstalledModules();
--
--        for (String name : requestedModules) {
--            recordAvailabilityStatus(
--                    name, installedModules.contains(name) ? INSTALLED_REQUESTED : REQUESTED);
--        }
--
--        for (String name : installedModules) {
--            if (!requestedModules.contains(name)) {
--                recordAvailabilityStatus(name, INSTALLED_UNREQUESTED);
--            }
--        }
-     }
- 
-     private static void recordAvailabilityStatus(String moduleName, int status) {
-@@ -78,26 +59,6 @@ public class SplitAvailabilityLogger {
-      * @param moduleName The module name.
-      */
-     public void logInstallTimes(String moduleName) {
--        recordInstallTime(
--                moduleName,
--                "",
--                SplitInstallSessionStatus.UNKNOWN,
--                SplitInstallSessionStatus.INSTALLED);
--        recordInstallTime(
--                moduleName,
--                ".PendingDownload",
--                SplitInstallSessionStatus.UNKNOWN,
--                SplitInstallSessionStatus.DOWNLOADING);
--        recordInstallTime(
--                moduleName,
--                ".Download",
--                SplitInstallSessionStatus.DOWNLOADING,
--                SplitInstallSessionStatus.INSTALLING);
--        recordInstallTime(
--                moduleName,
--                ".Installing",
--                SplitInstallSessionStatus.INSTALLING,
--                SplitInstallSessionStatus.INSTALLED);
-     }
- 
-     /**
-@@ -184,7 +145,6 @@ public class SplitAvailabilityLogger {
- 
-         public InstallTimes(boolean isCached) {
-             mIsCached = isCached;
--            mInstallTimes.put(SplitInstallSessionStatus.UNKNOWN, SystemClock.uptimeMillis());
-         }
-     }
- }
+@@ -0,0 +1,150 @@
++// Copyright 2019 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++package org.chromium.components.module_installer.logger;
++
++import android.content.Context;
++import android.content.SharedPreferences;
++import android.os.SystemClock;
++import android.util.SparseLongArray;
++
++import org.chromium.base.ContextUtils;
++import org.chromium.base.metrics.RecordHistogram;
++
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.Map;
++import java.util.Set;
++
++/**
++ * Record start time in order to later report the install duration via UMA. We want to make
++ * a difference between modules that have been requested first before and after the last
++ * Chrome start. Modules that have been requested before may install quicker as they may be
++ * installed form cache. To do this, we use shared prefs to track modules previously
++ * requested. Additionally, storing requested modules helps us to record module install
++ * status at next Chrome start.
++ */
++public class SplitAvailabilityLogger {
++    // These values are persisted to logs. Entries should not be renumbered and
++    // numeric values should never be reused.
++    private static final int REQUESTED = 0;
++    private static final int INSTALLED_REQUESTED = 1;
++    private static final int INSTALLED_UNREQUESTED = 2;
++
++    // Keep this one at the end and increment appropriately when adding new status.
++    private static final int COUNT = 3;
++
++    private static final String ONDEMAND_REQ_PREV = "key_modules_requested_previously";
++    private static final String DEFERRED_REQ_PREV = "key_modules_deferred_requested_previously";
++
++    private final Map<String, InstallTimes> mInstallTimesMap = new HashMap<>();
++
++    /** Records via UMA all modules that have been requested and are currently installed. */
++    public static void logModuleAvailability() {
++        SharedPreferences prefs = ContextUtils.getAppSharedPreferences();
++        Set<String> requestedModules = new HashSet<>();
++        requestedModules.addAll(prefs.getStringSet(ONDEMAND_REQ_PREV, new HashSet<>()));
++        requestedModules.addAll(prefs.getStringSet(DEFERRED_REQ_PREV, new HashSet<>()));
++    }
++
++    private static void recordAvailabilityStatus(String moduleName, int status) {
++        String key = "Android.FeatureModules.AvailabilityStatus." + moduleName;
++        RecordHistogram.recordEnumeratedHistogram(key, status, COUNT);
++    }
++
++    /**
++     * Records via UMA module install times divided into install steps.
++     *
++     * @param moduleName The module name.
++     */
++    public void logInstallTimes(String moduleName) {
++    }
++
++    /**
++     * Records the start time of an on-demand install request.
++     *
++     * @param moduleName The module name.
++     */
++    public void storeRequestStart(String moduleName) {
++        // Ignore previously failed requests (orphan keys).
++        boolean moduleRequested = storeModuleRequested(moduleName, ONDEMAND_REQ_PREV);
++        mInstallTimesMap.put(moduleName, new InstallTimes(moduleRequested));
++    }
++
++    /**
++     * Records module deferred requested.
++     *
++     * @param moduleName The module name.
++     */
++    public void storeRequestDeferredStart(String moduleName) {
++        storeModuleRequested(moduleName, DEFERRED_REQ_PREV);
++    }
++
++    /**
++     * Records that a module has been installed on-demand.
++     *
++     * @param moduleName The module name.
++     * @param status The install status.
++     */
++    public void storeModuleInstalled(String moduleName, int status) {
++        if (!mInstallTimesMap.containsKey(moduleName)) {
++            return;
++        }
++        InstallTimes times = mInstallTimesMap.get(moduleName);
++        times.mInstallTimes.put(status, SystemClock.uptimeMillis());
++    }
++
++    /**
++     * Stores to shared prevs that a module has been requested.
++     *
++     * @param moduleName Module that has been requested.
++     * @param prefKey Pref key pointing to a string set to which the requested module will be added.
++     * @return Whether the module has been requested previously.
++     */
++    private boolean storeModuleRequested(String moduleName, String prefKey) {
++        SharedPreferences prefs = ContextUtils.getAppSharedPreferences();
++        Set<String> modulesRequestedPreviously = prefs.getStringSet(prefKey, new HashSet<>());
++        Set<String> newModulesRequestedPreviously = new HashSet<>(modulesRequestedPreviously);
++        newModulesRequestedPreviously.add(moduleName);
++        SharedPreferences.Editor editor = prefs.edit();
++        editor.putStringSet(prefKey, newModulesRequestedPreviously);
++        editor.apply();
++        return modulesRequestedPreviously.contains(moduleName);
++    }
++
++    private void recordInstallTime(
++            String moduleName, String histogramSubname, int startKey, int endKey) {
++        if (!mInstallTimesMap.containsKey(moduleName)) {
++            return;
++        }
++
++        InstallTimes installTimes = mInstallTimesMap.get(moduleName);
++        long startTime = installTimes.mInstallTimes.get(startKey);
++        long endTime = installTimes.mInstallTimes.get(endKey);
++
++        if (startTime == 0 || endTime == 0) {
++            // Time stamps for install times have not been stored.
++            // Don't record anything to not skew data.
++            return;
++        }
++
++        String cacheKey = installTimes.mIsCached ? "Cached" : "Uncached";
++        long timing = endTime - startTime;
++        String key =
++                String.format(
++                        "Android.FeatureModules.%sAwakeInstallDuration%s.%s",
++                        cacheKey, histogramSubname, moduleName);
++
++        RecordHistogram.recordLongTimesHistogram(key, timing);
++    }
++
++    private static class InstallTimes {
++        public final boolean mIsCached;
++        public final SparseLongArray mInstallTimes = new SparseLongArray();
++
++        public InstallTimes(boolean isCached) {
++            mIsCached = isCached;
++        }
++    }
++}
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitInstallStatusLogger.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitInstallStatusLogger.java
---- a/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitInstallStatusLogger.java
+new file mode 100644
+--- /dev/null
 +++ b/components/module_installer/android/java/src/org/chromium/components/module_installer/logger/SplitInstallStatusLogger.java
-@@ -4,8 +4,6 @@
- 
- package org.chromium.components.module_installer.logger;
- 
--import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus;
--
- import org.chromium.base.metrics.RecordHistogram;
- 
- class SplitInstallStatusLogger {
-@@ -28,33 +26,7 @@ class SplitInstallStatusLogger {
-     // Keep this one at the end and increment appropriately when adding new status.
-     private static final int COUNT = 12;
- 
--    private int getHistogramCode(@SplitInstallSessionStatus int code) {
--        switch (code) {
--            case SplitInstallSessionStatus.PENDING:
--                return PENDING;
--            case SplitInstallSessionStatus.DOWNLOADING:
--                return DOWNLOADING;
--            case SplitInstallSessionStatus.DOWNLOADED:
--                return DOWNLOADED;
--            case SplitInstallSessionStatus.INSTALLING:
--                return INSTALLING;
--            case SplitInstallSessionStatus.INSTALLED:
--                return INSTALLED;
--            case SplitInstallSessionStatus.FAILED:
--                return FAILED;
--            case SplitInstallSessionStatus.CANCELING:
--                return CANCELING;
--            case SplitInstallSessionStatus.CANCELED:
--                return CANCELED;
--            case SplitInstallSessionStatus.REQUIRES_USER_CONFIRMATION:
--                return REQUIRES_USER_CONFIRMATION;
--        }
--
--        return UNKNOWN_CODE;
--    }
--
--    public void logStatusChange(String moduleName, @SplitInstallSessionStatus int status) {
--        recordInstallStatus(moduleName, getHistogramCode(status));
+@@ -0,0 +1,44 @@
++// Copyright 2019 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++package org.chromium.components.module_installer.logger;
++
++import org.chromium.base.metrics.RecordHistogram;
++
++class SplitInstallStatusLogger {
++    // FeatureModuleInstallingStatus defined in //tools/metrics/histograms/enums.xml.
++    // These values are persisted to logs. Entries should not be renumbered and numeric values
++    // should never be reused.
++    private static final int UNKNOWN_CODE = 0;
++    private static final int REQUESTED = 1;
++    private static final int PENDING = 2;
++    private static final int DOWNLOADING = 3;
++    private static final int DOWNLOADED = 4;
++    private static final int INSTALLING = 5;
++    private static final int INSTALLED = 6;
++    private static final int FAILED = 7;
++    private static final int CANCELING = 8;
++    private static final int CANCELED = 9;
++    private static final int REQUIRES_USER_CONFIRMATION = 10;
++    private static final int REQUESTED_DEFERRED = 11;
++
++    // Keep this one at the end and increment appropriately when adding new status.
++    private static final int COUNT = 12;
++
 +    public void logStatusChange(String moduleName, int status) {
-     }
- 
-     public void logRequestStart(String moduleName) {
++    }
++
++    public void logRequestStart(String moduleName) {
++        recordInstallStatus(moduleName, REQUESTED);
++    }
++
++    public void logRequestDeferredStart(String moduleName) {
++        recordInstallStatus(moduleName, REQUESTED_DEFERRED);
++    }
++
++    private void recordInstallStatus(String moduleName, int status) {
++        String name = "Android.FeatureModules.InstallingStatus." + moduleName;
++        RecordHistogram.recordEnumeratedHistogram(name, status, COUNT);
++    }
++}
 diff --git a/components/module_installer/android/java/src/org/chromium/components/module_installer/util/ModuleUtil.java b/components/module_installer/android/java/src/org/chromium/components/module_installer/util/ModuleUtil.java
 --- a/components/module_installer/android/java/src/org/chromium/components/module_installer/util/ModuleUtil.java
 +++ b/components/module_installer/android/java/src/org/chromium/components/module_installer/util/ModuleUtil.java
-@@ -23,11 +23,6 @@ public class ModuleUtil {
- 
+@@ -10,9 +10,6 @@ import org.chromium.build.BuildConfig;
+ public class ModuleUtil {
      /** Updates the CrashKey report containing modules currently present. */
      public static void updateCrashKeys() {
--        if (!BundleUtils.isBundle()) return;
+-        if (!BuildConfig.IS_BUNDLE) return;
 -
--        try (Timer timer = new Timer()) {
--            CrashKeyRecorder.updateCrashKeys();
--        }
+-        CrashKeyRecorder.updateCrashKeys();
      }
  
      /** Initializes the PlayCore SplitCompat framework. */

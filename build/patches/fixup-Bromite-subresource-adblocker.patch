@@ -1,0 +1,30 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 9 Oct 2024 18:17:06 +0000
+Subject: fixup! Bromite subresource adblocker
+
+Change-Id: If76814a1c695c299a5e1bf8fb7c386de6d804f4c
+---
+ components/component_updater/download_filters_task.cc | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/components/component_updater/download_filters_task.cc b/components/component_updater/download_filters_task.cc
+--- a/components/component_updater/download_filters_task.cc
++++ b/components/component_updater/download_filters_task.cc
+@@ -167,10 +167,13 @@ void DownloadFiltersTask::OnResponseStarted(
+   final_url_ = final_url;
+   response_code_ = response_head.headers ? response_head.headers->response_code() : -1;
+ 
+-  if (!response_head.headers->GetLastModifiedValue(&last_modified_))
++  std::optional<base::Time> value = response_head.headers->GetLastModifiedValue();
++  if (!value) {
+     LOG(WARNING) << "DownloadFiltersTask: fetching URL '" << final_url.spec() << "' with method " << (min_last_modified_.is_null() ? "GET" : "HEAD") << " (no Last-Modified header)";
+-  else
++  } else {
++    last_modified_ = value.value();
+     LOG(INFO) << "DownloadFiltersTask: fetching URL '" << final_url.spec() << "' with method " << (min_last_modified_.is_null() ? "GET" : "HEAD");
++  }
+ }
+ 
+ void DownloadFiltersTask::OnDownloadComplete(base::FilePath file_path) {
+-- 
+

@@ -126,7 +126,7 @@ diff --git a/content/browser/network/reporting_service_proxy.cc b/content/browse
 diff --git a/content/browser/renderer_host/render_frame_host_impl.cc b/content/browser/renderer_host/render_frame_host_impl.cc
 --- a/content/browser/renderer_host/render_frame_host_impl.cc
 +++ b/content/browser/renderer_host/render_frame_host_impl.cc
-@@ -14727,12 +14727,6 @@ void RenderFrameHostImpl::MaybeGenerateCrashReport(
+@@ -14962,12 +14962,6 @@ void RenderFrameHostImpl::MaybeGenerateCrashReport(
        }
      }
    }
@@ -220,7 +220,7 @@ diff --git a/content/browser/web_package/signed_exchange_reporter.cc b/content/b
 --- a/content/browser/web_package/signed_exchange_reporter.cc
 +++ b/content/browser/web_package/signed_exchange_reporter.cc
 @@ -128,6 +128,7 @@ void ReportResult(
-     int frame_tree_node_id,
+     FrameTreeNodeId frame_tree_node_id,
      network::mojom::SignedExchangeReportPtr report,
      const net::NetworkAnonymizationKey& network_anonymization_key) {
 +#if BUILDFLAG(ENABLE_REPORTING)
@@ -256,7 +256,7 @@ new file mode 100644
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -217,6 +217,7 @@ extern const base::FeatureParam<base::TimeDelta> kTimeoutTcpConnectAttemptMax(
+@@ -219,6 +219,7 @@ extern const base::FeatureParam<base::TimeDelta> kTimeoutTcpConnectAttemptMax(
      base::Seconds(30));
  
  #if BUILDFLAG(ENABLE_REPORTING)
@@ -350,7 +350,7 @@ diff --git a/third_party/blink/renderer/core/frame/csp/content_security_policy.c
  #include "base/containers/contains.h"
  #include "base/debug/dump_without_crashing.h"
  #include "base/ranges/algorithm.h"
-@@ -1239,6 +1240,7 @@ void ContentSecurityPolicy::ReportViolation(
+@@ -1241,6 +1242,7 @@ void ContentSecurityPolicy::ReportViolation(
      return;
    }
  
@@ -358,7 +358,7 @@ diff --git a/third_party/blink/renderer/core/frame/csp/content_security_policy.c
    PostViolationReport(violation_data, context_frame, report_endpoints,
                        use_reporting_api);
  
-@@ -1246,6 +1248,7 @@ void ContentSecurityPolicy::ReportViolation(
+@@ -1248,6 +1250,7 @@ void ContentSecurityPolicy::ReportViolation(
    // `context_frame` (i.e. we're not processing 'frame-ancestors').
    if (delegate_ && !context_frame)
      delegate_->DispatchViolationEvent(*violation_data, element);
@@ -369,7 +369,7 @@ diff --git a/third_party/blink/renderer/core/frame/csp/content_security_policy.c
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
-@@ -45,6 +45,7 @@
+@@ -46,6 +46,7 @@
  #include "build/build_config.h"
  #include "mojo/public/cpp/bindings/self_owned_receiver.h"
  #include "mojo/public/cpp/system/message_pipe.h"
@@ -377,8 +377,8 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
  #include "services/network/public/mojom/source_location.mojom-blink.h"
-@@ -2771,9 +2772,11 @@ void LocalFrame::MainFrameFirstMeaningfulPaint() {
-   v8_local_compile_hints_producer_->GenerateData(kIsFinalData);
+@@ -2784,9 +2785,11 @@ DocumentResourceCoordinator* LocalFrame::GetDocumentResourceCoordinator() {
+   return CHECK_DEREF(GetDocument()).GetResourceCoordinator();
  }
  
 +#if BUILDFLAG(ENABLE_REPORTING)
