@@ -58,38 +58,39 @@ Change-Id: Idebdd2b882432fcc3704fba2f4a9da3c91b3497f
  .../one_time_permissions_tracker.cc           | 33 +++++++-
  .../one_time_permissions_tracker.h            |  5 +-
  .../one_time_permissions_tracker_factory.cc   |  2 +-
+ .../views/permissions/chip/chip_controller.cc |  2 +-
  .../permissions/embedded_permission_prompt.cc |  2 +-
  ...exclusive_access_permission_prompt_view.cc |  2 +-
  .../permission_prompt_bubble_base_view.cc     |  2 +-
  .../site_settings/PermissionInfo.java         |  1 +
- .../site_settings/SingleWebsiteSettings.java  |  9 +++
+ .../site_settings/SingleWebsiteSettings.java  |  9 ++
  .../android/website_preference_bridge.cc      |  2 +-
  .../strings/android/browser_ui_strings.grd    |  5 ++
- .../core/browser/content_settings_utils.cc    | 36 +++++++++
+ .../core/browser/content_settings_utils.cc    | 36 ++++++++
  .../core/browser/content_settings_utils.h     |  6 ++
- .../core/common/content_settings_enums.mojom  |  9 +++
+ .../core/common/content_settings_enums.mojom  |  9 ++
  .../page_info/PageInfoController.java         |  4 +-
  .../PermissionParamsListBuilder.java          | 13 ++-
  .../android/page_info_controller_android.cc   | 10 ++-
  components/page_info/page_info.cc             |  2 +
  components/page_info/page_info.h              |  1 +
  .../permissions/PermissionDialogDelegate.java | 13 +++
- .../PermissionDialogModelFactory.java         | 80 ++++++++++++++++++-
+ .../PermissionDialogModelFactory.java         | 82 ++++++++++++++++++-
  .../permission_dialog_delegate.cc             | 24 +++++-
  .../permission_dialog_delegate.h              |  1 +
  .../permission_prompt_android.cc              |  8 +-
  .../permission_prompt_android.h               |  3 +-
  .../android/permissions_android_strings.grd   | 17 ++++
- .../geolocation_permission_context_android.cc | 34 +++++---
+ .../geolocation_permission_context_android.cc | 34 ++++++--
  .../geolocation_permission_context_android.h  | 13 ++-
  .../permissions/permission_context_base.cc    | 52 ++++++++++--
  .../permissions/permission_context_base.h     | 23 +++++-
  components/permissions/permission_prompt.h    |  3 +-
  components/permissions/permission_request.cc  | 30 ++++++-
  components/permissions/permission_request.h   | 16 +++-
- .../permissions/permission_request_manager.cc | 45 +++++++----
+ .../permissions/permission_request_manager.cc | 45 ++++++----
  .../permissions/permission_request_manager.h  | 11 ++-
- 35 files changed, 487 insertions(+), 62 deletions(-)
+ 36 files changed, 490 insertions(+), 63 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -228,6 +229,18 @@ diff --git a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc 
 -  return std::make_unique<OneTimePermissionsTracker>();
 +  return std::make_unique<OneTimePermissionsTracker>(context);
  }
+diff --git a/chrome/browser/ui/views/permissions/chip/chip_controller.cc b/chrome/browser/ui/views/permissions/chip/chip_controller.cc
+--- a/chrome/browser/ui/views/permissions/chip/chip_controller.cc
++++ b/chrome/browser/ui/views/permissions/chip/chip_controller.cc
+@@ -234,7 +234,7 @@ void ChipController::OnWidgetDestroyed(views::Widget* widget) {
+       active_chip_permission_request_manager_.value()->Accept();
+       break;
+     case permissions::PermissionAction::GRANTED_ONCE:
+-      active_chip_permission_request_manager_.value()->AcceptThisTime();
++      active_chip_permission_request_manager_.value()->AcceptThisTime(content_settings::mojom::LifetimeMode::ONLY_THIS_TIME);
+       break;
+     case permissions::PermissionAction::DENIED:
+       active_chip_permission_request_manager_.value()->Deny();
 diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 --- a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
 +++ b/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc
@@ -243,7 +256,7 @@ diff --git a/chrome/browser/ui/views/permissions/embedded_permission_prompt.cc b
 diff --git a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_view.cc b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_view.cc
 --- a/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_view.cc
 +++ b/chrome/browser/ui/views/permissions/exclusive_access_permission_prompt_view.cc
-@@ -99,7 +99,7 @@ void ExclusiveAccessPermissionPromptView::RunButtonCallback(int button_id) {
+@@ -100,7 +100,7 @@ void ExclusiveAccessPermissionPromptView::RunButtonCallback(int button_id) {
    }
    ButtonType button = GetButtonType(button_id);
    if (button == ButtonType::kAllowThisTime) {
@@ -255,7 +268,7 @@ diff --git a/chrome/browser/ui/views/permissions/exclusive_access_permission_pro
 diff --git a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
 --- a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
 +++ b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
-@@ -241,7 +241,7 @@ void PermissionPromptBubbleBaseView::RunButtonCallback(int button_id) {
+@@ -266,7 +266,7 @@ void PermissionPromptBubbleBaseView::RunButtonCallback(int button_id) {
        delegate_->Accept();
        return;
      case PermissionDialogButton::kAcceptOnce:
@@ -278,7 +291,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -561,6 +561,11 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
+@@ -574,6 +574,11 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
          }
      }
  
@@ -290,7 +303,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      private void setUpClearDataPreference() {
          ClearWebsiteStorage preference = findPreference(PREF_CLEAR_DATA);
          long usage = mSite.getTotalUsage();
-@@ -1092,6 +1097,10 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
+@@ -1108,6 +1113,10 @@ public class SingleWebsiteSettings extends BaseSiteSettingsFragment
                      AppCompatResources.getColorStateList(getContext(), mHighlightColor)
                              .getDefaultColor());
          }
@@ -470,7 +483,7 @@ diff --git a/components/page_info/android/java/src/org/chromium/components/page_
 diff --git a/components/page_info/android/page_info_controller_android.cc b/components/page_info/android/page_info_controller_android.cc
 --- a/components/page_info/android/page_info_controller_android.cc
 +++ b/components/page_info/android/page_info_controller_android.cc
-@@ -153,6 +153,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -164,6 +164,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
  
    std::map<ContentSettingsType, ContentSetting>
        user_specified_settings_to_display;
@@ -479,7 +492,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
  
    for (const auto& permission : permission_info_list) {
      if (base::Contains(permissions_to_display, permission.type)) {
-@@ -161,6 +163,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -172,6 +174,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
        if (setting_to_display) {
          user_specified_settings_to_display[permission.type] =
              *setting_to_display;
@@ -488,7 +501,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
        }
      }
    }
-@@ -177,7 +181,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -188,7 +192,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
            ConvertUTF16ToJavaString(env, setting_title),
            ConvertUTF16ToJavaString(env, setting_title_mid_sentence),
            static_cast<jint>(permission),
@@ -498,7 +511,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
      }
    }
  
-@@ -190,7 +195,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -201,7 +206,8 @@ void PageInfoControllerAndroid::SetPermissionInfo(
          env, controller_jobject_, ConvertUTF16ToJavaString(env, object_title),
          ConvertUTF16ToJavaString(env, object_title),
          static_cast<jint>(chosen_object->ui_info->content_settings_type),
@@ -511,7 +524,7 @@ diff --git a/components/page_info/android/page_info_controller_android.cc b/comp
 diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.cc
 --- a/components/page_info/page_info.cc
 +++ b/components/page_info/page_info.cc
-@@ -1179,6 +1179,8 @@ void PageInfo::PopulatePermissionInfo(PermissionInfo& permission_info,
+@@ -1181,6 +1181,8 @@ void PageInfo::PopulatePermissionInfo(PermissionInfo& permission_info,
    permission_info.is_one_time =
        (info.metadata.session_model() ==
         content_settings::mojom::SessionModel::ONE_TIME);
@@ -571,7 +584,7 @@ diff --git a/components/permissions/android/java/src/org/chromium/components/per
 diff --git a/components/permissions/android/java/src/org/chromium/components/permissions/PermissionDialogModelFactory.java b/components/permissions/android/java/src/org/chromium/components/permissions/PermissionDialogModelFactory.java
 --- a/components/permissions/android/java/src/org/chromium/components/permissions/PermissionDialogModelFactory.java
 +++ b/components/permissions/android/java/src/org/chromium/components/permissions/PermissionDialogModelFactory.java
-@@ -12,6 +12,17 @@ import org.chromium.ui.UiUtils;
+@@ -12,6 +12,18 @@ import org.chromium.ui.UiUtils;
  import org.chromium.ui.modaldialog.ModalDialogProperties;
  import org.chromium.ui.modelutil.PropertyModel;
  
@@ -582,6 +595,7 @@ diff --git a/components/permissions/android/java/src/org/chromium/components/per
 +import android.widget.RadioButton;
 +import android.widget.RadioGroup;
 +import android.widget.TextView;
++import org.chromium.base.ApiCompatibilityUtils;
 +import org.chromium.ui.base.ViewUtils;
 +import org.chromium.components.content_settings.ContentSettingsType;
 +import org.chromium.components.content_settings.LifetimeMode;
@@ -589,7 +603,7 @@ diff --git a/components/permissions/android/java/src/org/chromium/components/per
  /** This class creates the model for the permission dialog. */
  class PermissionDialogModelFactory {
      public static PropertyModel getModel(
-@@ -72,6 +83,73 @@ class PermissionDialogModelFactory {
+@@ -72,6 +84,74 @@ class PermissionDialogModelFactory {
                              ModalDialogProperties.NEGATIVE_BUTTON_TEXT,
                              delegate.getNegativeButtonText());
          }
@@ -607,7 +621,8 @@ diff --git a/components/permissions/android/java/src/org/chromium/components/per
 +            TextView lifetimeOptionsText = new TextView(context);
 +            lifetimeOptionsText.setText(context.getString(
 +                        org.chromium.components.permissions.R.string.session_permissions_title));
-+            lifetimeOptionsText.setTextAppearance(R.style.TextAppearance_TextMedium_Primary);
++            lifetimeOptionsText.setTextAppearance(
++                    lifetimeOptionsText.getContext(), R.style.TextAppearance_TextMedium_Primary);
 +
 +            LinearLayout.LayoutParams lifetimeOptionsTextLayoutParams =
 +                    new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
@@ -763,7 +778,7 @@ diff --git a/components/permissions/android/permission_prompt/permission_prompt_
 diff --git a/components/permissions/android/permissions_android_strings.grd b/components/permissions/android/permissions_android_strings.grd
 --- a/components/permissions/android/permissions_android_strings.grd
 +++ b/components/permissions/android/permissions_android_strings.grd
-@@ -264,6 +264,23 @@
+@@ -267,6 +267,23 @@
          Unknown or unsupported device (<ph name="DEVICE_ID">%1$s<ex>A1:B2:C3:D4:E5:F6</ex></ph>)
        </message>
  
@@ -920,7 +935,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
 diff --git a/components/permissions/permission_context_base.cc b/components/permissions/permission_context_base.cc
 --- a/components/permissions/permission_context_base.cc
 +++ b/components/permissions/permission_context_base.cc
-@@ -266,6 +266,17 @@ bool PermissionContextBase::UsesAutomaticEmbargo() const {
+@@ -267,6 +267,17 @@ bool PermissionContextBase::UsesAutomaticEmbargo() const {
    return true;
  }
  
@@ -938,7 +953,7 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
  content::PermissionResult PermissionContextBase::GetPermissionStatus(
      content::RenderFrameHost* render_frame_host,
      const GURL& requesting_origin,
-@@ -502,7 +513,8 @@ void PermissionContextBase::PermissionDecided(const PermissionRequestID& id,
+@@ -513,7 +524,8 @@ void PermissionContextBase::PermissionDecided(const PermissionRequestID& id,
                                                const GURL& embedding_origin,
                                                ContentSetting content_setting,
                                                bool is_one_time,
@@ -948,7 +963,7 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
    DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
           content_setting == CONTENT_SETTING_BLOCK ||
           content_setting == CONTENT_SETTING_DEFAULT);
-@@ -517,13 +529,14 @@ void PermissionContextBase::PermissionDecided(const PermissionRequestID& id,
+@@ -528,13 +540,14 @@ void PermissionContextBase::PermissionDecided(const PermissionRequestID& id,
    // missing if a permission prompt was preignored and we already notified an
    // origin about it.
    if (request->second.second) {
@@ -967,7 +982,7 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
    }
  }
  
-@@ -591,11 +604,27 @@ void PermissionContextBase::NotifyPermissionSet(
+@@ -602,11 +615,27 @@ void PermissionContextBase::NotifyPermissionSet(
      ContentSetting content_setting,
      bool is_one_time,
      bool is_final_decision) {
@@ -996,7 +1011,7 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
    }
  
    if (is_final_decision) {
-@@ -635,6 +664,15 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
+@@ -646,6 +675,15 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
                                                   const GURL& embedding_origin,
                                                   ContentSetting content_setting,
                                                   bool is_one_time) {
@@ -1012,7 +1027,7 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
    DCHECK_EQ(requesting_origin, requesting_origin.DeprecatedGetOriginAsURL());
    DCHECK_EQ(embedding_origin, embedding_origin.DeprecatedGetOriginAsURL());
    DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
-@@ -644,6 +682,8 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
+@@ -655,6 +693,8 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
    constraints.set_session_model(
        is_one_time ? content_settings::mojom::SessionModel::ONE_TIME
                    : content_settings::mojom::SessionModel::DURABLE);
@@ -1107,7 +1122,7 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
  PermissionRequest::~PermissionRequest() {
    DCHECK(delete_callback_.is_null());
  }
-@@ -386,19 +394,37 @@ bool PermissionRequest::ShouldUseTwoOriginPrompt() const {
+@@ -412,19 +420,37 @@ bool PermissionRequest::ShouldUseTwoOriginPrompt() const {
    return request_type() == RequestType::kStorageAccess;
  }
  
@@ -1213,11 +1228,11 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    if (should_auto_approve_request) {
      if (should_auto_approve_request == PermissionAction::GRANTED) {
 -      request->PermissionGranted(/*is_one_time=*/true);
-+      request->PermissionGranted(/*is_one_time=*/true, content_settings::mojom::LifetimeMode::ONLY_THIS_TIME);
++      request->PermissionGranted(/*is_one_time=*/true, content_settings::mojom::LifetimeMode::UNTIL_ORIGIN_CLOSED);
      }
      request->RequestFinished();
      return;
-@@ -618,7 +618,8 @@ void PermissionRequestManager::Accept() {
+@@ -620,7 +620,8 @@ void PermissionRequestManager::Accept() {
                                  (*requests_iter)->request_type(),
                                  PermissionAction::GRANTED);
      PermissionGrantedIncludingDuplicates(*requests_iter,
@@ -1227,7 +1242,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
  
  #if !BUILDFLAG(IS_ANDROID)
      std::optional<ContentSettingsType> content_settings_type =
-@@ -636,7 +637,7 @@ void PermissionRequestManager::Accept() {
+@@ -638,7 +639,7 @@ void PermissionRequestManager::Accept() {
    CurrentRequestsDecided(PermissionAction::GRANTED);
  }
  
@@ -1236,7 +1251,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    if (ignore_callbacks_from_prompt_)
      return;
    DCHECK(view_);
-@@ -648,7 +649,8 @@ void PermissionRequestManager::AcceptThisTime() {
+@@ -651,7 +652,8 @@ void PermissionRequestManager::AcceptThisTime() {
                                  (*requests_iter)->request_type(),
                                  PermissionAction::GRANTED_ONCE);
      PermissionGrantedIncludingDuplicates(*requests_iter,
@@ -1246,7 +1261,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    }
  
    NotifyRequestDecided(PermissionAction::GRANTED_ONCE);
-@@ -656,6 +658,15 @@ void PermissionRequestManager::AcceptThisTime() {
+@@ -659,6 +661,15 @@ void PermissionRequestManager::AcceptThisTime() {
  }
  
  void PermissionRequestManager::Deny() {
@@ -1262,7 +1277,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    if (ignore_callbacks_from_prompt_)
      return;
    DCHECK(view_);
-@@ -679,7 +690,7 @@ void PermissionRequestManager::Deny() {
+@@ -683,7 +694,7 @@ void PermissionRequestManager::Deny() {
      StorePermissionActionForUMA((*requests_iter)->requesting_origin(),
                                  (*requests_iter)->request_type(),
                                  PermissionAction::DENIED);
@@ -1271,7 +1286,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    }
  
    NotifyRequestDecided(PermissionAction::DENIED);
-@@ -1255,32 +1266,32 @@ PermissionRequestManager::VisitDuplicateRequests(
+@@ -1264,32 +1275,32 @@ PermissionRequestManager::VisitDuplicateRequests(
  
  void PermissionRequestManager::PermissionGrantedIncludingDuplicates(
      PermissionRequest* request,
@@ -1314,7 +1329,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
        request);
  }
  
-@@ -1541,7 +1552,7 @@ void PermissionRequestManager::DoAutoResponseForTesting() {
+@@ -1550,7 +1561,7 @@ void PermissionRequestManager::DoAutoResponseForTesting() {
    }
    switch (auto_response_for_test_) {
      case ACCEPT_ONCE:

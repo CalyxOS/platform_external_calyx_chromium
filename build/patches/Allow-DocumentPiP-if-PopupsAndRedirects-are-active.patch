@@ -8,8 +8,8 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 
 Change-Id: I03651531d2ba8f6ad404f03474da629908e97421
 ---
- .../picture_in_picture_controller_impl.cc                 | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ .../picture_in_picture_controller_impl.cc                  | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
 diff --git a/third_party/blink/renderer/modules/document_picture_in_picture/picture_in_picture_controller_impl.cc b/third_party/blink/renderer/modules/document_picture_in_picture/picture_in_picture_controller_impl.cc
 --- a/third_party/blink/renderer/modules/document_picture_in_picture/picture_in_picture_controller_impl.cc
@@ -22,14 +22,13 @@ diff --git a/third_party/blink/renderer/modules/document_picture_in_picture/pict
  #include "third_party/blink/renderer/modules/picture_in_picture/picture_in_picture_event.h"
  #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
  #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
-@@ -377,6 +378,13 @@ void PictureInPictureControllerImpl::CreateDocumentPictureInPictureWindow(
+@@ -377,6 +378,12 @@ void PictureInPictureControllerImpl::CreateDocumentPictureInPictureWindow(
      return;
    }
  
 +  if (!opener.GetFrame()->Loader().GetDocumentLoader()->GetContentSettings()->allow_popup) {
-+    exception_state.ThrowDOMException(DOMExceptionCode::kNotAllowedError,
-+                                      "Document PiP requires user popup permission");
-+    resolver->Reject(exception_state);
++    resolver->RejectWithDOMException(DOMExceptionCode::kNotAllowedError,
++                                     "Document PiP requires user popup permission");
 +    return;
 +  }
 +
