@@ -54,7 +54,7 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
 @@ -392,6 +392,7 @@ class CORE_EXPORT ExecutionContext : public Supplementable<ExecutionContext>,
    void SetAddressSpace(network::mojom::blink::IPAddressSpace ip_address_space);
  
-   HeapObserverSet<ContextLifecycleObserver>& ContextLifecycleObserverSet();
+   HeapObserverList<ContextLifecycleObserver>& ContextLifecycleObserverSet();
 +  String addressSpaceForBindings() const;
    unsigned ContextLifecycleStateObserverCountForTesting() const;
  
@@ -73,7 +73,7 @@ diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
-@@ -885,6 +885,26 @@ bool FrameFetchContext::ShouldBlockRequestByInspector(const KURL& url) const {
+@@ -945,6 +945,26 @@ bool FrameFetchContext::ShouldBlockRequestByInspector(const KURL& url) const {
    return should_block_request;
  }
  
@@ -103,7 +103,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/third_party/blink/renderer/core/loader/frame_fetch_context.h
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.h
-@@ -172,6 +172,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
+@@ -179,6 +179,7 @@ class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
    bool ShouldBlockWebSocketByMixedContentCheck(const KURL&) const override;
    std::unique_ptr<WebSocketHandshakeThrottle> CreateWebSocketHandshakeThrottle()
        override;
@@ -241,7 +241,7 @@ diff --git a/third_party/blink/renderer/modules/websockets/websocket_channel_imp
 diff --git a/third_party/blink/renderer/modules/websockets/websocket_common.cc b/third_party/blink/renderer/modules/websockets/websocket_common.cc
 --- a/third_party/blink/renderer/modules/websockets/websocket_common.cc
 +++ b/third_party/blink/renderer/modules/websockets/websocket_common.cc
-@@ -136,9 +136,39 @@ WebSocketCommon::ConnectResult WebSocketCommon::Connect(
+@@ -135,9 +135,39 @@ WebSocketCommon::ConnectResult WebSocketCommon::Connect(
      return ConnectResult::kException;
    }
  

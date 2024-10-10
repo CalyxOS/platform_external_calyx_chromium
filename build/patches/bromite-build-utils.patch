@@ -15,13 +15,13 @@ Change-Id: I341ca819f305782864b36de15b42e2da3849897d
  build/config/android/rules.gni                |   6 +-
  .../ChromeAccessibilitySettingsDelegate.java  |   5 +
  chrome/browser/flags/BUILD.gn                 |  10 +-
- .../flags/android/cromite_native_utils.cc     |  43 +++++++
+ .../flags/android/cromite_native_utils.cc     |  57 ++++++++++
  .../flags/android/cromite_native_utils.h      |  14 +++
  .../browser/flags/CromiteNativeUtils.java     |  46 ++++++++
  mojo/public/tools/mojom/mojom_parser.py       |  22 +++-
  tools/grit/grit/grd_reader.py                 |  27 ++++-
  tools/grit/preprocess_if_expr.py              |  32 +++++-
- 17 files changed, 487 insertions(+), 19 deletions(-)
+ 17 files changed, 501 insertions(+), 19 deletions(-)
  create mode 100644 build/bromite/bromite_utils.gni
  create mode 100644 build/bromite/gyp/cpp_bromite_include.py
  create mode 100644 build/bromite/gyp/cpp_bromite_include.pydeps
@@ -131,7 +131,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
 diff --git a/build/android/gyp/util/build_utils.py b/build/android/gyp/util/build_utils.py
 --- a/build/android/gyp/util/build_utils.py
 +++ b/build/android/gyp/util/build_utils.py
-@@ -499,4 +499,27 @@ def ReadSourcesList(sources_list_file_name):
+@@ -502,4 +502,27 @@ def ReadSourcesList(sources_list_file_name):
    Note that this function should not be used to parse response files.
    """
    with open(sources_list_file_name) as f:
@@ -427,7 +427,7 @@ new file mode 100644
 diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
 --- a/build/config/BUILDCONFIG.gn
 +++ b/build/config/BUILDCONFIG.gn
-@@ -727,6 +727,7 @@ set_defaults("component") {
+@@ -728,6 +728,7 @@ set_defaults("component") {
    configs = default_component_configs
  }
  
@@ -511,10 +511,11 @@ diff --git a/chrome/browser/flags/android/cromite_native_utils.cc b/chrome/brows
 new file mode 100755
 --- /dev/null
 +++ b/chrome/browser/flags/android/cromite_native_utils.cc
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,57 @@
 +#include "chrome/browser/flags/android/cromite_native_utils.h"
 +
 +#include "chrome/browser/browser_process.h"
++#include "chrome/browser/about_flags.h"
 +#include "chrome/browser/flags/jni_headers/CromiteNativeUtils_jni.h"
 +#include "components/flags_ui/pref_service_flags_storage.h"
 +
@@ -545,13 +546,26 @@ new file mode 100755
 +static jboolean JNI_CromiteNativeUtils_IsFlagEnabled(JNIEnv* env,
 +    const JavaParamRef<jstring>& featureName) {
 +  auto internal_name = base::android::ConvertJavaStringToUTF8(env, featureName);
-+  const std::string enabled_entry = internal_name + "@1";
 +
 +  flags_ui::PrefServiceFlagsStorage flags_storage(
 +      g_browser_process->local_state());
 +  std::set<std::string> entries = flags_storage.GetFlags();
++
++  const std::string enabled_entry = internal_name + "@1";
 +  if (entries.count(enabled_entry))
 +    return true;
++
++  const std::string disabled_entry = internal_name + "@2";
++  if (entries.count(disabled_entry))
++    return false;
++
++  if (const flags_ui::FeatureEntry* entry =
++        about_flags::GetCurrentFlagsState()->FindFeatureEntryByName(
++          internal_name)) {
++    if (const base::Feature* feature = entry->feature.feature) {
++      return feature->default_state == base::FEATURE_ENABLED_BY_DEFAULT;
++    }
++  }
 +
 +  return false;
 +}

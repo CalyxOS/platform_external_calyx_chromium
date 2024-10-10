@@ -18,6 +18,10 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  chrome/browser/predictors/predictors_features.cc  |  3 +--
  chrome/browser/ui/tab_helpers.cc                  |  1 -
  .../ui/webui/omnibox/omnibox_page_handler.cc      |  2 ++
+ .../accessibility/read_aloud_app_model.cc         |  8 ++++++++
+ .../renderer/accessibility/read_aloud_app_model.h |  7 +++++++
+ .../accessibility/read_anything_app_controller.cc | 12 ++++++++++++
+ .../accessibility/read_anything_app_controller.h  |  4 ++++
  chrome/utility/BUILD.gn                           |  2 +-
  chrome/utility/services.cc                        |  8 --------
  .../core/browser/autofill_optimization_guide.cc   |  5 +++--
@@ -29,7 +33,6 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  .../core/prediction_model_fetcher_impl.cc         |  1 +
  components/optimization_guide/features.gni        |  3 +--
  .../core/page_content_annotations_features.cc     |  5 +++++
- components/search/ntp_features.cc                 |  3 +++
  .../Disable-all-predictors-code.inc               |  3 +++
  .../Disable-all-predictors-code.inc               |  1 +
  .../Disable-all-predictors-code.inc               |  1 +
@@ -39,7 +42,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  services/webnn/features.gni                       |  2 +-
  .../document_speculation_rules.cc                 |  1 +
  .../platform/runtime_enabled_features.json5       |  2 +-
- 32 files changed, 69 insertions(+), 35 deletions(-)
+ 35 files changed, 97 insertions(+), 35 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-all-predictors-code.inc
@@ -50,7 +53,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -785,8 +785,6 @@ static_library("browser") {
+@@ -774,8 +774,6 @@ static_library("browser") {
      "navigation_predictor/navigation_predictor_keyed_service_factory.h",
      "navigation_predictor/navigation_predictor_metrics_document_data.cc",
      "navigation_predictor/navigation_predictor_metrics_document_data.h",
@@ -162,7 +165,7 @@ diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc 
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -554,7 +554,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -558,7 +558,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
@@ -212,7 +215,7 @@ diff --git a/chrome/browser/predictors/predictors_features.cc b/chrome/browser/p
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -441,7 +441,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -446,7 +446,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    }
    MixedContentSettingsTabHelper::CreateForWebContents(web_contents);
    NavigationMetricsRecorder::CreateForWebContents(web_contents);
@@ -233,6 +236,195 @@ diff --git a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc b/chrome/br
  #include "components/optimization_guide/machine_learning_tflite_buildflags.h"
  #include "components/search_engines/template_url.h"
  #include "content/public/browser/web_ui.h"
+diff --git a/chrome/renderer/accessibility/read_aloud_app_model.cc b/chrome/renderer/accessibility/read_aloud_app_model.cc
+--- a/chrome/renderer/accessibility/read_aloud_app_model.cc
++++ b/chrome/renderer/accessibility/read_aloud_app_model.cc
+@@ -6,7 +6,9 @@
+ 
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/values.h"
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ #include "chrome/renderer/accessibility/phrase_segmentation/dependency_parser_model.h"
++#endif
+ #include "chrome/renderer/accessibility/phrase_segmentation/dependency_tree.h"
+ #include "chrome/renderer/accessibility/phrase_segmentation/phrase_segmenter.h"
+ #include "chrome/renderer/accessibility/phrase_segmentation/token_boundaries.h"
+@@ -16,6 +18,7 @@
+ 
+ namespace {
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ std::vector<unsigned int> GetDependencyHeads(
+     DependencyParserModel& dependency_parser_model,
+     std::vector<std::string> input) {
+@@ -25,6 +28,7 @@ std::vector<unsigned int> GetDependencyHeads(
+     return {};
+   }
+ }
++#endif
+ 
+ }  // namespace
+ 
+@@ -131,6 +135,7 @@ void ReadAloudAppModel::PreprocessTextForSpeech(
+   }
+ }
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ void ReadAloudAppModel::PreprocessPhrasesForText(
+     DependencyParserModel& dependency_parser_model) {
+   if (features::IsReadAnythingReadAloudPhraseHighlightingEnabled()) {
+@@ -145,7 +150,9 @@ void ReadAloudAppModel::PreprocessPhrasesForText(
+     DLOG(WARNING) << "Phrase calculation done.";
+   }
+ }
++#endif
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ void ReadAloudAppModel::CalculatePhrases(
+     DependencyParserModel& dependency_parser_model,
+     a11y::ReadAloudCurrentGranularity& granularity) {
+@@ -200,6 +207,7 @@ void ReadAloudAppModel::CalculatePhrases(
+       smart_highlight, tokenized_sentence, token_boundaries, Strategy::kWords,
+       /* max_words_per_phrase=*/5);
+ }
++#endif
+ 
+ // TODO(crbug.com/40927698): Update to use AXRange to better handle multiple
+ // nodes. This may require updating GetText in ax_range.h to return AXNodeIds.
+diff --git a/chrome/renderer/accessibility/read_aloud_app_model.h b/chrome/renderer/accessibility/read_aloud_app_model.h
+--- a/chrome/renderer/accessibility/read_aloud_app_model.h
++++ b/chrome/renderer/accessibility/read_aloud_app_model.h
+@@ -9,7 +9,10 @@
+ #include "base/values.h"
+ #include "chrome/common/accessibility/read_anything.mojom.h"
+ #include "chrome/common/accessibility/read_anything_constants.h"
++#include "components/optimization_guide/machine_learning_tflite_buildflags.h"
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ #include "chrome/renderer/accessibility/phrase_segmentation/dependency_parser_model.h"
++#endif
+ #include "chrome/renderer/accessibility/read_aloud_traversal_utils.h"
+ #include "ui/accessibility/ax_node_position.h"
+ 
+@@ -87,7 +90,9 @@ class ReadAloudAppModel {
+                                bool is_docs,
+                                const std::set<ui::AXNodeID>* current_nodes);
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   void PreprocessPhrasesForText(DependencyParserModel& dependency_parser_model);
++#endif
+ 
+   // Increments the processed_granularity_index_, updating ReadAloud's state of
+   // the current granularity to refer to the next granularity. The current
+@@ -241,9 +246,11 @@ class ReadAloudAppModel {
+   //      still needs to be read.
+   bool NoValidTextRemainingInCurrentNode(bool is_pdf, bool is_docs) const;
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   // Segment the given granularity into phrases with the given model.
+   void CalculatePhrases(DependencyParserModel& dependency_parser_model,
+                         a11y::ReadAloudCurrentGranularity& granularity);
++#endif
+ 
+   // Whether Read Aloud speech is currently playing or not.
+   bool speech_playing_ = false;
+diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chrome/renderer/accessibility/read_anything_app_controller.cc
+--- a/chrome/renderer/accessibility/read_anything_app_controller.cc
++++ b/chrome/renderer/accessibility/read_anything_app_controller.cc
+@@ -20,7 +20,9 @@
+ #include "base/strings/utf_string_conversions.h"
+ #include "chrome/common/accessibility/read_anything_constants.h"
+ #include "chrome/renderer/accessibility/ax_tree_distiller.h"
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ #include "chrome/renderer/accessibility/phrase_segmentation/dependency_parser_model.h"
++#endif
+ #include "chrome/renderer/accessibility/read_aloud_traversal_utils.h"
+ #include "chrome/renderer/accessibility/read_anything_node_utils.h"
+ #include "components/language/core/common/locale_util.h"
+@@ -362,11 +364,13 @@ SkBitmap CorrectColorOfBitMap(SkBitmap& originalBitmap) {
+   return converted;
+ }
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ // Returns the dependency parser model for this renderer process.
+ DependencyParserModel& GetDependencyParserModel() {
+   static base::NoDestructor<DependencyParserModel> instance;
+   return *instance;
+ }
++#endif
+ 
+ }  // namespace
+ 
+@@ -1474,6 +1478,7 @@ void ReadAnythingAppController::OnConnected() {
+   render_frame()->GetBrowserInterfaceBroker().GetInterface(
+       std::move(page_handler_factory_receiver));
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   // Get the dependency parser model used by phrase-based highlighting.
+   DependencyParserModel& dependency_parser_model = GetDependencyParserModel();
+   if (dependency_parser_model.IsAvailable()) {
+@@ -1483,6 +1488,7 @@ void ReadAnythingAppController::OnConnected() {
+   page_handler_->GetDependencyParserModel(
+       base::BindOnce(&ReadAnythingAppController::UpdateDependencyParserModel,
+                      weak_ptr_factory_.GetWeakPtr()));
++#endif
+ }
+ 
+ void ReadAnythingAppController::OnCopy() const {
+@@ -1692,6 +1698,7 @@ std::vector<ui::AXNodeID> ReadAnythingAppController::GetCurrentText() {
+ }
+ 
+ void ReadAnythingAppController::PreprocessTextForSpeech() {
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   const std::set<ui::AXNodeID>* node_ids = model_.selection_node_ids().empty()
+                                                ? &model_.display_node_ids()
+                                                : &model_.selection_node_ids();
+@@ -1701,6 +1708,7 @@ void ReadAnythingAppController::PreprocessTextForSpeech() {
+     DependencyParserModel& model = GetDependencyParserModel();
+     read_aloud_model_.PreprocessPhrasesForText(model);
+   }
++#endif
+ }
+ 
+ void ReadAnythingAppController::MovePositionToNextGranularity() {
+@@ -1874,11 +1882,15 @@ bool ReadAnythingAppController::IsDocsLoadMoreButtonVisible() const {
+ 
+ void ReadAnythingAppController::UpdateDependencyParserModel(
+     base::File model_file) {
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   DependencyParserModel& dependency_parser_model = GetDependencyParserModel();
+   dependency_parser_model.UpdateWithFile(std::move(model_file));
++#endif
+ }
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ DependencyParserModel&
+ ReadAnythingAppController::GetDependencyParserModelForTesting() {
+   return GetDependencyParserModel();
+ }
++#endif
+diff --git a/chrome/renderer/accessibility/read_anything_app_controller.h b/chrome/renderer/accessibility/read_anything_app_controller.h
+--- a/chrome/renderer/accessibility/read_anything_app_controller.h
++++ b/chrome/renderer/accessibility/read_anything_app_controller.h
+@@ -44,7 +44,9 @@ class MojoUkmRecorder;
+ }  // namespace ukm
+ 
+ class AXTreeDistiller;
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+ class DependencyParserModel;
++#endif
+ class ReadAnythingAppControllerTest;
+ class ReadAnythingAppControllerScreen2xDataCollectionModeTest;
+ 
+@@ -366,7 +368,9 @@ class ReadAnythingAppController
+   // available.
+   void UpdateDependencyParserModel(base::File model_file);
+ 
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   DependencyParserModel& GetDependencyParserModelForTesting();
++#endif
+ 
+   std::unique_ptr<AXTreeDistiller> distiller_;
+   mojo::Remote<read_anything::mojom::UntrustedPageHandlerFactory>
 diff --git a/chrome/utility/BUILD.gn b/chrome/utility/BUILD.gn
 --- a/chrome/utility/BUILD.gn
 +++ b/chrome/utility/BUILD.gn
@@ -273,7 +465,7 @@ diff --git a/chrome/utility/services.cc b/chrome/utility/services.cc
 diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/components/autofill/core/browser/autofill_optimization_guide.cc
 --- a/components/autofill/core/browser/autofill_optimization_guide.cc
 +++ b/components/autofill/core/browser/autofill_optimization_guide.cc
-@@ -207,6 +207,7 @@ void AutofillOptimizationGuide::OnDidParseForm(
+@@ -209,6 +209,7 @@ void AutofillOptimizationGuide::OnDidParseForm(
    // If we do not have any optimization types to register, do not do anything.
    if (!optimization_types.empty()) {
      // Register all optimization types that we need based on `form_structure`.
@@ -281,7 +473,7 @@ diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/c
      decider_->RegisterOptimizationTypes(
          std::vector<optimization_guide::proto::OptimizationType>(
              std::move(optimization_types).extract()));
-@@ -258,7 +259,7 @@ bool AutofillOptimizationGuide::ShouldBlockSingleFieldSuggestions(
+@@ -260,7 +261,7 @@ bool AutofillOptimizationGuide::ShouldBlockSingleFieldSuggestions(
      const AutofillField* field) const {
    // If the field's storable type is `IBAN_VALUE`, check whether IBAN
    // suggestions should be blocked based on `url`.
@@ -290,7 +482,7 @@ diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/c
      optimization_guide::OptimizationGuideDecision decision =
          decider_->CanApplyOptimization(
              url, optimization_guide::proto::IBAN_AUTOFILL_BLOCKED,
-@@ -284,7 +285,7 @@ bool AutofillOptimizationGuide::ShouldBlockFormFieldSuggestion(
+@@ -286,7 +287,7 @@ bool AutofillOptimizationGuide::ShouldBlockFormFieldSuggestion(
      const CreditCard& card) const {
    if (auto optimization_type =
            GetVcnMerchantOptOutOptimizationTypeForCard(card);
@@ -312,7 +504,7 @@ diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/
  #include "components/omnibox/browser/autocomplete_scoring_signals_annotator.h"
  #include "components/omnibox/browser/bookmark_provider.h"
  #include "components/omnibox/browser/bookmark_scoring_signals_annotator.h"
-@@ -120,6 +122,7 @@ using ProviderType = AutocompleteProvider::Type;
+@@ -119,6 +121,7 @@ using ProviderType = AutocompleteProvider::Type;
  
  constexpr bool is_android = !!BUILDFLAG(IS_ANDROID);
  
@@ -320,7 +512,7 @@ diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/
  void RecordMlScoreCoverage(size_t matches_with_non_null_scores,
                             size_t total_scored_matches) {
    int percent_score_coverage =
-@@ -228,6 +231,7 @@ void RecordTotalMatchesScored(size_t num_scored) {
+@@ -227,6 +230,7 @@ void RecordTotalMatchesScored(size_t num_scored) {
    base::UmaHistogramCounts1000("Omnibox.URLScoringModelExecuted.Matches",
                                 num_scored);
  }
@@ -383,7 +575,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  }  // namespace
  
-@@ -423,8 +419,7 @@ size_t MaxURLKeyedHintCacheSize() {
+@@ -412,8 +408,7 @@ size_t MaxURLKeyedHintCacheSize() {
  }
  
  bool ShouldPersistHintsToDisk() {
@@ -393,7 +585,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  }
  
  RequestContextSet GetAllowedContextsForPersonalizedMetadata() {
-@@ -880,5 +875,13 @@ int GetOnDeviceModelValidationAttemptCount() {
+@@ -869,5 +864,13 @@ int GetOnDeviceModelValidationAttemptCount() {
    return kParam.Get();
  }
  
@@ -481,17 +673,6 @@ diff --git a/components/page_content_annotations/core/page_content_annotations_f
 +SET_CROMITE_FEATURE_DISABLED(kPageContentAnnotationsValidation);
 +SET_CROMITE_FEATURE_DISABLED(kPageContentAnnotationsPersistSalientImageMetadata);
  }  // namespace page_content_annotations::features
-diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
---- a/components/search/ntp_features.cc
-+++ b/components/search/ntp_features.cc
-@@ -558,4 +558,7 @@ int GetWallpaperSearchButtonAnimationShownThreshold() {
-       kNtpWallpaperSearchButtonAnimationShownThreshold,
-       kNtpWallpaperSearchButtonAnimationShownThresholdParam, 15);
- }
-+SET_CROMITE_FEATURE_DISABLED(kNtpHistoryClustersModule);
-+SET_CROMITE_FEATURE_DISABLED(kNtpHistoryClustersModuleLoad);
-+SET_CROMITE_FEATURE_DISABLED(kNtpHistoryClustersModuleUseModelRanking);
- }  // namespace ntp_features
 diff --git a/cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc b/cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc
 new file mode 100644
 --- /dev/null
@@ -560,7 +741,7 @@ diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculat
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3333,7 +3333,7 @@
+@@ -3327,7 +3327,7 @@
        //
        // It also has some feature params defined throughout the codebase.
        name: "Prerender2",

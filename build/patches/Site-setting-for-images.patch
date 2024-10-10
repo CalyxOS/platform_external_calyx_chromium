@@ -17,7 +17,7 @@ Change-Id: Icd829f513d0d8ef8a63402edb20d8fe6bb06032c
  .../bromite_content_settings/images.grdp      |  23 +++++
  .../bromite_content_settings/images.inc       |   6 ++
  .../core/browser/content_settings_registry.cc |   2 +-
- .../renderer/content_settings_agent_impl.cc   |  15 +++
+ .../renderer/content_settings_agent_impl.cc   |  14 +++
  .../renderer/content_settings_agent_impl.h    |   2 +
  .../platform/web_content_settings_client.h    |   5 +
  .../blink/renderer/core/frame/local_frame.cc  |  13 ---
@@ -29,7 +29,7 @@ Change-Id: Icd829f513d0d8ef8a63402edb20d8fe6bb06032c
  .../platform/loader/fetch/fetch_context.h     |   2 +-
  .../platform/loader/fetch/resource_fetcher.cc |  17 +++-
  .../platform/loader/fetch/resource_fetcher.h  |   2 +
- 21 files changed, 178 insertions(+), 36 deletions(-)
+ 21 files changed, 177 insertions(+), 36 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_images.png
@@ -273,7 +273,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -336,6 +336,21 @@ bool ContentSettingsAgentImpl::AllowStorageAccessSync(
+@@ -334,6 +334,20 @@ bool ContentSettingsAgentImpl::AllowStorageAccessSync(
    return result;
  }
  
@@ -281,7 +281,6 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 +                                          const WebURL& image_url) {
 +  bool allow = enabled_per_settings;
 +  if (enabled_per_settings) {
-+    allow = allow || IsAllowlistedForContentSettingsCromite();
 +    if (content_setting_rules_) {
 +      allow = AllowContentSetting(ContentSettingsType::IMAGES,
 +                                  image_url, enabled_per_settings);
@@ -298,7 +297,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.h b/components/content_settings/renderer/content_settings_agent_impl.h
 --- a/components/content_settings/renderer/content_settings_agent_impl.h
 +++ b/components/content_settings/renderer/content_settings_agent_impl.h
-@@ -91,6 +91,8 @@ class ContentSettingsAgentImpl
+@@ -88,6 +88,8 @@ class ContentSettingsAgentImpl
    void AllowStorageAccess(StorageType storage_type,
                            base::OnceCallback<void(bool)> callback) override;
    bool AllowStorageAccessSync(StorageType type) override;
@@ -325,7 +324,7 @@ diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/t
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
-@@ -4025,19 +4025,6 @@ bool LocalFrame::IsSameOrigin() {
+@@ -4040,19 +4040,6 @@ bool LocalFrame::IsSameOrigin() {
    return security_origin->IsSameOriginWith(top_security_origin);
  }
  
@@ -383,7 +382,7 @@ diff --git a/third_party/blink/renderer/core/html/image_document.cc b/third_part
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 --- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
-@@ -301,6 +301,7 @@ ResourceFetcher* FrameFetchContext::CreateFetcherForCommittedDocument(
+@@ -304,6 +304,7 @@ ResourceFetcher* FrameFetchContext::CreateFetcherForCommittedDocument(
    fetcher->SetResourceLoadObserver(
        MakeGarbageCollected<ResourceLoadObserverForFrame>(
            loader, document, fetcher->GetProperties()));
@@ -391,7 +390,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
    fetcher->SetAutoLoadImages(
        frame->GetSettings()->GetLoadsImagesAutomatically());
    fetcher->SetEarlyHintsPreloadedResources(
-@@ -473,16 +474,11 @@ void FrameFetchContext::AddResourceTiming(
+@@ -485,16 +486,11 @@ void FrameFetchContext::AddResourceTiming(
        ->AddResourceTiming(std::move(info), initiator_type);
  }
  
@@ -421,12 +420,12 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/thir
 -  bool AllowImage() const override;
 +  bool AllowImage(bool images_enabled, const KURL&) const override;
  
-   void PopulateResourceRequest(ResourceType,
-                                const std::optional<float> resource_width,
+   void PopulateResourceRequestBeforeCacheAccess(
+       const ResourceLoaderOptions& options,
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -988,9 +988,8 @@ void Page::SettingsChanged(ChangeType change_type) {
+@@ -1030,9 +1030,8 @@ void Page::SettingsChanged(ChangeType change_type) {
        for (Frame* frame = MainFrame(); frame;
             frame = frame->Tree().TraverseNext()) {
          if (auto* local_frame = DynamicTo<LocalFrame>(frame)) {
@@ -453,7 +452,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/fetch_context.h b/
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
-@@ -777,6 +777,7 @@ ResourceFetcher::ResourceFetcher(const ResourceFetcherInit& init)
+@@ -790,6 +790,7 @@ ResourceFetcher::ResourceFetcher(const ResourceFetcherInit& init)
        blob_registry_remote_(init.context_lifecycle_notifier),
        context_lifecycle_notifier_(init.context_lifecycle_notifier),
        auto_load_images_(true),
@@ -461,7 +460,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
        allow_stale_resources_(false),
        image_fetched_(false),
        transparent_image_optimization_enabled_(base::FeatureList::IsEnabled(
-@@ -1925,7 +1926,7 @@ bool ResourceFetcher::IsImageResourceDisallowedToBeReused(
+@@ -1918,7 +1919,7 @@ bool ResourceFetcher::IsImageResourceDisallowedToBeReused(
    if (existing_resource.GetType() != ResourceType::kImage)
      return false;
  
@@ -470,7 +469,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
  }
  
  ResourceFetcher::RevalidationPolicy
-@@ -2168,8 +2169,20 @@ void ResourceFetcher::SetAutoLoadImages(bool enable) {
+@@ -2161,8 +2162,20 @@ void ResourceFetcher::SetAutoLoadImages(bool enable) {
    ReloadImagesIfNotDeferred();
  }
  
@@ -503,7 +502,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
  
    FetchContext& Context() const;
    void ClearContext();
-@@ -692,6 +693,7 @@ class PLATFORM_EXPORT ResourceFetcher
+@@ -688,6 +689,7 @@ class PLATFORM_EXPORT ResourceFetcher
  
    // 27 bits left
    bool auto_load_images_ : 1;
