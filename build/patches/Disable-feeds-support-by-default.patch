@@ -6,11 +6,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I59cfe031bfb2b8c55d19e4449a4280ec2bb9daa6
 ---
- .../browser/feed/android/web_feed_bridge.cc   | 28 ++++---------------
- chrome/browser/prefs/browser_prefs.cc         |  5 ----
+ .../browser/feed/android/web_feed_bridge.cc   | 28 +++----------------
  .../feed/core/shared_prefs/pref_names.cc      |  2 +-
  components/feed/feed_feature_list.cc          |  3 ++
- 4 files changed, 9 insertions(+), 29 deletions(-)
+ 3 files changed, 8 insertions(+), 25 deletions(-)
 
 diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/feed/android/web_feed_bridge.cc
 --- a/chrome/browser/feed/android/web_feed_bridge.cc
@@ -39,7 +38,7 @@ diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/fee
  }
  
  static jboolean JNI_WebFeedBridge_IsCormorantEnabledForLocale(JNIEnv* env) {
-@@ -264,11 +258,8 @@ static void JNI_WebFeedBridge_UnfollowWebFeed(
+@@ -264,11 +258,7 @@ static void JNI_WebFeedBridge_UnfollowWebFeed(
    auto callback =
        AdaptCallbackForJava<WebFeedSubscriptions::UnfollowWebFeedResult>(
            env, j_callback);
@@ -48,15 +47,15 @@ diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/fee
 -      /*is_durable_request=*/is_durable,
 -      static_cast<feedwire::webfeed::WebFeedChangeReason>(change_reason),
 -      std::move(callback));
-+
 +  std::move(callback).Run({});
  }
  
  static void JNI_WebFeedBridge_FindWebFeedInfoForPage(
-@@ -280,16 +271,7 @@ static void JNI_WebFeedBridge_FindWebFeedInfoForPage(
+@@ -279,17 +269,7 @@ static void JNI_WebFeedBridge_FindWebFeedInfoForPage(
+   base::OnceCallback<void(WebFeedMetadata)> callback =
        AdaptCallbackForJava<WebFeedMetadata>(env, j_callback);
  
-   PageInformation page_info = ToNativePageInformation(env, pageInfo);
+-  PageInformation page_info = ToNativePageInformation(env, pageInfo);
 -  // Make sure web_contents is not NULL since the user might navigate away from
 -  // the current tab that is requested to find info.
 -  if (!page_info.web_contents) {
@@ -71,21 +70,6 @@ diff --git a/chrome/browser/feed/android/web_feed_bridge.cc b/chrome/browser/fee
  }
  
  static void JNI_WebFeedBridge_FindWebFeedInfoForWebFeedId(
-diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
---- a/chrome/browser/prefs/browser_prefs.cc
-+++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -2691,11 +2691,6 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
-   syncer::SyncPrefs::MaybeMigrateAutofillToPerAccountPref(profile_prefs);
- #endif  // !BUILDFLAG(IS_ANDROID)
- 
--#if BUILDFLAG(IS_ANDROID)
--  // Added 06/2024
--  feed::prefs::MigrateObsoleteFeedExperimentPref_Jun_2024(profile_prefs);
--#endif  // BUILDFLAG(IS_ANDROID)
--
-   // Added 06/2024.
-   profile_prefs->ClearPref(kDefaultSearchProviderChoicePending);
- 
 diff --git a/components/feed/core/shared_prefs/pref_names.cc b/components/feed/core/shared_prefs/pref_names.cc
 --- a/components/feed/core/shared_prefs/pref_names.cc
 +++ b/components/feed/core/shared_prefs/pref_names.cc
@@ -101,7 +85,7 @@ diff --git a/components/feed/core/shared_prefs/pref_names.cc b/components/feed/c
 diff --git a/components/feed/feed_feature_list.cc b/components/feed/feed_feature_list.cc
 --- a/components/feed/feed_feature_list.cc
 +++ b/components/feed/feed_feature_list.cc
-@@ -149,4 +149,7 @@ bool IsWebFeedEnabledForLocale(const std::string& country) {
+@@ -141,4 +141,7 @@ bool IsWebFeedEnabledForLocale(const std::string& country) {
           !base::FeatureList::IsEnabled(kWebFeedKillSwitch);
  }
  

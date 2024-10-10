@@ -12,19 +12,19 @@ Change-Id: I73b8c04221d5b4bc2bbf7958dd85ebe3c17c2aa8
  chrome/browser/preloading/preloading_prefs.h   |  2 +-
  chrome/browser/profiles/profile.cc             |  2 +-
  .../reset_page/reset_profile_dialog.html       |  2 +-
- chrome/browser/ui/browser_ui_prefs.cc          |  4 ++--
+ chrome/browser/ui/browser_ui_prefs.cc          |  6 +++---
  components/bookmarks/browser/BUILD.gn          |  2 ++
  components/bookmarks/browser/bookmark_utils.cc |  7 +++++--
  components/bookmarks/browser/features.cc       | 17 +++++++++++++++++
  components/bookmarks/browser/features.h        | 18 ++++++++++++++++++
- .../core/browser/content_settings_registry.cc  |  4 ++--
+ .../core/browser/content_settings_registry.cc  |  6 +++---
  .../core/browser/cookie_settings.cc            |  2 +-
  components/payments/core/payment_prefs.cc      |  2 +-
  .../core/common/safe_browsing_prefs.cc         |  4 ++--
  .../primary_account_manager.cc                 |  2 +-
  .../Modify-default-preferences.inc             |  8 ++++++++
  .../features_cc/Modify-default-preferences.inc |  1 +
- 18 files changed, 66 insertions(+), 16 deletions(-)
+ 18 files changed, 68 insertions(+), 18 deletions(-)
  create mode 100644 components/bookmarks/browser/features.cc
  create mode 100644 components/bookmarks/browser/features.h
  create mode 100755 cromite_flags/chrome/browser/about_flags_cc/Modify-default-preferences.inc
@@ -56,7 +56,7 @@ diff --git a/chrome/browser/background/background_mode_manager.cc b/chrome/brows
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -1602,7 +1602,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
+@@ -1613,7 +1613,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
  void ChromeContentBrowserClient::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kDisable3DAPIs, false);
@@ -117,6 +117,15 @@ diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_u
    registry->RegisterDictionaryPref(prefs::kBrowserWindowPlacement);
    registry->RegisterDictionaryPref(prefs::kBrowserWindowPlacementPopup);
    registry->RegisterDictionaryPref(prefs::kAppWindowPlacement);
+@@ -170,7 +170,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+ #endif
+ 
+   registry->RegisterBooleanPref(
+-      prefs::kHttpsOnlyModeEnabled, false,
++      prefs::kHttpsOnlyModeEnabled, true,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterBooleanPref(
+       prefs::kHttpsFirstBalancedMode, false,
 diff --git a/components/bookmarks/browser/BUILD.gn b/components/bookmarks/browser/BUILD.gn
 --- a/components/bookmarks/browser/BUILD.gn
 +++ b/components/bookmarks/browser/BUILD.gn
@@ -211,6 +220,15 @@ new file mode 100644
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
+@@ -150,7 +150,7 @@ void ContentSettingsRegistry::Init() {
+            ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
+ 
+   Register(ContentSettingsType::NOTIFICATIONS, "notifications",
+-           CONTENT_SETTING_ASK, WebsiteSettingsInfo::UNSYNCABLE,
++           CONTENT_SETTING_BLOCK, WebsiteSettingsInfo::UNSYNCABLE,
+            /*allowlisted_primary_schemes=*/{},
+            /*valid_settings=*/
+            {CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK, CONTENT_SETTING_ASK},
 @@ -238,7 +238,7 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
@@ -275,7 +293,7 @@ diff --git a/components/safe_browsing/core/common/safe_browsing_prefs.cc b/compo
 diff --git a/components/signin/internal/identity_manager/primary_account_manager.cc b/components/signin/internal/identity_manager/primary_account_manager.cc
 --- a/components/signin/internal/identity_manager/primary_account_manager.cc
 +++ b/components/signin/internal/identity_manager/primary_account_manager.cc
-@@ -241,7 +241,7 @@ void PrimaryAccountManager::RegisterProfilePrefs(PrefRegistrySimple* registry) {
+@@ -299,7 +299,7 @@ void PrimaryAccountManager::RegisterProfilePrefs(PrefRegistrySimple* registry) {
        prefs::kGoogleServicesSyncingGaiaIdMigratedToSignedIn, std::string());
    registry->RegisterStringPref(
        prefs::kGoogleServicesSyncingUsernameMigratedToSignedIn, std::string());
