@@ -4,13 +4,25 @@ Subject: Use our mirror/copy of adblock filters
 
 * We'll update this and find a better location for it too perhaps,
   but for now let's start with a quick copy / mirror
+* Change Cromite's replacement of www.bromite.org URLs from about:blank
+  to ours. Some users may have gotten transitioned to about:blank.
+  already, so check that, too, or else they will be stuck on it.
+  (Note that this migration happens at every browser startup.)
+* Change the Reset button of the AdBlock URL editor to reset the field
+  to our URL.
+* /e/'s migration patch "Browser: Change adblock url to ours" by
+  althafvly@gmail.com was consulted but not ultimately used; still,
+  their work is appreciated as inspiration.
+* TODO: Centralize the URL so that it isn't duplicated all over.
 
 Issue: calyxos#2679
 Change-Id: I3c7894272599e092550f04f5bcab44bde59014f5
 ---
- chrome/android/java/res/values/values.xml            | 2 +-
- chrome/browser/net/system_network_context_manager.cc | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ chrome/android/java/res/values/values.xml                   | 2 +-
+ .../org/chromium/chrome/browser/settings/AdBlockEditor.java | 5 ++++-
+ chrome/browser/browser_process_impl.cc                      | 6 ++++--
+ chrome/browser/net/system_network_context_manager.cc        | 2 +-
+ 4 files changed, 10 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/android/java/res/values/values.xml b/chrome/android/java/res/values/values.xml
 --- a/chrome/android/java/res/values/values.xml
@@ -24,6 +36,44 @@ diff --git a/chrome/android/java/res/values/values.xml b/chrome/android/java/res
  
      <!-- Download InfoBar animation. -->
      <integer name="download_infobar_fill_in_delay">1200</integer>
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
+@@ -23,6 +23,9 @@ import org.chromium.components.url_formatter.UrlFormatter;
+  * Provides the Java-UI for editing AdBlock preferences.
+  */
+ public class AdBlockEditor extends Fragment implements TextWatcher {
++    // TODO: This is duplicated all over the place. Find some way to centralize it.
++    private static final String DEFAULT_ADBLOCK_FILTERS_URL =
++            "https://calyxos.org/bromite/filters/filters.dat";
+     private EditText mAdBlockFiltersUrlEdit;
+     private Button mSaveButton;
+     private Button mResetButton;
+@@ -65,7 +68,7 @@ public class AdBlockEditor extends Fragment implements TextWatcher {
+         mResetButton.setOnClickListener(new View.OnClickListener() {
+             @Override
+             public void onClick(View v) {
+-                mAdBlockFiltersUrlEdit.setText(AdBlockNativeGateway.getAdBlockFiltersURL());
++                mAdBlockFiltersUrlEdit.setText(DEFAULT_ADBLOCK_FILTERS_URL);
+             }
+         });
+ 
+diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
+--- a/chrome/browser/browser_process_impl.cc
++++ b/chrome/browser/browser_process_impl.cc
+@@ -1241,8 +1241,10 @@ BrowserProcessImpl::adblock_updater() {
+   auto adblock_updater_url =
+     local_state()->GetString(prefs::kAdBlockFiltersURL);
+   if (base::StartsWith(adblock_updater_url,
+-        "https://www.bromite.org", base::CompareCase::INSENSITIVE_ASCII)) {
+-    local_state()->SetString(prefs::kAdBlockFiltersURL, "about:blank");
++        "https://www.bromite.org", base::CompareCase::INSENSITIVE_ASCII)
++              || adblock_updater_url == "about:blank") {
++    local_state()->SetString(prefs::kAdBlockFiltersURL,
++        "https://calyxos.org/bromite/filters/filters.dat");
+   }
+ 
+   adblock_updater_ = std::make_unique<adblock_updater::AdBlockUpdaterService>(
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
