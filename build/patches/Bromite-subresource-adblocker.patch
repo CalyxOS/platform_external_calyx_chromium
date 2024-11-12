@@ -50,10 +50,10 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
  .../content/shared/browser/ruleset_service.h  |   8 +-
  .../unindexed_ruleset_stream_generator.cc     |   3 +
  .../core/browser/ruleset_version.h            |   4 +
- .../browser/subresource_filter_features.cc    | 116 +-------
+ .../browser/subresource_filter_features.cc    | 111 +------
  .../core/browser/verified_ruleset_dealer.cc   |   4 +
  .../core/common/indexed_ruleset.cc            |   5 +-
- 39 files changed, 1273 insertions(+), 129 deletions(-)
+ 39 files changed, 1272 insertions(+), 125 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -68,7 +68,7 @@ Change-Id: I09c0504269c659e0f125dfa982148b705cd6528b
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -370,6 +370,7 @@ if (current_toolchain == default_toolchain) {
+@@ -329,6 +329,7 @@ if (current_toolchain == default_toolchain) {
        "//chrome/android/modules/cablev2_authenticator/public:java",
        "//chrome/android/modules/stack_unwinder/provider:java",
        "//chrome/android/webapk/libs/client:client_java",
@@ -79,7 +79,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -434,6 +434,7 @@ chrome_java_resources = [
+@@ -428,6 +428,7 @@ chrome_java_resources = [
    "java/res/layout/account_divider_preference.xml",
    "java/res/layout/account_management_account_row.xml",
    "java/res/layout/app_history_filter.xml",
@@ -87,7 +87,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_name_and_number.xml",
-@@ -623,6 +624,7 @@ chrome_java_resources = [
+@@ -614,6 +615,7 @@ chrome_java_resources = [
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
    "java/res/xml/ad_services_config.xml",
@@ -98,7 +98,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -943,6 +943,8 @@ chrome_java_sources = [
+@@ -948,6 +948,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -254,7 +254,7 @@ new file mode 100644
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
 +++ b/chrome/android/java/res/xml/main_preferences.xml
-@@ -122,6 +122,11 @@ for the previous order (main_preferences_legacy). -->
+@@ -120,6 +120,11 @@ for the previous order (main_preferences_legacy). -->
          android:key="toolbar_shortcut"
          android:order="21"
          android:title="@string/toolbar_shortcut"/>
@@ -428,7 +428,7 @@ new file mode 100644
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabModelImpl.java
-@@ -855,9 +855,7 @@ public class TabModelImpl extends TabModelJniBridge {
+@@ -863,9 +863,7 @@ public class TabModelImpl extends TabModelJniBridge {
                  .createTabWithWebContents(
                          parent,
                          webContents,
@@ -442,7 +442,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -15940,6 +15940,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -15996,6 +15996,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -513,7 +513,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1227,6 +1227,34 @@ BrowserProcessImpl::component_updater() {
+@@ -1228,6 +1228,34 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -570,7 +570,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -472,6 +472,9 @@ StartupProfileInfo CreateInitialProfile(
+@@ -468,6 +468,9 @@ StartupProfileInfo CreateInitialProfile(
    // missing code in the above test.
    CHECK(profile_info.profile) << "Cannot get default profile.";
  
@@ -736,7 +736,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -2840,6 +2840,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2857,6 +2857,11 @@ inline constexpr char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  inline constexpr char kAudioCaptureAllowedUrls[] =
      "hardware.audio_capture_allowed_urls";
  
@@ -751,7 +751,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
 +++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -374,6 +374,9 @@
+@@ -373,6 +373,9 @@
    <message name="IDS_INTRUSIVE_ADS_INFORMATION" desc="The extra information at the top of the Site Details page when the site tends to show intrusive ads">
      This site shows intrusive or misleading ads
    </message>
@@ -1585,7 +1585,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
  #include "components/subresource_filter/content/browser/ad_tagging_utils.h"
  #include "components/subresource_filter/content/browser/content_subresource_filter_web_contents_helper.h"
  #include "components/subresource_filter/content/browser/profile_interaction_manager.h"
-@@ -111,6 +114,7 @@ ContentSubresourceFilterThrottleManager::
+@@ -112,6 +115,7 @@ ContentSubresourceFilterThrottleManager::
        profile_interaction_manager_(
            std::make_unique<subresource_filter::ProfileInteractionManager>(
                profile_context)),
@@ -1593,7 +1593,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
        web_contents_helper_(web_contents_helper) {}
  
  ContentSubresourceFilterThrottleManager::
-@@ -671,6 +675,17 @@ ContentSubresourceFilterThrottleManager::
+@@ -672,6 +676,17 @@ ContentSubresourceFilterThrottleManager::
        throttle->NotifyPageActivationWithRuleset(EnsureRulesetHandle(),
                                                  ad_tagging_state);
      }
@@ -1638,7 +1638,7 @@ diff --git a/components/subresource_filter/content/shared/browser/ruleset_servic
  
  // Implements operations on a `sentinel file`, which is used as a safeguard to
 @@ -234,10 +232,13 @@ RulesetService::RulesetService(
- RulesetService::~RulesetService() {}
+ RulesetService::~RulesetService() = default;
  
  void RulesetService::IndexAndStoreAndPublishRulesetIfNeeded(
 -    const UnindexedRulesetInfo& unindexed_ruleset_info) {
@@ -1818,7 +1818,7 @@ diff --git a/components/subresource_filter/core/browser/ruleset_version.h b/comp
 diff --git a/components/subresource_filter/core/browser/subresource_filter_features.cc b/components/subresource_filter/core/browser/subresource_filter_features.cc
 --- a/components/subresource_filter/core/browser/subresource_filter_features.cc
 +++ b/components/subresource_filter/core/browser/subresource_filter_features.cc
-@@ -55,72 +55,7 @@ class CommaSeparatedStrings {
+@@ -55,68 +55,6 @@ class CommaSeparatedStrings {
    const std::vector<std::string_view> pieces_;
  };
  
@@ -1833,8 +1833,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 -  return value;
 -}
 -
--mojom::ActivationLevel ParseActivationLevel(
--    const std::string_view activation_level) {
+-mojom::ActivationLevel ParseActivationLevel(std::string_view activation_level) {
 -  if (base::EqualsCaseInsensitiveASCII(activation_level,
 -                                       kActivationLevelEnabled))
 -    return mojom::ActivationLevel::kEnabled;
@@ -1844,7 +1843,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 -  return mojom::ActivationLevel::kDisabled;
 -}
 -
--ActivationScope ParseActivationScope(const std::string_view activation_scope) {
+-ActivationScope ParseActivationScope(std::string_view activation_scope) {
 -  if (base::EqualsCaseInsensitiveASCII(activation_scope,
 -                                       kActivationScopeAllSites))
 -    return ActivationScope::ALL_SITES;
@@ -1880,19 +1879,15 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
 -  return value < 1 ? value : 1;
 -}
 -
--int ParseInt(const std::string_view value) {
+-int ParseInt(std::string_view value) {
 -  int result = 0;
 -  base::StringToInt(value, &result);
 -  return result;
 -}
--
--std::vector<Configuration> FillEnabledPresetConfigurations(
--    std::map<std::string, std::string>* params) {
-+std::vector<Configuration> FillEnabledPresetConfigurations() {
-   // If ad tagging is enabled, turn on the dryrun automatically.
-   bool ad_tagging_enabled = base::FeatureList::IsEnabled(kAdTagging);
-   const struct {
-@@ -128,23 +63,16 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
+ 
+ std::vector<Configuration> FillEnabledPresetConfigurations(
+     std::map<std::string, std::string>* params) {
+@@ -127,23 +65,16 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
      bool enabled_by_default;
      Configuration (*factory_method)();
    } kAvailablePresetConfigurations[] = {
@@ -1918,7 +1913,7 @@ diff --git a/components/subresource_filter/core/browser/subresource_filter_featu
        enabled_configurations.push_back(available_preset.factory_method());
      }
    }
-@@ -152,46 +80,10 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
+@@ -151,46 +82,10 @@ std::vector<Configuration> FillEnabledPresetConfigurations(
    return enabled_configurations;
  }
  
