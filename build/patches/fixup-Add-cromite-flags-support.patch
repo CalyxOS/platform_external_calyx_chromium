@@ -1,0 +1,118 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Tue, 12 Nov 2024 20:22:46 +0000
+Subject: fixup! Add cromite flags support
+
+Change-Id: Ib5ceeac3bac1c09abf3d10d3ca64cf693d1c3824
+---
+ .../chromium/chrome/browser/flags/CromiteNativeUtils.java   | 4 ++--
+ .../flags/cromite/java_template/CromiteCachedFlag.java.tmpl | 2 +-
+ .../browser/flags/cromite/sAllowExternalIntentRequests.java | 2 +-
+ .../org/chromium/components/cached_flags/CachedFlag.java    | 6 +++---
+ components/flags_ui/resources/experiment.ts                 | 5 +++++
+ .../variations/synthetic_trials_active_group_id_provider.h  | 2 +-
+ components/version_ui/version_handler_helper.cc             | 2 +-
+ 7 files changed, 14 insertions(+), 9 deletions(-)
+
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
+@@ -1,8 +1,8 @@
+ package org.chromium.chrome.browser.flags;
+ 
+-import org.chromium.base.cached_flags.CachedFlag;
+-import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.base.cached_flags.CachedFlagsSharedPreferences;
++import org.chromium.chrome.browser.flags.ChromeFeatureList;
++import org.chromium.components.cached_flags.CachedFlag;
+ 
+ import org.jni_zero.CalledByNative;
+ import org.jni_zero.NativeMethods;
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl
+@@ -23,7 +23,7 @@ package org.chromium.chrome.browser.flags.cromite;
+ import java.util.ArrayList;
+ import java.util.List;
+ 
+-import org.chromium.base.cached_flags.CachedFlag;
++import org.chromium.components.cached_flags.CachedFlag;
+ 
+ {IMPORT_CLAUSE}
+ 
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/sAllowExternalIntentRequests.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/sAllowExternalIntentRequests.java
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/sAllowExternalIntentRequests.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/sAllowExternalIntentRequests.java
+@@ -17,8 +17,8 @@
+ 
+ package org.chromium.chrome.browser.flags.cromite;
+ 
+-import org.chromium.base.cached_flags.CachedFlag;
+ import org.chromium.chrome.browser.flags.ChromeFeatureMap;
++import org.chromium.components.cached_flags.CachedFlag;
+ 
+ public class sAllowExternalIntentRequests {
+     private static final CachedFlag sInstance =
+diff --git a/components/cached_flags/android/java/src/org/chromium/components/cached_flags/CachedFlag.java b/components/cached_flags/android/java/src/org/chromium/components/cached_flags/CachedFlag.java
+--- a/components/cached_flags/android/java/src/org/chromium/components/cached_flags/CachedFlag.java
++++ b/components/cached_flags/android/java/src/org/chromium/components/cached_flags/CachedFlag.java
+@@ -12,6 +12,7 @@ import androidx.annotation.VisibleForTesting;
+ import org.chromium.base.FeatureMap;
+ import org.chromium.base.Flag;
+ import org.chromium.base.cached_flags.CachedFlagsSharedPreferences;
++import org.chromium.base.cached_flags.ValuesOverridden;
+ import org.chromium.base.cached_flags.ValuesReturned;
+ import org.chromium.base.shared_preferences.SharedPreferencesManager;
+ import org.chromium.base.supplier.Supplier;
+@@ -156,9 +157,8 @@ public class CachedFlag extends Flag {
+     }
+ 
+     public void setValueReturnedOverride(@Nullable Boolean value) {
+-        synchronized (ValuesReturned.sBoolValues) {
+-            ValuesReturned.sBoolValues.put(getSharedPreferenceKey(), value);
+-        }
++        // Warning: Upstream is changing a lot, so we'll need to do something different soon.
++        setForTesting(value);
+     }
+ 
+     /** Create a Map of feature names -> {@link CachedFlag} from multiple lists of CachedFlags. */
+diff --git a/components/flags_ui/resources/experiment.ts b/components/flags_ui/resources/experiment.ts
+--- a/components/flags_ui/resources/experiment.ts
++++ b/components/flags_ui/resources/experiment.ts
+@@ -80,6 +80,11 @@ export class ExperimentElement extends CrLitElement {
+     description: '',
+     enabled: false,
+     is_default: false,
++    is_default_value_on: false,
++    default_value: '',
++    is_cromite: false,
++    is_new: false,
++    permalink: false,
+     supported_platforms: [],
+   };
+ 
+diff --git a/components/variations/synthetic_trials_active_group_id_provider.h b/components/variations/synthetic_trials_active_group_id_provider.h
+--- a/components/variations/synthetic_trials_active_group_id_provider.h
++++ b/components/variations/synthetic_trials_active_group_id_provider.h
+@@ -36,7 +36,7 @@ class COMPONENT_EXPORT(VARIATIONS) SyntheticTrialsActiveGroupIdProvider
+   // Returns currently active synthetic trial group IDs.
+   std::vector<ActiveGroupId> GetActiveGroupIds();
+ 
+-#if !defined(NDEBUG)
++#if true
+   // In debug mode, not only the group IDs are tracked but also the full group
+   // info, to display the names unhashed in chrome://version.
+   std::vector<SyntheticTrialGroup> GetGroups();
+diff --git a/components/version_ui/version_handler_helper.cc b/components/version_ui/version_handler_helper.cc
+--- a/components/version_ui/version_handler_helper.cc
++++ b/components/version_ui/version_handler_helper.cc
+@@ -20,7 +20,7 @@
+ namespace version_ui {
+ namespace {
+ 
+-#if !defined(NDEBUG)
++#if true
+ std::string GetActiveGroupNameAsString(
+     const base::FieldTrial::ActiveGroup& group) {
+   static const unsigned char kNonBreakingHyphenUTF8[] = {0xE2, 0x80, 0x91,
+-- 
+
