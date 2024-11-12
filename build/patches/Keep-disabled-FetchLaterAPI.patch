@@ -14,11 +14,11 @@ Change-Id: I1f1ec46a06be09724c30e3898b6c58d92de47b40
  .../browser/loader/keep_alive_url_loader.cc   | 33 +++++++++++++++++--
  .../browser/loader/keep_alive_url_loader.h    |  3 --
  .../Keep-disabled-FetchLaterAPI.inc           |  2 ++
- .../renderer/core/fetch/fetch_manager.cc      | 12 +++++--
+ .../renderer/core/fetch/fetch_manager.cc      | 14 ++++++--
  .../loader/child_url_loader_factory_bundle.cc | 14 ++++----
  .../platform/loader/fetch/resource_fetcher.cc |  2 +-
  .../platform/runtime_enabled_features.json5   |  5 ++-
- 7 files changed, 54 insertions(+), 17 deletions(-)
+ 7 files changed, 55 insertions(+), 18 deletions(-)
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Keep-disabled-FetchLaterAPI.inc
 
 diff --git a/content/browser/loader/keep_alive_url_loader.cc b/content/browser/loader/keep_alive_url_loader.cc
@@ -101,32 +101,28 @@ new file mode 100644
 diff --git a/third_party/blink/renderer/core/fetch/fetch_manager.cc b/third_party/blink/renderer/core/fetch/fetch_manager.cc
 --- a/third_party/blink/renderer/core/fetch/fetch_manager.cc
 +++ b/third_party/blink/renderer/core/fetch/fetch_manager.cc
-@@ -1195,7 +1195,11 @@ void FetchManager::Loader::Failed(
-   if (resolver_) {
+@@ -1283,10 +1283,18 @@ void FetchManager::Loader::Failed(
+   if (response_resolver_) {
      ScriptState::Scope scope(GetScriptState());
      if (dom_exception) {
--      resolver_->Reject(dom_exception);
+-      response_resolver_->Reject(dom_exception);
 +      if (!GetFetchRequestData()->Keepalive()) {
-+        resolver_->Reject(dom_exception);
++        response_resolver_->Reject(dom_exception);
 +      } else {
-+        resolver_->Detach();
++        response_resolver_->Detach();
 +      }
      } else {
-       v8::Local<v8::Value> value =
-           exception_.Get(GetScriptState()->GetIsolate());
-@@ -1215,7 +1219,11 @@ void FetchManager::Loader::Failed(
-             V8String(GetScriptState()->GetIsolate(),
-                      IdentifiersFactory::IdFromToken(*issue_id)));
-       }
--      resolver_->Reject(value);
+-      response_resolver_->RejectBecauseFailed(std::move(devtools_request_id),
+-                                              issue_id);
 +      if (!GetFetchRequestData()->Keepalive()) {
-+        resolver_->Reject(value);;
++        response_resolver_->RejectBecauseFailed(std::move(devtools_request_id),
++                                                issue_id);
 +      } else {
-+        resolver_->Detach();
++        response_resolver_->Detach();
 +      }
        LogIfKeepalive("Failed");
      }
-   }
+     response_resolver_.Clear();
 diff --git a/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc b/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc
 --- a/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc
 +++ b/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc
@@ -161,7 +157,7 @@ diff --git a/third_party/blink/renderer/platform/loader/child_url_loader_factory
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
-@@ -2925,7 +2925,7 @@ void ResourceFetcher::PrepareForLeakDetection() {
+@@ -2939,7 +2939,7 @@ void ResourceFetcher::PrepareForLeakDetection() {
  void ResourceFetcher::StopFetchingInternal(StopFetchingTarget target) {
    // TODO(toyoshim): May want to suspend scheduler while canceling loaders so
    // that the cancellations below do not awake unnecessary scheduling.
@@ -173,7 +169,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1899,10 +1899,9 @@
+@@ -1909,10 +1909,9 @@
      },
      {
        // The Blink runtime-enabled feature name for the API's IDL.

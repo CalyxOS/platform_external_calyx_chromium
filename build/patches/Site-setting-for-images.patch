@@ -17,7 +17,7 @@ Change-Id: Icd829f513d0d8ef8a63402edb20d8fe6bb06032c
  .../bromite_content_settings/images.grdp      |  23 +++++
  .../bromite_content_settings/images.inc       |   6 ++
  .../core/browser/content_settings_registry.cc |   2 +-
- .../renderer/content_settings_agent_impl.cc   |  14 +++
+ .../renderer/content_settings_agent_impl.cc   |  15 +++
  .../renderer/content_settings_agent_impl.h    |   2 +
  .../platform/web_content_settings_client.h    |   5 +
  .../blink/renderer/core/frame/local_frame.cc  |  13 ---
@@ -29,7 +29,7 @@ Change-Id: Icd829f513d0d8ef8a63402edb20d8fe6bb06032c
  .../platform/loader/fetch/fetch_context.h     |   2 +-
  .../platform/loader/fetch/resource_fetcher.cc |  17 +++-
  .../platform/loader/fetch/resource_fetcher.h  |   2 +
- 21 files changed, 177 insertions(+), 36 deletions(-)
+ 21 files changed, 178 insertions(+), 36 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_images.png
@@ -264,7 +264,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 @@ -101,7 +101,7 @@ void ContentSettingsRegistry::Init() {
              kChromeUIUntrustedScheme},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
-            WebsiteSettingsInfo::TOP_ORIGIN_WITH_RESOURCE_EXCEPTIONS_SCOPE,
+            WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
 -           WebsiteSettingsRegistry::DESKTOP,
 +           WebsiteSettingsRegistry::DESKTOP | WebsiteSettingsRegistry::PLATFORM_ANDROID,
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
@@ -273,7 +273,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -334,6 +334,20 @@ bool ContentSettingsAgentImpl::AllowStorageAccessSync(
+@@ -362,6 +362,21 @@ bool ContentSettingsAgentImpl::AllowStorageAccessSync(
    return result;
  }
  
@@ -281,6 +281,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 +                                          const WebURL& image_url) {
 +  bool allow = enabled_per_settings;
 +  if (enabled_per_settings) {
++    allow = allow || IsAllowlistedForContentSettings();
 +    if (content_setting_rules_) {
 +      allow = AllowContentSetting(ContentSettingsType::IMAGES,
 +                                  image_url, enabled_per_settings);
@@ -309,7 +310,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
 diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/third_party/blink/public/platform/web_content_settings_client.h
 --- a/third_party/blink/public/platform/web_content_settings_client.h
 +++ b/third_party/blink/public/platform/web_content_settings_client.h
-@@ -55,6 +55,11 @@ class WebContentSettingsClient {
+@@ -56,6 +56,11 @@ class WebContentSettingsClient {
      return enabled_per_settings;
    }
  
@@ -425,7 +426,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/thir
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -1030,9 +1030,8 @@ void Page::SettingsChanged(ChangeType change_type) {
+@@ -1039,9 +1039,8 @@ void Page::SettingsChanged(ChangeType change_type) {
        for (Frame* frame = MainFrame(); frame;
             frame = frame->Tree().TraverseNext()) {
          if (auto* local_frame = DynamicTo<LocalFrame>(frame)) {
@@ -502,7 +503,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
  
    FetchContext& Context() const;
    void ClearContext();
-@@ -688,6 +689,7 @@ class PLATFORM_EXPORT ResourceFetcher
+@@ -690,6 +691,7 @@ class PLATFORM_EXPORT ResourceFetcher
  
    // 27 bits left
    bool auto_load_images_ : 1;
