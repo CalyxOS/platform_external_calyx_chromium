@@ -53,7 +53,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -774,8 +774,6 @@ static_library("browser") {
+@@ -759,8 +759,6 @@ static_library("browser") {
      "navigation_predictor/navigation_predictor_keyed_service_factory.h",
      "navigation_predictor/navigation_predictor_metrics_document_data.cc",
      "navigation_predictor/navigation_predictor_metrics_document_data.h",
@@ -104,14 +104,14 @@ diff --git a/chrome/browser/navigation_predictor/preloading_model_keyed_service_
 diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/browser/optimization_guide/chrome_hints_manager.cc
 --- a/chrome/browser/optimization_guide/chrome_hints_manager.cc
 +++ b/chrome/browser/optimization_guide/chrome_hints_manager.cc
-@@ -27,6 +27,7 @@ bool IsAllowedToFetchForNavigationPrediction(
-     const std::optional<NavigationPredictorKeyedService::Prediction>
-         prediction) {
-   DCHECK(prediction);
+@@ -25,6 +25,7 @@ namespace {
+ // Returns true if we can make a request for hints for |prediction|.
+ bool IsAllowedToFetchForNavigationPrediction(
+     const NavigationPredictorKeyedService::Prediction& prediction) {
 +  if ((true)) return false;
- 
-   if (prediction->prediction_source() !=
+   if (prediction.prediction_source() !=
        NavigationPredictorKeyedService::PredictionSource::
+           kAnchorElementsParsedFromWebPage) {
 diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc b/chrome/browser/optimization_guide/model_validator_keyed_service.cc
 --- a/chrome/browser/optimization_guide/model_validator_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/model_validator_keyed_service.cc
@@ -138,15 +138,15 @@ diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc 
    auto* opt_guide_service =
        OptimizationGuideKeyedServiceFactory::GetForProfile(profile_);
    if (!opt_guide_service) {
-@@ -150,6 +151,7 @@ void ModelValidatorKeyedService::StartModelExecutionValidation() {
-       ModelBasedCapabilityKey::kTest, request,
+@@ -151,6 +152,7 @@ void ModelValidatorKeyedService::StartModelExecutionValidation() {
+       /*execution_timeout=*/std::nullopt,
        base::BindOnce(&ModelValidatorKeyedService::OnModelExecuteResponse,
                       weak_ptr_factory_.GetWeakPtr()));
 +#endif
  }
  
  void ModelValidatorKeyedService::StartOnDeviceModelExecutionValidation(
-@@ -167,6 +169,7 @@ void ModelValidatorKeyedService::StartOnDeviceModelExecutionValidation(
+@@ -168,6 +170,7 @@ void ModelValidatorKeyedService::StartOnDeviceModelExecutionValidation(
  
  void ModelValidatorKeyedService::PerformOnDeviceModelExecutionValidation(
      std::unique_ptr<optimization_guide::proto::ModelValidationInput> input) {
@@ -154,10 +154,10 @@ diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc 
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
    auto* opt_guide_service =
        OptimizationGuideKeyedServiceFactory::GetForProfile(profile_);
-@@ -203,6 +206,7 @@ void ModelValidatorKeyedService::ExecuteModel(
-       base::RepeatingCallback(base::BindRepeating(
-           &ModelValidatorKeyedService::OnDeviceModelExecuteResponse,
-           weak_ptr_factory_.GetWeakPtr())));
+@@ -207,6 +210,7 @@ void ModelValidatorKeyedService::ExecuteModel(
+       *metadata, base::BindRepeating(
+                      &ModelValidatorKeyedService::OnDeviceModelExecuteResponse,
+                      weak_ptr_factory_.GetWeakPtr(), std::move(request)));
 +#endif
  }
  
@@ -165,7 +165,7 @@ diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc 
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -558,7 +558,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -564,7 +564,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
@@ -226,7 +226,7 @@ diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 diff --git a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc b/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc
 --- a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc
 +++ b/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc
-@@ -40,7 +40,9 @@
+@@ -41,7 +41,9 @@
  #include "components/omnibox/browser/autocomplete_provider.h"
  #include "components/omnibox/browser/autocomplete_result.h"
  #include "components/omnibox/browser/omnibox_feature_configs.h"
@@ -330,7 +330,7 @@ diff --git a/chrome/renderer/accessibility/read_aloud_app_model.h b/chrome/rende
 diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chrome/renderer/accessibility/read_anything_app_controller.cc
 --- a/chrome/renderer/accessibility/read_anything_app_controller.cc
 +++ b/chrome/renderer/accessibility/read_anything_app_controller.cc
-@@ -20,7 +20,9 @@
+@@ -21,7 +21,9 @@
  #include "base/strings/utf_string_conversions.h"
  #include "chrome/common/accessibility/read_anything_constants.h"
  #include "chrome/renderer/accessibility/ax_tree_distiller.h"
@@ -340,7 +340,7 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
  #include "chrome/renderer/accessibility/read_aloud_traversal_utils.h"
  #include "chrome/renderer/accessibility/read_anything_node_utils.h"
  #include "components/language/core/common/locale_util.h"
-@@ -362,11 +364,13 @@ SkBitmap CorrectColorOfBitMap(SkBitmap& originalBitmap) {
+@@ -364,11 +366,13 @@ SkBitmap CorrectColorOfBitMap(SkBitmap& originalBitmap) {
    return converted;
  }
  
@@ -386,7 +386,7 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
  }
  
  void ReadAnythingAppController::MovePositionToNextGranularity() {
-@@ -1874,11 +1882,15 @@ bool ReadAnythingAppController::IsDocsLoadMoreButtonVisible() const {
+@@ -1874,14 +1882,18 @@ bool ReadAnythingAppController::IsDocsLoadMoreButtonVisible() const {
  
  void ReadAnythingAppController::UpdateDependencyParserModel(
      base::File model_file) {
@@ -402,10 +402,13 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
    return GetDependencyParserModel();
  }
 +#endif
+ 
+ void ReadAnythingAppController::OnTreeAdded(ui::AXTree* tree) {
+   auto observation =
 diff --git a/chrome/renderer/accessibility/read_anything_app_controller.h b/chrome/renderer/accessibility/read_anything_app_controller.h
 --- a/chrome/renderer/accessibility/read_anything_app_controller.h
 +++ b/chrome/renderer/accessibility/read_anything_app_controller.h
-@@ -44,7 +44,9 @@ class MojoUkmRecorder;
+@@ -47,7 +47,9 @@ class MojoUkmRecorder;
  }  // namespace ukm
  
  class AXTreeDistiller;
@@ -415,7 +418,7 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.h b/chro
  class ReadAnythingAppControllerTest;
  class ReadAnythingAppControllerScreen2xDataCollectionModeTest;
  
-@@ -366,7 +368,9 @@ class ReadAnythingAppController
+@@ -378,7 +380,9 @@ class ReadAnythingAppController
    // available.
    void UpdateDependencyParserModel(base::File model_file);
  
@@ -563,7 +566,7 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
 diff --git a/components/optimization_guide/core/optimization_guide_features.cc b/components/optimization_guide/core/optimization_guide_features.cc
 --- a/components/optimization_guide/core/optimization_guide_features.cc
 +++ b/components/optimization_guide/core/optimization_guide_features.cc
-@@ -39,11 +39,7 @@ namespace features {
+@@ -38,11 +38,7 @@ namespace features {
  namespace {
  
  constexpr auto enabled_by_default_mobile_only =
@@ -575,7 +578,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  }  // namespace
  
-@@ -412,8 +408,7 @@ size_t MaxURLKeyedHintCacheSize() {
+@@ -415,8 +411,7 @@ size_t MaxURLKeyedHintCacheSize() {
  }
  
  bool ShouldPersistHintsToDisk() {
@@ -585,7 +588,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  }
  
  RequestContextSet GetAllowedContextsForPersonalizedMetadata() {
-@@ -869,5 +864,13 @@ int GetOnDeviceModelValidationAttemptCount() {
+@@ -874,5 +869,13 @@ int GetOnDeviceModelValidationAttemptCount() {
    return kParam.Get();
  }
  
@@ -730,7 +733,7 @@ diff --git a/services/webnn/features.gni b/services/webnn/features.gni
 diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
 --- a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
 +++ b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
-@@ -645,6 +645,7 @@ void DocumentSpeculationRules::UpdateSpeculationCandidates() {
+@@ -643,6 +643,7 @@ void DocumentSpeculationRules::UpdateSpeculationCandidates() {
      return;
    }
  
@@ -741,7 +744,7 @@ diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculat
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3327,7 +3327,7 @@
+@@ -3342,7 +3342,7 @@
        //
        // It also has some feature params defined throughout the codebase.
        name: "Prerender2",

@@ -6,22 +6,22 @@ https://chromium-review.googlesource.com/c/chromium/src/+/5307559
 
 Change-Id: I33552e9becf86e353f133250885fff59b30e7dd3
 ---
- .../worker_content_settings_client.cc         | 35 ++++++++++++++++++
- .../renderer/worker_content_settings_client.h |  2 ++
- .../renderer/content_settings_agent_impl.cc   | 36 ++++++++++++++++++-
- .../renderer/content_settings_agent_impl.h    |  6 ++++
- .../platform/web_content_settings_client.h    | 12 +++++++
- .../renderer/core/frame/local_dom_window.cc   |  6 +++-
+ .../worker_content_settings_client.cc         | 35 +++++++++++++++++
+ .../renderer/worker_content_settings_client.h |  2 +
+ .../renderer/content_settings_agent_impl.cc   | 38 ++++++++++++++++++-
+ .../renderer/content_settings_agent_impl.h    |  6 +++
+ .../platform/web_content_settings_client.h    | 12 ++++++
+ .../renderer/core/frame/local_dom_window.cc   |  6 ++-
  .../blink/renderer/core/frame/local_frame.cc  | 13 -------
- .../blink/renderer/core/frame/local_frame.h   |  6 ----
- .../renderer/core/html/html_meta_element.cc   |  4 ++-
+ .../blink/renderer/core/frame/local_frame.h   |  6 ---
+ .../renderer/core/html/html_meta_element.cc   |  4 +-
  .../core/loader/base_fetch_context.cc         |  2 +-
  .../renderer/core/loader/base_fetch_context.h |  2 +-
- .../core/loader/frame_fetch_context.cc        | 30 +++++++++++-----
+ .../core/loader/frame_fetch_context.cc        | 30 ++++++++++-----
  .../core/loader/frame_fetch_context.h         | 13 ++++++-
- .../core/loader/worker_fetch_context.cc       | 12 ++++---
+ .../core/loader/worker_fetch_context.cc       | 12 ++++--
  .../core/loader/worker_fetch_context.h        |  2 +-
- 15 files changed, 142 insertions(+), 39 deletions(-)
+ 15 files changed, 144 insertions(+), 39 deletions(-)
 
 diff --git a/chrome/renderer/worker_content_settings_client.cc b/chrome/renderer/worker_content_settings_client.cc
 --- a/chrome/renderer/worker_content_settings_client.cc
@@ -92,7 +92,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
  
    blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
    if (frame->Parent())
-@@ -348,6 +348,39 @@ bool ContentSettingsAgentImpl::AllowImage(bool enabled_per_settings,
+@@ -377,6 +377,41 @@ bool ContentSettingsAgentImpl::AllowImage(bool enabled_per_settings,
    return allow;
  }
  
@@ -111,6 +111,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 +  bool allow = AllowContentSetting(
 +                  ContentSettingsType::JAVASCRIPT, enabled_per_settings);
 +
++  allow = allow || IsAllowlistedForContentSettings();
 +  cached_script_permissions_[frame] = allow;
 +  return allow;
 +}
@@ -126,13 +127,14 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 +    allow = AllowContentSetting(
 +        ContentSettingsType::JAVASCRIPT, script_url, enabled_per_settings);
 +  }
++  allow = allow || IsAllowlistedForContentSettings();
 +  return allow;
 +}
 +
  bool ContentSettingsAgentImpl::AllowReadFromClipboard() {
    return delegate_->AllowReadFromClipboard();
  }
-@@ -406,6 +439,7 @@ void ContentSettingsAgentImpl::DidNotAllowImage() {
+@@ -435,6 +470,7 @@ void ContentSettingsAgentImpl::DidNotAllowImage() {
  void ContentSettingsAgentImpl::ClearBlockedContentSettings() {
    content_blocked_.clear();
    cached_storage_permissions_.clear();
@@ -153,7 +155,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
    bool AllowReadFromClipboard() override;
    bool AllowWriteToClipboard() override;
    bool AllowMutationEvents(bool default_value) override;
-@@ -155,6 +158,9 @@ class ContentSettingsAgentImpl
+@@ -157,6 +160,9 @@ class ContentSettingsAgentImpl
    using StoragePermissionsKey = std::pair<url::Origin, StorageType>;
    base::flat_map<StoragePermissionsKey, bool> cached_storage_permissions_;
  
@@ -166,7 +168,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
 diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/third_party/blink/public/platform/web_content_settings_client.h
 --- a/third_party/blink/public/platform/web_content_settings_client.h
 +++ b/third_party/blink/public/platform/web_content_settings_client.h
-@@ -60,6 +60,18 @@ class WebContentSettingsClient {
+@@ -61,6 +61,18 @@ class WebContentSettingsClient {
      return enabled_per_settings;
    }
  
@@ -196,7 +198,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
  #include "third_party/blink/renderer/bindings/core/v8/binding_security.h"
  #include "third_party/blink/renderer/bindings/core/v8/capture_source_location.h"
  #include "third_party/blink/renderer/bindings/core/v8/isolated_world_csp.h"
-@@ -487,7 +488,10 @@ bool LocalDOMWindow::CanExecuteScripts(
+@@ -486,7 +487,10 @@ bool LocalDOMWindow::CanExecuteScripts(
      }
      return false;
    }
