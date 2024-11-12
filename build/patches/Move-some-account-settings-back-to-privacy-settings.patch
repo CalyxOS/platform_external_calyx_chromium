@@ -39,8 +39,8 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -52,6 +52,14 @@ import org.chromium.components.user_prefs.UserPrefs;
- import org.chromium.ui.text.NoUnderlineClickableSpan;
+@@ -53,6 +53,14 @@ import org.chromium.components.signin.identitymanager.ConsentLevel;
+ import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.SpanApplier;
  
 +import androidx.annotation.Nullable;
@@ -56,8 +56,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          implements Preference.OnPreferenceChangeListener {
 @@ -68,6 +76,16 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
      private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
-     private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
-     private static final String PREF_TRACKING_PROTECTION = "tracking_protection";
+     @VisibleForTesting static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
+     @VisibleForTesting static final String PREF_DO_NOT_TRACK = "do_not_track";
 +    // moved from SyncAndServicesSettings.java
 +    private static final String PREF_SERVICES_CATEGORY = "services_category";
 +    private static final String PREF_SEARCH_SUGGESTIONS = "search_suggestions";
@@ -70,8 +70,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +    private ManagedPreferenceDelegate mManagedPreferenceDelegate;
      @VisibleForTesting static final String PREF_FP_PROTECTION = "fp_protection";
      @VisibleForTesting static final String PREF_IP_PROTECTION = "ip_protection";
-     @VisibleForTesting static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
-@@ -158,6 +176,16 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+     @VisibleForTesting static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
+@@ -159,6 +177,16 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
  
          setHasOptionsMenu(true);
  
@@ -88,7 +88,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -295,6 +323,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -301,6 +329,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
          } else if (PREF_HTTPS_FIRST_MODE.equals(key)) {
              UserPrefs.get(getProfile())
                      .setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
@@ -98,7 +98,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          }
          return true;
      }
-@@ -307,6 +338,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -313,6 +344,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
  
      /** Updates the preferences. */
      public void updatePreferences() {
