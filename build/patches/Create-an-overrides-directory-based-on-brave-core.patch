@@ -1,0 +1,108 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 13 Nov 2024 20:48:12 +0000
+Subject: Create an overrides directory based on brave-core
+
+Create and support a top-level overrides directory, using Brave's
+brave-core build process and chromium_src directory as a reference.
+
+See:
+* https://github.com/brave/brave-core/blob/v1.75.9/build/BUILD.gn
+* https://github.com/brave/brave-core/blob/v1.75.9/patches/build-config-BUILDCONFIG.gn.patch
+
+Change-Id: I7903dc28e3d44c818334dd02b5f8317f8624ad18
+---
+ build/BUILD.gn              | 34 ++++++++++++++++++++++++++++++++++
+ build/config/BUILDCONFIG.gn | 13 +++++++++++++
+ overrides/README.md         |  1 +
+ 3 files changed, 48 insertions(+)
+ create mode 100644 overrides/README.md
+
+diff --git a/build/BUILD.gn b/build/BUILD.gn
+--- a/build/BUILD.gn
++++ b/build/BUILD.gn
+@@ -2,6 +2,14 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++# Additionally, some of this code is from Brave, and will be marked as such with the
++# "# BEGIN BRAVE" and "# END BRAVE" lines.
++# That license is as follows:
++# Copyright (c) 2018 The Brave Authors. All rights reserved.
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this file,
++# You can obtain one at https://mozilla.org/MPL/2.0/.
++
+ import("//build/buildflag_header.gni")
+ import("//build/config/cast.gni")
+ import("//build/config/chrome_build.gni")
+@@ -11,6 +19,32 @@ import("//build/config/features.gni")
+ import("//build/util/process_version.gni")
+ import("//build_overrides/build.gni")
+ 
++# BEGIN BRAVE
++# The following code is copied and modified from brave-core's build process changes.
++# See: https://github.com/brave/brave-core/blob/v1.75.9/build/BUILD.gn
++config("overrides_support") {
++  # Add max priority "//overrides" include search path to be able to
++  # redirect Chromium #include into our file if it exists.
++  # For example, to override //base/macros.h, the overriden file must be
++  # placed at //overrides/base/macros.h.
++  include_dirs = [ "//overrides" ]
++
++  # Add lowest priority "//.." include search path to be able to include original
++  # Chromium files using "src/" prefix.
++  # Adding the search path using "cflags" instead of "include_dirs" is important,
++  # because it should have the lowest priority to not break compile steps when a
++  # path clash is possible: //base/macros.h vs //third_party/v8/src/base/macros.h.
++  relative_root_dir = rebase_path("//..", root_build_dir)
++  cflags = [ "-I${relative_root_dir}" ]
++}
++
++config("compiler") {
++  configs = [
++    ":overrides_support",
++  ]
++}
++# END BRAVE
++
+ if (is_ios) {
+   import("//build/config/ios/ios_sdk.gni")
+ }
+diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
+--- a/build/config/BUILDCONFIG.gn
++++ b/build/config/BUILDCONFIG.gn
+@@ -2,6 +2,14 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++# Additionally, some of this code is from Brave, and will be marked as such with the
++# "# BEGIN BRAVE" and "# END BRAVE" lines.
++# That license is as follows:
++# Copyright (c) 2018 The Brave Authors. All rights reserved.
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this file,
++# You can obtain one at https://mozilla.org/MPL/2.0/.
++
+ # =============================================================================
+ # WHAT IS THIS FILE?
+ # =============================================================================
+@@ -335,6 +343,11 @@ is_posix = !is_win && !is_fuchsia
+ 
+ # Holds all configs used for running the compiler.
+ default_compiler_configs = [
++# BEGIN BRAVE
++# Include the changes made in build/BUILD.gn to support overrides.
++# See: https://github.com/brave/brave-core/blob/v1.75.9/patches/build-config-BUILDCONFIG.gn.patch
++  "//build:compiler",
++# END BRAVE
+   "//build/config:feature_flags",
+   "//build/config/compiler:afdo",
+   "//build/config/compiler:afdo_optimize_size",
+diff --git a/overrides/README.md b/overrides/README.md
+new file mode 100644
+--- /dev/null
++++ b/overrides/README.md
+@@ -0,0 +1 @@
++Place files in this directory in the same path as a Chromium code file path to override that file.
+-- 
+
