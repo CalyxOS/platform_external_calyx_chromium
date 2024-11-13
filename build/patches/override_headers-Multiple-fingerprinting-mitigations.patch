@@ -1,0 +1,83 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 13 Nov 2024 21:12:07 +0000
+Subject: override_headers: Multiple fingerprinting mitigations
+
+Include SkPixmap.h in override_headers to accomplish the goals of the
+"Multiple fingerprinting mitigations" patch's changes to skia's
+SkPixmap.h.
+
+Change-Id: I05f1fbf867e3a000e126d38d523990a112303f88
+---
+ override_headers/README.md                    |  3 ++
+ override_headers/include/core/SkPixmap.h      |  1 +
+ .../third_party/skia/include/core/SkPixmap.h  | 44 +++++++++++++++++++
+ 3 files changed, 48 insertions(+)
+ create mode 120000 override_headers/include/core/SkPixmap.h
+ create mode 100644 override_headers/third_party/skia/include/core/SkPixmap.h
+
+diff --git a/override_headers/README.md b/override_headers/README.md
+--- a/override_headers/README.md
++++ b/override_headers/README.md
+@@ -1 +1,4 @@
+ Place files in this directory in the same path as a Chromium code file path to override that file.
++
++The "include" directory is a hack to allow third_party/skia itself to use our modified SkPixmap.h,
++since third_party/skia itself references SkPixmap.h by a relative path.
+diff --git a/override_headers/include/core/SkPixmap.h b/override_headers/include/core/SkPixmap.h
+new file mode 120000
+--- /dev/null
++++ b/override_headers/include/core/SkPixmap.h
+@@ -0,0 +1 @@
++../../third_party/skia/include/core/SkPixmap.h
+\ No newline at end of file
+diff --git a/override_headers/third_party/skia/include/core/SkPixmap.h b/override_headers/third_party/skia/include/core/SkPixmap.h
+new file mode 100644
+--- /dev/null
++++ b/override_headers/third_party/skia/include/core/SkPixmap.h
+@@ -0,0 +1,44 @@
++// The goal of this file is to make SkPixmap.h treat SkASSERT as an actual assertion.
++
++#ifndef overrides_SkPixmap_DEFINED
++#define overrides_SkPixmap_DEFINED
++
++// Include SkPixmap.h's own included header files here and now so that their contents will not be
++// included again by the time we include SkPixmap.h itself. This ensures that our alteration of
++// SkASSERT *will not affect them*. We only wish for it to affect the assertions made within
++// SkPixmap.h. This is important, because some assertions cannot even be performed outside of
++// SK_DEBUG due to unavailable variables, leading to confusing "undeclared identifier"
++// compilation errors.
++#include "include/core/SkColor.h"
++#include "include/core/SkColorType.h"
++#include "include/core/SkImageInfo.h"
++#include "include/core/SkRect.h"
++#include "include/core/SkRefCnt.h"
++#include "include/core/SkSamplingOptions.h"
++#include "include/core/SkSize.h"
++#include "include/private/base/SkAPI.h"
++#include "include/private/base/SkAssert.h"
++
++#if !defined(SK_DEBUG)
++    // Redefine SkASSERT to the release variant so that the checks will actually be performed.
++    // (We will undo this later so that solely SkPixmap.h is affected.)
++    #undef SkASSERT
++    #define SkASSERT(cond) SkASSERT_RELEASE(cond)
++#endif  // !defined(SK_DEBUG)
++
++// SkPixmap.h uses unsafe buffers, and the compiler configuration specified in its .gn files
++// doesn't apply within overrides/. So just do it here with pragma.
++#pragma clang unsafe_buffer_usage begin
++
++// Include the original SkPixmap.h.
++#include "src/third_party/skia/include/core/SkPixmap.h"
++
++#pragma clang unsafe_buffer_usage end
++
++#if !defined(SK_DEBUG)
++    // Revert the redefinition of SkASSERT.
++    #undef SkASSERT
++    #define SkASSERT(cond) static_cast<void>(0)
++#endif  // !defined(SK_DEBUG)
++
++#endif  // overrides_SkPixmap_DEFINED
+-- 
+
