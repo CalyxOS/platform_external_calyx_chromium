@@ -34,7 +34,11 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  .../content_settings/core/common/pref_names.h |   3 +
  .../renderer/content_settings_agent_impl.cc   |  77 +++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
- 22 files changed, 678 insertions(+), 1 deletion(-)
+ .../blink/renderer/core/timezone/build.gni    |   2 +
+ .../timezone/external_timezone_controller.cc  |  37 ++++
+ .../timezone/external_timezone_controller.h   |  33 +++
+ .../core/timezone/timezone_controller.h       |   6 +-
+ 26 files changed, 755 insertions(+), 2 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -42,11 +46,13 @@ Change-Id: I8175bb9412c477b8b341dd519b89f5e4406176f4
  create mode 100644 components/browser_ui/strings/bromite_content_settings/timezone.grdp
  create mode 100644 components/content_settings/core/browser/bromite_content_settings/timezone_override.inc
  create mode 100644 components/content_settings/core/common/bromite_content_settings/TIMEZONE.inc
+ create mode 100644 third_party/blink/renderer/core/timezone/external_timezone_controller.cc
+ create mode 100644 third_party/blink/renderer/core/timezone/external_timezone_controller.h
 
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -98,6 +98,7 @@ android_library("java") {
+@@ -99,6 +99,7 @@ android_library("java") {
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreference.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java",
      "java/src/org/chromium/components/browser_ui/site_settings/WebsiteRowPreference.java",
@@ -54,7 +60,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    ]
  
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -279,6 +280,8 @@ android_resources("java_resources") {
+@@ -282,6 +283,8 @@ android_resources("java_resources") {
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/storage_access_settings.xml",
      "java/res/xml/website_preferences.xml",
@@ -561,7 +567,7 @@ new file mode 100644
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -1122,3 +1122,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
+@@ -1129,3 +1129,19 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
            ContentSettingsPattern::FromString(pattern_string));
    return ConvertUTF8ToJavaString(env, host_only_pattern.ToString());
  }
@@ -716,7 +722,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -150,6 +150,11 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
+@@ -151,6 +151,11 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
        ContentSettingToValue(CONTENT_SETTING_BLOCK), ProviderType::kNone,
        map->IsOffTheRecord()));
  #endif
@@ -731,7 +737,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/browser/host_content_settings_map.cc b/components/content_settings/core/browser/host_content_settings_map.cc
 --- a/components/content_settings/core/browser/host_content_settings_map.cc
 +++ b/components/content_settings/core/browser/host_content_settings_map.cc
-@@ -664,6 +664,14 @@ void HostContentSettingsMap::SetClockForTesting(const base::Clock* clock) {
+@@ -667,6 +667,14 @@ void HostContentSettingsMap::SetClockForTesting(const base::Clock* clock) {
    }
  }
  
@@ -877,7 +883,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 +      * all else fails, we return GMT, which is probably not what the
 +      * user wants, but at least is a functioning TimeZone object.
 +      */
-+  String timezone_id;
++  std::string timezone_id;
 +
 +  if (setting == CONTENT_SETTING_ALLOW) {
 +    // system time
@@ -895,7 +901,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 +      const char* tzID;
 +      int32_t length;
 +      if ((tzID = timezones->next(&length, ec)) != NULL) {
-+        timezone_id = String(tzID);
++        timezone_id = tzID;
 +      }
 +      delete timezones;
 +    }
@@ -903,13 +909,13 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 +    if (timezone_override_value.empty())
 +      timezone_id = "Europe/London";
 +    else
-+      timezone_id = String(timezone_override_value.c_str());
++      timezone_id = timezone_override_value;
 +  }
 +
-+  if (blink::TimeZoneController::HasTimeZoneOverride() == false) {
++  if (!blink::ExternalTimeZoneController::HasTimeZoneOverride()) {
 +    timezone_override_.reset();
 +    timezone_override_ =
-+        blink::TimeZoneController::SetTimeZoneOverride(timezone_id);
++        blink::ExternalTimeZoneController::SetTimeZoneOverride(timezone_id);
 +    if (!timezone_override_) {
 +      DLOG(WARNING) << "UpdateTimeZoneOverride - Invalid timezone id '"
 +                   << timezone_id << "'";
@@ -936,7 +942,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
  #include "url/origin.h"
  
 +#include "third_party/blink/renderer/core/inspector/locale_controller.h"
-+#include "third_party/blink/renderer/core/timezone/timezone_controller.h"
++#include "third_party/blink/renderer/core/timezone/external_timezone_controller.h"
 +#include "third_party/icu/source/common/unicode/strenum.h"
 +#include "third_party/icu/source/i18n/unicode/timezone.h"
 +
@@ -948,7 +954,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
  
    mojo::AssociatedReceiverSet<mojom::ContentSettingsAgent> receivers_;
 +
-+  std::unique_ptr<blink::TimeZoneController::TimeZoneOverride> timezone_override_;
++  std::unique_ptr<blink::ExternalTimeZoneController::TimeZoneOverride> timezone_override_;
 +
 +  bool UpdateOverrides();
 +  bool UpdateTimeZoneOverride(ContentSetting setting, const std::string& timezone_override_value);
@@ -956,5 +962,125 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
  };
  
  }  // namespace content_settings
+diff --git a/third_party/blink/renderer/core/timezone/build.gni b/third_party/blink/renderer/core/timezone/build.gni
+--- a/third_party/blink/renderer/core/timezone/build.gni
++++ b/third_party/blink/renderer/core/timezone/build.gni
+@@ -5,4 +5,6 @@
+ blink_core_sources_timezone = [
+   "timezone_controller.cc",
+   "timezone_controller.h",
++  "external_timezone_controller.cc",
++  "external_timezone_controller.h",
+ ]
+diff --git a/third_party/blink/renderer/core/timezone/external_timezone_controller.cc b/third_party/blink/renderer/core/timezone/external_timezone_controller.cc
+new file mode 100644
+--- /dev/null
++++ b/third_party/blink/renderer/core/timezone/external_timezone_controller.cc
+@@ -0,0 +1,37 @@
++// Copyright 2019 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "third_party/blink/renderer/core/timezone/external_timezone_controller.h"
++#include "third_party/blink/renderer/core/timezone/timezone_controller.h"
++#include "third_party/blink/renderer/platform/wtf/wtf.h"
++
++namespace blink {
++
++ExternalTimeZoneController::ExternalTimeZoneController() {
++  DCHECK(IsMainThread());
++}
++
++// static
++std::unique_ptr<ExternalTimeZoneController::TimeZoneOverride>
++ExternalTimeZoneController::SetTimeZoneOverride(const std::string& timezone_id) {
++  auto timezone = String(timezone_id.c_str());
++
++  auto timezone_override = TimeZoneController::SetTimeZoneOverride(timezone);
++  if (!timezone_override) return nullptr;
++
++  timezone_override->clear_at_destruction_ = false;
++  return std::unique_ptr<TimeZoneOverride>(new TimeZoneOverride());
++}
++
++// static
++bool ExternalTimeZoneController::HasTimeZoneOverride() {
++  return TimeZoneController::HasTimeZoneOverride();
++}
++
++// static
++void ExternalTimeZoneController::ClearTimeZoneOverride() {
++  TimeZoneController::ClearTimeZoneOverride();
++}
++
++}  // namespace blink
+diff --git a/third_party/blink/renderer/core/timezone/external_timezone_controller.h b/third_party/blink/renderer/core/timezone/external_timezone_controller.h
+new file mode 100644
+--- /dev/null
++++ b/third_party/blink/renderer/core/timezone/external_timezone_controller.h
+@@ -0,0 +1,33 @@
++#ifndef THIRD_PARTY_BLINK_RENDERER_CORE_TIMEZONE_EXTERNAL_TIMEZONE_CONTROLLER_H_
++#define THIRD_PARTY_BLINK_RENDERER_CORE_TIMEZONE_EXTERNAL_TIMEZONE_CONTROLLER_H_
++
++#include <memory>
++
++#include "third_party/blink/renderer/core/core_export.h"
++
++namespace blink {
++
++class CORE_EXPORT ExternalTimeZoneController final {
++ public:
++  class TimeZoneOverride {
++    friend ExternalTimeZoneController;
++    TimeZoneOverride() = default;
++
++   public:
++    ~TimeZoneOverride() { ClearTimeZoneOverride(); }
++  };
++
++  static std::unique_ptr<TimeZoneOverride> SetTimeZoneOverride(
++      const std::string& timezone_id);
++
++  static bool HasTimeZoneOverride();
++
++ private:
++  static void ClearTimeZoneOverride();
++
++  ExternalTimeZoneController();
++};
++
++}  // namespace blink
++
++#endif  // THIRD_PARTY_BLINK_RENDERER_CORE_TIMEZONE_EXTERNAL_TIMEZONE_CONTROLLER_H_
+diff --git a/third_party/blink/renderer/core/timezone/timezone_controller.h b/third_party/blink/renderer/core/timezone/timezone_controller.h
+--- a/third_party/blink/renderer/core/timezone/timezone_controller.h
++++ b/third_party/blink/renderer/core/timezone/timezone_controller.h
+@@ -11,6 +11,7 @@
+ #include "services/device/public/mojom/time_zone_monitor.mojom-blink.h"
+ #include "third_party/blink/renderer/core/core_export.h"
+ #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
++#include "third_party/blink/renderer/core/timezone/external_timezone_controller.h"
+ 
+ namespace blink {
+ 
+@@ -25,6 +26,7 @@ namespace blink {
+ // current host system time zone is assumed.
+ class CORE_EXPORT TimeZoneController final
+     : public device::mojom::blink::TimeZoneMonitorClient {
++ friend ExternalTimeZoneController;
+  public:
+   ~TimeZoneController() override;
+ 
+@@ -39,7 +41,9 @@ class CORE_EXPORT TimeZoneController final
+       ChangeTimeZoneOverride(timezone_id);
+     }
+ 
+-    ~TimeZoneOverride() { ClearTimeZoneOverride(); }
++    bool clear_at_destruction_ = true;
++
++    ~TimeZoneOverride() { if (clear_at_destruction_) ClearTimeZoneOverride(); }
+   };
+ 
+   static std::unique_ptr<TimeZoneOverride> SetTimeZoneOverride(
 -- 
 

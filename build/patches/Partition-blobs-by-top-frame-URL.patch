@@ -10,12 +10,21 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I5a8d7fac019b3ee382562c67d0d1302e470112c7
 ---
- storage/browser/blob/blob_url_store_impl.cc   | 28 +++++++++++++++++++
- storage/browser/blob/blob_url_store_impl.h    |  9 ++++++
- .../public/mojom/blob/blob_url_store.mojom    |  8 ++++--
- .../core/fileapi/public_url_manager.cc        | 17 +++++++++++
- 4 files changed, 60 insertions(+), 2 deletions(-)
+ .../Partition-blobs-by-top-frame-URL.inc      |  1 +
+ storage/browser/blob/blob_url_store_impl.cc   | 36 ++++++++++++++++++-
+ storage/browser/blob/blob_url_store_impl.h    | 11 ++++++
+ storage/browser/blob/features.cc              |  1 +
+ .../public/mojom/blob/blob_url_store.mojom    | 12 +++++--
+ .../core/fileapi/public_url_manager.cc        | 18 ++++++++++
+ 6 files changed, 75 insertions(+), 4 deletions(-)
+ create mode 100644 cromite_flags/third_party/blink/common/features_cc/Partition-blobs-by-top-frame-URL.inc
 
+diff --git a/cromite_flags/third_party/blink/common/features_cc/Partition-blobs-by-top-frame-URL.inc b/cromite_flags/third_party/blink/common/features_cc/Partition-blobs-by-top-frame-URL.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/third_party/blink/common/features_cc/Partition-blobs-by-top-frame-URL.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_ENABLED(kEnforceNoopenerOnBlobURLNavigation);
 diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/blob_url_store_impl.cc
 --- a/storage/browser/blob/blob_url_store_impl.cc
 +++ b/storage/browser/blob/blob_url_store_impl.cc
@@ -80,10 +89,37 @@ diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/
    mojo::PendingRemote<blink::mojom::Blob> blob = registry_->GetBlobFromUrl(url);
    if (!blob) {
      std::move(callback).Run(std::nullopt);
+@@ -162,11 +190,17 @@ void BlobURLStoreImpl::ResolveForNavigation(
+ void BlobURLStoreImpl::ResolveForWorkerScriptFetch(
+     const GURL& url,
+     mojo::PendingReceiver<blink::mojom::BlobURLToken> token,
++    const base::UnguessableToken& unsafe_agent_cluster_id,
++    const std::optional<net::SchemefulSite>& unsafe_top_level_site,
+     ResolveForNavigationCallback callback) {
+   if (!registry_) {
+     std::move(callback).Run(std::nullopt);
+     return;
+   }
++  if (!IsSamePartition(url, unsafe_agent_cluster_id, unsafe_top_level_site)) {
++    std::move(callback).Run(std::nullopt);
++    return;
++  }
+   if (base::FeatureList::IsEnabled(
+           features::kBlockCrossPartitionBlobUrlFetching) &&
+       !registry_->IsUrlMapped(BlobUrlUtils::ClearUrlFragment(url),
+@@ -175,7 +209,7 @@ void BlobURLStoreImpl::ResolveForWorkerScriptFetch(
+     return;
+   }
+ 
+-  ResolveForNavigation(url, std::move(token), std::move(callback));
++  ResolveForNavigation(url, std::move(token), unsafe_agent_cluster_id, unsafe_top_level_site, std::move(callback));
+ }
+ 
+ bool BlobURLStoreImpl::BlobUrlIsValid(const GURL& url,
 diff --git a/storage/browser/blob/blob_url_store_impl.h b/storage/browser/blob/blob_url_store_impl.h
 --- a/storage/browser/blob/blob_url_store_impl.h
 +++ b/storage/browser/blob/blob_url_store_impl.h
-@@ -48,10 +48,14 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
+@@ -48,14 +48,20 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
    void ResolveAsURLLoaderFactory(
        const GURL& url,
        mojo::PendingReceiver<network::mojom::URLLoaderFactory> receiver,
@@ -96,9 +132,15 @@ diff --git a/storage/browser/blob/blob_url_store_impl.h b/storage/browser/blob/b
 +      const base::UnguessableToken& unsafe_agent_cluster_id,
 +      const std::optional<net::SchemefulSite>& unsafe_top_level_site,
        ResolveForNavigationCallback callback) override;
+   void ResolveForWorkerScriptFetch(
+       const GURL& url,
+       mojo::PendingReceiver<blink::mojom::BlobURLToken> token,
++      const base::UnguessableToken& unsafe_agent_cluster_id,
++      const std::optional<net::SchemefulSite>& unsafe_top_level_site,
+       ResolveForNavigationCallback callback) override;
  
   private:
-@@ -61,6 +65,11 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
+@@ -65,6 +71,11 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
    // `Revoke()`.
    bool BlobUrlIsValid(const GURL& url, const char* method) const;
  
@@ -110,6 +152,17 @@ diff --git a/storage/browser/blob/blob_url_store_impl.h b/storage/browser/blob/b
    const blink::StorageKey storage_key_;
    // The origin used by the worker/document associated with this BlobURLStore on
    // the renderer side. This will almost always be the same as `storage_key_`'s
+diff --git a/storage/browser/blob/features.cc b/storage/browser/blob/features.cc
+--- a/storage/browser/blob/features.cc
++++ b/storage/browser/blob/features.cc
+@@ -10,6 +10,7 @@ namespace features {
+ BASE_FEATURE(kBlockCrossPartitionBlobUrlFetching,
+              "BlockCrossPartitionBlobUrlFetching",
+              base::FEATURE_DISABLED_BY_DEFAULT);
++SET_CROMITE_FEATURE_ENABLED(kBlockCrossPartitionBlobUrlFetching);
+ 
+ // Please keep features in alphabetical order.
+ 
 diff --git a/third_party/blink/public/mojom/blob/blob_url_store.mojom b/third_party/blink/public/mojom/blob/blob_url_store.mojom
 --- a/third_party/blink/public/mojom/blob/blob_url_store.mojom
 +++ b/third_party/blink/public/mojom/blob/blob_url_store.mojom
@@ -128,6 +181,17 @@ diff --git a/third_party/blink/public/mojom/blob/blob_url_store.mojom b/third_pa
    // refer to, even after the URL is revoked.
    // As long as the token is alive, the resolved blob will also be kept alive.
    ResolveForNavigation(url.mojom.Url url,
+-                       pending_receiver<BlobURLToken> token) => (
++                       pending_receiver<BlobURLToken> token,
++                       mojo_base.mojom.UnguessableToken unsafe_agent_cluster_id,
++                       network.mojom.SchemefulSite? unsafe_top_level_site) => (
+     // TODO(https://crbug.com/1224926): Remove this once experiment is over.
+     mojo_base.mojom.UnguessableToken? unsafe_agent_cluster_id);
+ 
+@@ -58,7 +62,9 @@ interface BlobURLStore {
+   // currently intended for use when fetching a dedicated / shared worker
+   // script.
+   ResolveForWorkerScriptFetch(url.mojom.Url url,
 -                       pending_receiver<BlobURLToken> token) => (
 +                       pending_receiver<BlobURLToken> token,
 +                       mojo_base.mojom.UnguessableToken unsafe_agent_cluster_id,
@@ -171,6 +235,14 @@ diff --git a/third_party/blink/renderer/core/fileapi/public_url_manager.cc b/thi
 @@ -292,6 +308,7 @@ void PublicURLManager::Resolve(
  
    GetBlobURLStore().ResolveForNavigation(
+       url, std::move(token_receiver),
++      GetExecutionContext()->GetAgentClusterID(), GetInsecureTopLevelSite(GetExecutionContext()),
+       WTF::BindOnce(metrics_callback, WrapPersistent(GetExecutionContext())));
+ }
+ 
+@@ -318,6 +335,7 @@ void PublicURLManager::ResolveForWorkerScriptFetch(
+ 
+   GetBlobURLStore().ResolveForWorkerScriptFetch(
        url, std::move(token_receiver),
 +      GetExecutionContext()->GetAgentClusterID(), GetInsecureTopLevelSite(GetExecutionContext()),
        WTF::BindOnce(metrics_callback, WrapPersistent(GetExecutionContext())));
