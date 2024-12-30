@@ -29,7 +29,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/third_party/blink/renderer/core/html/parser/html_srcset_parser.cc b/third_party/blink/renderer/core/html/parser/html_srcset_parser.cc
 --- a/third_party/blink/renderer/core/html/parser/html_srcset_parser.cc
 +++ b/third_party/blink/renderer/core/html/parser/html_srcset_parser.cc
-@@ -420,7 +420,8 @@ static unsigned AvoidDownloadIfHigherDensityResourceIsInCache(
+@@ -418,7 +418,8 @@ static unsigned AvoidDownloadIfHigherDensityResourceIsInCache(
      auto* resource = MemoryCache::Get()->ResourceForURL(
          url,
          document->Fetcher()->GetCacheIdentifier(url,
@@ -42,7 +42,7 @@ diff --git a/third_party/blink/renderer/core/html/parser/html_srcset_parser.cc b
 diff --git a/third_party/blink/renderer/core/inspector/inspector_network_agent.cc b/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
 --- a/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
 +++ b/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
-@@ -2441,7 +2441,7 @@ bool InspectorNetworkAgent::FetchResourceContent(Document* document,
+@@ -2434,7 +2434,7 @@ bool InspectorNetworkAgent::FetchResourceContent(Document* document,
    if (!cached_resource) {
      cached_resource = MemoryCache::Get()->ResourceForURL(
          url, document->Fetcher()->GetCacheIdentifier(
@@ -154,8 +154,8 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.h b/t
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
-@@ -993,7 +993,8 @@ Resource* ResourceFetcher::CreateResourceForStaticData(
-     return nullptr;
+@@ -1006,7 +1006,8 @@ Resource* ResourceFetcher::CreateResourceForStaticData(
+   }
  
    const String cache_identifier = GetCacheIdentifier(
 -      url, params.GetResourceRequest().GetSkipServiceWorker());
@@ -164,7 +164,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    // Most off-main-thread resource fetches use Resource::kRaw and don't reach
    // this point, but off-main-thread module fetches might.
    if (IsMainThread()) {
-@@ -1412,7 +1413,8 @@ Resource* ResourceFetcher::RequestResource(FetchParameters& params,
+@@ -1431,7 +1432,8 @@ Resource* ResourceFetcher::RequestResource(FetchParameters& params,
            params.Url(),
            GetCacheIdentifier(
                params.Url(),
@@ -174,7 +174,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
        if (resource) {
          policy = DetermineRevalidationPolicy(resource_type, params, *resource,
                                               is_static_data);
-@@ -1724,7 +1726,8 @@ Resource* ResourceFetcher::CreateResourceForLoading(
+@@ -1754,7 +1756,8 @@ Resource* ResourceFetcher::CreateResourceForLoading(
      const ResourceFactory& factory) {
    const String cache_identifier =
        GetCacheIdentifier(params.GetResourceRequest().Url(),
@@ -184,7 +184,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    DCHECK(!IsMainThread() || params.IsStaleRevalidation() ||
           !MemoryCache::Get()->ResourceForURL(params.GetResourceRequest().Url(),
                                               cache_identifier));
-@@ -2794,11 +2797,41 @@ void ResourceFetcher::UpdateAllImageResourcePriorities() {
+@@ -2862,11 +2865,41 @@ void ResourceFetcher::UpdateAllImageResourcePriorities() {
  }
  
  String ResourceFetcher::GetCacheIdentifier(const KURL& url,
@@ -231,9 +231,9 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    }
  
    // Requests that can be satisfied via `archive_` (i.e. MHTML) or
-@@ -2811,7 +2844,7 @@ String ResourceFetcher::GetCacheIdentifier(const KURL& url,
-   if (bundle)
+@@ -2881,7 +2914,7 @@ String ResourceFetcher::GetCacheIdentifier(const KURL& url,
      return bundle->GetCacheIdentifier();
+   }
  
 -  return MemoryCache::DefaultCacheIdentifier();
 +  return origin_url;

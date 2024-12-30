@@ -2,7 +2,6 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Fri, 9 Jun 2023 15:11:46 +0000
 Subject: bromite build utils
 
-
 Change-Id: I341ca819f305782864b36de15b42e2da3849897d
 ---
  build/android/gyp/java_cpp_enum.py            |  36 +++++-
@@ -428,7 +427,7 @@ new file mode 100644
 diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
 --- a/build/config/BUILDCONFIG.gn
 +++ b/build/config/BUILDCONFIG.gn
-@@ -728,6 +728,7 @@ set_defaults("component") {
+@@ -734,6 +734,7 @@ set_defaults("component") {
    configs = default_component_configs
  }
  
@@ -439,7 +438,7 @@ diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
 diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
 --- a/build/config/android/rules.gni
 +++ b/build/config/android/rules.gni
-@@ -208,7 +208,7 @@ if (!is_robolectric && enable_java_templates) {
+@@ -209,7 +209,7 @@ if (!is_robolectric && enable_java_templates) {
    #   }
    template("java_cpp_enum") {
      action_with_pydeps(target_name) {
@@ -448,7 +447,7 @@ diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
  
        # The sources aren't compiled so don't check their dependencies.
        check_includes = false
-@@ -219,6 +219,10 @@ if (!is_robolectric && enable_java_templates) {
+@@ -220,6 +220,10 @@ if (!is_robolectric && enable_java_templates) {
        _rebased_sources = rebase_path(invoker.sources, root_build_dir)
  
        args = [ "--srcjar=$_rebased_srcjar_path" ] + _rebased_sources
@@ -596,9 +595,9 @@ new file mode 100755
 @@ -0,0 +1,46 @@
 +package org.chromium.chrome.browser.flags;
 +
-+import org.chromium.base.cached_flags.CachedFlagsSharedPreferences;
-+import org.chromium.components.cached_flags.CachedFlag;
 +import org.chromium.chrome.browser.flags.ChromeFeatureList;
++import org.chromium.components.cached_flags.CachedFlag;
++import org.chromium.components.cached_flags.CachedFlagsSharedPreferences;
 +
 +import org.jni_zero.CalledByNative;
 +import org.jni_zero.NativeMethods;
@@ -651,12 +650,12 @@ diff --git a/mojo/public/tools/mojom/mojom_parser.py b/mojo/public/tools/mojom/m
  from collections import defaultdict
  
  from mojom.generate import module
-@@ -176,11 +177,26 @@ def _CollectAllowedImportsFromBuildMetadata(build_metadata_filename):
+@@ -177,11 +178,26 @@ def _CollectAllowedImportsFromBuildMetadata(build_metadata_filename):
    collect(build_metadata_filename)
    return allowed_imports
  
-+def _ResolveInclude(mojom_abspath, input_root_paths):
-+  mojom_abspath = _ResolveRelativeImportPath(mojom_abspath, input_root_paths)
++def _ResolveInclude(mojom_abspath, imported_by, input_root_paths):
++  mojom_abspath = _ResolveRelativeImportPath(mojom_abspath, imported_by, input_root_paths)
 +  with codecs.open(mojom_abspath, encoding='utf-8') as f:
 +    src = f.read()
 +
@@ -666,7 +665,7 @@ diff --git a/mojo/public/tools/mojom/mojom_parser.py b/mojo/public/tools/mojom/m
 +        include_file = re.findall(r'"([^"]*)"', i)[0]
 +        if include_file.startswith("../../"):
 +          include_file = include_file[6::]
-+        lines[idx] = _ResolveInclude(include_file, input_root_paths)
++        lines[idx] = _ResolveInclude(include_file, mojom_abspath, input_root_paths)
 +
 +  return "\n".join(lines)
  
@@ -675,12 +674,12 @@ diff --git a/mojo/public/tools/mojom/mojom_parser.py b/mojo/public/tools/mojom/m
 +def _ParseAstHelper(mojom_abspath, enabled_features, input_root_paths):
    with codecs.open(mojom_abspath, encoding='utf-8') as f:
 -    ast = parser.Parse(f.read(), mojom_abspath)
-+    src = _ResolveInclude(mojom_abspath, input_root_paths)
++    src = _ResolveInclude(mojom_abspath, "_ParseAstHelper", input_root_paths)
 +    ast = parser.Parse(src, mojom_abspath)
      conditional_features.RemoveDisabledDefinitions(ast, enabled_features)
      return mojom_abspath, ast
  
-@@ -300,7 +316,7 @@ def _ParseMojoms(mojom_files,
+@@ -301,7 +317,7 @@ def _ParseMojoms(mojom_files,
        (path, abs_path) for abs_path, path in mojom_files_to_parse.items())
  
    logging.info('Parsing %d .mojom into ASTs', len(mojom_files_to_parse))
