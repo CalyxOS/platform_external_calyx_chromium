@@ -24,7 +24,7 @@ Change-Id: I1f1ec46a06be09724c30e3898b6c58d92de47b40
 diff --git a/content/browser/loader/keep_alive_url_loader.cc b/content/browser/loader/keep_alive_url_loader.cc
 --- a/content/browser/loader/keep_alive_url_loader.cc
 +++ b/content/browser/loader/keep_alive_url_loader.cc
-@@ -40,6 +40,36 @@
+@@ -42,6 +42,36 @@
  #include "services/network/public/mojom/url_request.mojom.h"
  #include "third_party/blink/public/common/features.h"
  
@@ -61,7 +61,7 @@ diff --git a/content/browser/loader/keep_alive_url_loader.cc b/content/browser/l
  namespace content {
  namespace {
  
-@@ -300,7 +330,6 @@ KeepAliveURLLoader::KeepAliveURLLoader(
+@@ -302,7 +332,6 @@ KeepAliveURLLoader::KeepAliveURLLoader(
        forwarding_client_(
            std::make_unique<ForwardingClient>(this,
                                               std::move(forwarding_client))),
@@ -69,7 +69,7 @@ diff --git a/content/browser/loader/keep_alive_url_loader.cc b/content/browser/l
        network_loader_factory_(std::move(network_loader_factory)),
        stored_url_load_(std::make_unique<StoredURLLoad>()),
        policy_container_host_(std::move(policy_container_host)),
-@@ -347,7 +376,7 @@ void KeepAliveURLLoader::Start() {
+@@ -349,7 +378,7 @@ void KeepAliveURLLoader::Start() {
    url_loader_ = blink::ThrottlingURLLoader::CreateLoaderAndStart(
        network_loader_factory_, throttles_getter_.Run(), request_id_, options_,
        &resource_request_, forwarding_client_.get(),
@@ -101,15 +101,15 @@ new file mode 100644
 diff --git a/third_party/blink/renderer/core/fetch/fetch_manager.cc b/third_party/blink/renderer/core/fetch/fetch_manager.cc
 --- a/third_party/blink/renderer/core/fetch/fetch_manager.cc
 +++ b/third_party/blink/renderer/core/fetch/fetch_manager.cc
-@@ -290,6 +290,7 @@ class ResponseResolver final : public GarbageCollected<ResponseResolver> {
+@@ -291,6 +291,7 @@ class ResponseResolver final : public GarbageCollected<ResponseResolver> {
    // Rejects the promise with the supplied object.
    void Reject(v8::Local<v8::Value> error);
    void Reject(DOMException*);
 +  void Detach();
  
    // Rejects the promise with the TypeError exception created at construction
-   // time. Also passes the exception object to devtools if `devtools_request_id`
-@@ -341,6 +342,12 @@ void ResponseResolver::Reject(DOMException* dom_exception) {
+   // time. Also optionally passes `devtools_request_id`, `issue_id`, and
+@@ -379,6 +380,12 @@ void ResponseResolver::RejectBecauseFailed(
    Clear();
  }
  
@@ -119,10 +119,10 @@ diff --git a/third_party/blink/renderer/core/fetch/fetch_manager.cc b/third_part
 +  Clear();
 +}
 +
- void ResponseResolver::RejectBecauseFailed(
-     std::optional<String> devtools_request_id,
-     std::optional<base::UnguessableToken> issue_id) {
-@@ -1283,10 +1290,18 @@ void FetchManager::Loader::Failed(
+ void ResponseResolver::Clear() {
+   resolver_.Clear();
+   exception_.Clear();
+@@ -1301,10 +1308,18 @@ void FetchManager::Loader::Failed(
    if (response_resolver_) {
      ScriptState::Scope scope(GetScriptState());
      if (dom_exception) {
@@ -133,11 +133,11 @@ diff --git a/third_party/blink/renderer/core/fetch/fetch_manager.cc b/third_part
 +        response_resolver_->Detach();
 +      }
      } else {
--      response_resolver_->RejectBecauseFailed(std::move(devtools_request_id),
--                                              issue_id);
+-      response_resolver_->RejectBecauseFailed(
+-          std::move(devtools_request_id), issue_id, std::move(issue_summary));
 +      if (!GetFetchRequestData()->Keepalive()) {
-+        response_resolver_->RejectBecauseFailed(std::move(devtools_request_id),
-+                                                issue_id);
++        response_resolver_->RejectBecauseFailed(
++            std::move(devtools_request_id), issue_id, std::move(issue_summary));
 +      } else {
 +        response_resolver_->Detach();
 +      }
@@ -178,7 +178,7 @@ diff --git a/third_party/blink/renderer/platform/loader/child_url_loader_factory
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
-@@ -2950,7 +2950,7 @@ void ResourceFetcher::PrepareForLeakDetection() {
+@@ -3022,7 +3022,7 @@ void ResourceFetcher::PrepareForLeakDetection() {
  void ResourceFetcher::StopFetchingInternal(StopFetchingTarget target) {
    // TODO(toyoshim): May want to suspend scheduler while canceling loaders so
    // that the cancellations below do not awake unnecessary scheduling.
@@ -190,7 +190,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1909,10 +1909,9 @@
+@@ -1922,10 +1922,9 @@
      },
      {
        // The Blink runtime-enabled feature name for the API's IDL.
