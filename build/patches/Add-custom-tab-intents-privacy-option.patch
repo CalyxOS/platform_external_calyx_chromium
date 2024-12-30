@@ -58,7 +58,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDispatcher.java b/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDispatcher.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDispatcher.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDispatcher.java
-@@ -58,6 +58,9 @@ import java.lang.annotation.Retention;
+@@ -64,6 +64,9 @@ import java.lang.annotation.Retention;
  import java.lang.annotation.RetentionPolicy;
  import java.util.Set;
  
@@ -68,7 +68,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDis
  /**
   * Dispatches incoming intents to the appropriate activity based on the current configuration and
   * Intent fired.
-@@ -244,6 +247,9 @@ public class LaunchIntentDispatcher {
+@@ -266,6 +269,9 @@ public class LaunchIntentDispatcher {
      @OptIn(markerClass = ExperimentalAuthTab.class)
      public static boolean isCustomTabIntent(Intent intent) {
          if (intent == null) return false;
@@ -78,7 +78,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDis
          Log.w(
                  TAG,
                  "CustomTabsIntent#shouldAlwaysUseBrowserUI() = "
-@@ -272,6 +278,10 @@ public class LaunchIntentDispatcher {
+@@ -294,6 +300,10 @@ public class LaunchIntentDispatcher {
          // Make sure the result of the CustomTabActivity is forwarded to the client.
          newIntent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
  
@@ -89,7 +89,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDis
          // Since configureIntentForResizableCustomTab() might change the componenet/class
          // associated with the passed intent, it needs to be called after #setClassName(context,
          // CustomTabActivity.class.getName());
-@@ -445,6 +455,17 @@ public class LaunchIntentDispatcher {
+@@ -490,6 +500,17 @@ public class LaunchIntentDispatcher {
  
          if (Intent.ACTION_VIEW.equals(newIntent.getAction())
                  && !IntentHandler.wasIntentSenderChrome(newIntent)) {
@@ -110,7 +110,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDis
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabIntentDataProvider.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabIntentDataProvider.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabIntentDataProvider.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabIntentDataProvider.java
-@@ -1229,7 +1229,9 @@ public class CustomTabIntentDataProvider extends BrowserServicesIntentDataProvid
+@@ -1238,7 +1238,9 @@ public class CustomTabIntentDataProvider extends BrowserServicesIntentDataProvid
      public @CustomTabProfileType int getCustomTabMode() {
          return AlwaysIncognitoLinkInterceptor.isAlwaysIncognito()
                  ? CustomTabProfileType.INCOGNITO
@@ -124,7 +124,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Cust
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnection.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnection.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnection.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnection.java
-@@ -958,6 +958,7 @@ public class CustomTabsConnection {
+@@ -969,6 +969,7 @@ public class CustomTabsConnection {
          PostTask.postTask(
                  TaskTraits.UI_DEFAULT,
                  () -> {
@@ -158,7 +158,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Inco
 @@ -216,6 +222,10 @@ public class IncognitoCustomTabIntentDataProvider extends BrowserServicesIntentD
      }
  
-     public static boolean isValidIncognitoIntent(Intent intent) {
+     public static boolean isValidIncognitoIntent(Intent intent, boolean recordMetrics) {
 +        if (ContextUtils.getAppSharedPreferences()
 +                .getBoolean(PrivacySettings.PREF_OPEN_EXTERNAL_LINKS_INCOGNITO, false)) {
 +            return true;
@@ -166,7 +166,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Inco
          if (!isIncognitoRequested(intent)) return false;
          var session = CustomTabsSessionToken.getSessionTokenFromIntent(intent);
          if (isIntentFromThirdPartyAllowed()
-@@ -326,6 +336,10 @@ public class IncognitoCustomTabIntentDataProvider extends BrowserServicesIntentD
+@@ -329,6 +339,10 @@ public class IncognitoCustomTabIntentDataProvider extends BrowserServicesIntentD
  
      @Override
      public @CustomTabProfileType int getCustomTabMode() {
@@ -180,7 +180,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Inco
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -53,6 +53,15 @@ import org.chromium.components.signin.identitymanager.ConsentLevel;
+@@ -54,6 +54,15 @@ import org.chromium.components.signin.identitymanager.ConsentLevel;
  import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.SpanApplier;
  
@@ -196,7 +196,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  import androidx.annotation.Nullable;
  import androidx.preference.PreferenceCategory;
  import org.chromium.chrome.browser.contextualsearch.ContextualSearchManager;
-@@ -97,6 +106,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -98,6 +107,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
      private IncognitoLockSettings mIncognitoLockSettings;
      private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
  
@@ -268,7 +268,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -692,6 +692,7 @@ public abstract class ChromeFeatureList {
+@@ -661,6 +661,7 @@ public abstract class ChromeFeatureList {
      public static final CachedFlag sLogoPolishAnimationKillSwitch =
              newCachedFlag(LOGO_POLISH_ANIMATION_KILL_SWITCH, true);
      public static final CachedFlag sMagicStackAndroid = newCachedFlag(MAGIC_STACK_ANDROID, true);
@@ -276,7 +276,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final CachedFlag sMostVisitedTilesReselect =
              newCachedFlag(MOST_VISITED_TILES_RESELECT, false);
      public static final CachedFlag sMultiInstanceApplicationStatusCleanup =
-@@ -833,6 +834,7 @@ public abstract class ChromeFeatureList {
+@@ -791,6 +792,7 @@ public abstract class ChromeFeatureList {
                      sLogoPolishAnimationKillSwitch,
                      sNotificationTrampoline,
                      sMagicStackAndroid,
@@ -348,7 +348,7 @@ diff --git a/components/content_relationship_verification/android/java/src/org/c
 diff --git a/components/language/core/common/language_experiments.cc b/components/language/core/common/language_experiments.cc
 --- a/components/language/core/common/language_experiments.cc
 +++ b/components/language/core/common/language_experiments.cc
-@@ -28,4 +28,5 @@ BASE_FEATURE(kTranslateOpenSettings,
+@@ -32,4 +32,5 @@ BASE_FEATURE(kDisableGeoLanguageModel,
  // Params:
  const char kContentLanguagesDisableObserversParam[] = "disable_observers";
  

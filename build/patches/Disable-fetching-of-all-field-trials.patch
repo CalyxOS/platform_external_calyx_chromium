@@ -122,8 +122,8 @@ diff --git a/android_webview/nonembedded/java/src/org/chromium/android_webview/s
 diff --git a/chrome/browser/metrics/chrome_browser_sampling_trials.cc b/chrome/browser/metrics/chrome_browser_sampling_trials.cc
 --- a/chrome/browser/metrics/chrome_browser_sampling_trials.cc
 +++ b/chrome/browser/metrics/chrome_browser_sampling_trials.cc
-@@ -55,6 +55,8 @@ void CreateFallbackSamplingTrial(
-     const int sampled_in_rate_per_mille,
+@@ -60,6 +60,8 @@ void CreateFallbackSamplingTrial(
+     const int reporting_full_rate_per_mille,
      const bool starts_active,
      base::FeatureList* feature_list) {
 +  if ((true))
@@ -131,7 +131,7 @@ diff --git a/chrome/browser/metrics/chrome_browser_sampling_trials.cc b/chrome/b
    scoped_refptr<base::FieldTrial> trial(
        base::FieldTrialList::FactoryGetFieldTrial(
            trial_name, /*total_probability=*/1000, "Default", entropy_provider));
-@@ -98,6 +100,8 @@ void CreateFallbackUkmSamplingTrial(
+@@ -111,6 +113,8 @@ void CreateFallbackUkmSamplingTrial(
      const base::FieldTrial::EntropyProvider& entropy_provider,
      bool is_stable_channel,
      base::FeatureList* feature_list) {
@@ -143,7 +143,7 @@ diff --git a/chrome/browser/metrics/chrome_browser_sampling_trials.cc b/chrome/b
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -851,7 +851,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
+@@ -852,7 +852,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
  
  void SystemNetworkContextManager::ConfigureDefaultNetworkContextParams(
      network::mojom::NetworkContextParams* network_context_params) {
@@ -154,7 +154,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
 diff --git a/components/ukm/ukm_recorder_impl.cc b/components/ukm/ukm_recorder_impl.cc
 --- a/components/ukm/ukm_recorder_impl.cc
 +++ b/components/ukm/ukm_recorder_impl.cc
-@@ -194,6 +194,9 @@ std::string WebDXFeaturesToStringForDebug(const std::set<int32_t>& features) {
+@@ -189,6 +189,9 @@ std::string WebDXFeaturesToStringForDebug(const std::set<int32_t>& features) {
  
  UkmRecorderImpl::UkmRecorderImpl()
      : sampling_seed_(static_cast<uint32_t>(base::RandUint64())) {
@@ -223,10 +223,10 @@ diff --git a/components/variations/android/java/src/org/chromium/components/vari
      }
  
      private void recordFetchResultOrCode(int resultOrCode) {
-@@ -551,7 +525,7 @@ public class VariationsSeedFetcher {
-      * @param currInfo optional currently saved seed info to set the `If-None-Match` header.
+@@ -552,7 +526,7 @@ public class VariationsSeedFetcher {
       * @return the object holds the request result and seed data with its related header fields.
       */
+     @SuppressWarnings("Finally")
 -    public SeedFetchInfo downloadContent(SeedFetchParameters params, SeedInfo currInfo) {
 +    private SeedFetchInfo downloadContent(SeedFetchParameters params, SeedInfo currInfo) {
          SeedFetchInfo fetchInfo = new SeedFetchInfo();
@@ -282,17 +282,17 @@ diff --git a/components/variations/service/variations_field_trial_creator_base.c
  // Determines whether the field trial testing config defined in
  // testing/variations/fieldtrial_testing_config.json should be applied. If the
  // "disable_fieldtrial_testing_config" GN flag is set to true, then the testing
-@@ -331,9 +332,6 @@ bool VariationsFieldTrialCreatorBase::SetUpFieldTrials(
+@@ -327,9 +328,6 @@ bool VariationsFieldTrialCreatorBase::SetUpFieldTrials(
                               safe_seed_manager, synthetic_trial_registry);
    }
  
 -  platform_field_trials->SetUpClientSideFieldTrials(
--      used_seed, *entropy_providers, feature_list.get());
+-      used_seed, entropy_providers, feature_list.get());
 -
    platform_field_trials->RegisterFeatureOverrides(feature_list.get());
  
    base::FeatureList::SetInstance(std::move(feature_list));
-@@ -630,6 +628,7 @@ bool VariationsFieldTrialCreatorBase::CreateTrialsFromSeed(
+@@ -626,6 +624,7 @@ bool VariationsFieldTrialCreatorBase::CreateTrialsFromSeed(
      base::FeatureList* feature_list,
      SafeSeedManagerBase* safe_seed_manager,
      SyntheticTrialRegistry* synthetic_trial_registry) {
@@ -300,7 +300,7 @@ diff --git a/components/variations/service/variations_field_trial_creator_base.c
    // This histogram name uses "VariationsFieldTrialCreator" rather than
    // "VariationsFieldTrialCreatorBase" for consistency with historical data
    TRACE_EVENT0("startup", "VariationsFieldTrialCreator::CreateTrialsFromSeed");
-@@ -746,6 +745,7 @@ bool VariationsFieldTrialCreatorBase::CreateTrialsFromSeed(
+@@ -742,6 +741,7 @@ bool VariationsFieldTrialCreatorBase::CreateTrialsFromSeed(
  
  void VariationsFieldTrialCreatorBase::LoadSeedFromJsonFile(
      const base::FilePath& json_seed_path) {
@@ -311,7 +311,7 @@ diff --git a/components/variations/service/variations_field_trial_creator_base.c
 diff --git a/components/variations/service/variations_service.cc b/components/variations/service/variations_service.cc
 --- a/components/variations/service/variations_service.cc
 +++ b/components/variations/service/variations_service.cc
-@@ -227,17 +227,8 @@ bool GetInstanceManipulations(const net::HttpResponseHeaders* headers,
+@@ -225,17 +225,8 @@ bool GetInstanceManipulations(const net::HttpResponseHeaders* headers,
  // Variations seed fetching is only enabled in official Chrome builds, if a URL
  // is specified on the command line, and for testing.
  bool IsFetchingEnabled() {
@@ -331,7 +331,7 @@ diff --git a/components/variations/service/variations_service.cc b/components/va
  }
  
  // Returns the already downloaded first run seed, and clear the seed from the
-@@ -628,7 +619,7 @@ bool VariationsService::DoFetchFromURL(const GURL& url, bool is_http_retry) {
+@@ -634,7 +625,7 @@ bool VariationsService::DoFetchFromURL(const GURL& url, bool is_http_retry) {
    // debugger or if the machine was suspended) and OnURLFetchComplete() hasn't
    // had a chance to run yet from the previous request. In this case, don't
    // start a new request and just let the previous one finish.
@@ -404,7 +404,7 @@ new file mode 100644
 diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_party/blink/renderer/core/loader/document_loader.cc
 --- a/third_party/blink/renderer/core/loader/document_loader.cc
 +++ b/third_party/blink/renderer/core/loader/document_loader.cc
-@@ -207,13 +207,6 @@ WebVector<int> CopyInitiatorOriginTrials(
+@@ -208,13 +208,6 @@ WebVector<int> CopyInitiatorOriginTrials(
      const Vector<mojom::blink::OriginTrialFeature>&
          initiator_origin_trial_features) {
    WebVector<int> result;
