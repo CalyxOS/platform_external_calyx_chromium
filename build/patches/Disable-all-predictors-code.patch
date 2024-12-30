@@ -18,10 +18,10 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  chrome/browser/predictors/predictors_features.cc  |  3 +--
  chrome/browser/ui/tab_helpers.cc                  |  1 -
  .../ui/webui/omnibox/omnibox_page_handler.cc      |  2 ++
- .../accessibility/read_aloud_app_model.cc         |  8 ++++++++
- .../renderer/accessibility/read_aloud_app_model.h |  7 +++++++
- .../accessibility/read_anything_app_controller.cc | 12 ++++++++++++
- .../accessibility/read_anything_app_controller.h  |  4 ++++
+ .../read_anything/read_aloud_app_model.cc         |  6 ++++++
+ .../read_anything/read_aloud_app_model.h          |  7 +++++++
+ .../read_anything/read_anything_app_controller.cc | 12 ++++++++++++
+ .../read_anything/read_anything_app_controller.h  |  4 ++++
  chrome/utility/BUILD.gn                           |  2 +-
  chrome/utility/services.cc                        |  8 --------
  .../core/browser/autofill_optimization_guide.cc   |  5 +++--
@@ -42,7 +42,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
  services/webnn/features.gni                       |  2 +-
  .../document_speculation_rules.cc                 |  1 +
  .../platform/runtime_enabled_features.json5       |  2 +-
- 35 files changed, 97 insertions(+), 35 deletions(-)
+ 35 files changed, 95 insertions(+), 35 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/browser_features_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/Disable-all-predictors-code.inc
  create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-all-predictors-code.inc
@@ -53,7 +53,7 @@ Change-Id: I1d49077020e11828dc4b9ebe1bccd62d21e6c09f
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -759,8 +759,6 @@ static_library("browser") {
+@@ -760,8 +760,6 @@ static_library("browser") {
      "navigation_predictor/navigation_predictor_keyed_service_factory.h",
      "navigation_predictor/navigation_predictor_metrics_document_data.cc",
      "navigation_predictor/navigation_predictor_metrics_document_data.h",
@@ -165,7 +165,7 @@ diff --git a/chrome/browser/optimization_guide/model_validator_keyed_service.cc 
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -564,7 +564,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -497,7 +497,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
@@ -215,7 +215,7 @@ diff --git a/chrome/browser/predictors/predictors_features.cc b/chrome/browser/p
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -446,7 +446,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -441,7 +441,6 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    }
    MixedContentSettingsTabHelper::CreateForWebContents(web_contents);
    NavigationMetricsRecorder::CreateForWebContents(web_contents);
@@ -236,9 +236,9 @@ diff --git a/chrome/browser/ui/webui/omnibox/omnibox_page_handler.cc b/chrome/br
  #include "components/optimization_guide/machine_learning_tflite_buildflags.h"
  #include "components/search_engines/template_url.h"
  #include "content/public/browser/web_ui.h"
-diff --git a/chrome/renderer/accessibility/read_aloud_app_model.cc b/chrome/renderer/accessibility/read_aloud_app_model.cc
---- a/chrome/renderer/accessibility/read_aloud_app_model.cc
-+++ b/chrome/renderer/accessibility/read_aloud_app_model.cc
+diff --git a/chrome/renderer/accessibility/read_anything/read_aloud_app_model.cc b/chrome/renderer/accessibility/read_anything/read_aloud_app_model.cc
+--- a/chrome/renderer/accessibility/read_anything/read_aloud_app_model.cc
++++ b/chrome/renderer/accessibility/read_anything/read_aloud_app_model.cc
 @@ -6,7 +6,9 @@
  
  #include "base/strings/utf_string_conversions.h"
@@ -265,44 +265,34 @@ diff --git a/chrome/renderer/accessibility/read_aloud_app_model.cc b/chrome/rend
  
  }  // namespace
  
-@@ -131,6 +135,7 @@ void ReadAloudAppModel::PreprocessTextForSpeech(
-   }
+@@ -118,6 +122,7 @@ std::vector<ui::AXNodeID> ReadAloudAppModel::GetCurrentText(
+       .node_ids;
  }
  
 +#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
- void ReadAloudAppModel::PreprocessPhrasesForText(
-     DependencyParserModel& dependency_parser_model) {
-   if (features::IsReadAnythingReadAloudPhraseHighlightingEnabled()) {
-@@ -145,7 +150,9 @@ void ReadAloudAppModel::PreprocessPhrasesForText(
+ void ReadAloudAppModel::PreprocessTextForSpeech(
+     bool is_pdf,
+     bool is_docs,
+@@ -145,6 +150,7 @@ void ReadAloudAppModel::PreprocessPhrasesForText(
      DLOG(WARNING) << "Phrase calculation done.";
    }
  }
 +#endif
  
-+#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
  void ReadAloudAppModel::CalculatePhrases(
      DependencyParserModel& dependency_parser_model,
-     a11y::ReadAloudCurrentGranularity& granularity) {
-@@ -200,6 +207,7 @@ void ReadAloudAppModel::CalculatePhrases(
-       smart_highlight, tokenized_sentence, token_boundaries, Strategy::kWords,
-       /* max_words_per_phrase=*/5);
- }
-+#endif
- 
- // TODO(crbug.com/40927698): Update to use AXRange to better handle multiple
- // nodes. This may require updating GetText in ax_range.h to return AXNodeIds.
-diff --git a/chrome/renderer/accessibility/read_aloud_app_model.h b/chrome/renderer/accessibility/read_aloud_app_model.h
---- a/chrome/renderer/accessibility/read_aloud_app_model.h
-+++ b/chrome/renderer/accessibility/read_aloud_app_model.h
+diff --git a/chrome/renderer/accessibility/read_anything/read_aloud_app_model.h b/chrome/renderer/accessibility/read_anything/read_aloud_app_model.h
+--- a/chrome/renderer/accessibility/read_anything/read_aloud_app_model.h
++++ b/chrome/renderer/accessibility/read_anything/read_aloud_app_model.h
 @@ -9,7 +9,10 @@
  #include "base/values.h"
- #include "chrome/common/accessibility/read_anything.mojom.h"
- #include "chrome/common/accessibility/read_anything_constants.h"
+ #include "chrome/common/read_anything/read_anything.mojom.h"
+ #include "chrome/common/read_anything/read_anything_constants.h"
 +#include "components/optimization_guide/machine_learning_tflite_buildflags.h"
 +#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
  #include "chrome/renderer/accessibility/phrase_segmentation/dependency_parser_model.h"
 +#endif
- #include "chrome/renderer/accessibility/read_aloud_traversal_utils.h"
+ #include "chrome/renderer/accessibility/read_anything/read_aloud_traversal_utils.h"
  #include "ui/accessibility/ax_node_position.h"
  
 @@ -87,7 +90,9 @@ class ReadAloudAppModel {
@@ -327,20 +317,20 @@ diff --git a/chrome/renderer/accessibility/read_aloud_app_model.h b/chrome/rende
  
    // Whether Read Aloud speech is currently playing or not.
    bool speech_playing_ = false;
-diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chrome/renderer/accessibility/read_anything_app_controller.cc
---- a/chrome/renderer/accessibility/read_anything_app_controller.cc
-+++ b/chrome/renderer/accessibility/read_anything_app_controller.cc
+diff --git a/chrome/renderer/accessibility/read_anything/read_anything_app_controller.cc b/chrome/renderer/accessibility/read_anything/read_anything_app_controller.cc
+--- a/chrome/renderer/accessibility/read_anything/read_anything_app_controller.cc
++++ b/chrome/renderer/accessibility/read_anything/read_anything_app_controller.cc
 @@ -21,7 +21,9 @@
  #include "base/strings/utf_string_conversions.h"
- #include "chrome/common/accessibility/read_anything_constants.h"
+ #include "chrome/common/read_anything/read_anything_constants.h"
  #include "chrome/renderer/accessibility/ax_tree_distiller.h"
 +#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
  #include "chrome/renderer/accessibility/phrase_segmentation/dependency_parser_model.h"
 +#endif
- #include "chrome/renderer/accessibility/read_aloud_traversal_utils.h"
- #include "chrome/renderer/accessibility/read_anything_node_utils.h"
+ #include "chrome/renderer/accessibility/read_anything/read_aloud_traversal_utils.h"
+ #include "chrome/renderer/accessibility/read_anything/read_anything_node_utils.h"
  #include "components/language/core/common/locale_util.h"
-@@ -364,11 +366,13 @@ SkBitmap CorrectColorOfBitMap(SkBitmap& originalBitmap) {
+@@ -363,11 +365,13 @@ SkBitmap CorrectColorOfBitMap(SkBitmap& originalBitmap) {
    return converted;
  }
  
@@ -354,7 +344,7 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
  
  }  // namespace
  
-@@ -1474,6 +1478,7 @@ void ReadAnythingAppController::OnConnected() {
+@@ -1457,6 +1461,7 @@ void ReadAnythingAppController::OnConnected() {
    render_frame()->GetBrowserInterfaceBroker().GetInterface(
        std::move(page_handler_factory_receiver));
  
@@ -362,7 +352,7 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
    // Get the dependency parser model used by phrase-based highlighting.
    DependencyParserModel& dependency_parser_model = GetDependencyParserModel();
    if (dependency_parser_model.IsAvailable()) {
-@@ -1483,6 +1488,7 @@ void ReadAnythingAppController::OnConnected() {
+@@ -1466,6 +1471,7 @@ void ReadAnythingAppController::OnConnected() {
    page_handler_->GetDependencyParserModel(
        base::BindOnce(&ReadAnythingAppController::UpdateDependencyParserModel,
                       weak_ptr_factory_.GetWeakPtr()));
@@ -370,7 +360,7 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
  }
  
  void ReadAnythingAppController::OnCopy() const {
-@@ -1692,6 +1698,7 @@ std::vector<ui::AXNodeID> ReadAnythingAppController::GetCurrentText() {
+@@ -1675,6 +1681,7 @@ std::vector<ui::AXNodeID> ReadAnythingAppController::GetCurrentText() {
  }
  
  void ReadAnythingAppController::PreprocessTextForSpeech() {
@@ -378,7 +368,7 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
    const std::set<ui::AXNodeID>* node_ids = model_.selection_node_ids().empty()
                                                 ? &model_.display_node_ids()
                                                 : &model_.selection_node_ids();
-@@ -1701,6 +1708,7 @@ void ReadAnythingAppController::PreprocessTextForSpeech() {
+@@ -1684,6 +1691,7 @@ void ReadAnythingAppController::PreprocessTextForSpeech() {
      DependencyParserModel& model = GetDependencyParserModel();
      read_aloud_model_.PreprocessPhrasesForText(model);
    }
@@ -386,7 +376,7 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
  }
  
  void ReadAnythingAppController::MovePositionToNextGranularity() {
-@@ -1874,14 +1882,18 @@ bool ReadAnythingAppController::IsDocsLoadMoreButtonVisible() const {
+@@ -1857,14 +1865,18 @@ bool ReadAnythingAppController::IsDocsLoadMoreButtonVisible() const {
  
  void ReadAnythingAppController::UpdateDependencyParserModel(
      base::File model_file) {
@@ -405,10 +395,10 @@ diff --git a/chrome/renderer/accessibility/read_anything_app_controller.cc b/chr
  
  void ReadAnythingAppController::OnTreeAdded(ui::AXTree* tree) {
    auto observation =
-diff --git a/chrome/renderer/accessibility/read_anything_app_controller.h b/chrome/renderer/accessibility/read_anything_app_controller.h
---- a/chrome/renderer/accessibility/read_anything_app_controller.h
-+++ b/chrome/renderer/accessibility/read_anything_app_controller.h
-@@ -47,7 +47,9 @@ class MojoUkmRecorder;
+diff --git a/chrome/renderer/accessibility/read_anything/read_anything_app_controller.h b/chrome/renderer/accessibility/read_anything/read_anything_app_controller.h
+--- a/chrome/renderer/accessibility/read_anything/read_anything_app_controller.h
++++ b/chrome/renderer/accessibility/read_anything/read_anything_app_controller.h
+@@ -46,7 +46,9 @@ class MojoUkmRecorder;
  }  // namespace ukm
  
  class AXTreeDistiller;
@@ -443,7 +433,7 @@ diff --git a/chrome/utility/BUILD.gn b/chrome/utility/BUILD.gn
 diff --git a/chrome/utility/services.cc b/chrome/utility/services.cc
 --- a/chrome/utility/services.cc
 +++ b/chrome/utility/services.cc
-@@ -246,13 +246,6 @@ auto RunMirroringService(
+@@ -243,13 +243,6 @@ auto RunMirroringService(
        std::move(receiver), content::UtilityThread::Get()->GetIOTaskRunner());
  }
  
@@ -457,7 +447,7 @@ diff --git a/chrome/utility/services.cc b/chrome/utility/services.cc
  #endif  // !BUILDFLAG(IS_ANDROID)
  
  #if BUILDFLAG(ENABLE_BROWSER_SPEECH_SERVICE)
-@@ -459,7 +452,6 @@ void RegisterMainThreadServices(mojo::ServiceFactory& services) {
+@@ -466,7 +459,6 @@ void RegisterMainThreadServices(mojo::ServiceFactory& services) {
  #if !BUILDFLAG(IS_ANDROID)
    services.Add(RunProfileImporter);
    services.Add(RunMirroringService);
@@ -468,7 +458,7 @@ diff --git a/chrome/utility/services.cc b/chrome/utility/services.cc
 diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/components/autofill/core/browser/autofill_optimization_guide.cc
 --- a/components/autofill/core/browser/autofill_optimization_guide.cc
 +++ b/components/autofill/core/browser/autofill_optimization_guide.cc
-@@ -209,6 +209,7 @@ void AutofillOptimizationGuide::OnDidParseForm(
+@@ -208,6 +208,7 @@ void AutofillOptimizationGuide::OnDidParseForm(
    // If we do not have any optimization types to register, do not do anything.
    if (!optimization_types.empty()) {
      // Register all optimization types that we need based on `form_structure`.
@@ -476,7 +466,7 @@ diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/c
      decider_->RegisterOptimizationTypes(
          std::vector<optimization_guide::proto::OptimizationType>(
              std::move(optimization_types).extract()));
-@@ -260,7 +261,7 @@ bool AutofillOptimizationGuide::ShouldBlockSingleFieldSuggestions(
+@@ -259,7 +260,7 @@ bool AutofillOptimizationGuide::ShouldBlockSingleFieldSuggestions(
      const AutofillField* field) const {
    // If the field's storable type is `IBAN_VALUE`, check whether IBAN
    // suggestions should be blocked based on `url`.
@@ -485,7 +475,7 @@ diff --git a/components/autofill/core/browser/autofill_optimization_guide.cc b/c
      optimization_guide::OptimizationGuideDecision decision =
          decider_->CanApplyOptimization(
              url, optimization_guide::proto::IBAN_AUTOFILL_BLOCKED,
-@@ -286,7 +287,7 @@ bool AutofillOptimizationGuide::ShouldBlockFormFieldSuggestion(
+@@ -285,7 +286,7 @@ bool AutofillOptimizationGuide::ShouldBlockFormFieldSuggestion(
      const CreditCard& card) const {
    if (auto optimization_type =
            GetVcnMerchantOptOutOptimizationTypeForCard(card);
@@ -526,7 +516,7 @@ diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/
 diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/optimization_guide/core/hints_fetcher.cc
 --- a/components/optimization_guide/core/hints_fetcher.cc
 +++ b/components/optimization_guide/core/hints_fetcher.cc
-@@ -198,6 +198,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
+@@ -196,6 +196,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
      bool skip_cache,
      HintsFetchedCallback hints_fetched_callback,
      std::optional<proto::RequestContextMetadata> request_context_metadata) {
@@ -537,7 +527,7 @@ diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/op
 diff --git a/components/optimization_guide/core/hints_manager.cc b/components/optimization_guide/core/hints_manager.cc
 --- a/components/optimization_guide/core/hints_manager.cc
 +++ b/components/optimization_guide/core/hints_manager.cc
-@@ -393,6 +393,7 @@ void HintsManager::Shutdown() {
+@@ -391,6 +391,7 @@ void HintsManager::Shutdown() {
  OptimizationGuideDecision
  HintsManager::GetOptimizationGuideDecisionFromOptimizationTypeDecision(
      OptimizationTypeDecision optimization_type_decision) {
@@ -545,7 +535,7 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
    switch (optimization_type_decision) {
      case OptimizationTypeDecision::kAllowedByOptimizationFilter:
      case OptimizationTypeDecision::kAllowedByHint:
-@@ -1116,6 +1117,7 @@ void HintsManager::CanApplyOptimizationOnDemand(
+@@ -1114,6 +1115,7 @@ void HintsManager::CanApplyOptimizationOnDemand(
      OnDemandOptimizationGuideDecisionRepeatingCallback callback,
      std::optional<proto::RequestContextMetadata> request_context_metadata) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -553,7 +543,7 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
  
    InsertionOrderedSet<GURL> urls_to_fetch;
    InsertionOrderedSet<std::string> hosts_to_fetch;
-@@ -1421,6 +1423,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
+@@ -1417,6 +1419,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
      bool skip_cache,
      OptimizationMetadata* optimization_metadata) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -578,7 +568,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  }  // namespace
  
-@@ -415,8 +411,7 @@ size_t MaxURLKeyedHintCacheSize() {
+@@ -422,8 +418,7 @@ size_t MaxURLKeyedHintCacheSize() {
  }
  
  bool ShouldPersistHintsToDisk() {
@@ -588,7 +578,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  }
  
  RequestContextSet GetAllowedContextsForPersonalizedMetadata() {
-@@ -874,5 +869,13 @@ int GetOnDeviceModelValidationAttemptCount() {
+@@ -864,5 +859,13 @@ int GetOnDeviceModelValidationAttemptCount() {
    return kParam.Get();
  }
  
@@ -666,7 +656,7 @@ diff --git a/components/optimization_guide/features.gni b/components/optimizatio
 diff --git a/components/page_content_annotations/core/page_content_annotations_features.cc b/components/page_content_annotations/core/page_content_annotations_features.cc
 --- a/components/page_content_annotations/core/page_content_annotations_features.cc
 +++ b/components/page_content_annotations/core/page_content_annotations_features.cc
-@@ -280,4 +280,9 @@ size_t MaxRelatedSearchesCacheSize() {
+@@ -263,4 +263,9 @@ size_t MaxRelatedSearchesCacheSize() {
        "max_related_searches_cache_size", 10);
  }
  
@@ -733,7 +723,7 @@ diff --git a/services/webnn/features.gni b/services/webnn/features.gni
 diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
 --- a/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
 +++ b/third_party/blink/renderer/core/speculation_rules/document_speculation_rules.cc
-@@ -643,6 +643,7 @@ void DocumentSpeculationRules::UpdateSpeculationCandidates() {
+@@ -642,6 +642,7 @@ void DocumentSpeculationRules::UpdateSpeculationCandidates() {
      return;
    }
  
@@ -744,7 +734,7 @@ diff --git a/third_party/blink/renderer/core/speculation_rules/document_speculat
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3342,7 +3342,7 @@
+@@ -3359,7 +3359,7 @@
        //
        // It also has some feature params defined throughout the codebase.
        name: "Prerender2",

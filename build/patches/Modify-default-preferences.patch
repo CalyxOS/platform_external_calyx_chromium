@@ -33,7 +33,7 @@ Change-Id: I73b8c04221d5b4bc2bbf7958dd85ebe3c17c2aa8
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -81,6 +81,7 @@
+@@ -82,6 +82,7 @@
  #include "components/autofill/core/common/autofill_payments_features.h"
  #include "components/autofill/core/common/autofill_switches.h"
  #include "components/autofill/core/common/autofill_util.h"
@@ -56,7 +56,7 @@ diff --git a/chrome/browser/background/background_mode_manager.cc b/chrome/brows
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -1582,7 +1582,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
+@@ -1580,7 +1580,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
  void ChromeContentBrowserClient::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kDisable3DAPIs, false);
@@ -80,7 +80,7 @@ diff --git a/chrome/browser/preloading/preloading_prefs.h b/chrome/browser/prelo
 diff --git a/chrome/browser/profiles/profile.cc b/chrome/browser/profiles/profile.cc
 --- a/chrome/browser/profiles/profile.cc
 +++ b/chrome/browser/profiles/profile.cc
-@@ -308,7 +308,7 @@ const char Profile::kProfileKey[] = "__PROFILE__";
+@@ -316,7 +316,7 @@ const char Profile::kProfileKey[] = "__PROFILE__";
  void Profile::RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(
        prefs::kSearchSuggestEnabled,
@@ -92,7 +92,7 @@ diff --git a/chrome/browser/profiles/profile.cc b/chrome/browser/profiles/profil
 diff --git a/chrome/browser/resources/settings/reset_page/reset_profile_dialog.html b/chrome/browser/resources/settings/reset_page/reset_profile_dialog.html
 --- a/chrome/browser/resources/settings/reset_page/reset_profile_dialog.html
 +++ b/chrome/browser/resources/settings/reset_page/reset_profile_dialog.html
-@@ -34,7 +34,7 @@
+@@ -33,7 +33,7 @@
          </cr-button>
        </div>
        <div slot="footer">
@@ -288,8 +288,8 @@ diff --git a/components/safe_browsing/core/common/safe_browsing_prefs.cc b/compo
 -      prefs::kSafeBrowsingEnabled, true,
 +      prefs::kSafeBrowsingEnabled, false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
-   registry->RegisterBooleanPref(prefs::kSafeBrowsingEnhanced, false);
-   registry->RegisterBooleanPref(prefs::kSafeBrowsingProceedAnywayDisabled,
+   if (base::FeatureList::IsEnabled(kEsbAsASyncedSetting)) {
+     registry->RegisterBooleanPref(
 diff --git a/components/signin/internal/identity_manager/primary_account_manager.cc b/components/signin/internal/identity_manager/primary_account_manager.cc
 --- a/components/signin/internal/identity_manager/primary_account_manager.cc
 +++ b/components/signin/internal/identity_manager/primary_account_manager.cc

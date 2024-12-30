@@ -17,7 +17,7 @@ Change-Id: I3843dce4ce3ee107f36de0aec45607602c3f526d
 diff --git a/base/android/content_uri_utils.cc b/base/android/content_uri_utils.cc
 --- a/base/android/content_uri_utils.cc
 +++ b/base/android/content_uri_utils.cc
-@@ -125,6 +125,16 @@ void JNI_ContentUriUtils_AddFileInfoToVector(
+@@ -130,6 +130,16 @@ void JNI_ContentUriUtils_AddFileInfoToVector(
                         Time::FromMillisecondsSinceUnixEpoch(last_modified));
  }
  
@@ -46,8 +46,8 @@ diff --git a/base/android/content_uri_utils.h b/base/android/content_uri_utils.h
 +BASE_EXPORT File OpenContentUriForWrite(const FilePath& content_uri);
 +
  // Returns true if file exists and results are populated, else returns false.
- // Java code requires a Content-URI to look up file info such as is-dir, size,
- // and last-mod, so code that needs to support Content-URI should use
+ bool ContentUriGetFileInfo(const FilePath& content_uri,
+                            FileEnumerator::FileInfo* results);
 diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base/android/java/src/org/chromium/base/ContentUriUtils.java
 --- a/base/android/java/src/org/chromium/base/ContentUriUtils.java
 +++ b/base/android/java/src/org/chromium/base/ContentUriUtils.java
@@ -59,9 +59,9 @@ diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base
  import android.provider.DocumentsContract;
  import android.provider.MediaStore;
  import android.text.TextUtils;
-@@ -25,6 +26,9 @@ import org.jni_zero.NativeMethods;
- 
+@@ -26,6 +27,9 @@ import org.jni_zero.NativeMethods;
  import java.io.IOException;
+ import java.util.List;
  
 +import android.system.Os;
 +import android.content.ContentProviderClient;
@@ -69,7 +69,7 @@ diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base
  /** This class provides methods to access content URI schemes. */
  @JNINamespace("base")
  public abstract class ContentUriUtils {
-@@ -53,6 +57,36 @@ public abstract class ContentUriUtils {
+@@ -59,6 +63,36 @@ public abstract class ContentUriUtils {
          return -1;
      }
  
