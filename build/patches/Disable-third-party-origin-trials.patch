@@ -78,7 +78,7 @@ diff --git a/components/embedder_support/origin_trials/origin_trial_policy_impl.
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -9177,7 +9177,6 @@ void NavigationRequest::SetSourceSiteInstanceToInitiatorIfNeeded() {
+@@ -9195,7 +9195,6 @@ void NavigationRequest::SetSourceSiteInstanceToInitiatorIfNeeded() {
  void NavigationRequest::ForceEnableOriginTrials(
      const std::vector<std::string>& trials) {
    DCHECK(!HasCommitted());
@@ -118,7 +118,7 @@ diff --git a/content/browser/renderer_host/origin_trial_state_host_impl.cc b/con
 diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_frame_impl.cc
 --- a/content/renderer/render_frame_impl.cc
 +++ b/content/renderer/render_frame_impl.cc
-@@ -540,10 +540,6 @@ void FillNavigationParamsRequest(
+@@ -538,10 +538,6 @@ void FillNavigationParamsRequest(
          common_params.initiator_origin.value();
    }
  
@@ -129,7 +129,7 @@ diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_fra
    navigation_params->was_discarded = commit_params.was_discarded;
    navigation_params->document_ukm_source_id =
        commit_params.document_ukm_source_id;
-@@ -571,12 +567,6 @@ void FillNavigationParamsRequest(
+@@ -569,12 +565,6 @@ void FillNavigationParamsRequest(
    navigation_params->had_transient_user_activation =
        common_params.has_user_gesture;
  
@@ -142,7 +142,7 @@ diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_fra
    if (!commit_params.early_hints_preloaded_resources.empty()) {
      navigation_params->early_hints_preloaded_resources = WebVector<WebURL>();
      for (const auto& resource : commit_params.early_hints_preloaded_resources) {
-@@ -637,11 +627,6 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
+@@ -635,11 +625,6 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
            info->url_request.GetURLRequestExtraData().get());
    DCHECK(url_request_extra_data);
  
@@ -154,7 +154,7 @@ diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_fra
    blink::NavigationDownloadPolicy download_policy;
    download_policy.ApplyDownloadFramePolicy(
        info->is_opener_navigation, info->url_request.HasUserGesture(),
-@@ -669,7 +654,7 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
+@@ -667,7 +652,7 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
        info->url_request.HasUserGesture(),
        info->url_request.HasTextFragmentToken(),
        info->should_check_main_world_content_security_policy,
@@ -206,7 +206,7 @@ diff --git a/third_party/blink/common/origin_trials/trial_token_validator.cc b/t
 diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_party/blink/renderer/core/loader/document_loader.cc
 --- a/third_party/blink/renderer/core/loader/document_loader.cc
 +++ b/third_party/blink/renderer/core/loader/document_loader.cc
-@@ -193,13 +193,6 @@ namespace {
+@@ -194,13 +194,6 @@ namespace {
  Vector<mojom::blink::OriginTrialFeature> CopyInitiatorOriginTrials(
      const WebVector<int>& initiator_origin_trial_features) {
    Vector<mojom::blink::OriginTrialFeature> result;
@@ -220,7 +220,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -213,18 +206,12 @@ WebVector<int> CopyInitiatorOriginTrials(
+@@ -214,18 +207,12 @@ WebVector<int> CopyInitiatorOriginTrials(
  Vector<String> CopyForceEnabledOriginTrials(
      const WebVector<WebString>& force_enabled_origin_trials) {
    Vector<String> result;
@@ -239,7 +239,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -3195,10 +3182,6 @@ void DocumentLoader::CreateParserPostCommit() {
+@@ -3243,10 +3230,6 @@ void DocumentLoader::CreateParserPostCommit() {
      }
  #endif  // BUILDFLAG(IS_CHROMEOS)
  
@@ -265,7 +265,7 @@ diff --git a/third_party/blink/renderer/core/loader/http_equiv.cc b/third_party/
 diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc b/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
 --- a/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
 +++ b/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
-@@ -313,6 +313,9 @@ void OriginTrialContext::AddToken(const String& token) {
+@@ -312,6 +312,9 @@ void OriginTrialContext::AddToken(const String& token) {
  void OriginTrialContext::AddTokenFromExternalScript(
      const String& token,
      const Vector<scoped_refptr<SecurityOrigin>>& external_origins) {
@@ -275,7 +275,7 @@ diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.
    Vector<OriginInfo> script_origins;
    for (const scoped_refptr<SecurityOrigin>& origin : external_origins) {
      OriginInfo origin_info = {.origin = origin,
-@@ -450,8 +453,6 @@ bool OriginTrialContext::InstallSettingFeature(
+@@ -449,8 +452,6 @@ bool OriginTrialContext::InstallSettingFeature(
  }
  
  void OriginTrialContext::AddFeature(mojom::blink::OriginTrialFeature feature) {
@@ -284,7 +284,7 @@ diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.
  }
  
  bool OriginTrialContext::IsFeatureEnabled(
-@@ -495,6 +496,7 @@ void OriginTrialContext::AddForceEnabledTrials(
+@@ -494,6 +495,7 @@ void OriginTrialContext::AddForceEnabledTrials(
  }
  
  bool OriginTrialContext::CanEnableTrialFromName(const StringView& trial_name) {
