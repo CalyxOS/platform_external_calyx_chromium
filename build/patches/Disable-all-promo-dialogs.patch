@@ -8,18 +8,17 @@ Change-Id: I9e71112a185671ce7aae2f836840bf949597eb0a
 ---
  .../chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java     | 1 +
  chrome/browser/ui/browser_ui_prefs.cc                           | 2 +-
- .../ui/views/user_education/browser_feature_promo_controller.cc | 1 +
+ .../user_education/impl/browser_feature_promo_controller_20.cc  | 1 +
  .../chrome/browser/user_education/UserEducationHelper.java      | 1 +
- components/user_education/common/feature_promo_controller.cc    | 1 +
- components/user_education/common/feature_promo_registry.cc      | 1 +
+ .../common/feature_promo/impl/feature_promo_controller_20.cc    | 1 +
  .../browser/ui/ui_features_cc/Disable-all-promo-dialogs.inc     | 1 +
- 7 files changed, 7 insertions(+), 1 deletion(-)
+ 6 files changed, 6 insertions(+), 1 deletion(-)
  create mode 100755 cromite_flags/chrome/browser/ui/ui_features_cc/Disable-all-promo-dialogs.inc
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
-@@ -1361,6 +1361,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -1379,6 +1379,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
      }
  
      private boolean maybeShowPromo(Profile profile) {
@@ -39,12 +38,12 @@ diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_u
    registry->RegisterBooleanPref(
        prefs::kExternalProtocolDialogShowAlwaysOpenCheckbox, true);
    registry->RegisterBooleanPref(prefs::kScreenCaptureAllowed, true);
-diff --git a/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc b/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
---- a/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
-+++ b/chrome/browser/ui/views/user_education/browser_feature_promo_controller.cc
-@@ -82,6 +82,7 @@ ui::ElementContext BrowserFeaturePromoController::GetAnchorContext() const {
+diff --git a/chrome/browser/ui/views/user_education/impl/browser_feature_promo_controller_20.cc b/chrome/browser/ui/views/user_education/impl/browser_feature_promo_controller_20.cc
+--- a/chrome/browser/ui/views/user_education/impl/browser_feature_promo_controller_20.cc
++++ b/chrome/browser/ui/views/user_education/impl/browser_feature_promo_controller_20.cc
+@@ -59,6 +59,7 @@ ui::ElementContext BrowserFeaturePromoController20::GetAnchorContext() const {
  
- bool BrowserFeaturePromoController::CanShowPromoForElement(
+ bool BrowserFeaturePromoController20::CanShowPromoForElement(
      ui::TrackedElement* anchor_element) const {
 +  if ((true)) return false;
    // Trying to show an IPH while the browser is closing can cause problems;
@@ -53,36 +52,25 @@ diff --git a/chrome/browser/ui/views/user_education/browser_feature_promo_contro
 diff --git a/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java b/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
 --- a/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
 +++ b/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
-@@ -126,6 +126,7 @@ public class UserEducationHelper {
+@@ -117,6 +117,7 @@ public class UserEducationHelper {
      }
  
-     private void showIPH(Tracker tracker, IPHCommand iphCommand) {
+     private void showIph(Tracker tracker, IphCommand iphCommand) {
 +        if ((true)) return;
          // Activity was destroyed; don't show IPH.
          View anchorView = iphCommand.anchorView;
          if (mActivity == null
-diff --git a/components/user_education/common/feature_promo_controller.cc b/components/user_education/common/feature_promo_controller.cc
---- a/components/user_education/common/feature_promo_controller.cc
-+++ b/components/user_education/common/feature_promo_controller.cc
-@@ -640,6 +640,7 @@ FeaturePromoResult FeaturePromoControllerCommon::CanShowPromoCommon(
-     const FeaturePromoSpecification** display_spec_out,
-     std::unique_ptr<FeaturePromoLifecycle>* lifecycle_out,
-     ui::TrackedElement** anchor_element_out) const {
-+  if ((true)) return FeaturePromoResult::kBlockedByContext;
+diff --git a/components/user_education/common/feature_promo/impl/feature_promo_controller_20.cc b/components/user_education/common/feature_promo/impl/feature_promo_controller_20.cc
+--- a/components/user_education/common/feature_promo/impl/feature_promo_controller_20.cc
++++ b/components/user_education/common/feature_promo/impl/feature_promo_controller_20.cc
+@@ -89,6 +89,7 @@ FeaturePromoResult FeaturePromoController20::CanShowPromoCommon(
+     const FeaturePromoParams& params,
+     ShowSource source,
+     CanShowPromoOutputs* outputs) const {
++  if ((true)) return false;
    const bool for_demo = source == ShowSource::kDemo;
  
    // Ensure that this promo isn't already queued for startup.
-diff --git a/components/user_education/common/feature_promo_registry.cc b/components/user_education/common/feature_promo_registry.cc
---- a/components/user_education/common/feature_promo_registry.cc
-+++ b/components/user_education/common/feature_promo_registry.cc
-@@ -20,6 +20,7 @@ FeaturePromoRegistry& FeaturePromoRegistry::operator=(
- FeaturePromoRegistry::~FeaturePromoRegistry() = default;
- 
- void FeaturePromoRegistry::RegisterFeature(FeaturePromoSpecification spec) {
-+  if ((true)) return;
-   const base::Feature* const iph_feature = spec.feature();
-   CHECK(iph_feature);
-   CHECK_NE(FeaturePromoSpecification::PromoType::kUnspecified,
 diff --git a/cromite_flags/chrome/browser/ui/ui_features_cc/Disable-all-promo-dialogs.inc b/cromite_flags/chrome/browser/ui/ui_features_cc/Disable-all-promo-dialogs.inc
 new file mode 100755
 --- /dev/null

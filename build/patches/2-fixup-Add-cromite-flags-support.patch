@@ -1,0 +1,72 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Tue, 7 Jan 2025 16:36:12 +0000
+Subject: 2-fixup! Add cromite flags support
+
+Change-Id: I07d7f422461733c73aefdb7e37cda699e6e61794
+---
+ base/feature_list.cc                                          | 4 ++--
+ .../org/chromium/chrome/browser/flags/CromiteNativeUtils.java | 2 +-
+ .../src/org/chromium/components/cached_flags/CachedFlag.java  | 2 ++
+ components/flags_ui/flags_state.cc                            | 2 +-
+ 4 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/base/feature_list.cc b/base/feature_list.cc
+--- a/base/feature_list.cc
++++ b/base/feature_list.cc
+@@ -511,7 +511,7 @@ const base::Feature* FeatureList::GetCromiteFlag(const std::string& feature_name
+       return key;
+     }
+   }
+-  NOTREACHED_NORETURN();
++  NOTREACHED();
+ }
+ 
+ // static
+@@ -531,7 +531,7 @@ bool FeatureList::GetCromiteChange(const Feature& feature) {
+       return value == base::FEATURE_ENABLED_BY_DEFAULT;
+     }
+   }
+-  NOTREACHED_NORETURN();
++  NOTREACHED();
+ }
+ 
+ // static
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
+@@ -1,8 +1,8 @@
+ package org.chromium.chrome.browser.flags;
+ 
+-import org.chromium.base.cached_flags.CachedFlagsSharedPreferences;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.components.cached_flags.CachedFlag;
++import org.chromium.components.cached_flags.CachedFlagsSharedPreferences;
+ 
+ import org.jni_zero.CalledByNative;
+ import org.jni_zero.NativeMethods;
+diff --git a/components/cached_flags/android/java/src/org/chromium/components/cached_flags/CachedFlag.java b/components/cached_flags/android/java/src/org/chromium/components/cached_flags/CachedFlag.java
+--- a/components/cached_flags/android/java/src/org/chromium/components/cached_flags/CachedFlag.java
++++ b/components/cached_flags/android/java/src/org/chromium/components/cached_flags/CachedFlag.java
+@@ -6,6 +6,8 @@ package org.chromium.components.cached_flags;
+ 
+ import android.content.SharedPreferences;
+ 
++import androidx.annotation.Nullable;
++
+ import org.chromium.base.FeatureList;
+ import org.chromium.base.FeatureMap;
+ import org.chromium.base.Flag;
+diff --git a/components/flags_ui/flags_state.cc b/components/flags_ui/flags_state.cc
+--- a/components/flags_ui/flags_state.cc
++++ b/components/flags_ui/flags_state.cc
+@@ -378,7 +378,7 @@ void FlagsState::GetSwitchesAndFeaturesFromFlags(
+           continue;
+         }
+       }
+-      NOTREACHED_NORETURN();
++      NOTREACHED();
+     }
+     CHECK(entry_it != name_to_switch_map.end(), base::NotFatalUntil::M130);
+ 
+-- 
+
