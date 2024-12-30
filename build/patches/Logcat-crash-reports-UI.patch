@@ -118,9 +118,9 @@ diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.cc b/chr
          UnsuccessfulUploadListState::ADDING_AN_UPLOAD_ENTRY);
      id = id.substr(pos + 1);
 -    uploads->push_back(std::make_unique<UploadList::UploadInfo>(
--        id, info.creation_time, upload_state, file_size));
+-        id, info.creation_time, upload_state, file_size.value()));
 +    auto upload = std::make_unique<UploadList::UploadInfo>(
-+        id, info.creation_time, upload_state, file_size);
++        id, info.creation_time, upload_state, file_size.value());
 +    upload->file_path = file_path;
 +    uploads->push_back(std::move(upload));
    }
@@ -156,7 +156,7 @@ diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -665,6 +665,7 @@ static_library("ui") {
+@@ -658,6 +658,7 @@ static_library("ui") {
      "//third_party/re2",
      "//third_party/webrtc_overrides:webrtc_component",
      "//third_party/zlib",
@@ -579,7 +579,7 @@ diff --git a/components/crash/core/browser/resources/crashes.html b/components/c
 diff --git a/components/crash/core/browser/resources/crashes.ts b/components/crash/core/browser/resources/crashes.ts
 --- a/components/crash/core/browser/resources/crashes.ts
 +++ b/components/crash/core/browser/resources/crashes.ts
-@@ -12,7 +12,7 @@ import './strings.m.js';
+@@ -12,7 +12,7 @@ import '/strings.m.js';
  import {assert} from 'chrome://resources/js/assert.js';
  import {addWebUiListener} from 'chrome://resources/js/cr.js';
  import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
