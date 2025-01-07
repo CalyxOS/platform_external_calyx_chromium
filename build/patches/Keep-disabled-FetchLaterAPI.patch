@@ -14,11 +14,11 @@ Change-Id: I1f1ec46a06be09724c30e3898b6c58d92de47b40
  .../browser/loader/keep_alive_url_loader.cc   | 33 +++++++++++++++++--
  .../browser/loader/keep_alive_url_loader.h    |  3 --
  .../Keep-disabled-FetchLaterAPI.inc           |  2 ++
- .../renderer/core/fetch/fetch_manager.cc      | 14 ++++++--
+ .../renderer/core/fetch/fetch_manager.cc      | 20 +++++++++--
  .../loader/child_url_loader_factory_bundle.cc | 14 ++++----
  .../platform/loader/fetch/resource_fetcher.cc |  2 +-
  .../platform/runtime_enabled_features.json5   |  5 ++-
- 7 files changed, 55 insertions(+), 18 deletions(-)
+ 7 files changed, 61 insertions(+), 18 deletions(-)
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Keep-disabled-FetchLaterAPI.inc
 
 diff --git a/content/browser/loader/keep_alive_url_loader.cc b/content/browser/loader/keep_alive_url_loader.cc
@@ -101,7 +101,27 @@ new file mode 100644
 diff --git a/third_party/blink/renderer/core/fetch/fetch_manager.cc b/third_party/blink/renderer/core/fetch/fetch_manager.cc
 --- a/third_party/blink/renderer/core/fetch/fetch_manager.cc
 +++ b/third_party/blink/renderer/core/fetch/fetch_manager.cc
-@@ -1283,10 +1283,18 @@ void FetchManager::Loader::Failed(
+@@ -297,6 +297,8 @@ class ResponseResolver final : public GarbageCollected<ResponseResolver> {
+   void RejectBecauseFailed(std::optional<String> devtools_request_id,
+                            std::optional<base::UnguessableToken> issue_id);
+ 
++  void Detach();
++
+   void Trace(Visitor* visitor) const {
+     visitor->Trace(resolver_);
+     visitor->Trace(exception_);
+@@ -368,6 +370,10 @@ void ResponseResolver::RejectBecauseFailed(
+   Clear();
+ }
+ 
++void ResponseResolver::Detach() {
++  resolver_->Detach();
++}
++
+ void ResponseResolver::Clear() {
+   resolver_.Clear();
+   exception_.Clear();
+@@ -1283,10 +1289,18 @@ void FetchManager::Loader::Failed(
    if (response_resolver_) {
      ScriptState::Scope scope(GetScriptState());
      if (dom_exception) {

@@ -45,7 +45,7 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  .../res/xml/accessibility_preferences.xml     |   3 +-
  .../android/java/res/values/attrs.xml         |   4 +
  .../settings/ChromeSwitchPreference.java      |  20 +++
- .../components/cached_flags/CachedFlag.java   |   8 +-
+ .../components/cached_flags/CachedFlag.java   |   7 +-
  components/components_strings.grd             |   1 +
  .../content_settings/core/common/features.cc  |   1 +
  .../placeholder.txt                           |   1 +
@@ -55,13 +55,15 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  components/flags_ui/resources/app.ts          |  23 +++
  components/flags_ui/resources/experiment.css  |   7 +-
  .../flags_ui/resources/experiment.html.ts     |   7 +-
- components/flags_ui/resources/experiment.ts   |   9 +-
+ components/flags_ui/resources/experiment.ts   |  14 +-
  .../flags_ui/resources/flags_browser_proxy.ts |   5 +
  .../core/offline_page_feature.cc              |   1 +
  .../offline_pages/core/offline_page_feature.h |   1 +
  .../browser/features/password_features.cc     |   1 +
  components/permissions/features.cc            |   1 +
- .../version_ui/version_handler_helper.cc      |   2 +-
+ ...nthetic_trials_active_group_id_provider.cc |   6 +-
+ ...ynthetic_trials_active_group_id_provider.h |   4 +-
+ .../version_ui/version_handler_helper.cc      |   4 +-
  content/common/features.cc                    |   1 +
  content/public/common/content_features.cc     |   1 +
  content/public/common/content_features.h      |   1 +
@@ -101,7 +103,7 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  third_party/blink/public/common/features.h    |   1 +
  ui/base/ui_base_features.cc                   |   1 +
  ui/base/ui_base_features.h                    |   1 +
- 86 files changed, 781 insertions(+), 22 deletions(-)
+ 88 files changed, 791 insertions(+), 28 deletions(-)
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl
  create mode 100644 chrome/browser/ui/android/strings/cromite_android_chrome_strings_grd/Add-cromite-flags-support.grdp
@@ -791,7 +793,7 @@ new file mode 100644
 +import java.util.ArrayList;
 +import java.util.List;
 +
-+import org.chromium.base.cached_flags.CachedFlag;
++import org.chromium.components.cached_flags.CachedFlag;
 +
 +{IMPORT_CLAUSE}
 +
@@ -1028,14 +1030,13 @@ diff --git a/components/cached_flags/android/java/src/org/chromium/components/ca
          // Create the key only once to avoid String concatenation every flag check.
          if (mPreferenceKey == null) {
              mPreferenceKey = CachedFlagsSharedPreferences.FLAGS_CACHED.createKey(mFeatureName);
-@@ -155,6 +155,12 @@ public class CachedFlag extends Flag {
+@@ -155,6 +155,11 @@ public class CachedFlag extends Flag {
          return mPreferenceKey;
      }
  
 +    public void setValueReturnedOverride(@Nullable Boolean value) {
-+        synchronized (ValuesReturned.sBoolValues) {
-+            ValuesReturned.sBoolValues.put(getSharedPreferenceKey(), value);
-+        }
++        // Warning: Upstream is changing a lot, so we'll need to do something different soon.
++        setForTesting(value);
 +    }
 +
      /** Create a Map of feature names -> {@link CachedFlag} from multiple lists of CachedFlags. */
@@ -1354,7 +1355,19 @@ diff --git a/components/flags_ui/resources/experiment.html.ts b/components/flags
 diff --git a/components/flags_ui/resources/experiment.ts b/components/flags_ui/resources/experiment.ts
 --- a/components/flags_ui/resources/experiment.ts
 +++ b/components/flags_ui/resources/experiment.ts
-@@ -127,12 +127,15 @@ export class ExperimentElement extends CrLitElement {
+@@ -80,6 +80,11 @@ export class ExperimentElement extends CrLitElement {
+     description: '',
+     enabled: false,
+     is_default: false,
++    is_default_value_on: false,
++    default_value: '',
++    is_cromite: false,
++    is_new: false,
++    permalink: false,
+     supported_platforms: [],
+   };
+ 
+@@ -127,12 +132,15 @@ export class ExperimentElement extends CrLitElement {
    }
  
    protected getExperimentTitle_(): string {
@@ -1428,9 +1441,69 @@ diff --git a/components/permissions/features.cc b/components/permissions/feature
  }  // namespace features
  namespace feature_params {
  
+diff --git a/components/variations/synthetic_trials_active_group_id_provider.cc b/components/variations/synthetic_trials_active_group_id_provider.cc
+--- a/components/variations/synthetic_trials_active_group_id_provider.cc
++++ b/components/variations/synthetic_trials_active_group_id_provider.cc
+@@ -27,7 +27,7 @@ SyntheticTrialsActiveGroupIdProvider::GetActiveGroupIds() {
+   return group_ids_;
+ }
+ 
+-#if !defined(NDEBUG)
++#if true
+ std::vector<SyntheticTrialGroup>
+ SyntheticTrialsActiveGroupIdProvider::GetGroups() {
+   base::AutoLock scoped_lock(lock_);
+@@ -38,7 +38,7 @@ SyntheticTrialsActiveGroupIdProvider::GetGroups() {
+ void SyntheticTrialsActiveGroupIdProvider::ResetForTesting() {
+   base::AutoLock scoped_lock(lock_);
+   group_ids_.clear();
+-#if !defined(NDEBUG)
++#if true
+   groups_.clear();
+ #endif  // !defined(NDEBUG)
+ }
+@@ -53,7 +53,7 @@ void SyntheticTrialsActiveGroupIdProvider::OnSyntheticTrialsChanged(
+     for (const auto& group : groups) {
+       group_ids_.push_back(group.id());
+     }
+-#if !defined(NDEBUG)
++#if true
+     groups_ = groups;
+ #endif  // !defined(NDEBUG)
+   }
+diff --git a/components/variations/synthetic_trials_active_group_id_provider.h b/components/variations/synthetic_trials_active_group_id_provider.h
+--- a/components/variations/synthetic_trials_active_group_id_provider.h
++++ b/components/variations/synthetic_trials_active_group_id_provider.h
+@@ -36,7 +36,7 @@ class COMPONENT_EXPORT(VARIATIONS) SyntheticTrialsActiveGroupIdProvider
+   // Returns currently active synthetic trial group IDs.
+   std::vector<ActiveGroupId> GetActiveGroupIds();
+ 
+-#if !defined(NDEBUG)
++#if true
+   // In debug mode, not only the group IDs are tracked but also the full group
+   // info, to display the names unhashed in chrome://version.
+   std::vector<SyntheticTrialGroup> GetGroups();
+@@ -60,7 +60,7 @@ class COMPONENT_EXPORT(VARIATIONS) SyntheticTrialsActiveGroupIdProvider
+ 
+   base::Lock lock_;
+   std::vector<ActiveGroupId> group_ids_;  // GUARDED_BY(lock_);
+-#if !defined(NDEBUG)
++#if true
+   // In debug builds, keep the full group information to be able to display it
+   // in chrome://version.
+   std::vector<SyntheticTrialGroup> groups_;  // GUARDED_BY(lock_);
 diff --git a/components/version_ui/version_handler_helper.cc b/components/version_ui/version_handler_helper.cc
 --- a/components/version_ui/version_handler_helper.cc
 +++ b/components/version_ui/version_handler_helper.cc
+@@ -20,7 +20,7 @@
+ namespace version_ui {
+ namespace {
+ 
+-#if !defined(NDEBUG)
++#if true
+ std::string GetActiveGroupNameAsString(
+     const base::FieldTrial::ActiveGroup& group) {
+   static const unsigned char kNonBreakingHyphenUTF8[] = {0xE2, 0x80, 0x91,
 @@ -56,7 +56,7 @@ base::Value::List GetVariationsList() {
    base::FieldTrialListIncludingLowAnonymity::GetActiveFieldTrialGroups(
        &active_groups);
