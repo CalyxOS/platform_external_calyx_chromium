@@ -28,9 +28,9 @@ Change-Id: I708110ab421d1710ff5c5bc1774512691d49ff3f
  .../bookmarks/BookmarkToolbarViewBinder.java  |   6 +
  .../native_page/NativePageFactory.java        |  11 +-
  chrome/browser/BUILD.gn                       |  11 +-
- .../bookmarks/android/bookmark_bridge.cc      | 282 +++++++++++++++++
+ .../bookmarks/android/bookmark_bridge.cc      | 277 +++++++++++++++++
  .../bookmarks/android/bookmark_bridge.h       |  29 +-
- .../browser/bookmarks/bookmark_html_writer.cc |  11 +
+ .../browser/bookmarks/bookmark_html_writer.cc |   3 +
  .../dialogs/DownloadLocationCustomView.java   |   8 +-
  .../DownloadLocationDialogCoordinator.java    |  10 +-
  .../flags/android/chrome_feature_list.cc      |   1 +
@@ -55,7 +55,7 @@ Change-Id: I708110ab421d1710ff5c5bc1774512691d49ff3f
  ui/shell_dialogs/select_file_dialog_linux.cc  |   4 +
  ui/shell_dialogs/select_file_dialog_linux.h   |   2 +
  ui/shell_dialogs/select_file_dialog_win.cc    |   5 +
- 42 files changed, 913 insertions(+), 30 deletions(-)
+ 42 files changed, 900 insertions(+), 30 deletions(-)
  create mode 100644 cromite_flags/chrome/browser/about_flags_cc/add-bookmark-import-export-actions.inc
  create mode 100644 cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/add-bookmark-import-export-actions.inc
  create mode 100644 cromite_flags/chrome/browser/flags/android/chrome_feature_list_h/add-bookmark-import-export-actions.inc
@@ -989,7 +989,7 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browse
  }
  
  void BookmarkBridge::Destroy(JNIEnv* env) {
-@@ -767,6 +878,177 @@ jint BookmarkBridge::GetTotalBookmarkCount(
+@@ -767,6 +878,172 @@ jint BookmarkBridge::GetTotalBookmarkCount(
    return count;
  }
  
@@ -1080,12 +1080,7 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browse
 +}
 +
 +const std::string BookmarkBridge::FileSelectedImpl(const base::FilePath& path) {
-+  base::File file;
-+  if (path.IsContentUri()) {
-+    file = base::OpenContentUri(path, base::File::FLAG_OPEN | base::File::FLAG_READ);
-+  } else {
-+    file.Initialize(path, base::File::FLAG_OPEN | base::File::FLAG_READ);
-+  }
++  base::File file(path, base::File::FLAG_OPEN | base::File::FLAG_READ);
 +  if (!file.IsValid()) {
 +    select_file_dialog_->ShowToast("Cannot open bookmarks file for import");
 +    return "";
@@ -1268,22 +1263,6 @@ diff --git a/chrome/browser/bookmarks/bookmark_html_writer.cc b/chrome/browser/b
  #include "chrome/browser/bookmarks/bookmark_model_factory.h"
  #include "chrome/browser/favicon/favicon_service_factory.h"
  #include "chrome/browser/profiles/profile.h"
-@@ -240,7 +243,15 @@ class Writer : public base::RefCountedThreadSafe<Writer> {
-   // Opens the file, returning true on success.
-   bool OpenFile() {
-     int flags = base::File::FLAG_CREATE_ALWAYS | base::File::FLAG_WRITE;
-+#if BUILDFLAG(IS_ANDROID)
-+    if (path_.IsContentUri()) {
-+      file_ = std::make_unique<base::File>(base::OpenContentUriForWrite(path_));
-+    } else {
-+      file_ = std::make_unique<base::File>(path_, flags);
-+    }
-+#else
-     file_ = std::make_unique<base::File>(path_, flags);
-+#endif
-     if (!file_->IsValid()) {
-       PLOG(ERROR) << "Could not create " << path_;
-       return false;
 diff --git a/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java b/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
 --- a/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
 +++ b/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
