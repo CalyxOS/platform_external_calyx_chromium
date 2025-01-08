@@ -38,8 +38,8 @@ Change-Id: I5d97fd708d050e505b451705ca0d95d61b1c76a5
  .../network/public/cpp/attribution_utils.cc   |   2 +
  third_party/blink/renderer/core/page/page.cc  |   2 +-
  .../platform/runtime_enabled_features.json5   |  10 +-
- ui/events/android/motion_event_android.cc     |   6 +-
- 26 files changed, 77 insertions(+), 381 deletions(-)
+ ui/events/android/motion_event_android.cc     |   8 +-
+ 26 files changed, 78 insertions(+), 382 deletions(-)
  create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-conversion-measurement-api.inc
 
@@ -937,18 +937,20 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 diff --git a/ui/events/android/motion_event_android.cc b/ui/events/android/motion_event_android.cc
 --- a/ui/events/android/motion_event_android.cc
 +++ b/ui/events/android/motion_event_android.cc
-@@ -389,7 +389,11 @@ MotionEventAndroid::ToolType MotionEventAndroid::FromAndroidToolType(
+@@ -389,8 +389,12 @@ MotionEventAndroid::ToolType MotionEventAndroid::FromAndroidToolType(
  #undef TOOL_TYPE_CASE
  
  base::TimeTicks MotionEventAndroid::FromAndroidTime(base::TimeTicks time) {
 -  ValidateEventTimeClock(&time);
+-  return time;
 +  base::TimeTicks timestamp;
 +  // Rounding down to milliseconds (from nanoseconds)
 +  // see https://bugs.chromium.org/p/chromium/issues/detail?id=1378615
 +  timestamp = base::TimeTicks::FromUptimeMillis(time.ToUptimeMillis());
 +  ValidateEventTimeClock(&timestamp);
-   return time;
++  return timestamp;
  }
  
+ float MotionEventAndroid::ToValidFloat(float x) {
 -- 
 
