@@ -17,6 +17,7 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
 ---
  base/BUILD.gn                                 |   4 +-
  base/android/feature_map.cc                   |   5 +
+ .../base/cached_flags/ValuesReturned.java     |   2 +-
  base/feature_list.cc                          |  76 ++++++++
  base/feature_list.h                           |  72 +++++++-
  build/android/gyp/java_cpp_features.py        |  17 ++
@@ -45,7 +46,7 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  .../res/xml/accessibility_preferences.xml     |   3 +-
  .../android/java/res/values/attrs.xml         |   4 +
  .../settings/ChromeSwitchPreference.java      |  20 +++
- .../components/cached_flags/CachedFlag.java   |   7 +-
+ .../components/cached_flags/CachedFlag.java   |   8 +-
  components/components_strings.grd             |   1 +
  .../content_settings/core/common/features.cc  |   1 +
  .../placeholder.txt                           |   1 +
@@ -61,7 +62,7 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  .../offline_pages/core/offline_page_feature.h |   1 +
  .../browser/features/password_features.cc     |   1 +
  components/permissions/features.cc            |   1 +
- ...nthetic_trials_active_group_id_provider.cc |   6 +-
+ ...nthetic_trials_active_group_id_provider.cc |   4 +-
  ...ynthetic_trials_active_group_id_provider.h |   4 +-
  .../version_ui/version_handler_helper.cc      |   4 +-
  content/common/features.cc                    |   1 +
@@ -103,7 +104,7 @@ Change-Id: Idff60cba408b3a031e0c01940b52cebb836787a5
  third_party/blink/public/common/features.h    |   1 +
  ui/base/ui_base_features.cc                   |   1 +
  ui/base/ui_base_features.h                    |   1 +
- 88 files changed, 791 insertions(+), 28 deletions(-)
+ 89 files changed, 792 insertions(+), 28 deletions(-)
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl
  create mode 100644 chrome/browser/ui/android/strings/cromite_android_chrome_strings_grd/Add-cromite-flags-support.grdp
@@ -172,6 +173,18 @@ diff --git a/base/android/feature_map.cc b/base/android/feature_map.cc
    FeatureMap* feature_map = reinterpret_cast<FeatureMap*>(jfeature_map);
    const base::Feature* feature =
        feature_map->FindFeatureExposedToJava(feature_name);
+diff --git a/base/android/java/src/org/chromium/base/cached_flags/ValuesReturned.java b/base/android/java/src/org/chromium/base/cached_flags/ValuesReturned.java
+--- a/base/android/java/src/org/chromium/base/cached_flags/ValuesReturned.java
++++ b/base/android/java/src/org/chromium/base/cached_flags/ValuesReturned.java
+@@ -16,7 +16,7 @@ import java.util.Map;
+ /** Keeps track of values returned for cached flags and field trial parameters. */
+ public abstract class ValuesReturned {
+     @GuardedBy("sBoolValues")
+-    private static final Map<String, Boolean> sBoolValues = new HashMap<>();
++    public static final Map<String, Boolean> sBoolValues = new HashMap<>();
+ 
+     @GuardedBy("sStringValues")
+     private static final Map<String, String> sStringValues = new HashMap<>();
 diff --git a/base/feature_list.cc b/base/feature_list.cc
 --- a/base/feature_list.cc
 +++ b/base/feature_list.cc
@@ -1030,13 +1043,14 @@ diff --git a/components/cached_flags/android/java/src/org/chromium/components/ca
          // Create the key only once to avoid String concatenation every flag check.
          if (mPreferenceKey == null) {
              mPreferenceKey = CachedFlagsSharedPreferences.FLAGS_CACHED.createKey(mFeatureName);
-@@ -155,6 +155,11 @@ public class CachedFlag extends Flag {
+@@ -155,6 +155,12 @@ public class CachedFlag extends Flag {
          return mPreferenceKey;
      }
  
 +    public void setValueReturnedOverride(@Nullable Boolean value) {
-+        // Warning: Upstream is changing a lot, so we'll need to do something different soon.
-+        setForTesting(value);
++        synchronized (ValuesReturned.sBoolValues) {
++            ValuesReturned.sBoolValues.put(getSharedPreferenceKey(), value);
++        }
 +    }
 +
      /** Create a Map of feature names -> {@link CachedFlag} from multiple lists of CachedFlags. */
@@ -1355,18 +1369,18 @@ diff --git a/components/flags_ui/resources/experiment.html.ts b/components/flags
 diff --git a/components/flags_ui/resources/experiment.ts b/components/flags_ui/resources/experiment.ts
 --- a/components/flags_ui/resources/experiment.ts
 +++ b/components/flags_ui/resources/experiment.ts
-@@ -80,6 +80,11 @@ export class ExperimentElement extends CrLitElement {
-     description: '',
+@@ -81,6 +81,11 @@ export class ExperimentElement extends CrLitElement {
      enabled: false,
      is_default: false,
+     supported_platforms: [],
 +    is_default_value_on: false,
 +    default_value: '',
 +    is_cromite: false,
 +    is_new: false,
-+    permalink: false,
-     supported_platforms: [],
++    permalink: true,
    };
  
+   // Whether the controls to change the experiment state should be hidden.
 @@ -127,12 +132,15 @@ export class ExperimentElement extends CrLitElement {
    }
  
@@ -1453,15 +1467,6 @@ diff --git a/components/variations/synthetic_trials_active_group_id_provider.cc 
  std::vector<SyntheticTrialGroup>
  SyntheticTrialsActiveGroupIdProvider::GetGroups() {
    base::AutoLock scoped_lock(lock_);
-@@ -38,7 +38,7 @@ SyntheticTrialsActiveGroupIdProvider::GetGroups() {
- void SyntheticTrialsActiveGroupIdProvider::ResetForTesting() {
-   base::AutoLock scoped_lock(lock_);
-   group_ids_.clear();
--#if !defined(NDEBUG)
-+#if true
-   groups_.clear();
- #endif  // !defined(NDEBUG)
- }
 @@ -53,7 +53,7 @@ void SyntheticTrialsActiveGroupIdProvider::OnSyntheticTrialsChanged(
      for (const auto& group : groups) {
        group_ids_.push_back(group.id());
