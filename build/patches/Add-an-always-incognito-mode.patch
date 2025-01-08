@@ -81,12 +81,12 @@ Change-Id: I9c35d6d686f8091e4dcd96c1906ff3f8cbed1a58
  .../browser/autocomplete_provider_client.cc   |   4 +
  .../browser/autocomplete_provider_client.h    |   1 +
  .../omnibox/browser/base_search_provider.cc   |   2 +-
- components/omnibox/browser/search_provider.cc |   4 +-
+ components/omnibox/browser/search_provider.cc |   7 +-
  .../add-an-always-incognito-mode.inc          |  13 ++
  .../add-an-always-incognito-mode.inc          |   1 +
  .../add-an-always-incognito-mode.inc          |   3 +
  .../add-an-always-incognito-mode.inc          |   1 +
- 65 files changed, 785 insertions(+), 112 deletions(-)
+ 65 files changed, 787 insertions(+), 113 deletions(-)
  create mode 100644 chrome/android/java/res/xml/incognito_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/AlwaysIncognitoLinkInterceptor.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java
@@ -2170,6 +2170,16 @@ diff --git a/components/omnibox/browser/search_provider.cc b/components/omnibox/
           ((default_url && !default_url->suggestions_url().empty() &&
             !*query_is_private) ||
            (keyword_url && !keyword_url->suggestions_url().empty()));
+@@ -937,7 +939,8 @@ std::unique_ptr<network::SimpleURLLoader> SearchProvider::CreateSuggestLoader(
+   // purpose of such a request is to signal the server to warm up; no info
+   // is required.
+   // Request for suggestions in OTR contexts is not allowed.
+-  DCHECK(!client()->IsOffTheRecord());
++  if (!client()->IsAlwaysIncognitoEnabled())
++    DCHECK(!client()->IsOffTheRecord());
+   return client()
+       ->GetRemoteSuggestionsService(/*create_if_necessary=*/true)
+       ->StartSuggestionsRequest(
 diff --git a/cromite_flags/chrome/browser/about_flags_cc/add-an-always-incognito-mode.inc b/cromite_flags/chrome/browser/about_flags_cc/add-an-always-incognito-mode.inc
 new file mode 100644
 --- /dev/null
