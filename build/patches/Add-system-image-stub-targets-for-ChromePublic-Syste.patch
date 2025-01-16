@@ -1,0 +1,56 @@
+From: Michael Bestas <mkbestas@gmail.com>
+Date: Wed, 4 Nov 2026 10:28:32 +0200
+Subject: Add system image stub targets for ChromePublic/SystemWebView
+
+PackageManager only recognizes a compressed system APK
+(<dir>/<apk>.apk.gz) when it is paired with a stub APK at
+<dir>-Stub/<dir>-Stub.apk. Add stub targets for the standalone
+ChromePublic and SystemWebView APKs so they can be shipped compressed
+via android_app_import's compress_apk.
+
+Change-Id: I226b9694bf9f58f5c6fa5c623c4da5442c595d49
+---
+ android_webview/BUILD.gn | 6 ++++++
+ chrome/android/BUILD.gn  | 5 +++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/android_webview/BUILD.gn b/android_webview/BUILD.gn
+--- a/android_webview/BUILD.gn
++++ b/android_webview/BUILD.gn
+@@ -31,6 +31,7 @@ _is_default_toolchain = current_toolchain == default_toolchain
+ if (_is_default_toolchain) {
+   import("//android_webview/system_webview_apk_tmpl.gni")
+   import("//android_webview/system_webview_bundle.gni")
++  import("//build/config/android/system_image.gni")
+   import("//chrome/android/chrome_public_apk_tmpl.gni")
+   import("//chrome/android/trichrome.gni")
+ }
+@@ -88,6 +89,11 @@ if (_is_default_toolchain) {
+     }
+   }
+ 
++  system_image_stub_apk("system_webview_apk_stub") {
++    package_info_from_target = ":$_main_system_webview_apk_target"
++    stub_output = "$root_out_dir/apks/SystemWebView-Stub.apk"
++  }
++
+   if (android_64bit_target_cpu && !defined(android_app_secondary_abi)) {
+     group("system_webview_bundle") {
+       deps = [ ":system_webview_64_bundle" ]
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -2111,6 +2111,11 @@ if (_is_default_toolchain) {
+     lint_suppressions_file = "expectations/lint-suppressions.xml"
+   }
+ 
++  system_image_stub_apk("chrome_public_apk_stub") {
++    package_info_from_target = ":chrome_public_apk"
++    stub_output = "$root_out_dir/apks/ChromePublic-Stub.apk"
++  }
++
+   chrome_public_bundle("chrome_public_bundle") {
+     bundle_name = "ChromePublic"
+   }
+-- 
+

@@ -126,7 +126,7 @@ build() {
   (cd "$CHROMIUM_SRC_PATH" && gn gen "$OUT") || return $?
   # retain one prior build log
   [ ! -e "$OUT/build.log" ] || mv "$OUT/build.log" "$OUT/build.log.0"
-  (cd "$CHROMIUM_SRC_PATH" && time autoninja -k 0 -C "$OUT" chrome_public_apk system_webview_apk system_webview_shell_apk > >(tee "$OUT/build.log")
+  (cd "$CHROMIUM_SRC_PATH" && time autoninja -k 0 -C "$OUT" chrome_public_apk chrome_public_apk_stub system_webview_apk system_webview_apk_stub system_webview_shell_apk > >(tee "$OUT/build.log")
   ) || {
     err=$?
     echo >&2
