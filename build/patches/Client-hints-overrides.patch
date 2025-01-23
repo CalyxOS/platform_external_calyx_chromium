@@ -30,7 +30,7 @@ Change-Id: I85c134e85ede5ab1ad30643cb84b4c7f3aca08f7
  create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Client-hints-overrides.inc
 
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
---- a/components/embedder_support/user_agent_utils.cc
+---  a/components/embedder_support/user_agent_utils.cc
 +++ b/components/embedder_support/user_agent_utils.cc
 @@ -191,9 +191,7 @@ const blink::UserAgentBrandList GetUserAgentBrandList(
    bool parse_result = base::StringToInt(major_version, &major_version_number);
@@ -44,7 +44,7 @@ diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedd
        base::GetFieldTrialParamValueByFeature(features::kGreaseUACH,
                                               "brand_override");
 diff --git a/content/browser/client_hints/client_hints.cc b/content/browser/client_hints/client_hints.cc
---- a/content/browser/client_hints/client_hints.cc
+---  a/content/browser/client_hints/client_hints.cc
 +++ b/content/browser/client_hints/client_hints.cc
 @@ -60,6 +60,7 @@
  #include "third_party/blink/public/common/permissions_policy/origin_with_possible_wildcards.h"
@@ -90,7 +90,7 @@ diff --git a/content/browser/client_hints/client_hints.cc b/content/browser/clie
    DCHECK(context);
    DCHECK(parsed_headers);
 diff --git a/content/browser/loader/navigation_url_loader_impl.cc b/content/browser/loader/navigation_url_loader_impl.cc
---- a/content/browser/loader/navigation_url_loader_impl.cc
+---  a/content/browser/loader/navigation_url_loader_impl.cc
 +++ b/content/browser/loader/navigation_url_loader_impl.cc
 @@ -1224,6 +1224,11 @@ void NavigationURLLoaderImpl::OnAcceptCHFrameReceived(
      return;
@@ -106,7 +106,7 @@ diff --git a/content/browser/loader/navigation_url_loader_impl.cc b/content/brow
    // Given that this is happening in the middle of navigation, there should
 diff --git a/cromite_flags/chrome/browser/about_flags_cc/Client-hints-overrides.inc b/cromite_flags/chrome/browser/about_flags_cc/Client-hints-overrides.inc
 new file mode 100644
---- /dev/null
+---  /dev/null
 +++ b/cromite_flags/chrome/browser/about_flags_cc/Client-hints-overrides.inc
 @@ -0,0 +1,9 @@
 +#ifdef FLAG_SECTION
@@ -120,18 +120,18 @@ new file mode 100644
 +#endif
 diff --git a/cromite_flags/content/common/features_cc/Client-hints-overrides.inc b/cromite_flags/content/common/features_cc/Client-hints-overrides.inc
 new file mode 100644
---- /dev/null
+---  /dev/null
 +++ b/cromite_flags/content/common/features_cc/Client-hints-overrides.inc
 @@ -0,0 +1 @@
 +SET_CROMITE_FEATURE_DISABLED(kCriticalClientHint);
 diff --git a/cromite_flags/services/network/public/cpp/features_cc/Client-hints-overrides.inc b/cromite_flags/services/network/public/cpp/features_cc/Client-hints-overrides.inc
 new file mode 100644
---- /dev/null
+---  /dev/null
 +++ b/cromite_flags/services/network/public/cpp/features_cc/Client-hints-overrides.inc
 @@ -0,0 +1 @@
 +SET_CROMITE_FEATURE_DISABLED(kAcceptCHFrame);
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
---- a/net/http/http_network_transaction.cc
+---  a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
 @@ -108,6 +108,7 @@ const size_t kMaxRestarts = 32;
  
@@ -142,7 +142,7 @@ diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transa
      case HttpConnectionInfo::kHTTP0_9:
      case HttpConnectionInfo::kHTTP1_0:
 diff --git a/services/network/public/cpp/client_hints.cc b/services/network/public/cpp/client_hints.cc
---- a/services/network/public/cpp/client_hints.cc
+---  a/services/network/public/cpp/client_hints.cc
 +++ b/services/network/public/cpp/client_hints.cc
 @@ -120,6 +120,7 @@ const DecodeMap& GetDecodeMap() {
  
@@ -153,7 +153,7 @@ diff --git a/services/network/public/cpp/client_hints.cc b/services/network/publ
    // https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-header-structure-19#section-3.1
    std::optional<net::structured_headers::List> maybe_list =
 diff --git a/third_party/blink/common/client_hints/client_hints.cc b/third_party/blink/common/client_hints/client_hints.cc
---- a/third_party/blink/common/client_hints/client_hints.cc
+---  a/third_party/blink/common/client_hints/client_hints.cc
 +++ b/third_party/blink/common/client_hints/client_hints.cc
 @@ -14,6 +14,7 @@
  #include "base/strings/string_util.h"
@@ -179,7 +179,7 @@ diff --git a/third_party/blink/common/client_hints/client_hints.cc b/third_party
        return false;
    }
 diff --git a/third_party/blink/common/client_hints/enabled_client_hints.cc b/third_party/blink/common/client_hints/enabled_client_hints.cc
---- a/third_party/blink/common/client_hints/enabled_client_hints.cc
+---  a/third_party/blink/common/client_hints/enabled_client_hints.cc
 +++ b/third_party/blink/common/client_hints/enabled_client_hints.cc
 @@ -15,6 +15,12 @@ namespace {
  using ::network::mojom::WebClientHintsType;
@@ -195,7 +195,7 @@ diff --git a/third_party/blink/common/client_hints/enabled_client_hints.cc b/thi
      case WebClientHintsType::kUA:
      case WebClientHintsType::kUAArch:
 diff --git a/third_party/blink/renderer/core/frame/navigator_ua.idl b/third_party/blink/renderer/core/frame/navigator_ua.idl
---- a/third_party/blink/renderer/core/frame/navigator_ua.idl
+---  a/third_party/blink/renderer/core/frame/navigator_ua.idl
 +++ b/third_party/blink/renderer/core/frame/navigator_ua.idl
 @@ -4,6 +4,8 @@
  
@@ -208,7 +208,7 @@ diff --git a/third_party/blink/renderer/core/frame/navigator_ua.idl b/third_part
    [SecureContext] readonly attribute NavigatorUAData userAgentData;
  };
 diff --git a/third_party/blink/renderer/core/frame/navigator_ua_data.cc b/third_party/blink/renderer/core/frame/navigator_ua_data.cc
---- a/third_party/blink/renderer/core/frame/navigator_ua_data.cc
+---  a/third_party/blink/renderer/core/frame/navigator_ua_data.cc
 +++ b/third_party/blink/renderer/core/frame/navigator_ua_data.cc
 @@ -219,6 +219,7 @@ ScriptPromise<UADataValues> NavigatorUAData::getHighEntropyValues(
    Dactyloscoper::RecordDirectSurface(
@@ -219,7 +219,7 @@ diff --git a/third_party/blink/renderer/core/frame/navigator_ua_data.cc b/third_
      if (hint == "platformVersion") {
        values->setPlatformVersion(platform_version_);
 diff --git a/third_party/blink/renderer/core/frame/navigator_ua_data.idl b/third_party/blink/renderer/core/frame/navigator_ua_data.idl
---- a/third_party/blink/renderer/core/frame/navigator_ua_data.idl
+---  a/third_party/blink/renderer/core/frame/navigator_ua_data.idl
 +++ b/third_party/blink/renderer/core/frame/navigator_ua_data.idl
 @@ -4,7 +4,10 @@
  
@@ -234,7 +234,7 @@ diff --git a/third_party/blink/renderer/core/frame/navigator_ua_data.idl b/third
    [HighEntropy=Direct, MeasureAs=NavigatorUAData_Mobile]  readonly attribute boolean mobile;
    [HighEntropy=Direct, MeasureAs=NavigatorUAData_Platform] readonly attribute DOMString platform;
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
---- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
+---  a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 @@ -217,6 +217,8 @@ bool ShouldSendClientHint(const PermissionsPolicy& policy,
                            bool is_1p_origin,
@@ -255,7 +255,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
      // Permissions Policy.
      if (ShouldSendClientHint(*policy, resource_origin, is_1p_origin,
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
---- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
+---  a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 @@ -400,6 +400,11 @@
        name: "AriaNotify",
