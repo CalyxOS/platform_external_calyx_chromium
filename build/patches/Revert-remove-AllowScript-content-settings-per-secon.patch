@@ -24,7 +24,7 @@ Change-Id: I33552e9becf86e353f133250885fff59b30e7dd3
  15 files changed, 144 insertions(+), 39 deletions(-)
 
 diff --git a/chrome/renderer/worker_content_settings_client.cc b/chrome/renderer/worker_content_settings_client.cc
----  a/chrome/renderer/worker_content_settings_client.cc
+--- a/chrome/renderer/worker_content_settings_client.cc
 +++ b/chrome/renderer/worker_content_settings_client.cc
 @@ -114,6 +114,41 @@ bool WorkerContentSettingsClient::AllowRunningInsecureContent(
    return true;
@@ -69,7 +69,7 @@ diff --git a/chrome/renderer/worker_content_settings_client.cc b/chrome/renderer
    if (content_setting_rules_) {
      if (content_setting_rules_->mixed_content_rules.size() > 0)
 diff --git a/chrome/renderer/worker_content_settings_client.h b/chrome/renderer/worker_content_settings_client.h
----  a/chrome/renderer/worker_content_settings_client.h
+--- a/chrome/renderer/worker_content_settings_client.h
 +++ b/chrome/renderer/worker_content_settings_client.h
 @@ -38,6 +38,8 @@ class WorkerContentSettingsClient : public blink::WebContentSettingsClient {
    bool AllowStorageAccessSync(StorageType storage_type) override;
@@ -81,7 +81,7 @@ diff --git a/chrome/renderer/worker_content_settings_client.h b/chrome/renderer/
  
   private:
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
----  a/components/content_settings/renderer/content_settings_agent_impl.cc
+--- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
 @@ -166,7 +166,7 @@ void ContentSettingsAgentImpl::DidCommitProvisionalLoad(
    // `allowPlugins()` is called for the new page so that these functions can
@@ -143,7 +143,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
  
  }  // namespace content_settings
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.h b/components/content_settings/renderer/content_settings_agent_impl.h
----  a/components/content_settings/renderer/content_settings_agent_impl.h
+--- a/components/content_settings/renderer/content_settings_agent_impl.h
 +++ b/components/content_settings/renderer/content_settings_agent_impl.h
 @@ -90,6 +90,9 @@ class ContentSettingsAgentImpl
    bool AllowStorageAccessSync(StorageType type) override;
@@ -166,7 +166,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
  
    mojo::AssociatedReceiverSet<mojom::ContentSettingsAgent> receivers_;
 diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/third_party/blink/public/platform/web_content_settings_client.h
----  a/third_party/blink/public/platform/web_content_settings_client.h
+--- a/third_party/blink/public/platform/web_content_settings_client.h
 +++ b/third_party/blink/public/platform/web_content_settings_client.h
 @@ -61,6 +61,18 @@ class WebContentSettingsClient {
      return enabled_per_settings;
@@ -188,7 +188,7 @@ diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/t
    virtual bool AllowRunningInsecureContent(bool enabled_per_settings,
                                             const WebURL&) {
 diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_party/blink/renderer/core/frame/local_dom_window.cc
----  a/third_party/blink/renderer/core/frame/local_dom_window.cc
+--- a/third_party/blink/renderer/core/frame/local_dom_window.cc
 +++ b/third_party/blink/renderer/core/frame/local_dom_window.cc
 @@ -50,6 +50,7 @@
  #include "third_party/blink/public/platform/task_type.h"
@@ -211,7 +211,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
      WebContentSettingsClient* settings_client =
          GetFrame()->GetContentSettingsClient();
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
----  a/third_party/blink/renderer/core/frame/local_frame.cc
+--- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
 @@ -4066,19 +4066,6 @@ bool LocalFrame::IsSameOrigin() {
    return security_origin->IsSameOriginWith(top_security_origin);
@@ -234,7 +234,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
    // If this fails, it's probably because nobody called StartPrinting().
    DCHECK(GetDocument()->Printing());
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
----  a/third_party/blink/renderer/core/frame/local_frame.h
+--- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
 @@ -928,12 +928,6 @@ class CORE_EXPORT LocalFrame final
      return *v8_local_compile_hints_producer_;
@@ -250,7 +250,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/b
  
    // Returns the `Frame` for which `provisional_frame_ == this`. May only be
 diff --git a/third_party/blink/renderer/core/html/html_meta_element.cc b/third_party/blink/renderer/core/html/html_meta_element.cc
----  a/third_party/blink/renderer/core/html/html_meta_element.cc
+--- a/third_party/blink/renderer/core/html/html_meta_element.cc
 +++ b/third_party/blink/renderer/core/html/html_meta_element.cc
 @@ -786,7 +786,9 @@ void HTMLMetaElement::ProcessMetaCH(Document& document,
      return;
@@ -264,7 +264,7 @@ diff --git a/third_party/blink/renderer/core/html/html_meta_element.cc b/third_p
      return;
    }
 diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.cc b/third_party/blink/renderer/core/loader/base_fetch_context.cc
----  a/third_party/blink/renderer/core/loader/base_fetch_context.cc
+--- a/third_party/blink/renderer/core/loader/base_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/base_fetch_context.cc
 @@ -256,7 +256,7 @@ BaseFetchContext::CanRequestInternal(
    }
@@ -276,7 +276,7 @@ diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.cc b/thir
        // this check has nothing to do with CSP. https://crbug.com/600795
        return ResourceRequestBlockedReason::kCSP;
 diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third_party/blink/renderer/core/loader/base_fetch_context.h
----  a/third_party/blink/renderer/core/loader/base_fetch_context.h
+--- a/third_party/blink/renderer/core/loader/base_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/base_fetch_context.h
 @@ -103,7 +103,7 @@ class CORE_EXPORT BaseFetchContext : public FetchContext {
        : fetcher_properties_(properties), console_logger_(logger) {}
@@ -288,7 +288,7 @@ diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.h b/third
    // Note: subclasses are expected to override following methods.
    // Used in the default implementation for CanRequest, CanFollowRedirect
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
----  a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
+--- a/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.cc
 @@ -518,7 +518,8 @@ void FrameFetchContext::AddClientHintsIfNecessary(
  
@@ -336,7 +336,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
  
  bool FrameFetchContext::IsFirstPartyOrigin(
 diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/third_party/blink/renderer/core/loader/frame_fetch_context.h
----  a/third_party/blink/renderer/core/loader/frame_fetch_context.h
+--- a/third_party/blink/renderer/core/loader/frame_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/frame_fetch_context.h
 @@ -68,6 +68,17 @@ class WebContentSettingsClient;
  class CORE_EXPORT FrameFetchContext final : public BaseFetchContext,
@@ -366,7 +366,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/thir
    void DispatchDidBlockRequest(const ResourceRequest&,
                                 const ResourceLoaderOptions&,
 diff --git a/third_party/blink/renderer/core/loader/worker_fetch_context.cc b/third_party/blink/renderer/core/loader/worker_fetch_context.cc
----  a/third_party/blink/renderer/core/loader/worker_fetch_context.cc
+--- a/third_party/blink/renderer/core/loader/worker_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/worker_fetch_context.cc
 @@ -79,10 +79,14 @@ SubresourceFilter* WorkerFetchContext::GetSubresourceFilter() const {
    return subresource_filter_.Get();
@@ -388,7 +388,7 @@ diff --git a/third_party/blink/renderer/core/loader/worker_fetch_context.cc b/th
  
  bool WorkerFetchContext::ShouldBlockRequestByInspector(const KURL& url) const {
 diff --git a/third_party/blink/renderer/core/loader/worker_fetch_context.h b/third_party/blink/renderer/core/loader/worker_fetch_context.h
----  a/third_party/blink/renderer/core/loader/worker_fetch_context.h
+--- a/third_party/blink/renderer/core/loader/worker_fetch_context.h
 +++ b/third_party/blink/renderer/core/loader/worker_fetch_context.h
 @@ -48,7 +48,7 @@ class WorkerFetchContext final : public BaseFetchContext {
    // BaseFetchContext implementation:

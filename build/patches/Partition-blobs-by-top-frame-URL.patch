@@ -21,12 +21,12 @@ Change-Id: I5a8d7fac019b3ee382562c67d0d1302e470112c7
 
 diff --git a/cromite_flags/third_party/blink/common/features_cc/Partition-blobs-by-top-frame-URL.inc b/cromite_flags/third_party/blink/common/features_cc/Partition-blobs-by-top-frame-URL.inc
 new file mode 100644
----  /dev/null
+--- /dev/null
 +++ b/cromite_flags/third_party/blink/common/features_cc/Partition-blobs-by-top-frame-URL.inc
 @@ -0,0 +1 @@
 +SET_CROMITE_FEATURE_ENABLED(kEnforceNoopenerOnBlobURLNavigation);
 diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/blob_url_store_impl.cc
----  a/storage/browser/blob/blob_url_store_impl.cc
+--- a/storage/browser/blob/blob_url_store_impl.cc
 +++ b/storage/browser/blob/blob_url_store_impl.cc
 @@ -83,6 +83,20 @@ BlobURLStoreImpl::~BlobURLStoreImpl() {
    }
@@ -117,7 +117,7 @@ diff --git a/storage/browser/blob/blob_url_store_impl.cc b/storage/browser/blob/
  
  bool BlobURLStoreImpl::BlobUrlIsValid(const GURL& url,
 diff --git a/storage/browser/blob/blob_url_store_impl.h b/storage/browser/blob/blob_url_store_impl.h
----  a/storage/browser/blob/blob_url_store_impl.h
+--- a/storage/browser/blob/blob_url_store_impl.h
 +++ b/storage/browser/blob/blob_url_store_impl.h
 @@ -48,14 +48,20 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) BlobURLStoreImpl
    void ResolveAsURLLoaderFactory(
@@ -153,7 +153,7 @@ diff --git a/storage/browser/blob/blob_url_store_impl.h b/storage/browser/blob/b
    // The origin used by the worker/document associated with this BlobURLStore on
    // the renderer side. This will almost always be the same as `storage_key_`'s
 diff --git a/storage/browser/blob/features.cc b/storage/browser/blob/features.cc
----  a/storage/browser/blob/features.cc
+--- a/storage/browser/blob/features.cc
 +++ b/storage/browser/blob/features.cc
 @@ -10,6 +10,7 @@ namespace features {
  BASE_FEATURE(kBlockCrossPartitionBlobUrlFetching,
@@ -164,7 +164,7 @@ diff --git a/storage/browser/blob/features.cc b/storage/browser/blob/features.cc
  // Please keep features in alphabetical order.
  
 diff --git a/third_party/blink/public/mojom/blob/blob_url_store.mojom b/third_party/blink/public/mojom/blob/blob_url_store.mojom
----  a/third_party/blink/public/mojom/blob/blob_url_store.mojom
+--- a/third_party/blink/public/mojom/blob/blob_url_store.mojom
 +++ b/third_party/blink/public/mojom/blob/blob_url_store.mojom
 @@ -37,7 +37,9 @@ interface BlobURLStore {
    // both the blob URL and all other references to the blob have been dropped.
@@ -200,7 +200,7 @@ diff --git a/third_party/blink/public/mojom/blob/blob_url_store.mojom b/third_pa
      mojo_base.mojom.UnguessableToken? unsafe_agent_cluster_id);
  };
 diff --git a/third_party/blink/renderer/core/fileapi/public_url_manager.cc b/third_party/blink/renderer/core/fileapi/public_url_manager.cc
----  a/third_party/blink/renderer/core/fileapi/public_url_manager.cc
+--- a/third_party/blink/renderer/core/fileapi/public_url_manager.cc
 +++ b/third_party/blink/renderer/core/fileapi/public_url_manager.cc
 @@ -63,6 +63,21 @@ static void RemoveFromNullOriginMapIfNecessary(const KURL& blob_url) {
      BlobURLNullOriginMap::GetInstance()->Remove(blob_url);

@@ -28,7 +28,7 @@ Change-Id: Id2db21e92bca486876565ab3223f9de95e4cd763
  18 files changed, 379 insertions(+), 139 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
----  a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
 @@ -46,6 +46,11 @@ import java.lang.annotation.Retention;
  import java.lang.annotation.RetentionPolicy;
@@ -67,7 +67,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpU
      public static void scheduleUploadJob() {
          CrashReportingPermissionManager permissionManager =
 diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.cc b/chrome/browser/crash_upload_list/crash_upload_list_android.cc
----  a/chrome/browser/crash_upload_list/crash_upload_list_android.cc
+--- a/chrome/browser/crash_upload_list/crash_upload_list_android.cc
 +++ b/chrome/browser/crash_upload_list/crash_upload_list_android.cc
 @@ -15,6 +15,7 @@
  
@@ -126,7 +126,7 @@ diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.cc b/chr
    }
  }
 diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.h b/chrome/browser/crash_upload_list/crash_upload_list_android.h
----  a/chrome/browser/crash_upload_list/crash_upload_list_android.h
+--- a/chrome/browser/crash_upload_list/crash_upload_list_android.h
 +++ b/chrome/browser/crash_upload_list/crash_upload_list_android.h
 @@ -35,6 +35,7 @@ class CrashUploadListAndroid : public TextLogUploadList {
    std::vector<std::unique_ptr<UploadList::UploadInfo>> LoadUploadList()
@@ -137,7 +137,7 @@ diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.h b/chro
   private:
    void LoadUnsuccessfulUploadList(
 diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/chrome_network_delegate.cc
----  a/chrome/browser/net/chrome_network_delegate.cc
+--- a/chrome/browser/net/chrome_network_delegate.cc
 +++ b/chrome/browser/net/chrome_network_delegate.cc
 @@ -147,6 +147,13 @@ bool IsAccessAllowedAndroid(const base::FilePath& path) {
    if (external_storage_path.IsParent(path))
@@ -154,7 +154,7 @@ diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/
    std::vector<base::FilePath> all_download_dirs =
        base::android::GetAllPrivateDownloadsDirectories();
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
----  a/chrome/browser/ui/BUILD.gn
+--- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
 @@ -658,6 +658,7 @@ static_library("ui") {
      "//third_party/re2",
@@ -165,7 +165,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
      "//ui/base",
      "//ui/base:data_exchange",
 diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/crashes_ui.cc
----  a/chrome/browser/ui/webui/crashes_ui.cc
+--- a/chrome/browser/ui/webui/crashes_ui.cc
 +++ b/chrome/browser/ui/webui/crashes_ui.cc
 @@ -42,6 +42,19 @@
  #include "google_apis/gaia/gaia_auth_util.h"
@@ -422,7 +422,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
    // Set up the chrome://crashes/ source.
    CreateAndAddCrashesUIHTMLSource(Profile::FromWebUI(web_ui));
 diff --git a/components/crash/core/browser/crashes_ui_util.cc b/components/crash/core/browser/crashes_ui_util.cc
----  a/components/crash/core/browser/crashes_ui_util.cc
+--- a/components/crash/core/browser/crashes_ui_util.cc
 +++ b/components/crash/core/browser/crashes_ui_util.cc
 @@ -39,6 +39,8 @@ const CrashesUILocalizedString kCrashesUILocalizedStrings[] = {
      {"uploadId", IDS_CRASH_REPORT_UPLOADED_ID},
@@ -443,7 +443,7 @@ diff --git a/components/crash/core/browser/crashes_ui_util.cc b/components/crash
  std::string UploadInfoStateAsString(UploadList::UploadInfo::State state) {
    switch (state) {
 diff --git a/components/crash/core/browser/crashes_ui_util.h b/components/crash/core/browser/crashes_ui_util.h
----  a/components/crash/core/browser/crashes_ui_util.h
+--- a/components/crash/core/browser/crashes_ui_util.h
 +++ b/components/crash/core/browser/crashes_ui_util.h
 @@ -34,6 +34,8 @@ extern const char kCrashesUIRequestCrashUpload[];
  extern const char kCrashesUIShortProductName[];
@@ -455,7 +455,7 @@ diff --git a/components/crash/core/browser/crashes_ui_util.h b/components/crash/
  // Converts and appends the most recent uploads to |out_value|.
  void UploadListToValue(UploadList* upload_list, base::Value::List* out_value);
 diff --git a/components/crash/core/browser/resources/crashes.css b/components/crash/core/browser/resources/crashes.css
----  a/components/crash/core/browser/resources/crashes.css
+--- a/components/crash/core/browser/resources/crashes.css
 +++ b/components/crash/core/browser/resources/crashes.css
 @@ -3,7 +3,9 @@
   * found in the LICENSE file. */
@@ -543,7 +543,7 @@ diff --git a/components/crash/core/browser/resources/crashes.css b/components/cr
 +  }
 +}
 diff --git a/components/crash/core/browser/resources/crashes.html b/components/crash/core/browser/resources/crashes.html
----  a/components/crash/core/browser/resources/crashes.html
+--- a/components/crash/core/browser/resources/crashes.html
 +++ b/components/crash/core/browser/resources/crashes.html
 @@ -1,6 +1,7 @@
  <!doctype html>
@@ -577,7 +577,7 @@ diff --git a/components/crash/core/browser/resources/crashes.html b/components/c
  
      <div id="crashList">
 diff --git a/components/crash/core/browser/resources/crashes.ts b/components/crash/core/browser/resources/crashes.ts
----  a/components/crash/core/browser/resources/crashes.ts
+--- a/components/crash/core/browser/resources/crashes.ts
 +++ b/components/crash/core/browser/resources/crashes.ts
 @@ -12,7 +12,7 @@ import '/strings.m.js';
  import {assert} from 'chrome://resources/js/assert.js';
@@ -736,7 +736,7 @@ diff --git a/components/crash/core/browser/resources/crashes.ts b/components/cra
    requestCrashes();
  });
 diff --git a/components/crash_strings.grdp b/components/crash_strings.grdp
----  a/components/crash_strings.grdp
+--- a/components/crash_strings.grdp
 +++ b/components/crash_strings.grdp
 @@ -19,22 +19,22 @@
      Status:
@@ -786,7 +786,7 @@ diff --git a/components/crash_strings.grdp b/components/crash_strings.grdp
    </message>
  </grit-part>
 diff --git a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java b/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java
----  a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java
+--- a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java
 +++ b/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java
 @@ -105,6 +105,8 @@ public class CrashFileManager {
  
@@ -817,7 +817,7 @@ diff --git a/components/minidump_uploader/android/java/src/org/chromium/componen
              String filenameSansExtension = f.getName().split("\\.")[0];
              if (filenameSansExtension.endsWith(localId)) {
 diff --git a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploadCallable.java b/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploadCallable.java
----  a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploadCallable.java
+--- a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploadCallable.java
 +++ b/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploadCallable.java
 @@ -70,30 +70,8 @@ public class MinidumpUploadCallable implements Callable<Integer> {
          if (mPermManager.isUploadEnabledForTests()) {
@@ -852,7 +852,7 @@ diff --git a/components/minidump_uploader/android/java/src/org/chromium/componen
          if (result.isSuccess()) {
              String uploadId = result.message();
 diff --git a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploader.java b/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploader.java
----  a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploader.java
+--- a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploader.java
 +++ b/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/MinidumpUploader.java
 @@ -120,33 +120,10 @@ public class MinidumpUploader {
              if (fileToUpload == null || !fileToUpload.exists()) {
@@ -893,7 +893,7 @@ diff --git a/components/minidump_uploader/android/java/src/org/chromium/componen
          }
      }
 diff --git a/components/upload_list/text_log_upload_list.cc b/components/upload_list/text_log_upload_list.cc
----  a/components/upload_list/text_log_upload_list.cc
+--- a/components/upload_list/text_log_upload_list.cc
 +++ b/components/upload_list/text_log_upload_list.cc
 @@ -168,6 +168,7 @@ std::unique_ptr<UploadList::UploadInfo> TextLogUploadList::TryParseCsvLogEntry(
    }
@@ -904,7 +904,7 @@ diff --git a/components/upload_list/text_log_upload_list.cc b/components/upload_
    // Add local ID if present.
    if (components.size() > 2)
 diff --git a/components/upload_list/upload_list.cc b/components/upload_list/upload_list.cc
----  a/components/upload_list/upload_list.cc
+--- a/components/upload_list/upload_list.cc
 +++ b/components/upload_list/upload_list.cc
 @@ -99,6 +99,11 @@ std::vector<const UploadList::UploadInfo*> UploadList::GetUploads(
    return uploads;
@@ -932,7 +932,7 @@ diff --git a/components/upload_list/upload_list.cc b/components/upload_list/uplo
 +  return std::string();
 +}
 diff --git a/components/upload_list/upload_list.h b/components/upload_list/upload_list.h
----  a/components/upload_list/upload_list.h
+--- a/components/upload_list/upload_list.h
 +++ b/components/upload_list/upload_list.h
 @@ -70,6 +70,9 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
  

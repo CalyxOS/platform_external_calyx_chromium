@@ -22,7 +22,7 @@ Change-Id: I1f1ec46a06be09724c30e3898b6c58d92de47b40
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Keep-disabled-FetchLaterAPI.inc
 
 diff --git a/content/browser/loader/keep_alive_url_loader.cc b/content/browser/loader/keep_alive_url_loader.cc
----  a/content/browser/loader/keep_alive_url_loader.cc
+--- a/content/browser/loader/keep_alive_url_loader.cc
 +++ b/content/browser/loader/keep_alive_url_loader.cc
 @@ -42,6 +42,36 @@
  #include "services/network/public/mojom/url_request.mojom.h"
@@ -79,7 +79,7 @@ diff --git a/content/browser/loader/keep_alive_url_loader.cc b/content/browser/l
        /*cors_exempt_header_list=*/std::nullopt,
        // `this`'s lifetime is at least the same as `url_loader_`.
 diff --git a/content/browser/loader/keep_alive_url_loader.h b/content/browser/loader/keep_alive_url_loader.h
----  a/content/browser/loader/keep_alive_url_loader.h
+--- a/content/browser/loader/keep_alive_url_loader.h
 +++ b/content/browser/loader/keep_alive_url_loader.h
 @@ -312,9 +312,6 @@ class CONTENT_EXPORT KeepAliveURLLoader
    // disconnected from the remote of URLLoader in the renderer.
@@ -93,13 +93,13 @@ diff --git a/content/browser/loader/keep_alive_url_loader.h b/content/browser/lo
    scoped_refptr<network::SharedURLLoaderFactory> network_loader_factory_;
 diff --git a/cromite_flags/third_party/blink/common/features_cc/Keep-disabled-FetchLaterAPI.inc b/cromite_flags/third_party/blink/common/features_cc/Keep-disabled-FetchLaterAPI.inc
 new file mode 100644
----  /dev/null
+--- /dev/null
 +++ b/cromite_flags/third_party/blink/common/features_cc/Keep-disabled-FetchLaterAPI.inc
 @@ -0,0 +1,2 @@
 +SET_CROMITE_FEATURE_ENABLED(kKeepAliveInBrowserMigration);
 +SET_CROMITE_FEATURE_DISABLED(kAttributionReportingInBrowserMigration);
 diff --git a/third_party/blink/renderer/core/fetch/fetch_manager.cc b/third_party/blink/renderer/core/fetch/fetch_manager.cc
----  a/third_party/blink/renderer/core/fetch/fetch_manager.cc
+--- a/third_party/blink/renderer/core/fetch/fetch_manager.cc
 +++ b/third_party/blink/renderer/core/fetch/fetch_manager.cc
 @@ -291,6 +291,7 @@ class ResponseResolver final : public GarbageCollected<ResponseResolver> {
    // Rejects the promise with the supplied object.
@@ -146,7 +146,7 @@ diff --git a/third_party/blink/renderer/core/fetch/fetch_manager.cc b/third_part
      }
      response_resolver_.Clear();
 diff --git a/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc b/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc
----  a/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc
+--- a/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc
 +++ b/third_party/blink/renderer/platform/loader/child_url_loader_factory_bundle.cc
 @@ -255,6 +255,12 @@ void ChildURLLoaderFactoryBundle::CreateLoaderAndStart(
      return;
@@ -177,7 +177,7 @@ diff --git a/third_party/blink/renderer/platform/loader/child_url_loader_factory
          std::move(loader), request_id, options, request, std::move(client),
          traffic_annotation);
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
----  a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
+--- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 @@ -3022,7 +3022,7 @@ void ResourceFetcher::PrepareForLeakDetection() {
  void ResourceFetcher::StopFetchingInternal(StopFetchingTarget target) {
@@ -189,7 +189,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    for (const auto& loader : non_blocking_loaders_) {
      if (target == StopFetchingTarget::kIncludingKeepaliveLoaders ||
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
----  a/third_party/blink/renderer/platform/runtime_enabled_features.json5
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 @@ -1922,10 +1922,9 @@
      },

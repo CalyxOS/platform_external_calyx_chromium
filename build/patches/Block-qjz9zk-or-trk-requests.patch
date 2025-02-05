@@ -27,7 +27,7 @@ Change-Id: Idc70e3076794d2e4a85c25ae66327ce9f2c8f7e9
  create mode 100644 net/url_request/trk_protocol_handler.h
 
 diff --git a/chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.cc b/chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.cc
----  a/chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.cc
+--- a/chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.cc
 +++ b/chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.cc
 @@ -56,6 +56,7 @@ ChromeAutocompleteSchemeClassifier::GetInputTypeForScheme(
    if (base::IsStringASCII(scheme) &&
@@ -38,7 +38,7 @@ diff --git a/chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.c
         base::EqualsCaseInsensitiveASCII(scheme, url::kDataScheme))) {
      return metrics::OmniboxInputType::URL;
 diff --git a/chrome/browser/history/history_utils.cc b/chrome/browser/history/history_utils.cc
----  a/chrome/browser/history/history_utils.cc
+--- a/chrome/browser/history/history_utils.cc
 +++ b/chrome/browser/history/history_utils.cc
 @@ -22,6 +22,7 @@ bool CanAddURLToHistory(const GURL& url) {
        url.SchemeIs(content::kChromeUIScheme) ||
@@ -49,7 +49,7 @@ diff --git a/chrome/browser/history/history_utils.cc b/chrome/browser/history/hi
        url.SchemeIs(chrome::kChromeSearchScheme) ||
        url.SchemeIs(dom_distiller::kDomDistillerScheme))
 diff --git a/chrome/browser/ui/singleton_tabs.cc b/chrome/browser/ui/singleton_tabs.cc
----  a/chrome/browser/ui/singleton_tabs.cc
+--- a/chrome/browser/ui/singleton_tabs.cc
 +++ b/chrome/browser/ui/singleton_tabs.cc
 @@ -127,6 +127,11 @@ int GetIndexOfExistingTab(Browser* browser, const NavigateParams& params) {
        continue;
@@ -64,7 +64,7 @@ diff --git a/chrome/browser/ui/singleton_tabs.cc b/chrome/browser/ui/singleton_t
      content::BrowserURLHandler::GetInstance()->RewriteURLIfNecessary(
          &rewritten_tab_url, browser->profile());
 diff --git a/components/omnibox/browser/autocomplete_input.cc b/components/omnibox/browser/autocomplete_input.cc
----  a/components/omnibox/browser/autocomplete_input.cc
+--- a/components/omnibox/browser/autocomplete_input.cc
 +++ b/components/omnibox/browser/autocomplete_input.cc
 @@ -93,10 +93,15 @@ void OffsetComponentsExcludingScheme(url::Parsed* parts, int offset) {
  bool HasScheme(const std::u16string& input, const char* scheme) {
@@ -93,7 +93,7 @@ diff --git a/components/omnibox/browser/autocomplete_input.cc b/components/omnib
      // Obtain the URL prefixed by view-source or blob and parse it.
      std::u16string real_url(text.substr(after_scheme_and_colon));
 diff --git a/components/url_formatter/url_fixer.cc b/components/url_formatter/url_fixer.cc
----  a/components/url_formatter/url_fixer.cc
+--- a/components/url_formatter/url_fixer.cc
 +++ b/components/url_formatter/url_fixer.cc
 @@ -580,6 +580,10 @@ GURL FixupURLInternal(const std::string& text,
      }
@@ -107,7 +107,7 @@ diff --git a/components/url_formatter/url_fixer.cc b/components/url_formatter/ur
    if (scheme == url::kFileScheme)
      return GURL(parts.scheme.is_valid() ? text : FixupPath(text));
 diff --git a/content/browser/child_process_security_policy_impl.cc b/content/browser/child_process_security_policy_impl.cc
----  a/content/browser/child_process_security_policy_impl.cc
+--- a/content/browser/child_process_security_policy_impl.cc
 +++ b/content/browser/child_process_security_policy_impl.cc
 @@ -951,6 +951,7 @@ ChildProcessSecurityPolicyImpl::ChildProcessSecurityPolicyImpl()
    RegisterPseudoScheme(url::kJavaScriptScheme);
@@ -118,7 +118,7 @@ diff --git a/content/browser/child_process_security_policy_impl.cc b/content/bro
  
  ChildProcessSecurityPolicyImpl::~ChildProcessSecurityPolicyImpl() {
 diff --git a/net/BUILD.gn b/net/BUILD.gn
----  a/net/BUILD.gn
+--- a/net/BUILD.gn
 +++ b/net/BUILD.gn
 @@ -1068,6 +1068,8 @@ component("net") {
      "url_request/url_request_http_job.cc",
@@ -131,7 +131,7 @@ diff --git a/net/BUILD.gn b/net/BUILD.gn
      "url_request/url_request_job.h",
 diff --git a/net/url_request/trk_protocol_handler.cc b/net/url_request/trk_protocol_handler.cc
 new file mode 100644
----  /dev/null
+--- /dev/null
 +++ b/net/url_request/trk_protocol_handler.cc
 @@ -0,0 +1,25 @@
 +// Copyright (c) 2018 The ungoogled-chromium Authors. All rights reserved.
@@ -161,7 +161,7 @@ new file mode 100644
 +}  // namespace net
 diff --git a/net/url_request/trk_protocol_handler.h b/net/url_request/trk_protocol_handler.h
 new file mode 100644
----  /dev/null
+--- /dev/null
 +++ b/net/url_request/trk_protocol_handler.h
 @@ -0,0 +1,30 @@
 +// Copyright (c) 2018 The ungoogled-chromium Authors. All rights reserved.
@@ -195,7 +195,7 @@ new file mode 100644
 +
 +#endif  // NET_URL_REQUEST_TRK_PROTOCOL_HANDLER_H_
 diff --git a/net/url_request/url_request.cc b/net/url_request/url_request.cc
----  a/net/url_request/url_request.cc
+--- a/net/url_request/url_request.cc
 +++ b/net/url_request/url_request.cc
 @@ -15,6 +15,7 @@
  #include "base/notreached.h"
@@ -227,7 +227,7 @@ diff --git a/net/url_request/url_request.cc b/net/url_request/url_request.cc
    net_log_.BeginEvent(NetLogEventType::REQUEST_ALIVE, [&] {
      return NetLogURLRequestConstructorParams(url, priority_,
 diff --git a/net/url_request/url_request_context_builder.cc b/net/url_request/url_request_context_builder.cc
----  a/net/url_request/url_request_context_builder.cc
+--- a/net/url_request/url_request_context_builder.cc
 +++ b/net/url_request/url_request_context_builder.cc
 @@ -49,6 +49,7 @@
  #include "net/socket/network_binding_client_socket_factory.h"
@@ -247,7 +247,7 @@ diff --git a/net/url_request/url_request_context_builder.cc b/net/url_request/ur
  
    context->set_job_factory(std::move(job_factory));
 diff --git a/url/url_constants.h b/url/url_constants.h
----  a/url/url_constants.h
+--- a/url/url_constants.h
 +++ b/url/url_constants.h
 @@ -34,6 +34,7 @@ inline constexpr char16_t kDataScheme16[] = u"data";
  inline constexpr char kDrivefsScheme[] = "drivefs";
@@ -258,7 +258,7 @@ diff --git a/url/url_constants.h b/url/url_constants.h
  inline constexpr char16_t kFileSystemScheme16[] = u"filesystem";
  inline constexpr char kFtpScheme[] = "ftp";
 diff --git a/url/url_util.cc b/url/url_util.cc
----  a/url/url_util.cc
+--- a/url/url_util.cc
 +++ b/url/url_util.cc
 @@ -53,6 +53,7 @@ struct SchemeRegistry {
    std::vector<SchemeWithType> standard_schemes = {
