@@ -63,7 +63,7 @@ Change-Id: I4bcbc7b2c8b9dfeb40ecf8a185ba6f06ae13e1b2
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -622,6 +622,7 @@ chrome_java_resources = [
+@@ -628,6 +628,7 @@ chrome_java_resources = [
    "java/res/xml/contextual_search_preferences.xml",
    "java/res/xml/developer_preferences.xml",
    "java/res/xml/do_not_track_preferences.xml",
@@ -74,7 +74,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -947,6 +947,7 @@ chrome_java_sources = [
+@@ -933,6 +933,7 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/settings/AdBlockPreferences.java",
    "java/src/org/chromium/chrome/browser/policy/PolicyAuditor.java",
    "java/src/org/chromium/chrome/browser/policy/PolicyAuditorBridge.java",
@@ -105,7 +105,7 @@ new file mode 100644
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -56,6 +56,10 @@ found in the LICENSE file.
+@@ -55,6 +55,10 @@ found in the LICENSE file.
          android:key="do_not_track"
          android:title="@string/do_not_track_title"
          android:fragment="org.chromium.chrome.browser.privacy.settings.DoNotTrackSettings" />
@@ -174,15 +174,15 @@ new file mode 100644
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -79,6 +79,7 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
-     private static final String PREF_HTTPS_FIRST_MODE = "https_first_mode";
+@@ -84,6 +84,7 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+     private static final String PREF_HTTPS_FIRST_MODE_LEGACY = "https_first_mode_legacy";
      private static final String PREF_SECURE_DNS = "secure_dns";
      private static final String PREF_USAGE_STATS = "usage_stats_reporting";
 +    private static final String PREF_GPC = "gpc";
      private static final String PREF_SAFE_BROWSING = "safe_browsing";
+     private static final String PREF_PASSWORD_LEAK_DETECTION = "password_leak_detection";
      private static final String PREF_SYNC_AND_SERVICES_LINK = "sync_and_services_link";
-     private static final String PREF_PRIVACY_SANDBOX = "privacy_sandbox";
-@@ -412,6 +413,14 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -449,6 +450,14 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
                              : R.string.text_off);
          }
  
@@ -200,7 +200,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -2178,6 +2178,21 @@
+@@ -2074,6 +2074,21 @@
    <message name="IDS_SETTINGS_ENABLE_DO_NOT_TRACK_DIALOG_LEARN_MORE_ACCESSIBILITY_LABEL" desc="The accessibility label for a link to learn more about Do Not Track">
      Learn more about Do Not Track
    </message>
@@ -225,7 +225,7 @@ diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 diff --git a/chrome/browser/extensions/api/settings_private/prefs_util.cc b/chrome/browser/extensions/api/settings_private/prefs_util.cc
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -380,6 +380,7 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
+@@ -383,6 +383,7 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
    (*s_allowlist)[::prefs::kTrackingProtectionLevel] =
        settings_api::PrefType::kNumber;
    (*s_allowlist)[::prefs::kEnableDoNotTrack] = settings_api::PrefType::kBoolean;
@@ -236,7 +236,7 @@ diff --git a/chrome/browser/extensions/api/settings_private/prefs_util.cc b/chro
 diff --git a/chrome/browser/renderer_preferences_util.cc b/chrome/browser/renderer_preferences_util.cc
 --- a/chrome/browser/renderer_preferences_util.cc
 +++ b/chrome/browser/renderer_preferences_util.cc
-@@ -113,6 +113,9 @@ void UpdateFromSystemSettings(blink::RendererPreferences* prefs,
+@@ -115,6 +115,9 @@ void UpdateFromSystemSettings(blink::RendererPreferences* prefs,
    prefs->enable_do_not_track =
        TrackingProtectionSettingsFactory::GetForProfile(profile)
            ->IsDoNotTrackEnabled();
@@ -245,14 +245,14 @@ diff --git a/chrome/browser/renderer_preferences_util.cc b/chrome/browser/render
 +          ->IsGPCEnabled();
    prefs->enable_encrypted_media =
        pref_service->GetBoolean(prefs::kEnableEncryptedMedia);
-   prefs->webrtc_ip_handling_policy = std::string();
+ #if !BUILDFLAG(IS_ANDROID)
 diff --git a/chrome/browser/resources/settings/BUILD.gn b/chrome/browser/resources/settings/BUILD.gn
 --- a/chrome/browser/resources/settings/BUILD.gn
 +++ b/chrome/browser/resources/settings/BUILD.gn
 @@ -116,6 +116,7 @@ build_webui("build") {
      "privacy_page/cookies_page.ts",
-     "privacy_page/fingerprint_progress_arc.ts",
      "privacy_page/do_not_track_toggle.ts",
+     "privacy_page/fingerprint_progress_arc.ts",
 +    "privacy_page/gpc_toggle.ts",
      "privacy_page/personalization_options.ts",
      "privacy_page/privacy_guide/privacy_guide_ad_topics_fragment.ts",
@@ -457,7 +457,7 @@ new file mode 100644
 diff --git a/chrome/browser/ui/prefs/pref_watcher.cc b/chrome/browser/ui/prefs/pref_watcher.cc
 --- a/chrome/browser/ui/prefs/pref_watcher.cc
 +++ b/chrome/browser/ui/prefs/pref_watcher.cc
-@@ -166,6 +166,10 @@ void PrefWatcher::OnDoNotTrackEnabledChanged() {
+@@ -172,6 +172,10 @@ void PrefWatcher::OnDoNotTrackEnabledChanged() {
    UpdateRendererPreferences();
  }
  
@@ -482,7 +482,7 @@ diff --git a/chrome/browser/ui/prefs/pref_watcher.h b/chrome/browser/ui/prefs/pr
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -1788,6 +1788,9 @@ void AddPrivacyStrings(content::WebUIDataSource* html_source,
+@@ -1844,6 +1844,9 @@ void AddPrivacyStrings(content::WebUIDataSource* html_source,
        {"doNotTrackDialogMessage", IDS_SETTINGS_ENABLE_DO_NOT_TRACK_DIALOG_TEXT},
        {"doNotTrackDialogLearnMoreA11yLabel",
         IDS_SETTINGS_ENABLE_DO_NOT_TRACK_DIALOG_LEARN_MORE_ACCESSIBILITY_LABEL},
@@ -530,7 +530,7 @@ diff --git a/components/privacy_sandbox/tracking_protection_settings.cc b/compon
    pref_change_registrar_.Add(
        prefs::kIpProtectionEnabled,
        base::BindRepeating(
-@@ -214,6 +219,16 @@ void TrackingProtectionSettings::OnDoNotTrackEnabledPrefChanged() {
+@@ -207,6 +212,16 @@ void TrackingProtectionSettings::OnDoNotTrackEnabledPrefChanged() {
    }
  }
  
@@ -559,7 +559,7 @@ diff --git a/components/privacy_sandbox/tracking_protection_settings.h b/compone
    // Returns whether tracking protection for 3PCD (prefs + UX) is enabled.
    bool IsTrackingProtection3pcdEnabled() const;
  
-@@ -72,6 +74,7 @@ class TrackingProtectionSettings : public KeyedService {
+@@ -76,6 +78,7 @@ class TrackingProtectionSettings : public KeyedService {
  
    // Callbacks for pref observation.
    void OnDoNotTrackEnabledPrefChanged();
@@ -598,7 +598,7 @@ diff --git a/content/browser/loader/browser_initiated_resource_request.cc b/cont
 diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_frame_impl.cc
 --- a/content/renderer/render_frame_impl.cc
 +++ b/content/renderer/render_frame_impl.cc
-@@ -4589,6 +4589,10 @@ void RenderFrameImpl::FinalizeRequestInternal(
+@@ -4592,6 +4592,10 @@ void RenderFrameImpl::FinalizeRequestInternal(
      request.SetHttpHeaderField(
          blink::WebString::FromUTF8(blink::kDoNotTrackHeader), "1");
    }
@@ -644,7 +644,7 @@ diff --git a/third_party/blink/public/common/loader/loader_constants.h b/third_p
 diff --git a/third_party/blink/public/common/renderer_preferences/renderer_preferences.h b/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
 --- a/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
 +++ b/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
-@@ -57,6 +57,7 @@ struct BLINK_COMMON_EXPORT RendererPreferences {
+@@ -52,6 +52,7 @@ struct BLINK_COMMON_EXPORT RendererPreferences {
    bool enable_referrers{true};
    bool allow_cross_origin_auth_prompt{false};
    bool enable_do_not_track{false};
@@ -655,7 +655,7 @@ diff --git a/third_party/blink/public/common/renderer_preferences/renderer_prefe
 diff --git a/third_party/blink/public/common/renderer_preferences/renderer_preferences_mojom_traits.h b/third_party/blink/public/common/renderer_preferences/renderer_preferences_mojom_traits.h
 --- a/third_party/blink/public/common/renderer_preferences/renderer_preferences_mojom_traits.h
 +++ b/third_party/blink/public/common/renderer_preferences/renderer_preferences_mojom_traits.h
-@@ -126,6 +126,11 @@ struct BLINK_COMMON_EXPORT
+@@ -128,6 +128,11 @@ struct BLINK_COMMON_EXPORT
      return data.enable_do_not_track;
    }
  
@@ -670,7 +670,7 @@ diff --git a/third_party/blink/public/common/renderer_preferences/renderer_prefe
 diff --git a/third_party/blink/public/mojom/renderer_preferences.mojom b/third_party/blink/public/mojom/renderer_preferences.mojom
 --- a/third_party/blink/public/mojom/renderer_preferences.mojom
 +++ b/third_party/blink/public/mojom/renderer_preferences.mojom
-@@ -88,6 +88,8 @@ struct RendererPreferences {
+@@ -89,6 +89,8 @@ struct RendererPreferences {
    // Set to true to indicate that the preference to set DNT to 1 is enabled.
    bool enable_do_not_track = false;
  
@@ -682,7 +682,7 @@ diff --git a/third_party/blink/public/mojom/renderer_preferences.mojom b/third_p
 diff --git a/third_party/blink/renderer/bindings/idl_in_modules.gni b/third_party/blink/renderer/bindings/idl_in_modules.gni
 --- a/third_party/blink/renderer/bindings/idl_in_modules.gni
 +++ b/third_party/blink/renderer/bindings/idl_in_modules.gni
-@@ -1275,6 +1275,11 @@ static_idl_files_in_modules = [
+@@ -1288,6 +1288,11 @@ static_idl_files_in_modules = [
    "//third_party/blink/renderer/modules/xr/xr_webgl_sub_image.idl",
  ]
  
@@ -697,7 +697,7 @@ diff --git a/third_party/blink/renderer/bindings/idl_in_modules.gni b/third_part
 diff --git a/third_party/blink/renderer/core/exported/web_view_impl.cc b/third_party/blink/renderer/core/exported/web_view_impl.cc
 --- a/third_party/blink/renderer/core/exported/web_view_impl.cc
 +++ b/third_party/blink/renderer/core/exported/web_view_impl.cc
-@@ -3552,6 +3552,9 @@ void WebViewImpl::UpdateRendererPreferences(
+@@ -3560,6 +3560,9 @@ void WebViewImpl::UpdateRendererPreferences(
    GetSettings()->SetCaretBrowsingEnabled(
        renderer_preferences_.caret_browsing_enabled);
  
@@ -822,7 +822,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/url_loader/dedicat
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -2159,6 +2159,11 @@
+@@ -2756,6 +2756,11 @@
        status: "stable",
        base_feature: "none",
      },
@@ -832,7 +832,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 +      public: true,
 +    },
      {
-       name: "ForcedColorsPreserveParentColor",
+       name: "MediaSessionChapterInformation",
        status: "stable",
 -- 
 
