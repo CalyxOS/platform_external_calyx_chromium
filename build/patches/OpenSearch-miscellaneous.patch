@@ -13,13 +13,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I713872f2e56beb9ca412b7f6e5249832bdc497bc
 ---
- .../settings/SearchEngineAdapter.java         |  4 +-
- .../search_engine_tab_helper.cc               | 51 ++++++++++++++-----
- .../renderer/chrome_render_frame_observer.cc  |  2 +
- .../search_engines/template_url_fetcher.cc    | 24 +++++++--
+ .../settings/SearchEngineAdapter.java         |  4 ++-
+ .../search_engine_tab_helper.cc               | 35 ++++++++++++++-----
+ .../renderer/chrome_render_frame_observer.cc  |  2 ++
+ .../search_engines/template_url_fetcher.cc    | 24 ++++++++++---
  .../search_engines/template_url_parser.cc     |  2 +-
- .../search_engines/template_url_service.h     |  8 +--
- 6 files changed, 67 insertions(+), 24 deletions(-)
+ .../search_engines/template_url_service.h     |  8 ++---
+ 6 files changed, 56 insertions(+), 19 deletions(-)
 
 diff --git a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java b/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
 --- a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
@@ -46,42 +46,31 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
  #include "base/metrics/histogram_macros.h"
  #include "chrome/browser/favicon/favicon_utils.h"
  #include "chrome/browser/profiles/profile.h"
-@@ -46,8 +47,10 @@ void SearchEngineTabHelper::BindOpenSearchDescriptionDocumentHandler(
-     mojo::PendingReceiver<chrome::mojom::OpenSearchDescriptionDocumentHandler>
+@@ -47,6 +48,7 @@ void SearchEngineTabHelper::BindOpenSearchDescriptionDocumentHandler(
          receiver) {
    // Bind only for outermost main frames.
--  if (rfh->GetParentOrOuterDocument())
-+  if (rfh->GetParentOrOuterDocument()) {
+   if (rfh->GetParentOrOuterDocument()) {
 +    LOG(INFO) << "OpenSearch: not on main frame";
      return;
-+  }
- 
-   auto* web_contents = content::WebContents::FromRenderFrameHost(rfh);
-   if (!web_contents)
-@@ -73,16 +76,20 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
-     NavigationEntry* entry) {
-   // Don't autogenerate keywords for pages that are the result of form
-   // submissions.
--  if (IsFormSubmit(entry))
-+  if (IsFormSubmit(entry)) {
-+    LOG(INFO) << "OpenSearch: cannot generate keyword for a form submission for entry " << entry->GetURL();
-     return std::u16string();
-+  }
- 
-   // We want to use the user typed URL if available since that represents what
-   // the user typed to get here, and fall back on the regular URL if not.
-   GURL url = entry->GetUserTypedURL();
-   if (!url.is_valid()) {
-     url = entry->GetURL();
--    if (!url.is_valid())
-+    if (!url.is_valid()) {
-+      LOG(INFO) << "OpenSearch: user-typed/entry URL are invalid for entry " << entry->GetURL();
-       return std::u16string();
-+    }
    }
  
-   // Don't autogenerate keywords for referrers that
-@@ -90,10 +97,10 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
+@@ -77,6 +79,7 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
+   // Don't autogenerate keywords for pages that are the result of form
+   // submissions.
+   if (IsFormSubmit(entry)) {
++    LOG(INFO) << "OpenSearch: cannot generate keyword for a form submission for entry " << entry->GetURL();
+     return std::u16string();
+   }
+ 
+@@ -86,6 +89,7 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
+   if (!url.is_valid()) {
+     url = entry->GetURL();
+     if (!url.is_valid()) {
++      LOG(INFO) << "OpenSearch: user-typed/entry URL are invalid for entry " << entry->GetURL();
+       return std::u16string();
+     }
+   }
+@@ -95,10 +99,10 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
    // b) have a path.
    //
    // If we relax the path constraint, we need to be sure to sanitize the path
@@ -95,43 +84,35 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
      return std::u16string();
    }
  
-@@ -121,15 +128,18 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
-   // When |page_url| has file: scheme, this method doesn't work because of
+@@ -127,14 +131,15 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
    // http://b/issue?id=863583. For that reason, this doesn't check and allow
    // urls referring to osdd urls with same schemes.
--  if (!osdd_url.is_valid() || !osdd_url.SchemeIsHTTPOrHTTPS())
-+  if (!osdd_url.is_valid() || !osdd_url.SchemeIsHTTPOrHTTPS()) {
+   if (!osdd_url.is_valid() || !osdd_url.SchemeIsHTTPOrHTTPS()) {
 +    LOG(INFO) << "OpenSearch: not a valid OSDD URL " << osdd_url;
      return;
-+  }
+   }
  
    Profile* profile =
        Profile::FromBrowserContext(web_contents()->GetBrowserContext());
    if (page_url != web_contents()->GetLastCommittedURL() ||
 -      !TemplateURLFetcherFactory::GetForProfile(profile) ||
--      profile->IsOffTheRecord())
+-      profile->IsOffTheRecord()) {
 +      !TemplateURLFetcherFactory::GetForProfile(profile)) {
 +    LOG(INFO) << "OpenSearch: page URL mismatch on page " << page_url;
      return;
-+  }
+   }
  
-   // If the current page is a form submit, find the last page that was not a
-   // form submit and use its url to generate the keyword from.
-@@ -139,8 +149,10 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
-        (index > 0) && IsFormSubmit(entry);
-        entry = controller.GetEntryAtIndex(index))
+@@ -148,6 +153,7 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
      --index;
--  if (!entry || IsFormSubmit(entry))
-+  if (!entry || IsFormSubmit(entry)) {
+   }
+   if (!entry || IsFormSubmit(entry)) {
 +    LOG(INFO) << "OpenSearch: cannot find form submission for entry " << entry->GetURL();
      return;
-+  }
+   }
  
-   // Autogenerate a keyword for the autodetected case; in the other cases we'll
-   // generate a keyword later after fetching the OSDD.
-@@ -148,6 +160,12 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
-   if (keyword.empty())
+@@ -158,6 +164,12 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
      return;
+   }
  
 +  std::u16string page_keyword = TemplateURL::GenerateKeyword(page_url);
 +  if (page_keyword != keyword) {
@@ -142,7 +123,7 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
    auto* frame = web_contents()->GetPrimaryMainFrame();
    mojo::Remote<network::mojom::URLLoaderFactory> url_loader_factory;
    frame->CreateNetworkServiceDefaultFactory(
-@@ -155,6 +173,7 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
+@@ -165,6 +177,7 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
  
    // Download the OpenSearch description document. If this is successful, a
    // new keyword will be created when done.
@@ -150,16 +131,17 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
    TemplateURLFetcherFactory::GetForProfile(profile)->ScheduleDownload(
        keyword, osdd_url, entry->GetFavicon().url,
        frame->GetLastCommittedOrigin(), url_loader_factory.get(),
-@@ -196,11 +215,18 @@ void SearchEngineTabHelper::GenerateKeywordIfNecessary(
-   if (last_index <= 0)
+@@ -210,12 +223,19 @@ void SearchEngineTabHelper::GenerateKeywordIfNecessary(
      return;
+   }
  
 -  std::u16string keyword(GenerateKeywordFromNavigationEntry(
 -      controller.GetEntryAtIndex(last_index - 1)));
 +  NavigationEntry* entry = controller.GetEntryAtIndex(last_index - 1);
 +  std::u16string keyword(GenerateKeywordFromNavigationEntry(entry));
-   if (keyword.empty())
+   if (keyword.empty()) {
      return;
+   }
  
 +  GURL url = handle->GetSearchableFormURL();
 +  std::u16string page_keyword = TemplateURL::GenerateKeyword(url);
@@ -170,15 +152,15 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
 +
    TemplateURLService* url_service =
        TemplateURLServiceFactory::GetForProfile(profile);
-   if (!url_service)
-@@ -211,7 +237,6 @@ void SearchEngineTabHelper::GenerateKeywordIfNecessary(
+   if (!url_service) {
+@@ -227,7 +247,6 @@ void SearchEngineTabHelper::GenerateKeywordIfNecessary(
      return;
    }
  
 -  GURL url = handle->GetSearchableFormURL();
-   if (!url_service->CanAddAutogeneratedKeyword(keyword, url))
+   if (!url_service->CanAddAutogeneratedKeyword(keyword, url)) {
      return;
- 
+   }
 diff --git a/chrome/renderer/chrome_render_frame_observer.cc b/chrome/renderer/chrome_render_frame_observer.cc
 --- a/chrome/renderer/chrome_render_frame_observer.cc
 +++ b/chrome/renderer/chrome_render_frame_observer.cc
@@ -254,7 +236,7 @@ diff --git a/components/search_engines/template_url_parser.cc b/components/searc
 diff --git a/components/search_engines/template_url_service.h b/components/search_engines/template_url_service.h
 --- a/components/search_engines/template_url_service.h
 +++ b/components/search_engines/template_url_service.h
-@@ -356,7 +356,10 @@ class TemplateURLService final : public WebDataServiceConsumer,
+@@ -362,7 +362,10 @@ class TemplateURLService final : public WebDataServiceConsumer,
    void UpdateProviderFavicons(const GURL& potential_search_url,
                                const GURL& favicon_url);
  
@@ -266,7 +248,7 @@ diff --git a/components/search_engines/template_url_service.h b/components/searc
    // regardless of |url| if the default search provider is managed by policy or
    // controlled by an extension.
    bool CanMakeDefault(const TemplateURL* url) const;
-@@ -769,9 +772,6 @@ class TemplateURLService final : public WebDataServiceConsumer,
+@@ -776,9 +779,6 @@ class TemplateURLService final : public WebDataServiceConsumer,
    // SetKeywordSearchTermsForURL is invoked.
    void UpdateKeywordSearchTermsForURL(const URLVisitedDetails& details);
  
