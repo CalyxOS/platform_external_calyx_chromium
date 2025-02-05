@@ -8,9 +8,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 
 Change-Id: I152a6713d12ebc4764e9a7bba1c101a17a88c393
 ---
- .../android/java/res/xml/main_preferences.xml |  21 ---
- .../chrome/browser/settings/MainSettings.java | 127 ------------------
- 2 files changed, 148 deletions(-)
+ .../android/java/res/xml/main_preferences.xml |  21 ----
+ .../chrome/browser/settings/MainSettings.java | 100 ------------------
+ 2 files changed, 121 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
@@ -46,28 +46,18 @@ diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/j
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
-@@ -53,8 +53,6 @@ import org.chromium.chrome.browser.signin.services.ProfileDataCache;
+@@ -52,8 +52,6 @@ import org.chromium.chrome.browser.signin.services.ProfileDataCache;
  import org.chromium.chrome.browser.signin.services.SigninManager;
  import org.chromium.chrome.browser.sync.SyncServiceFactory;
  import org.chromium.chrome.browser.sync.settings.ManageSyncSettings;
 -import org.chromium.chrome.browser.sync.settings.SignInPreference;
--import org.chromium.chrome.browser.sync.settings.SyncPromoPreference;
- import org.chromium.chrome.browser.sync.settings.SyncSettingsUtils;
+-import org.chromium.chrome.browser.sync.settings.SyncSettingsUtils;
  import org.chromium.chrome.browser.tab_group_sync.TabGroupSyncFeatures;
- import org.chromium.chrome.browser.tasks.tab_management.TabUiFeatureUtilities;
-@@ -64,7 +62,6 @@ import org.chromium.chrome.browser.tracing.settings.DeveloperSettings;
- import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
- import org.chromium.chrome.browser.ui.settings_promo_card.SettingsPromoCardPreference;
- import org.chromium.chrome.browser.ui.signin.SignOutCoordinator;
--import org.chromium.chrome.browser.ui.signin.SyncPromoController;
- import org.chromium.chrome.browser.ui.signin.account_picker.AccountPickerBottomSheetStrings;
- import org.chromium.components.autofill.AutofillFeatures;
- import org.chromium.components.browser_ui.settings.ChromeBasePreference;
-@@ -94,13 +91,7 @@ public class MainSettings extends ChromeBaseSettingsFragment
-         implements TemplateUrlService.LoadListener,
+ import org.chromium.chrome.browser.toolbar.ToolbarPositionController;
+ import org.chromium.chrome.browser.toolbar.adaptive.AdaptiveToolbarStatePredictor;
+@@ -87,11 +85,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
                  SyncService.SyncStateChangedListener,
                  SigninManager.SignInStateObserver {
--    public static final String PREF_SYNC_PROMO = "sync_promo";
      public static final String PREF_SETTINGS_PROMO_CARD = "settings_promo_card";
 -    public static final String PREF_ACCOUNT_AND_GOOGLE_SERVICES_SECTION =
 -            "account_and_google_services_section";
@@ -77,7 +67,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      public static final String PREF_BASICS_SECTION = "basics_section";
      public static final String PREF_SEARCH_ENGINE = "search_engine";
      public static final String PREF_PASSWORDS = "passwords";
-@@ -125,7 +116,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
+@@ -116,7 +109,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
      private final Map<String, Preference> mAllPreferences = new HashMap<>();
  
      private ManagedPreferenceDelegate mManagedPreferenceDelegate;
@@ -85,21 +75,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      private @Nullable PasswordCheck mPasswordCheck;
      private ObservableSupplier<ModalDialogManager> mModalDialogManagerSupplier;
      // TODO(crbug.com/343933167): This should be removed when the snackbar issue is addressed.
-@@ -218,47 +208,7 @@ public class MainSettings extends ChromeBaseSettingsFragment
-         ProfileDataCache profileDataCache =
+@@ -210,21 +202,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
                  ProfileDataCache.createWithDefaultImageSizeAndNoBadge(getContext());
          AccountManagerFacade accountManagerFacade = AccountManagerFacadeProvider.getInstance();
--        SigninManager signinManager = IdentityServicesProvider.get().getSigninManager(getProfile());
--        IdentityManager identityManager =
--                IdentityServicesProvider.get().getIdentityManager(getProfile());
--
--        AccountPickerBottomSheetStrings bottomSheetStrings =
--                new AccountPickerBottomSheetStrings.Builder(
--                                R.string.signin_account_picker_bottom_sheet_title)
--                        .build();
  
--        if (SigninFeatureMap.isEnabled(SigninFeatures.HIDE_SETTINGS_SIGN_IN_PROMO)
--                && ChromeFeatureList.isEnabled(ChromeFeatureList.DEFAULT_BROWSER_PROMO_ANDROID2)) {
+-        if (ChromeFeatureList.isEnabled(ChromeFeatureList.DEFAULT_BROWSER_PROMO_ANDROID2)) {
 -            // TODO(crbug.com/364906215): Define SettingsPromoCardPreference in the xml once
 -            // SyncPromoPreference is removed.
 -            SettingsPromoCardPreference settingsPromoCardPreference =
@@ -108,22 +88,6 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
 -            settingsPromoCardPreference.setKey(PREF_SETTINGS_PROMO_CARD);
 -            settingsPromoCardPreference.setOrder(0);
 -            getPreferenceScreen().addPreference(settingsPromoCardPreference);
--        } else {
--            SyncPromoPreference syncPromoPreference = new SyncPromoPreference(getContext(), null);
--            syncPromoPreference.setKey(PREF_SYNC_PROMO);
--            syncPromoPreference.setOrder(0);
--            syncPromoPreference.initialize(
--                    profileDataCache,
--                    accountManagerFacade,
--                    signinManager,
--                    identityManager,
--                    new SyncPromoController(
--                            getProfile(),
--                            bottomSheetStrings,
--                            SigninAccessPoint.SETTINGS,
--                            SyncConsentActivityLauncherImpl.get(),
--                            SigninAndHistorySyncActivityLauncherImpl.get()));
--            getPreferenceScreen().addPreference(syncPromoPreference);
 -        }
 -
 -        SignInPreference signInPreference = findPreference(PREF_SIGN_IN);
@@ -133,7 +97,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
          cachePreferences();
          updateAutofillPreferences();
          updatePlusAddressesPreference();
-@@ -339,7 +289,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
+@@ -305,7 +282,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
              Preference preference = getPreferenceScreen().getPreference(index);
              mAllPreferences.put(preference.getKey(), preference);
          }
@@ -141,7 +105,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      }
  
      private void setManagedPreferenceDelegateForPreference(String key) {
-@@ -355,15 +304,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
+@@ -320,15 +296,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
              promoCardPreference.updatePreferences();
          }
  
@@ -157,7 +121,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
          updateSearchEnginePreference();
          updateAutofillPreferences();
          updatePlusAddressesPreference();
-@@ -419,72 +359,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
+@@ -383,72 +350,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
          if (preference != null) getPreferenceScreen().removePreference(preference);
      }
  
@@ -217,7 +181,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
 -                        // REPLACE_SYNC_PROMOS_WITH_SIGN_IN_PROMOS.
 -                        assert !ChromeFeatureList.isEnabled(
 -                                ChromeFeatureList.REPLACE_SYNC_PROMOS_WITH_SIGN_IN_PROMOS);
--                        SyncConsentActivityLauncherImpl.get()
+-                        SyncConsentActivityLauncherImpl.getForProfile(getProfile())
 -                                .launchActivityForPromoDefaultFlow(
 -                                        context,
 -                                        SigninAccessPoint.SETTINGS_SYNC_OFF_ROW,
@@ -230,7 +194,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      private void updateSearchEnginePreference() {
          TemplateUrlService templateUrlService =
                  TemplateUrlServiceFactory.getForProfile(getProfile());
-@@ -656,7 +530,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
+@@ -620,7 +521,6 @@ public class MainSettings extends ChromeBaseSettingsFragment
  
      @Override
      public void syncStateChanged() {
