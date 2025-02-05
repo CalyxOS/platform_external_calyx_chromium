@@ -6,8 +6,6 @@ Requires patch: Content-settings-infrastructure.patch
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I5310d06c287f8a0dab28756e54a4d63a7229ae15
 ---
  .../impl/BromiteWebRTCContentSetting.java     | 94 +++++++++++++++++++
  .../bromite_content_settings/webrtc.grdp      | 27 ++++++
@@ -189,7 +187,7 @@ new file mode 100644
 diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
 --- a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
-@@ -40,6 +40,7 @@
+@@ -41,6 +41,7 @@
  #include "third_party/blink/public/platform/modules/webrtc/webrtc_logging.h"
  #include "third_party/blink/public/platform/platform.h"
  #include "third_party/blink/public/platform/task_type.h"
@@ -197,22 +195,22 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_d
  #include "third_party/blink/public/platform/web_url.h"
  #include "third_party/blink/public/web/modules/mediastream/media_stream_video_source.h"
  #include "third_party/blink/public/web/web_document.h"
-@@ -879,6 +880,11 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
+@@ -936,6 +937,11 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
+       // |request_multiple_routes|. Whether local IP addresses could be
+       // collected depends on if mic/camera permission is granted for this
        // origin.
-       WebRTCIPHandlingPolicy policy =
-           GetWebRTCIPHandlingPolicy(webrtc_ip_handling_policy);
 +      blink::WebContentSettingsClient* settings = web_frame->GetContentSettingsClient();
 +      if (settings && settings->AllowContentSetting(ContentSettingsType::WEBRTC, false)) {
 +        policy = kDefault;
 +      }
 +
-       switch (policy) {
+       switch (webrtc_ip_handling_policy) {
          // TODO(guoweis): specify the flag of disabling local candidate
          // collection when webrtc is updated.
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
-@@ -12,6 +12,8 @@
+@@ -13,6 +13,8 @@
  #include "third_party/blink/public/common/privacy_budget/identifiable_surface.h"
  #include "third_party/blink/public/common/privacy_budget/identifiable_token_builder.h"
  #include "third_party/blink/public/platform/modules/webrtc/webrtc_logging.h"
@@ -221,7 +219,7 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.
  #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_insertable_streams.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_rtcp_parameters.h"
-@@ -283,6 +285,14 @@ RTCRtpCapabilities* RTCRtpReceiver::getCapabilities(ScriptState* state,
+@@ -284,6 +286,14 @@ RTCRtpCapabilities* RTCRtpReceiver::getCapabilities(ScriptState* state,
    if (kind != "audio" && kind != "video")
      return nullptr;
  
@@ -239,7 +237,7 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
-@@ -17,6 +17,8 @@
+@@ -18,6 +18,8 @@
  #include "third_party/blink/public/common/privacy_budget/identifiable_surface.h"
  #include "third_party/blink/public/common/privacy_budget/identifiable_token_builder.h"
  #include "third_party/blink/public/platform/modules/webrtc/webrtc_logging.h"
@@ -248,7 +246,7 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
  #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_encoding_options.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_insertable_streams.h"
-@@ -1030,6 +1032,14 @@ RTCRtpCapabilities* RTCRtpSender::getCapabilities(ScriptState* state,
+@@ -1031,6 +1033,14 @@ RTCRtpCapabilities* RTCRtpSender::getCapabilities(ScriptState* state,
    if (kind != "audio" && kind != "video")
      return nullptr;
  

@@ -3,23 +3,21 @@ Date: Tue, 12 Jun 2018 15:09:26 +0200
 Subject: Disable all promo dialogs
 
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
-
-Change-Id: I9e71112a185671ce7aae2f836840bf949597eb0a
 ---
- .../chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java     | 1 +
- chrome/browser/ui/browser_ui_prefs.cc                           | 2 +-
- .../views/profiles/profile_picker_feature_promo_controller.cc   | 1 +
- .../user_education/impl/browser_feature_promo_controller_20.cc  | 1 +
- .../chrome/browser/user_education/UserEducationHelper.java      | 1 +
- .../common/feature_promo/feature_promo_registry.cc              | 2 ++
- .../common/feature_promo/impl/feature_promo_controller_20.cc    | 1 +
- .../common/feature_promo/impl/feature_promo_controller_25.cc    | 1 +
- 8 files changed, 9 insertions(+), 1 deletion(-)
+ .../chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java    | 1 +
+ chrome/browser/ui/browser_ui_prefs.cc                          | 2 +-
+ .../views/profiles/profile_picker_feature_promo_controller.cc  | 1 +
+ .../user_education/impl/browser_feature_promo_controller_20.cc | 1 +
+ .../chrome/browser/user_education/UserEducationHelper.java     | 1 +
+ .../common/feature_promo/feature_promo_registry.cc             | 2 ++
+ .../common/feature_promo/impl/feature_promo_controller_20.cc   | 1 +
+ .../common/feature_promo/impl/feature_promo_controller_25.cc   | 3 ++-
+ 8 files changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
-@@ -1379,6 +1379,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -1465,6 +1465,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
      }
  
      private boolean maybeShowPromo(Profile profile) {
@@ -30,7 +28,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
 diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -148,7 +148,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -151,7 +151,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
  
    registry->RegisterBooleanPref(prefs::kEnterpriseHardwarePlatformAPIEnabled,
                                  false);
@@ -59,8 +57,8 @@ diff --git a/chrome/browser/ui/views/user_education/impl/browser_feature_promo_c
      ui::TrackedElement* anchor_element) const {
 +  if ((true)) return false;
    // Trying to show an IPH while the browser is closing can cause problems;
-   // see crbug.com/346461762 for an example.
-   if (browser_view_->browser()->IsBrowserClosing()) {
+   // see crbug.com/346461762 for an example. This can also crash unit_tests that
+   // use a BrowserWindow but not a browser, so also check if the browser view's
 diff --git a/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java b/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
 --- a/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
 +++ b/chrome/browser/user_education/java/src/org/chromium/chrome/browser/user_education/UserEducationHelper.java
@@ -94,7 +92,7 @@ diff --git a/components/user_education/common/feature_promo/feature_promo_regist
 diff --git a/components/user_education/common/feature_promo/impl/feature_promo_controller_20.cc b/components/user_education/common/feature_promo/impl/feature_promo_controller_20.cc
 --- a/components/user_education/common/feature_promo/impl/feature_promo_controller_20.cc
 +++ b/components/user_education/common/feature_promo/impl/feature_promo_controller_20.cc
-@@ -89,6 +89,7 @@ FeaturePromoResult FeaturePromoController20::CanShowPromoCommon(
+@@ -99,6 +99,7 @@ FeaturePromoResult FeaturePromoController20::CanShowPromoCommon(
      const FeaturePromoParams& params,
      ShowSource source,
      CanShowPromoOutputs* outputs) const {
@@ -105,13 +103,22 @@ diff --git a/components/user_education/common/feature_promo/impl/feature_promo_c
 diff --git a/components/user_education/common/feature_promo/impl/feature_promo_controller_25.cc b/components/user_education/common/feature_promo/impl/feature_promo_controller_25.cc
 --- a/components/user_education/common/feature_promo/impl/feature_promo_controller_25.cc
 +++ b/components/user_education/common/feature_promo/impl/feature_promo_controller_25.cc
-@@ -48,6 +48,7 @@ FeaturePromoResult FeaturePromoController25::CanShowPromoCommon(
-     const FeaturePromoParams& params,
-     ShowSource source,
-     CanShowPromoOutputs* outputs) const {
-+  if ((true)) return FeaturePromoResult::kBlockedByContext;
-   return FeaturePromoResult::kError;
- }
+@@ -172,6 +172,7 @@ FeaturePromoController25::~FeaturePromoController25() {
  
+ FeaturePromoResult FeaturePromoController25::CanShowPromo(
+     const FeaturePromoParams& params) const {
++  if ((true)) return FeaturePromoResult::kBlockedByContext;
+   auto* const spec = registry()->GetParamsForFeature(*params.feature);
+   return spec ? private_->queues.CanShow(*spec, params)
+               : FeaturePromoResult::kError;
+@@ -184,7 +185,7 @@ void FeaturePromoController25::MaybeShowStartupPromo(
+ 
+ void FeaturePromoController25::MaybeShowPromo(FeaturePromoParams params) {
+   auto* const spec = registry()->GetParamsForFeature(*params.feature);
+-  if (!spec) {
++  if (((true)) || !spec) {
+     PostShowPromoResult(std::move(params.show_promo_result_callback),
+                         FeaturePromoResult::kError);
+     return;
 -- 
 

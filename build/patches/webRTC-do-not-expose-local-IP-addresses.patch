@@ -9,46 +9,49 @@ See also:
 * https://github.com/bromite/bromite/issues/589
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: Ie7785ef845eb357c826f52593efe980d983b682e
 ---
- chrome/browser/ui/browser_ui_prefs.cc                       | 2 +-
- .../peerconnection/peer_connection_dependency_factory.cc    | 6 ++++--
- 2 files changed, 5 insertions(+), 3 deletions(-)
+ chrome/browser/ui/browser_ui_prefs.cc                        | 2 +-
+ .../blink/common/peerconnection/webrtc_ip_handling_policy.cc | 5 ++++-
+ .../peerconnection/peer_connection_dependency_factory.cc     | 2 +-
+ 3 files changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -107,7 +107,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -109,7 +109,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
                                  false);
  #endif
    registry->RegisterStringPref(prefs::kWebRTCIPHandlingPolicy,
 -                               blink::kWebRTCIPHandlingDefault);
 +                               blink::kWebRTCIPHandlingDisableNonProxiedUdp);
+   registry->RegisterListPref(prefs::kWebRTCIPHandlingUrl, base::Value::List());
    registry->RegisterStringPref(prefs::kWebRTCUDPPortRange, std::string());
    registry->RegisterBooleanPref(prefs::kWebRtcEventLogCollectionAllowed, false);
-   registry->RegisterListPref(prefs::kWebRtcLocalIpsAllowedUrls);
+diff --git a/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.cc b/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.cc
+--- a/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.cc
++++ b/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.cc
+@@ -30,7 +30,10 @@ blink::mojom::WebRtcIpHandlingPolicy ToWebRTCIPHandlingPolicy(
+   if (preference == kWebRTCIPHandlingDisableNonProxiedUdp) {
+     return blink::mojom::WebRtcIpHandlingPolicy::kDisableNonProxiedUdp;
+   }
+-  return blink::mojom::WebRtcIpHandlingPolicy::kDefault;
++  if (preference == kWebRTCIPHandlingDefault) {
++    return blink::mojom::WebRtcIpHandlingPolicy::kDefault;
++  }
++  return blink::mojom::WebRtcIpHandlingPolicy::kkDisableNonProxiedUdp;
+ }
+ 
+ const char* ToString(blink::mojom::WebRtcIpHandlingPolicy policy) {
 diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
 --- a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
-@@ -120,7 +120,9 @@ WebRTCIPHandlingPolicy GetWebRTCIPHandlingPolicy(const String& preference) {
-     return kDefaultPublicInterfaceOnly;
-   if (preference == kWebRTCIPHandlingDisableNonProxiedUdp)
-     return kDisableNonProxiedUdp;
--  return kDefault;
-+  if (preference == kWebRTCIPHandlingDefault)
-+    return kDefault;
-+  return kDisableNonProxiedUdp;
- }
- 
- bool IsValidPortRange(uint16_t min_port, uint16_t max_port) {
-@@ -897,7 +899,7 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
+@@ -959,7 +959,7 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
            break;
        }
  
--      VLOG(3) << "WebRTC routing preferences: "
-+      LOG(INFO) << "WebRTC routing preferences: "
-               << "policy: " << policy
+-      VLOG(3) << "WebRTC routing preferences: " << "policy: "
++      LOG(INFO) << "WebRTC routing preferences: " << "policy: "
+               << ToString(webrtc_ip_handling_policy)
                << ", multiple_routes: " << port_config.enable_multiple_routes
                << ", nonproxied_udp: " << port_config.enable_nonproxied_udp
 -- 

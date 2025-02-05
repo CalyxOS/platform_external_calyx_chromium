@@ -6,8 +6,6 @@ Enable secure mode by default
 Always enforce DoH even with inconsistent system DNS configuration
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: I22497a1236fa58ac934eb0591cc18b6e593b314e
 ---
  chrome/browser/net/secure_dns_config.cc               |  2 +-
  chrome/browser/net/secure_dns_util.cc                 |  2 +-
@@ -141,13 +139,13 @@ diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
 diff --git a/net/dns/public/doh_provider_entry.cc b/net/dns/public/doh_provider_entry.cc
 --- a/net/dns/public/doh_provider_entry.cc
 +++ b/net/dns/public/doh_provider_entry.cc
-@@ -350,16 +350,13 @@ DohProviderEntry::DohProviderEntry(
+@@ -371,16 +371,13 @@ DohProviderEntry::DohProviderEntry(
        doh_server_config(
            ParseValidDohTemplate(std::move(dns_over_https_template),
-                                 std::move(dns_over_https_server_ip_strs))),
--      ui_name(std::move(ui_name)),
-+      ui_name_cromite(std::move(ui_name)),
-       privacy_policy(std::move(privacy_policy)),
+                                 dns_over_https_server_ip_strs)),
+-      ui_name(ui_name),
++      ui_name_cromite(ui_name),
+       privacy_policy(privacy_policy),
 -      display_globally(display_globally),
 +      display_globally(true),
        display_countries(std::move(display_countries)),
@@ -164,23 +162,23 @@ diff --git a/net/dns/public/doh_provider_entry.cc b/net/dns/public/doh_provider_
 diff --git a/net/dns/public/doh_provider_entry.h b/net/dns/public/doh_provider_entry.h
 --- a/net/dns/public/doh_provider_entry.h
 +++ b/net/dns/public/doh_provider_entry.h
-@@ -55,7 +55,7 @@ struct NET_EXPORT DohProviderEntry {
+@@ -58,7 +58,7 @@ struct NET_EXPORT DohProviderEntry {
    std::set<IPAddress> ip_addresses;
-   std::set<std::string> dns_over_tls_hostnames;
+   base::flat_set<std::string_view> dns_over_tls_hostnames;
    DnsOverHttpsServerConfig doh_server_config;
--  std::string ui_name;
-+  std::string ui_name_cromite;
-   std::string privacy_policy;
+-  std::string_view ui_name;
++  std::string_view ui_name_cromite;
+   std::string_view privacy_policy;
    bool display_globally;
-   std::set<std::string> display_countries;
-@@ -95,7 +95,7 @@ struct NET_EXPORT DohProviderEntry {
-       std::set<std::string_view> dns_over_53_server_ip_strs,
-       std::set<std::string> dns_over_tls_hostnames,
+   base::flat_set<std::string> display_countries;
+@@ -75,7 +75,7 @@ struct NET_EXPORT DohProviderEntry {
+       std::initializer_list<std::string_view> dns_over_53_server_ip_strs,
+       base::flat_set<std::string_view> dns_over_tls_hostnames,
        std::string dns_over_https_template,
--      std::string ui_name,
-+      std::string ui_name_cromite,
-       std::string privacy_policy,
+-      std::string_view ui_name,
++      std::string_view ui_name_cromite,
+       std::string_view privacy_policy,
        bool display_globally,
-       std::set<std::string> display_countries,
+       base::flat_set<std::string> display_countries,
 -- 
 

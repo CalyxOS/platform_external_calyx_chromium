@@ -2,7 +2,6 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Fri, 9 Jun 2023 15:11:46 +0000
 Subject: bromite build utils
 
-Change-Id: I341ca819f305782864b36de15b42e2da3849897d
 ---
  build/android/gyp/java_cpp_enum.py            |  36 +++++-
  build/android/gyp/util/build_utils.py         |  25 +++-
@@ -34,7 +33,7 @@ Change-Id: I341ca819f305782864b36de15b42e2da3849897d
 diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enum.py
 --- a/build/android/gyp/java_cpp_enum.py
 +++ b/build/android/gyp/java_cpp_enum.py
-@@ -173,6 +173,7 @@ class DirectiveSet:
+@@ -209,6 +209,7 @@ class DirectiveSet:
  
  
  class HeaderParser:
@@ -42,7 +41,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
    single_line_comment_re = re.compile(r'\s*//\s*([^\n]*)')
    multi_line_comment_start_re = re.compile(r'\s*/\*')
    enum_line_re = re.compile(r'^\s*(\w+)(\s*\=\s*([^,\n]+))?,?')
-@@ -200,7 +201,7 @@ class HeaderParser:
+@@ -237,7 +238,7 @@ class HeaderParser:
    enum_single_line_re = re.compile(
        r'^\s*(?:\[cpp.*\])?\s*enum.*{(?P<enum_entries>.*)}.*$')
  
@@ -51,15 +50,15 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      self._lines = lines
      self._path = path
      self._enum_definitions = []
-@@ -217,6 +218,7 @@ class HeaderParser:
+@@ -254,6 +255,7 @@ class HeaderParser:
      self._generator_directives = DirectiveSet()
      self._multi_line_generator_directive = None
      self._current_enum_entry = ''
 +    self._options = options
  
    def _ShouldIgnoreLine(self):
-     return self._in_preprocessor_block and not self._in_buildflag_android
-@@ -260,6 +262,24 @@ class HeaderParser:
+     return self._in_preprocessor_block and not all(self._in_buildflag_android)
+@@ -296,6 +298,24 @@ class HeaderParser:
        raise Exception('Multi-line comments in enums are not supported in ' +
                        self._path)
  
@@ -84,7 +83,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      enum_comment = HeaderParser.single_line_comment_re.match(line)
      if enum_comment:
        comment = enum_comment.groups()[0]
-@@ -360,9 +380,9 @@ class HeaderParser:
+@@ -396,9 +416,9 @@ class HeaderParser:
          self._ParseSingleLineEnum(single_line_enum.group('enum_entries'))
  
  
@@ -96,7 +95,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      if not enum_definitions:
        raise Exception('No enums found in %s\n'
                        'Did you forget prefixing enums with '
-@@ -375,9 +395,9 @@ def DoGenerate(source_paths):
+@@ -411,9 +431,9 @@ def DoGenerate(source_paths):
        yield output_path, output
  
  
@@ -108,7 +107,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
  
  
  def GenerateOutput(source_path, enum_definition):
-@@ -456,6 +476,10 @@ def DoMain(argv):
+@@ -493,6 +513,10 @@ def DoMain(argv):
    parser.add_option('--srcjar',
                      help='When specified, a .srcjar at the given path is '
                      'created instead of individual .java files.')
@@ -119,7 +118,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
  
    options, args = parser.parse_args(argv)
  
-@@ -465,7 +489,7 @@ def DoMain(argv):
+@@ -502,7 +526,7 @@ def DoMain(argv):
  
    with action_helpers.atomic_output(options.srcjar) as f:
      with zipfile.ZipFile(f, 'w', zipfile.ZIP_STORED) as srcjar:
@@ -427,7 +426,7 @@ new file mode 100644
 diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
 --- a/build/config/BUILDCONFIG.gn
 +++ b/build/config/BUILDCONFIG.gn
-@@ -734,6 +734,7 @@ set_defaults("component") {
+@@ -735,6 +735,7 @@ set_defaults("component") {
    configs = default_component_configs
  }
  
@@ -461,7 +460,7 @@ diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
-@@ -10,6 +10,11 @@ import org.chromium.components.browser_ui.accessibility.AccessibilitySettingsDel
+@@ -13,6 +13,11 @@ import org.chromium.components.browser_ui.settings.SettingsNavigation;
  import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.content_public.browser.BrowserContextHandle;
  
@@ -486,7 +485,7 @@ diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
-@@ -30,7 +31,8 @@ android_library("java") {
+@@ -31,7 +32,8 @@ android_library("java") {
  }
  
  generate_jni("jni_headers") {
@@ -496,7 +495,7 @@ diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
    ]
-@@ -38,6 +40,10 @@ generate_jni("jni_headers") {
+@@ -39,6 +41,10 @@ generate_jni("jni_headers") {
  
  static_library("flags_android") {
    sources = [

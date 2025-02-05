@@ -3,8 +3,6 @@ Date: Sun, 14 Apr 2024 07:35:57 +0000
 Subject: Revert remove AllowScript content settings per secondary url
 
 https://chromium-review.googlesource.com/c/chromium/src/+/5307559
-
-Change-Id: I33552e9becf86e353f133250885fff59b30e7dd3
 ---
  .../worker_content_settings_client.cc         | 35 +++++++++++++++++
  .../renderer/worker_content_settings_client.h |  2 +
@@ -83,7 +81,7 @@ diff --git a/chrome/renderer/worker_content_settings_client.h b/chrome/renderer/
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -166,7 +166,7 @@ void ContentSettingsAgentImpl::DidCommitProvisionalLoad(
+@@ -165,7 +165,7 @@ void ContentSettingsAgentImpl::DidCommitProvisionalLoad(
    // `allowPlugins()` is called for the new page so that these functions can
    // correctly detect that a piece of content flipped from "not blocked" to
    // "blocked".
@@ -92,7 +90,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
  
    blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
    if (frame->Parent())
-@@ -377,6 +377,41 @@ bool ContentSettingsAgentImpl::AllowImage(bool enabled_per_settings,
+@@ -379,6 +379,41 @@ bool ContentSettingsAgentImpl::AllowImage(bool enabled_per_settings,
    return allow;
  }
  
@@ -134,7 +132,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
  bool ContentSettingsAgentImpl::AllowReadFromClipboard() {
    return delegate_->AllowReadFromClipboard();
  }
-@@ -435,6 +470,7 @@ void ContentSettingsAgentImpl::DidNotAllowImage() {
+@@ -437,6 +472,7 @@ void ContentSettingsAgentImpl::DidNotAllowImage() {
  void ContentSettingsAgentImpl::ClearBlockedContentSettings() {
    content_blocked_.clear();
    cached_storage_permissions_.clear();
@@ -198,7 +196,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
  #include "third_party/blink/renderer/bindings/core/v8/binding_security.h"
  #include "third_party/blink/renderer/bindings/core/v8/capture_source_location.h"
  #include "third_party/blink/renderer/bindings/core/v8/isolated_world_csp.h"
-@@ -487,7 +488,10 @@ bool LocalDOMWindow::CanExecuteScripts(
+@@ -488,7 +489,10 @@ bool LocalDOMWindow::CanExecuteScripts(
      }
      return false;
    }
@@ -213,7 +211,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
-@@ -4066,19 +4066,6 @@ bool LocalFrame::IsSameOrigin() {
+@@ -4068,19 +4068,6 @@ bool LocalFrame::IsSameOrigin() {
    return security_origin->IsSameOriginWith(top_security_origin);
  }
  
@@ -236,7 +234,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
-@@ -928,12 +928,6 @@ class CORE_EXPORT LocalFrame final
+@@ -929,12 +929,6 @@ class CORE_EXPORT LocalFrame final
      return *v8_local_compile_hints_producer_;
    }
  
@@ -252,7 +250,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/b
 diff --git a/third_party/blink/renderer/core/html/html_meta_element.cc b/third_party/blink/renderer/core/html/html_meta_element.cc
 --- a/third_party/blink/renderer/core/html/html_meta_element.cc
 +++ b/third_party/blink/renderer/core/html/html_meta_element.cc
-@@ -786,7 +786,9 @@ void HTMLMetaElement::ProcessMetaCH(Document& document,
+@@ -780,7 +780,9 @@ void HTMLMetaElement::ProcessMetaCH(Document& document,
      return;
    }
  
@@ -266,7 +264,7 @@ diff --git a/third_party/blink/renderer/core/html/html_meta_element.cc b/third_p
 diff --git a/third_party/blink/renderer/core/loader/base_fetch_context.cc b/third_party/blink/renderer/core/loader/base_fetch_context.cc
 --- a/third_party/blink/renderer/core/loader/base_fetch_context.cc
 +++ b/third_party/blink/renderer/core/loader/base_fetch_context.cc
-@@ -256,7 +256,7 @@ BaseFetchContext::CanRequestInternal(
+@@ -255,7 +255,7 @@ BaseFetchContext::CanRequestInternal(
    }
  
    if (type == ResourceType::kScript) {
@@ -300,7 +298,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.cc b/thi
      return;
    }
  
-@@ -933,15 +934,26 @@ void FrameFetchContext::SetFirstPartyCookie(ResourceRequest& request) {
+@@ -964,15 +965,26 @@ void FrameFetchContext::SetFirstPartyCookie(ResourceRequest& request) {
      request.SetSiteForCookies(GetSiteForCookies());
  }
  
