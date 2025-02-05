@@ -19,50 +19,16 @@ we now behave as we did when they were disabled, prior to their removal:
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 Change-Id: Ie9b492700a5112e280b90652eae69735239a9d9f
 ---
- chrome/browser/cart/cart_service.cc                    |  1 -
- chrome/browser/cart/fetch_discount_worker.cc           |  6 +-----
  chrome/browser/ui/BUILD.gn                             |  6 ------
  .../views/page_action/page_action_icon_controller.cc   |  6 ------
  components/commerce/core/BUILD.gn                      |  2 --
  components/commerce/core/commerce_feature_list.cc      | 10 ++++++++++
- 6 files changed, 11 insertions(+), 20 deletions(-)
+ 4 files changed, 10 insertions(+), 14 deletions(-)
 
-diff --git a/chrome/browser/cart/cart_service.cc b/chrome/browser/cart/cart_service.cc
---- a/chrome/browser/cart/cart_service.cc
-+++ b/chrome/browser/cart/cart_service.cc
-@@ -490,7 +490,6 @@ void CartService::ShouldShowDiscountConsentCallback(
-     for (auto proto_pair : proto_pairs) {
-       auto cart_url = proto_pair.second.merchant_cart_url();
-       should_show |= commerce::IsPartnerMerchant(GURL(cart_url));
--      should_show |= !commerce::IsNoDiscountMerchant(GURL(cart_url));
-     }
- 
-     if (base::FeatureList::IsEnabled(commerce::kDiscountConsentV2)) {
-diff --git a/chrome/browser/cart/fetch_discount_worker.cc b/chrome/browser/cart/fetch_discount_worker.cc
---- a/chrome/browser/cart/fetch_discount_worker.cc
-+++ b/chrome/browser/cart/fetch_discount_worker.cc
-@@ -150,16 +150,12 @@ void FetchDiscountWorker::ReadyToFetch(
-   // If there is no eligible merchant cart, don't fetch immediately; instead,
-   // post another delayed fetch.
-   bool has_partner_merchant = false;
--  bool has_potential_merchant = false;
-   for (auto pair : proto_pairs) {
-     auto cart_url = pair.second.merchant_cart_url();
-     bool is_partner_merchant = commerce::IsPartnerMerchant(GURL(cart_url));
--    bool is_potential_merchant =
--        !commerce::IsNoDiscountMerchant(GURL(cart_url));
-     has_partner_merchant |= is_partner_merchant;
--    has_potential_merchant |= is_potential_merchant;
-   }
--  if (has_partner_merchant || has_potential_merchant) {
-+  if (has_partner_merchant) {
-     backend_task_runner_->PostTask(
-         FROM_HERE,
-         base::BindOnce(
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -3904,12 +3904,6 @@ static_library("ui") {
+@@ -3853,12 +3853,6 @@ static_library("ui") {
        "views/chrome_web_dialog_view.h",
        "views/color_provider_browser_helper.cc",
        "views/color_provider_browser_helper.h",
@@ -72,13 +38,13 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 -      "views/commerce/discounts_coupon_code_label_view.h",
 -      "views/commerce/discounts_icon_view.cc",
 -      "views/commerce/discounts_icon_view.h",
-       "views/commerce/ntp_discount_consent_dialog_view.cc",
-       "views/commerce/ntp_discount_consent_dialog_view.h",
        "views/commerce/price_insights_icon_view.cc",
+       "views/commerce/price_insights_icon_view.h",
+       "views/commerce/price_tracking_bubble_dialog_view.cc",
 diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
 --- a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
 +++ b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
-@@ -25,7 +25,6 @@
+@@ -26,7 +26,6 @@
  #include "chrome/browser/ui/views/autofill/payments/offer_notification_icon_view.h"
  #include "chrome/browser/ui/views/autofill/payments/save_payment_icon_view.h"
  #include "chrome/browser/ui/views/autofill/payments/virtual_card_enroll_icon_view.h"
@@ -86,7 +52,7 @@ diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc 
  #include "chrome/browser/ui/views/commerce/price_insights_icon_view.h"
  #include "chrome/browser/ui/views/commerce/price_tracking_icon_view.h"
  #include "chrome/browser/ui/views/commerce/product_specifications_icon_view.h"
-@@ -129,11 +128,6 @@ void PageActionIconController::Init(const PageActionIconParams& params,
+@@ -135,11 +134,6 @@ void PageActionIconController::Init(const PageActionIconParams& params,
                        params.browser, params.icon_label_bubble_delegate,
                        params.page_action_icon_delegate));
          break;
@@ -101,7 +67,7 @@ diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc 
 diff --git a/components/commerce/core/BUILD.gn b/components/commerce/core/BUILD.gn
 --- a/components/commerce/core/BUILD.gn
 +++ b/components/commerce/core/BUILD.gn
-@@ -81,8 +81,6 @@ source_set("feature_list_unittests") {
+@@ -74,8 +74,6 @@ source_set("feature_list_unittests") {
  
  static_library("metrics") {
    sources = [
@@ -113,9 +79,9 @@ diff --git a/components/commerce/core/BUILD.gn b/components/commerce/core/BUILD.
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -385,6 +385,16 @@ BASE_FEATURE(kParcelTrackingRegionLaunched,
-              "ParcelTrackingRegionLaunched",
-              base::FEATURE_DISABLED_BY_DEFAULT);
+@@ -366,6 +366,16 @@ BASE_FEATURE(kCommerceDeveloper,
+ 
+ const char kRetailCouponsWithCodeParam[] = "RetailCouponsWithCodeParam";
  
 +SET_CROMITE_FEATURE_DISABLED(kCommerceHintAndroid);
 +SET_CROMITE_FEATURE_DISABLED(kCommercePriceTrackingRegionLaunched);
@@ -127,8 +93,8 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
 +SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApi);
 +SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApiRegionLaunched);
 +
- // Params for Discount Consent V2 in the NTP Cart module.
- const char kNtpChromeCartModuleDiscountConsentNtpVariationParam[] =
-     "discount-consent-ntp-variation";
+ // Params use for Discount Consent v2.
+ BASE_FEATURE(kDiscountConsentV2,
+              "DiscountConsentV2",
 -- 
 
