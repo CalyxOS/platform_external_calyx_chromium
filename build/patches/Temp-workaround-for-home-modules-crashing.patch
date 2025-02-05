@@ -1,0 +1,49 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 13 Feb 2025 18:24:34 +0000
+Subject: Temp workaround for home modules crashing
+
+These are still leading to crashes, even following the change entitled
+"Disable additional segmentation platform features." For now, we shall
+strip out the crashing code -- which we have been expecting *shouldn't*
+run, anyway, given that we disabled their feature flags -- from the
+individual crash sites until there is more time to figure out a better
+way to fix this.
+
+Notably, the "Your last tab" card still works sometimes. I'm not
+entirely sure what triggers it to appear for us, but it must not be
+totally broken as a result of this change and the aforementioned one,
+because I have seen it on multiple occasions. Perhaps that card isn't
+even a "home module". More research is needed.
+
+Change-Id: Ie0aadd2cc507c355c1e93066521e4294f867538b
+---
+ .../embedder/home_modules/home_modules_card_registry.cc        | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/components/segmentation_platform/embedder/home_modules/home_modules_card_registry.cc b/components/segmentation_platform/embedder/home_modules/home_modules_card_registry.cc
+--- a/components/segmentation_platform/embedder/home_modules/home_modules_card_registry.cc
++++ b/components/segmentation_platform/embedder/home_modules/home_modules_card_registry.cc
+@@ -201,6 +201,7 @@ bool HomeModulesCardRegistry::IsEphemeralTipsModuleLabel(
+ }
+ 
+ void HomeModulesCardRegistry::NotifyCardShown(const char* card_name) {
++#if false // we don't like crashing
+ #if BUILDFLAG(IS_IOS)
+   if (strcmp(card_name, kPriceTrackingNotificationPromo) == 0) {
+     int freshness_impression_count =
+@@ -270,11 +271,13 @@ void HomeModulesCardRegistry::NotifyCardShown(const char* card_name) {
+     }
+     }
+ #endif
++#endif // we don't like crashing
+ }
+ 
+ #if BUILDFLAG(IS_ANDROID)
+ bool HomeModulesCardRegistry::ShouldNotifyCardShownPerSession(
+     const std::string& card_name) {
++  if ((true)) return false; // we don't like crashing
+   if (shown_in_current_session_.find(card_name) !=
+       shown_in_current_session_.end()) {
+     return false;
+-- 
+
