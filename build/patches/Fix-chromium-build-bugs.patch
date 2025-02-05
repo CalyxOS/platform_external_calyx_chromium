@@ -8,13 +8,8 @@ https://bugs.chromium.org/p/chromium/issues/detail?id=1491776#c10
 Change-Id: I9afc6e66b4ab03ccf33ec9b73dcb4e821906da07
 ---
  BUILD.gn                                           |  1 -
- chrome/browser/extensions/api/BUILD.gn             |  1 -
  .../navigation_predictor_metrics_document_data.h   |  2 ++
  chrome/browser/safe_browsing/BUILD.gn              |  1 +
- chrome/browser/ui/browser_commands.cc              |  1 +
- chrome/browser/ui/lens/lens_overlay_controller.cc  |  1 +
- .../webid/fedcm_account_selection_view_desktop.cc  |  1 +
- .../ui/webui/searchbox/searchbox_handler.cc        |  1 +
  .../component_updater/installer_policies/BUILD.gn  |  1 +
  .../omnibox/browser/autocomplete_classifier.cc     |  4 ++--
  components/omnibox/browser/omnibox_field_trial.cc  |  4 ++--
@@ -22,12 +17,13 @@ Change-Id: I9afc6e66b4ab03ccf33ec9b73dcb4e821906da07
  .../phishing_classifier/phishing_image_embedder.cc | 14 +++-----------
  content/browser/browser_interface_binders.cc       |  1 +
  net/BUILD.gn                                       |  1 +
- 15 files changed, 18 insertions(+), 17 deletions(-)
+ services/webnn/dml/graph_impl_dml.cc               |  2 ++
+ 11 files changed, 16 insertions(+), 16 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -425,7 +425,6 @@ group("gn_all") {
+@@ -427,7 +427,6 @@ group("gn_all") {
            "//android_webview:empty_group",
            "//android_webview/test",
            "//android_webview/tools/automated_ui_tests:webview_ui_test_app_test_apk",
@@ -35,17 +31,6 @@ diff --git a/BUILD.gn b/BUILD.gn
            "//android_webview/tools/sdk_sandbox",
            "//android_webview/tools/system_webview_shell",
            "//chrome/android:chrome_junit_tests",
-diff --git a/chrome/browser/extensions/api/BUILD.gn b/chrome/browser/extensions/api/BUILD.gn
---- a/chrome/browser/extensions/api/BUILD.gn
-+++ b/chrome/browser/extensions/api/BUILD.gn
-@@ -38,7 +38,6 @@ group("api_implementations") {
-     "//chrome/browser/extensions/api/extension_action",
-     "//chrome/browser/extensions/api/font_settings",
-     "//chrome/browser/extensions/api/idltest",
--    "//chrome/browser/extensions/api/mdns",
-     "//chrome/browser/extensions/api/module",
-     "//chrome/browser/extensions/api/networking_private",
-     "//chrome/browser/extensions/api/notifications",
 diff --git a/chrome/browser/navigation_predictor/navigation_predictor_metrics_document_data.h b/chrome/browser/navigation_predictor/navigation_predictor_metrics_document_data.h
 --- a/chrome/browser/navigation_predictor/navigation_predictor_metrics_document_data.h
 +++ b/chrome/browser/navigation_predictor/navigation_predictor_metrics_document_data.h
@@ -61,7 +46,7 @@ diff --git a/chrome/browser/navigation_predictor/navigation_predictor_metrics_do
 diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsing/BUILD.gn
 --- a/chrome/browser/safe_browsing/BUILD.gn
 +++ b/chrome/browser/safe_browsing/BUILD.gn
-@@ -217,6 +217,7 @@ static_library("safe_browsing") {
+@@ -226,6 +226,7 @@ static_library("safe_browsing") {
        "//components/webdata/common",
        "//content/public/browser",
        "//services/preferences/public/mojom:mojom",
@@ -69,54 +54,10 @@ diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsin
      ]
  
      allow_circular_includes_from += [ "//chrome/browser/ui/safety_hub" ]
-diff --git a/chrome/browser/ui/browser_commands.cc b/chrome/browser/ui/browser_commands.cc
---- a/chrome/browser/ui/browser_commands.cc
-+++ b/chrome/browser/ui/browser_commands.cc
-@@ -5,6 +5,7 @@
- #include "chrome/browser/ui/browser_commands.h"
- 
- #include <memory>
-+#include <numeric>
- #include <optional>
- #include <utility>
- #include <vector>
-diff --git a/chrome/browser/ui/lens/lens_overlay_controller.cc b/chrome/browser/ui/lens/lens_overlay_controller.cc
---- a/chrome/browser/ui/lens/lens_overlay_controller.cc
-+++ b/chrome/browser/ui/lens/lens_overlay_controller.cc
-@@ -15,6 +15,7 @@
- #include "base/system/sys_info.h"
- #include "base/task/bind_post_task.h"
- #include "base/task/sequenced_task_runner.h"
-+#include "base/task/thread_pool.h"
- #include "chrome/browser/feedback/show_feedback_page.h"
- #include "chrome/browser/lens/core/mojom/geometry.mojom.h"
- #include "chrome/browser/lens/core/mojom/overlay_object.mojom.h"
-diff --git a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
---- a/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
-+++ b/chrome/browser/ui/views/webid/fedcm_account_selection_view_desktop.cc
-@@ -8,6 +8,7 @@
- #include "base/functional/bind.h"
- #include "base/metrics/histogram_functions.h"
- #include "base/metrics/histogram_macros.h"
-+#include "base/metrics/histogram_functions.h"
- #include "chrome/browser/accessibility/accessibility_state_utils.h"
- #include "chrome/browser/net/system_network_context_manager.h"
- #include "chrome/browser/ui/browser_finder.h"
-diff --git a/chrome/browser/ui/webui/searchbox/searchbox_handler.cc b/chrome/browser/ui/webui/searchbox/searchbox_handler.cc
---- a/chrome/browser/ui/webui/searchbox/searchbox_handler.cc
-+++ b/chrome/browser/ui/webui/searchbox/searchbox_handler.cc
-@@ -6,6 +6,7 @@
- 
- #include "base/base64.h"
- #include "base/base64url.h"
-+#include "base/containers/contains.h"
- #include "build/branding_buildflags.h"
- #include "chrome/browser/bookmarks/bookmark_model_factory.h"
- #include "chrome/browser/browser_process.h"
 diff --git a/components/component_updater/installer_policies/BUILD.gn b/components/component_updater/installer_policies/BUILD.gn
 --- a/components/component_updater/installer_policies/BUILD.gn
 +++ b/components/component_updater/installer_policies/BUILD.gn
-@@ -45,6 +45,7 @@ static_library("installer_policies_no_content_deps") {
+@@ -47,6 +47,7 @@ static_library("installer_policies_no_content_deps") {
      "//components/update_client",
      "//mojo/public/cpp/base:protobuf_support",
      "//services/network/public/cpp",
@@ -127,7 +68,7 @@ diff --git a/components/component_updater/installer_policies/BUILD.gn b/componen
 diff --git a/components/omnibox/browser/autocomplete_classifier.cc b/components/omnibox/browser/autocomplete_classifier.cc
 --- a/components/omnibox/browser/autocomplete_classifier.cc
 +++ b/components/omnibox/browser/autocomplete_classifier.cc
-@@ -96,8 +96,8 @@ void AutocompleteClassifier::Classify(
+@@ -110,8 +110,8 @@ void AutocompleteClassifier::Classify(
      metrics::OmniboxEventProto::PageClassification page_classification,
      AutocompleteMatch* match,
      GURL* alternate_nav_url) {
@@ -158,7 +99,7 @@ diff --git a/components/omnibox/browser/omnibox_field_trial.cc b/components/omni
 diff --git a/components/plus_addresses/BUILD.gn b/components/plus_addresses/BUILD.gn
 --- a/components/plus_addresses/BUILD.gn
 +++ b/components/plus_addresses/BUILD.gn
-@@ -127,6 +127,7 @@ source_set("plus_addresses") {
+@@ -128,6 +128,7 @@ source_set("plus_addresses") {
      "//services/data_decoder/public/cpp",
      "//services/network/public/cpp",
      "//ui/base",
@@ -193,7 +134,7 @@ diff --git a/components/safe_browsing/content/renderer/phishing_classifier/phish
 diff --git a/content/browser/browser_interface_binders.cc b/content/browser/browser_interface_binders.cc
 --- a/content/browser/browser_interface_binders.cc
 +++ b/content/browser/browser_interface_binders.cc
-@@ -362,6 +362,7 @@ void BindDateTimeChooserForFrame(
+@@ -365,6 +365,7 @@ void BindDateTimeChooserForFrame(
  void BindTextSuggestionHostForFrame(
      RenderFrameHost* host,
      mojo::PendingReceiver<blink::mojom::TextSuggestionHost> receiver) {
@@ -204,7 +145,7 @@ diff --git a/content/browser/browser_interface_binders.cc b/content/browser/brow
 diff --git a/net/BUILD.gn b/net/BUILD.gn
 --- a/net/BUILD.gn
 +++ b/net/BUILD.gn
-@@ -1728,6 +1728,7 @@ component("net") {
+@@ -1738,6 +1738,7 @@ component("net") {
    if (!is_cronet_build) {
      deps += [ "//mojo/public/cpp/bindings:default_construct_tag" ]
    }
@@ -212,5 +153,24 @@ diff --git a/net/BUILD.gn b/net/BUILD.gn
  }
  
  # net_export.h has its own build target so that code (eg
+diff --git a/services/webnn/dml/graph_impl_dml.cc b/services/webnn/dml/graph_impl_dml.cc
+--- a/services/webnn/dml/graph_impl_dml.cc
++++ b/services/webnn/dml/graph_impl_dml.cc
+@@ -281,6 +281,7 @@ std::optional<AlignedByteLength<uint64_t>> CalculateAlignedByteLength(
+ }
+ 
+ // Same as above, but given a map of names to descriptors.
++[[maybe_unused]]
+ std::optional<AlignedByteLength<std::string>>
+ CalculateAlignedByteLengthFromDescriptors(
+     const base::flat_map<std::string, OperandDescriptor>&
+@@ -389,6 +390,7 @@ UploadAndCreateConstantBufferBinding(
+   return key_to_buffer_binding_map;
+ }
+ 
++[[maybe_unused]]
+ HRESULT MapAndCopyInputDataToBuffer(
+     const base::flat_map<std::string, mojo_base::BigBuffer>& named_inputs,
+     const std::map<std::string, D3D12_RANGE>& input_name_to_d3d12_range_map,
 -- 
 

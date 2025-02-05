@@ -18,7 +18,7 @@ Change-Id: I04b24400b97b1a8e4857b3a8be693746fd782eeb
 diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
 --- a/chrome/android/java/res/menu/main_menu.xml
 +++ b/chrome/android/java/res/menu/main_menu.xml
-@@ -160,6 +160,9 @@ found in the LICENSE file.
+@@ -163,6 +163,9 @@ found in the LICENSE file.
          <item android:id="@+id/managed_by_menu_id"
              android:title="@string/managed_browser"
              android:icon="@drawable/ic_business" />
@@ -28,7 +28,7 @@ diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/re
      </group>
  
      <!-- Items shown only in the tab switcher -->
-@@ -189,6 +192,9 @@ found in the LICENSE file.
+@@ -192,6 +195,9 @@ found in the LICENSE file.
          <item android:id="@id/preferences_id"
              android:title="@string/menu_settings"
              android:icon="@drawable/settings_cog" />
@@ -41,7 +41,7 @@ diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/re
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -276,6 +276,8 @@ import java.util.Set;
+@@ -292,6 +292,8 @@ import java.util.Set;
  import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.DoubleConsumer;
  
@@ -50,9 +50,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
  /**
   * This is the main activity for ChromeMobile when not running in document mode. All the tabs are
   * accessible via a chrome specific tab switching UI.
-@@ -2887,6 +2889,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
-         } else if (id == R.id.close_tab) {
-             getCurrentTabModel().closeTabs(TabClosureParams.closeTab(currentTab).build());
+@@ -3000,6 +3002,8 @@ public class ChromeTabbedActivity extends ChromeActivity implements MismatchedIn
+                     .closeTabs(
+                             TabClosureParams.closeTab(currentTab).build(), /* allowDialog= */ true);
              RecordUserAction.record("MobileTabClosed");
 +        } else if (id == R.id.exit_id) {
 +            ApplicationLifetime.terminate(false);
@@ -62,15 +62,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -60,6 +60,7 @@ import org.chromium.base.supplier.UnownedUserDataSupplier;
- import org.chromium.chrome.R;
+@@ -61,6 +61,7 @@ import org.chromium.chrome.R;
  import org.chromium.chrome.browser.ActivityTabProvider;
  import org.chromium.chrome.browser.ActivityUtils;
+ import org.chromium.chrome.browser.AppHooks;
 +import org.chromium.chrome.browser.lifetime.ApplicationLifetime;
  import org.chromium.chrome.browser.ChromeActivitySessionTracker;
  import org.chromium.chrome.browser.ChromeApplicationImpl;
  import org.chromium.chrome.browser.ChromeKeyboardVisibilityDelegate;
-@@ -2432,6 +2433,11 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -2374,6 +2375,11 @@ public abstract class ChromeActivity extends AsyncInitializationActivity
              return true;
          }
  
@@ -104,7 +104,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeLife
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -4385,6 +4385,9 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
+@@ -4388,6 +4388,9 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
        <message name="IDS_MENU_AUTO_DARK_WEB_CONTENTS" desc="Menu item in Chrome's overflow/options menu. When Chrome's browser UI is set to dark theme and this option is checked, sites will have a dark theme automatically applied as well. [CHAR_LIMIT=24]">
          Dark theme
        </message>

@@ -81,9 +81,9 @@ new file mode 100644
 diff --git a/net/http/http_network_session.cc b/net/http/http_network_session.cc
 --- a/net/http/http_network_session.cc
 +++ b/net/http/http_network_session.cc
-@@ -222,6 +222,7 @@ HttpNetworkSession::HttpNetworkSession(const HttpNetworkSessionParams& params,
+@@ -223,6 +223,7 @@ HttpNetworkSession::HttpNetworkSession(const HttpNetworkSessionParams& params,
  
-   next_protos_.push_back(kProtoHTTP11);
+   next_protos_.push_back(NextProto::kProtoHTTP11);
  
 +  DCHECK(context.quic_context->params()->max_server_configs_stored_in_properties == 0);
    http_server_properties_->SetMaxServerConfigsStoredInProperties(
@@ -100,7 +100,7 @@ diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
  #include "url/gurl.h"
  #include "url/scheme_host_port.h"
  #include "url/url_constants.h"
-@@ -250,6 +251,38 @@ void LogUsingExistingSession(const NetLogWithSource& request_net_log,
+@@ -332,6 +333,38 @@ void LogSessionKeyMismatch(QuicSessionKeyPartialMatchResult result,
  
  }  // namespace
  
@@ -139,7 +139,7 @@ diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
  QuicSessionRequest::QuicSessionRequest(QuicSessionPool* pool) : pool_(pool) {}
  
  QuicSessionRequest::~QuicSessionRequest() {
-@@ -2122,7 +2155,7 @@ QuicSessionPool::CreateCryptoConfigHandle(
+@@ -2229,7 +2262,7 @@ QuicSessionPool::CreateCryptoConfigHandle(
                cert_verifier_, transport_security_state_, sct_auditing_delegate_,
                HostsFromOrigins(params_.origins_to_force_quic_on),
                actual_network_anonymization_key),
@@ -151,7 +151,7 @@ diff --git a/net/quic/quic_session_pool.cc b/net/quic/quic_session_pool.cc
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -283,7 +283,33 @@ SSLClientSocketImpl::SSLClientSocketImpl(
+@@ -284,7 +284,33 @@ SSLClientSocketImpl::SSLClientSocketImpl(
    CHECK(context_);
  }
  
@@ -185,7 +185,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    Disconnect();
  }
  
-@@ -670,6 +696,8 @@ int SSLClientSocketImpl::Init() {
+@@ -671,6 +697,8 @@ int SSLClientSocketImpl::Init() {
      }
      if (session)
        SSL_set_session(ssl_.get(), session.get());
@@ -194,7 +194,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    }
  
    transport_adapter_ = std::make_unique<SocketBIOAdapter>(
-@@ -956,6 +984,35 @@ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
+@@ -957,6 +985,35 @@ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
                      : SSLHandshakeDetails::kTLS13Full;
      }
    }
@@ -230,7 +230,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    UMA_HISTOGRAM_ENUMERATION("Net.SSLHandshakeDetails", details);
  
    // Measure TLS connections that implement the renegotiation_info and EMS
-@@ -1584,6 +1641,8 @@ bool SSLClientSocketImpl::IsRenegotiationAllowed() const {
+@@ -1588,6 +1645,8 @@ bool SSLClientSocketImpl::IsRenegotiationAllowed() const {
  }
  
  bool SSLClientSocketImpl::IsCachingEnabled() const {
@@ -242,7 +242,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
-@@ -125,6 +125,8 @@ class SSLClientSocketImpl : public SSLClientSocket,
+@@ -123,6 +123,8 @@ class SSLClientSocketImpl : public SSLClientSocket,
    friend class SSLClientSocket;
    friend class SSLContext;
  

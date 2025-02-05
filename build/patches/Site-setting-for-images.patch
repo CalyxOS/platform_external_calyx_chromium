@@ -273,7 +273,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -362,6 +362,21 @@ bool ContentSettingsAgentImpl::AllowStorageAccessSync(
+@@ -364,6 +364,21 @@ bool ContentSettingsAgentImpl::AllowStorageAccessSync(
    return result;
  }
  
@@ -325,7 +325,7 @@ diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/t
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
-@@ -4053,19 +4053,6 @@ bool LocalFrame::IsSameOrigin() {
+@@ -4055,19 +4055,6 @@ bool LocalFrame::IsSameOrigin() {
    return security_origin->IsSameOriginWith(top_security_origin);
  }
  
@@ -348,7 +348,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
-@@ -927,12 +927,6 @@ class CORE_EXPORT LocalFrame final
+@@ -928,12 +928,6 @@ class CORE_EXPORT LocalFrame final
      return *v8_local_compile_hints_producer_;
    }
  
@@ -426,7 +426,7 @@ diff --git a/third_party/blink/renderer/core/loader/frame_fetch_context.h b/thir
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -1017,9 +1017,8 @@ void Page::SettingsChanged(ChangeType change_type) {
+@@ -1033,9 +1033,8 @@ void Page::SettingsChanged(ChangeType change_type) {
        for (Frame* frame = MainFrame(); frame;
             frame = frame->Tree().TraverseNext()) {
          if (auto* local_frame = DynamicTo<LocalFrame>(frame)) {
@@ -453,7 +453,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/fetch_context.h b/
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
-@@ -798,6 +798,7 @@ ResourceFetcher::ResourceFetcher(const ResourceFetcherInit& init)
+@@ -818,6 +818,7 @@ ResourceFetcher::ResourceFetcher(const ResourceFetcherInit& init)
        blob_registry_remote_(init.context_lifecycle_notifier),
        context_lifecycle_notifier_(init.context_lifecycle_notifier),
        auto_load_images_(true),
@@ -461,7 +461,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
        allow_stale_resources_(false),
        image_fetched_(false),
        transparent_image_optimization_enabled_(base::FeatureList::IsEnabled(
-@@ -1961,7 +1962,7 @@ bool ResourceFetcher::IsImageResourceDisallowedToBeReused(
+@@ -1980,7 +1981,7 @@ bool ResourceFetcher::IsImageResourceDisallowedToBeReused(
      return false;
    }
  
@@ -470,7 +470,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
  }
  
  ResourceFetcher::RevalidationPolicy
-@@ -2206,8 +2207,20 @@ void ResourceFetcher::SetAutoLoadImages(bool enable) {
+@@ -2225,8 +2226,20 @@ void ResourceFetcher::SetAutoLoadImages(bool enable) {
    ReloadImagesIfNotDeferred();
  }
  
@@ -503,9 +503,9 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
  
    FetchContext& Context() const;
    void ClearContext();
-@@ -698,6 +699,7 @@ class PLATFORM_EXPORT ResourceFetcher
+@@ -697,6 +698,7 @@ class PLATFORM_EXPORT ResourceFetcher
+   bool is_in_request_resource_ = false;
  
-   // 27 bits left
    bool auto_load_images_ : 1;
 +  bool images_enabled_ : 1;
    bool allow_stale_resources_ : 1;
