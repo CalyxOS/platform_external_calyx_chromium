@@ -17,7 +17,7 @@ Change-Id: I3843dce4ce3ee107f36de0aec45607602c3f526d
 diff --git a/base/android/content_uri_utils.cc b/base/android/content_uri_utils.cc
 --- a/base/android/content_uri_utils.cc
 +++ b/base/android/content_uri_utils.cc
-@@ -130,6 +130,16 @@ void JNI_ContentUriUtils_AddFileInfoToVector(
+@@ -119,6 +119,16 @@ void JNI_ContentUriUtils_AddFileInfoToVector(JNIEnv* env,
                         Time::FromMillisecondsSinceUnixEpoch(last_modified));
  }
  
@@ -33,7 +33,7 @@ diff --git a/base/android/content_uri_utils.cc b/base/android/content_uri_utils.
 +
  std::string GetContentUriMimeType(const FilePath& content_uri) {
    JNIEnv* env = android::AttachCurrentThread();
-   ScopedJavaLocalRef<jstring> j_mime =
+   return Java_ContentUriUtils_getMimeType(env, content_uri.value());
 diff --git a/base/android/content_uri_utils.h b/base/android/content_uri_utils.h
 --- a/base/android/content_uri_utils.h
 +++ b/base/android/content_uri_utils.h
@@ -51,7 +51,7 @@ diff --git a/base/android/content_uri_utils.h b/base/android/content_uri_utils.h
 diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base/android/java/src/org/chromium/base/ContentUriUtils.java
 --- a/base/android/java/src/org/chromium/base/ContentUriUtils.java
 +++ b/base/android/java/src/org/chromium/base/ContentUriUtils.java
-@@ -10,6 +10,7 @@ import android.content.res.AssetFileDescriptor;
+@@ -12,6 +12,7 @@ import android.content.res.AssetFileDescriptor;
  import android.database.Cursor;
  import android.net.Uri;
  import android.os.Build;
@@ -59,7 +59,7 @@ diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base
  import android.provider.DocumentsContract;
  import android.provider.MediaStore;
  import android.text.TextUtils;
-@@ -26,6 +27,9 @@ import org.jni_zero.NativeMethods;
+@@ -30,6 +31,9 @@ import org.chromium.build.annotations.Nullable;
  import java.io.IOException;
  import java.util.List;
  
@@ -68,8 +68,8 @@ diff --git a/base/android/java/src/org/chromium/base/ContentUriUtils.java b/base
 +
  /** This class provides methods to access content URI schemes. */
  @JNINamespace("base")
- public abstract class ContentUriUtils {
-@@ -59,6 +63,36 @@ public abstract class ContentUriUtils {
+ @NullMarked
+@@ -64,6 +68,36 @@ public abstract class ContentUriUtils {
          return -1;
      }
  
