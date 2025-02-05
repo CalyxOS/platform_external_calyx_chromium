@@ -2,17 +2,19 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Sat, 9 Apr 2022 21:43:35 +0200
 Subject: Disable crash reporting
 
+
 Change-Id: I4038e160b194d731c369c314f241814c83551d96
 ---
  chrome/browser/chrome_content_browser_client.cc          | 9 ---------
- .../content_features_cc/Disable-crash-reporting.inc      | 1 +
- 2 files changed, 1 insertion(+), 9 deletions(-)
- create mode 100644 cromite_flags/content/public/common/content_features_cc/Disable-crash-reporting.inc
+ content/browser/renderer_host/render_frame_host_impl.cc  | 1 +
+ content/browser/web_contents/web_contents_impl.cc        | 2 +-
+ .../controller/javascript_call_stack_collector.cc        | 2 +-
+ 4 files changed, 3 insertions(+), 11 deletions(-)
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -2745,15 +2745,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
+@@ -2710,15 +2710,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
          base::NumberToString(pid));
    }
  #endif
@@ -28,11 +30,40 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
  #endif
  
    if (logging::DialogsAreSuppressed())
-diff --git a/cromite_flags/content/public/common/content_features_cc/Disable-crash-reporting.inc b/cromite_flags/content/public/common/content_features_cc/Disable-crash-reporting.inc
-new file mode 100644
---- /dev/null
-+++ b/cromite_flags/content/public/common/content_features_cc/Disable-crash-reporting.inc
-@@ -0,0 +1 @@
-+SET_CROMITE_FEATURE_DISABLED(kCrashReporting);
+diff --git a/content/browser/renderer_host/render_frame_host_impl.cc b/content/browser/renderer_host/render_frame_host_impl.cc
+--- a/content/browser/renderer_host/render_frame_host_impl.cc
++++ b/content/browser/renderer_host/render_frame_host_impl.cc
+@@ -15205,6 +15205,7 @@ void RenderFrameHostImpl::OnSameDocumentCommitProcessed(
+ void RenderFrameHostImpl::MaybeGenerateCrashReport(
+     base::TerminationStatus status,
+     int exit_code) {
++  if ((true)) return;
+   if (!last_committed_url_.SchemeIsHTTPOrHTTPS())
+     return;
+ 
+diff --git a/content/browser/web_contents/web_contents_impl.cc b/content/browser/web_contents/web_contents_impl.cc
+--- a/content/browser/web_contents/web_contents_impl.cc
++++ b/content/browser/web_contents/web_contents_impl.cc
+@@ -9713,7 +9713,7 @@ void WebContentsImpl::RendererUnresponsive(
+   base::UmaHistogramEnumeration(
+       "ReportingAndNEL.UnresponsiveRenderer.CrashReportOutcome", outcome);
+ 
+-  if (base::FeatureList::IsEnabled(
++  if (((false)) && base::FeatureList::IsEnabled(
+           blink::features::kDocumentPolicyIncludeJSCallStacksInCrashReports) &&
+       this->GetLastCommittedURL().SchemeIsHTTPOrHTTPS()) {
+     RenderProcessHost* rph = render_widget_host->GetProcess();
+diff --git a/third_party/blink/renderer/controller/javascript_call_stack_collector.cc b/third_party/blink/renderer/controller/javascript_call_stack_collector.cc
+--- a/third_party/blink/renderer/controller/javascript_call_stack_collector.cc
++++ b/third_party/blink/renderer/controller/javascript_call_stack_collector.cc
+@@ -84,7 +84,7 @@ void GenerateJavaScriptCallStack(v8::Isolate* isolate, void* data) {
+     return;
+   }
+   ExecutionContext* execution_context = ToExecutionContext(script_state);
+-  if (!RuntimeEnabledFeatures::
++  if (((true)) || !RuntimeEnabledFeatures::
+           DocumentPolicyIncludeJSCallStacksInCrashReportsEnabled(
+               execution_context)) {
+     PostHandleCollectedCallStackTask(collector, builder);
 -- 
 
