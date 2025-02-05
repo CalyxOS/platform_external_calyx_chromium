@@ -1,0 +1,48 @@
+From: Artem Samoilenko <artem@brave.com>
+Date: Mon, 16 Dec 2024 09:27:22 -0500
+Subject: [Android] Clean up stale WebNFC flag
+
+~~~
+CalyxOS porting note: This change disables WebNFC now that the flag
+has been removed. The mechanism is copied from brave-core:
+https://github.com/brave/brave-core/commit/624228f9f9e5d45065fd9e0cdbcd4d2b4bb9e8ba
+
+Original authorship has been retained.
+
+Please see the added 'Requires:' field as well for prereq patch.
+
+TODO: Remove NFC permission from manifest, as Brave has done?
+- tommy
+~~~
+
+Chromium change:
+https://chromium.googlesource.com/chromium/src/+/b3e20ab0b3bdb7cdafb69c4d30c377fc42a410a6
+
+Code Health: Clean up stale WebNFC flag
+
+This feature flag has been enabled by default for atleast 10 milestones
+and is safe to remove.
+
+Requires: Add-UnRegister-to-WebsiteSettingsRegistry.patch
+Fixed: 356624525
+Change-Id: Ief6cf3d14c62fac9412836fc09c429d98ed10f78
+---
+ .../core/browser/content_settings_registry.cc                 | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
+--- a/components/content_settings/core/browser/content_settings_registry.cc
++++ b/components/content_settings/core/browser/content_settings_registry.cc
+@@ -495,7 +495,9 @@ void ContentSettingsRegistry::Init() {
+ 
+   // The "nfc" name should not be used in the future to avoid name collisions.
+   // See crbug.com/1275576
+-  Register(ContentSettingsType::NFC, "nfc-devices", CONTENT_SETTING_ASK,
++  content_settings_info_.erase(ContentSettingsType::NFC);
++  website_settings_registry_->UnRegister(ContentSettingsType::NFC);
++  Register(ContentSettingsType::NFC, "nfc-devices", CONTENT_SETTING_BLOCK, // disabled in Brave
+            WebsiteSettingsInfo::UNSYNCABLE, /*allowlisted_primary_schemes=*/{},
+            /*valid_settings=*/
+            {CONTENT_SETTING_ALLOW, CONTENT_SETTING_ASK, CONTENT_SETTING_BLOCK},
+-- 
+
