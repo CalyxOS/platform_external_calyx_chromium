@@ -1,0 +1,153 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Wed, 12 Feb 2025 10:21:14 +0000
+Subject: Disable WebNFC as done in Brave
+
+Since the upstream flag for disabling WebNFC has been removed in M133,
+in order to maintain our previous behavior in which sites cannot access
+NDEFReader, extra measures are necessary to disable WebNFC. In addition,
+we remove the NFC permission from the manifest and update expectations.
+
+While I have no specific concerns about WebNFC, I also see no compelling
+reason to support it, so I am following the Brave security team's lead.
+
+This is a combination of 4 commits. Adaptations were made as necessary.
+
+Patch 1: Add UnRegister to WebsiteSettingsRegistry
+    Source: https://github.com/brave/brave-core/commit/8cdd6dc31fd198ab2db38b1579aba1819fa3c303
+    From: Anthony Tseng <darkdh@gmail.com>
+    Date: Wed, 1 Aug 2018 11:34:35 -0700
+    Subject: Use BraveInit() to unregister and register the default registry value
+
+Patch 2: Disable WebNFC by default in content settings
+    Source: https://github.com/brave/brave-core/commit/624228f9f9e5d45065fd9e0cdbcd4d2b4bb9e8ba
+    From: Artem Samoilenko <artem@brave.com>
+    Date: Mon, 16 Dec 2024 09:27:22 -0500
+    Subject: [Android] Clean up stale WebNFC flag
+
+    Chromium change:
+    https://chromium.googlesource.com/chromium/src/+/b3e20ab0b3bdb7cdafb69c4d30c377fc42a410a6
+
+    Code Health: Clean up stale WebNFC flag
+
+    This feature flag has been enabled by default for atleast 10 milestones
+    and is safe to remove.
+
+    Fixed: 356624525
+
+Patch 3: Disable WebNFC in blink
+    Source: https://github.com/brave/brave-core/commit/6b1b45fd35f871dc011fc0d0bc5bf4eb53caac26
+    From: mkarolin <max@brave.com>
+    Date: Tue, 2 Feb 2021 17:15:32 -0500
+    Subject: Disables WebNFC in blink.
+
+    Per security team request.
+
+Patch 4: Remove NFC permission
+    Source: https://github.com/brave/brave-core/commit/66e889849b85068021759d4cd47b440d2fd1c735
+    From: samartnik <artem@brave.com>
+    Date: Wed, 21 Apr 2021 08:54:56 -0400
+    Subject: [Android] Removed NFC permission
+
+    The only reason for that permission was WebNFC, which we disable in
+    BraveContentRendererClient.
+
+    Chromium change:
+    https://chromium.googlesource.com/chromium/src/+/c71455e8b8cff50e849e485793f67aee2ab84719
+
+    Add WebNFC support in WebLayer.
+
+    * Componentize NfcPermissionContext
+    * NfcPermissionContext::Delegate handles dependencies
+      that are not componentized and differences between Chrome and WebLayer
+    * Add NFC permission in //weblayer's AndroidManifest.xml
+    * Tested manually with https://googlechrome.github.io/samples/web-nfc/
+      to verify that Scan finds "Serial Number" and "Records" and Write
+      responds with "Message written"
+
+    Bug: 1178419
+
+Change-Id: I7b57dc2a146edff72894d2050be053e9b8d2d7ac
+---
+ ...rome_chrome_64_32_bundle__base.AndroidManifest.expected | 7 +++----
+ chrome/android/java/AndroidManifest.xml                    | 1 -
+ .../core/browser/content_settings_registry.cc              | 4 +++-
+ .../core/browser/website_settings_registry.h               | 1 +
+ content/child/runtime_features.cc                          | 1 +
+ 5 files changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/chrome/android/expectations/trichrome_chrome_64_32_bundle__base.AndroidManifest.expected b/chrome/android/expectations/trichrome_chrome_64_32_bundle__base.AndroidManifest.expected
+--- a/chrome/android/expectations/trichrome_chrome_64_32_bundle__base.AndroidManifest.expected
++++ b/chrome/android/expectations/trichrome_chrome_64_32_bundle__base.AndroidManifest.expected
+@@ -36,7 +36,6 @@
+   <uses-permission android:name="android.permission.INTERNET"/>
+   <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
+   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+-  <uses-permission android:name="android.permission.NFC"/>
+   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+   <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
+   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+@@ -120,12 +119,12 @@
+         android:exported="true">
+       <path-permission android:path="/bookmarks/search_suggest_query" android:readPermission="android.permission.GLOBAL_SEARCH"/>
+     </provider>  # DIFF-ANCHOR: 37f48914
+-    <provider  # DIFF-ANCHOR: 6e040436
+-        android:name="org.chromium.chrome.browser.provider.PageContentProvider"
++    <provider  # DIFF-ANCHOR: e38fc4ec
++        android:name="$PACKAGE.browser.provider.PageContentProvider"
+         android:authorities="$PACKAGE.PageContentProvider"
+         android:exported="false"
+         android:grantUriPermissions="true">
+-    </provider>  # DIFF-ANCHOR: 6e040436
++    </provider>  # DIFF-ANCHOR: e38fc4ec
+     <provider  # DIFF-ANCHOR: 8845e3f4
+         android:name="$PACKAGE.browser.util.ChromeFileProvider"
+         android:authorities="$PACKAGE.FileProvider"
+diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
+--- a/chrome/android/java/AndroidManifest.xml
++++ b/chrome/android/java/AndroidManifest.xml
+@@ -81,7 +81,6 @@ by a child template that "extends" this file.
+     <uses-permission android:name="android.permission.INTERNET"/>
+     <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
+     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+-    <uses-permission android:name="android.permission.NFC"/>
+     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
+--- a/components/content_settings/core/browser/content_settings_registry.cc
++++ b/components/content_settings/core/browser/content_settings_registry.cc
+@@ -495,7 +495,9 @@ void ContentSettingsRegistry::Init() {
+ 
+   // The "nfc" name should not be used in the future to avoid name collisions.
+   // See crbug.com/1275576
+-  Register(ContentSettingsType::NFC, "nfc-devices", CONTENT_SETTING_ASK,
++  content_settings_info_.erase(ContentSettingsType::NFC);
++  website_settings_registry_->UnRegister(ContentSettingsType::NFC);
++  Register(ContentSettingsType::NFC, "nfc-devices", CONTENT_SETTING_BLOCK, // disabled in Brave
+            WebsiteSettingsInfo::UNSYNCABLE, /*allowlisted_primary_schemes=*/{},
+            /*valid_settings=*/
+            {CONTENT_SETTING_ALLOW, CONTENT_SETTING_ASK, CONTENT_SETTING_BLOCK},
+diff --git a/components/content_settings/core/browser/website_settings_registry.h b/components/content_settings/core/browser/website_settings_registry.h
+--- a/components/content_settings/core/browser/website_settings_registry.h
++++ b/components/content_settings/core/browser/website_settings_registry.h
+@@ -78,6 +78,7 @@ class WebsiteSettingsRegistry {
+       WebsiteSettingsInfo::ScopingType scoping_type,
+       Platforms platforms,
+       WebsiteSettingsInfo::IncognitoBehavior incognito_behavior);
++  void UnRegister(ContentSettingsType type) {website_settings_info_.erase(type);}
+ 
+   const_iterator begin() const;
+   const_iterator end() const;
+diff --git a/content/child/runtime_features.cc b/content/child/runtime_features.cc
+--- a/content/child/runtime_features.cc
++++ b/content/child/runtime_features.cc
+@@ -534,6 +534,7 @@ void SetCustomizedRuntimeFeaturesFromCombinedArgs(
+       !command_line.HasSwitch(switches::kFingerprintingCanvasMeasureTextNoise));
+   WebRuntimeFeatures::EnableFingerprintingCanvasImageDataNoise(
+       !command_line.HasSwitch(switches::kFingerprintingCanvasImageDataNoise));
++  WebRuntimeFeatures::EnableWebNFC(false);  // disabled in Brave
+   // CAUTION: Only add custom enabling logic here if it cannot
+   // be covered by the other functions.
+ 
+-- 
+
