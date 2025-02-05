@@ -2,67 +2,25 @@ From: Tommy Webb <tommy@calyxinstitute.org>
 Date: Tue, 20 Feb 2024 15:20:48 +0000
 Subject: Disable commerce and discounts features
 
-TODO: Update selective copying for M128!
+Selectively copied from uazo/cromite's add-browser-policy.patch as of
+v133.0.6943.60-3fc3e3c23494d21b4bb997d1e408b25014ce973d.
 
-Selectively copied from:
-https://github.com/uazo/cromite/blob/0543a8a30b898b6a8c92b197b3f798ecd71dce6f/build/patches/add-browser-policy.patch
-
-Also adapted for the upstream removal of the following flags, for which
-we now behave as we did when they were disabled, prior to their removal:
-- kNtpHistoryClustersModulesDiscounts
-  - `f0c4460c2a3742970950378fd5d88a882c534ceb`
-- kShowDiscountOnNavigation
-  - `5da464c613d22ebabd3e72befd015a32f60d758d`
-- kMerchantWidePromotion
-  - `81089a83616b42c2d0ad6cb5213508ee5f4349d5`
+We take this file as-is from the patch:
+* components/commerce/core/commerce_feature_list.cc
 
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 Change-Id: Ie9b492700a5112e280b90652eae69735239a9d9f
 ---
- chrome/browser/cart/cart_service.cc                    |  1 -
- chrome/browser/cart/fetch_discount_worker.cc           |  6 +-----
- chrome/browser/ui/BUILD.gn                             |  6 ------
- .../views/page_action/page_action_icon_controller.cc   |  6 ------
- components/commerce/core/BUILD.gn                      |  2 --
- components/commerce/core/commerce_feature_list.cc      | 10 ++++++++++
- 6 files changed, 11 insertions(+), 20 deletions(-)
+ chrome/browser/ui/BUILD.gn                    |  6 --
+ .../page_action_icon_controller.cc            |  6 --
+ components/commerce/core/BUILD.gn             |  2 -
+ .../commerce/core/commerce_feature_list.cc    | 67 ++++---------------
+ 4 files changed, 13 insertions(+), 68 deletions(-)
 
-diff --git a/chrome/browser/cart/cart_service.cc b/chrome/browser/cart/cart_service.cc
---- a/chrome/browser/cart/cart_service.cc
-+++ b/chrome/browser/cart/cart_service.cc
-@@ -490,7 +490,6 @@ void CartService::ShouldShowDiscountConsentCallback(
-     for (auto proto_pair : proto_pairs) {
-       auto cart_url = proto_pair.second.merchant_cart_url();
-       should_show |= commerce::IsPartnerMerchant(GURL(cart_url));
--      should_show |= !commerce::IsNoDiscountMerchant(GURL(cart_url));
-     }
- 
-     if (base::FeatureList::IsEnabled(commerce::kDiscountConsentV2)) {
-diff --git a/chrome/browser/cart/fetch_discount_worker.cc b/chrome/browser/cart/fetch_discount_worker.cc
---- a/chrome/browser/cart/fetch_discount_worker.cc
-+++ b/chrome/browser/cart/fetch_discount_worker.cc
-@@ -150,16 +150,12 @@ void FetchDiscountWorker::ReadyToFetch(
-   // If there is no eligible merchant cart, don't fetch immediately; instead,
-   // post another delayed fetch.
-   bool has_partner_merchant = false;
--  bool has_potential_merchant = false;
-   for (auto pair : proto_pairs) {
-     auto cart_url = pair.second.merchant_cart_url();
-     bool is_partner_merchant = commerce::IsPartnerMerchant(GURL(cart_url));
--    bool is_potential_merchant =
--        !commerce::IsNoDiscountMerchant(GURL(cart_url));
-     has_partner_merchant |= is_partner_merchant;
--    has_potential_merchant |= is_potential_merchant;
-   }
--  if (has_partner_merchant || has_potential_merchant) {
-+  if (has_partner_merchant) {
-     backend_task_runner_->PostTask(
-         FROM_HERE,
-         base::BindOnce(
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -3904,12 +3904,6 @@ static_library("ui") {
+@@ -3853,12 +3853,6 @@ static_library("ui") {
        "views/chrome_web_dialog_view.h",
        "views/color_provider_browser_helper.cc",
        "views/color_provider_browser_helper.h",
@@ -72,13 +30,13 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 -      "views/commerce/discounts_coupon_code_label_view.h",
 -      "views/commerce/discounts_icon_view.cc",
 -      "views/commerce/discounts_icon_view.h",
-       "views/commerce/ntp_discount_consent_dialog_view.cc",
-       "views/commerce/ntp_discount_consent_dialog_view.h",
        "views/commerce/price_insights_icon_view.cc",
+       "views/commerce/price_insights_icon_view.h",
+       "views/commerce/price_tracking_bubble_dialog_view.cc",
 diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
 --- a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
 +++ b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
-@@ -25,7 +25,6 @@
+@@ -26,7 +26,6 @@
  #include "chrome/browser/ui/views/autofill/payments/offer_notification_icon_view.h"
  #include "chrome/browser/ui/views/autofill/payments/save_payment_icon_view.h"
  #include "chrome/browser/ui/views/autofill/payments/virtual_card_enroll_icon_view.h"
@@ -86,7 +44,7 @@ diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc 
  #include "chrome/browser/ui/views/commerce/price_insights_icon_view.h"
  #include "chrome/browser/ui/views/commerce/price_tracking_icon_view.h"
  #include "chrome/browser/ui/views/commerce/product_specifications_icon_view.h"
-@@ -129,11 +128,6 @@ void PageActionIconController::Init(const PageActionIconParams& params,
+@@ -135,11 +134,6 @@ void PageActionIconController::Init(const PageActionIconParams& params,
                        params.browser, params.icon_label_bubble_delegate,
                        params.page_action_icon_delegate));
          break;
@@ -101,7 +59,7 @@ diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc 
 diff --git a/components/commerce/core/BUILD.gn b/components/commerce/core/BUILD.gn
 --- a/components/commerce/core/BUILD.gn
 +++ b/components/commerce/core/BUILD.gn
-@@ -81,8 +81,6 @@ source_set("feature_list_unittests") {
+@@ -74,8 +74,6 @@ source_set("feature_list_unittests") {
  
  static_library("metrics") {
    sources = [
@@ -113,12 +71,104 @@ diff --git a/components/commerce/core/BUILD.gn b/components/commerce/core/BUILD.
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -385,6 +385,16 @@ BASE_FEATURE(kParcelTrackingRegionLaunched,
-              "ParcelTrackingRegionLaunched",
-              base::FEATURE_DISABLED_BY_DEFAULT);
+@@ -62,56 +62,6 @@ const CountryLocaleMap& GetAllowedCountryToLocaleMap() {
+   return *allowed_map;
+ }
  
-+SET_CROMITE_FEATURE_DISABLED(kCommerceHintAndroid);
-+SET_CROMITE_FEATURE_DISABLED(kCommercePriceTrackingRegionLaunched);
+-constexpr base::FeatureParam<std::string> kRulePartnerMerchantPattern{
+-    &ntp_features::kNtpChromeCartModule, "partner-merchant-pattern",
+-    // This regex does not match anything.
+-    "\\b\\B"};
+-
+-constexpr base::FeatureParam<std::string> kCouponPartnerMerchantPattern{
+-    &commerce::kRetailCoupons, "coupon-partner-merchant-pattern",
+-    // This regex does not match anything.
+-    "\\b\\B"};
+-
+-const re2::RE2& GetRulePartnerMerchantPattern() {
+-#if !BUILDFLAG(IS_ANDROID)
+-  auto* pattern_from_component =
+-      commerce_heuristics::CommerceHeuristicsData::GetInstance()
+-          .GetRuleDiscountPartnerMerchantPattern();
+-  if (pattern_from_component && kRulePartnerMerchantPattern.Get() ==
+-                                    kRulePartnerMerchantPattern.default_value) {
+-    CommerceHeuristicsDataMetricsHelper::RecordPartnerMerchantPatternSource(
+-        CommerceHeuristicsDataMetricsHelper::HeuristicsSource::FROM_COMPONENT);
+-    return *pattern_from_component;
+-  }
+-#endif  // !BUILDFLAG(IS_ANDROID)
+-  re2::RE2::Options options;
+-  options.set_case_sensitive(false);
+-  static base::NoDestructor<re2::RE2> instance(
+-      kRulePartnerMerchantPattern.Get(), options);
+-  CommerceHeuristicsDataMetricsHelper::RecordPartnerMerchantPatternSource(
+-      CommerceHeuristicsDataMetricsHelper::HeuristicsSource::
+-          FROM_FEATURE_PARAMETER);
+-  return *instance;
+-}
+-
+-const re2::RE2& GetCouponPartnerMerchantPattern() {
+-#if !BUILDFLAG(IS_ANDROID)
+-  auto* pattern_from_component =
+-      commerce_heuristics::CommerceHeuristicsData::GetInstance()
+-          .GetCouponDiscountPartnerMerchantPattern();
+-  if (pattern_from_component &&
+-      kCouponPartnerMerchantPattern.Get() ==
+-          kCouponPartnerMerchantPattern.default_value) {
+-    return *pattern_from_component;
+-  }
+-#endif  // !BUILDFLAG(IS_ANDROID)
+-  re2::RE2::Options options;
+-  options.set_case_sensitive(false);
+-  static base::NoDestructor<re2::RE2> instance(
+-      kCouponPartnerMerchantPattern.Get(), options);
+-  return *instance;
+-}
+-
+ }  // namespace
+ 
+ BASE_FEATURE(kCommerceAllowLocalImages,
+@@ -403,16 +353,15 @@ const base::FeatureParam<bool> kRevertIconOnFailure{
+     &kShoppingList, kRevertIconOnFailureParam, false};
+ 
+ bool IsPartnerMerchant(const GURL& url) {
+-  return commerce::IsCouponDiscountPartnerMerchant(url) ||
+-         IsRuleDiscountPartnerMerchant(url);
++  return false;
+ }
+ 
+ bool IsRuleDiscountPartnerMerchant(const GURL& url) {
+-  return RE2::PartialMatch(url.spec(), GetRulePartnerMerchantPattern());
++  return false;
+ }
+ 
+ bool IsCouponDiscountPartnerMerchant(const GURL& url) {
+-  return RE2::PartialMatch(url.spec(), GetCouponPartnerMerchantPattern());
++  return false;
+ }
+ 
+ bool IsCartDiscountFeatureEnabled() {
+@@ -465,6 +414,7 @@ bool IsRegionLockedFeatureEnabled(const base::Feature& feature,
+                                   const base::Feature& feature_region_launched,
+                                   const std::string& country_code,
+                                   const std::string& locale) {
++  if ((true)) return false;
+   bool flag_enabled = base::FeatureList::IsEnabled(feature);
+   bool region_launched =
+       base::FeatureList::IsEnabled(feature_region_launched) &&
+@@ -487,6 +437,7 @@ base::TimeDelta GetDiscountFetchDelay() {
+ }
+ 
+ bool IsNoDiscountMerchant(const GURL& url) {
++  if ((true)) return true;
+   auto* pattern_from_component =
+       commerce_heuristics::CommerceHeuristicsData::GetInstance()
+           .GetNoDiscountMerchantPattern();
+@@ -497,4 +448,12 @@ bool IsNoDiscountMerchant(const GURL& url) {
+   return RE2::PartialMatch(url.host_piece(), *pattern_from_component);
+ }
+ #endif
++
 +SET_CROMITE_FEATURE_DISABLED(kShoppingListRegionLaunched);
 +
 +SET_CROMITE_FEATURE_DISABLED(kParcelTracking);
@@ -126,9 +176,6 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
 +
 +SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApi);
 +SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApiRegionLaunched);
-+
- // Params for Discount Consent V2 in the NTP Cart module.
- const char kNtpChromeCartModuleDiscountConsentNtpVariationParam[] =
-     "discount-consent-ntp-variation";
+ }  // namespace commerce
 -- 
 
