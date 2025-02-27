@@ -1,0 +1,241 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Sun, 6 Mar 2022 17:39:15 +0100
+Subject: Disable safety check
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
+Change-Id: Ic135501208b85cb03194486b1dfc13fb4203f7a3
+---
+ chrome/android/BUILD.gn                       |  5 ---
+ chrome/android/chrome_java_sources.gni        |  1 -
+ .../android/java/res/xml/main_preferences.xml |  3 +-
+ .../settings/FragmentDependencyProvider.java  | 31 -------------------
+ .../chrome/browser/settings/MainSettings.java |  2 +-
+ .../settings/SettingsNavigationImpl.java      | 13 ++------
+ chrome/browser/BUILD.gn                       |  1 -
+ .../suggestions/action/OmniboxPedal.java      |  3 --
+ chrome/browser/ui/tab_helpers.cc              |  2 +-
+ .../site_settings/SiteSettings.java           |  2 +-
+ .../Disable-safety-check.inc                  |  1 +
+ 11 files changed, 8 insertions(+), 56 deletions(-)
+ create mode 100644 cromite_flags/chrome/common/chrome_features_cc/Disable-safety-check.inc
+
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -457,7 +457,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/recent_tabs:java",
+       "//chrome/browser/regional_capabilities/android:java",
+       "//chrome/browser/safe_browsing/android:java",
+-      "//chrome/browser/safety_check/android:java",
+       "//chrome/browser/safety_hub/android:java",
+       "//chrome/browser/screenshot_monitor:java",
+       "//chrome/browser/search_engines/android:java",
+@@ -1074,8 +1073,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/readaloud/android:junit",
+       "//chrome/browser/recent_tabs:junit",
+       "//chrome/browser/recent_tabs/internal:junit",
+-      "//chrome/browser/safety_check/android:junit",
+-      "//chrome/browser/safety_hub/android:junit",
+       "//chrome/browser/search_engines/android:junit",
+       "//chrome/browser/search_resumption:junit",
+       "//chrome/browser/signin/services/android:junit",
+@@ -1343,8 +1340,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/privacy_sandbox/android:javatests",
+       "//chrome/browser/quick_delete:javatests",
+       "//chrome/browser/safe_browsing/android:javatests",
+-      "//chrome/browser/safety_check/android:javatests",
+-      "//chrome/browser/safety_hub/android:javatests",
+       "//chrome/browser/segmentation_platform:javatests",
+       "//chrome/browser/selection/android:javatests",
+       "//chrome/browser/ssl/android:javatests",
+diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
+--- a/chrome/android/chrome_java_sources.gni
++++ b/chrome/android/chrome_java_sources.gni
+@@ -978,7 +978,6 @@ chrome_java_sources = [
+   "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingPasswordReuseDialogBridge.java",
+   "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingReferringAppBridge.java",
+   "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingSettingsNavigation.java",
+-  "java/src/org/chromium/chrome/browser/safety_check/SafetyCheckUpdatesDelegateImpl.java",
+   "java/src/org/chromium/chrome/browser/searchwidget/SearchActivity.java",
+   "java/src/org/chromium/chrome/browser/searchwidget/SearchActivityClientImpl.java",
+   "java/src/org/chromium/chrome/browser/searchwidget/SearchActivityLocationBarLayout.java",
+diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
+--- a/chrome/android/java/res/xml/main_preferences.xml
++++ b/chrome/android/java/res/xml/main_preferences.xml
+@@ -58,7 +58,8 @@ for the previous order (main_preferences_legacy). -->
+         android:fragment="org.chromium.chrome.browser.safety_check.SafetyCheckSettingsFragment"
+         android:key="safety_check"
+         android:order="9"
+-        android:title="@string/prefs_safety_check"/>
++        android:title="@string/prefs_safety_check"
++        app:isPreferenceVisible="false" />
+     <Preference
+         android:fragment="org.chromium.chrome.browser.safety_hub.SafetyHubFragment"
+         android:key="safety_hub"
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/FragmentDependencyProvider.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/FragmentDependencyProvider.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/FragmentDependencyProvider.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/FragmentDependencyProvider.java
+@@ -38,13 +38,6 @@ import org.chromium.chrome.browser.privacy_sandbox.ChromeTrackingProtectionDeleg
+ import org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsBaseFragment;
+ import org.chromium.chrome.browser.privacy_sandbox.TopicsManageFragment;
+ import org.chromium.chrome.browser.profiles.Profile;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckBridge;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckCoordinator;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckSettingsFragment;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckUpdatesDelegateImpl;
+-import org.chromium.chrome.browser.safety_hub.SafetyHubBaseFragment;
+-import org.chromium.chrome.browser.safety_hub.SafetyHubFragment;
+-import org.chromium.chrome.browser.safety_hub.SafetyHubModuleDelegateImpl;
+ import org.chromium.chrome.browser.search_engines.settings.SearchEngineSettings;
+ import org.chromium.chrome.browser.signin.SigninAndHistorySyncActivityLauncherImpl;
+ import org.chromium.chrome.browser.site_settings.ChromeSiteSettingsDelegate;
+@@ -130,20 +123,6 @@ public class FragmentDependencyProvider extends FragmentManager.FragmentLifecycl
+             delegate.setSnackbarManagerSupplier(mSnackbarManagerSupplier);
+             baseSiteSettingsFragment.setSiteSettingsDelegate(delegate);
+         }
+-        if (fragment instanceof SafetyCheckSettingsFragment) {
+-            SafetyCheckCoordinator.create(
+-                    (SafetyCheckSettingsFragment) fragment,
+-                    mProfile,
+-                    new SafetyCheckUpdatesDelegateImpl(),
+-                    new SafetyCheckBridge(mProfile),
+-                    SigninAndHistorySyncActivityLauncherImpl.get(),
+-                    mModalDialogManagerSupplier,
+-                    SyncServiceFactory.getForProfile(mProfile),
+-                    UserPrefs.get(mProfile),
+-                    new PasswordStoreBridge(mProfile),
+-                    PasswordManagerHelper.getForProfile(mProfile),
+-                    LaunchIntentDispatcher::createCustomTabActivityIntent);
+-        }
+         if (fragment instanceof PasswordCheckFragmentView) {
+             PasswordCheckComponentUiFactory.create(
+                     (PasswordCheckFragmentView) fragment,
+@@ -232,13 +211,6 @@ public class FragmentDependencyProvider extends FragmentManager.FragmentLifecycl
+             ((AutofillLocalIbanEditor) fragment)
+                     .setModalDialogManagerSupplier(mModalDialogManagerSupplier);
+         }
+-        if (fragment instanceof SafetyHubFragment safetyHubFragment) {
+-            safetyHubFragment.setDelegate(
+-                    new SafetyHubModuleDelegateImpl(
+-                            mProfile,
+-                            mModalDialogManagerSupplier,
+-                            SigninAndHistorySyncActivityLauncherImpl.get()));
+-        }
+         if (fragment instanceof INeedSnackbarManager) {
+             ((INeedSnackbarManager)fragment).setSnackbarManagerSupplier(mSnackbarManagerSupplier);
+         }
+@@ -253,8 +225,5 @@ public class FragmentDependencyProvider extends FragmentManager.FragmentLifecycl
+         if (fragment instanceof ManageSyncSettings) {
+             ((ManageSyncSettings) fragment).setSnackbarManagerSupplier(mSnackbarManagerSupplier);
+         }
+-        if (fragment instanceof SafetyHubBaseFragment) {
+-            ((SafetyHubBaseFragment) fragment).setSnackbarManagerSupplier(mSnackbarManagerSupplier);
+-        }
+     }
+ }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
+@@ -274,7 +274,7 @@ public class MainSettings extends ChromeBaseSettingsFragment
+                                     .removePreference(findPreference(PREF_TOOLBAR_SHORTCUT));
+                         });
+ 
+-        if (BuildInfo.getInstance().isAutomotive) {
++        if (((true)) || BuildInfo.getInstance().isAutomotive) {
+             getPreferenceScreen().removePreference(findPreference(PREF_SAFETY_CHECK));
+             getPreferenceScreen().removePreference(findPreference(PREF_SAFETY_HUB));
+         } else if (!ChromeFeatureList.sSafetyHub.isEnabled()) {
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsNavigationImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsNavigationImpl.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsNavigationImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsNavigationImpl.java
+@@ -18,8 +18,6 @@ import org.chromium.chrome.browser.autofill.settings.FinancialAccountsManagement
+ import org.chromium.chrome.browser.browsing_data.ClearBrowsingDataFragment;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.chrome.browser.password_manager.settings.PasswordSettings;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckSettingsFragment;
+-import org.chromium.chrome.browser.safety_hub.SafetyHubFragment;
+ import org.chromium.chrome.browser.sync.settings.GoogleServicesSettings;
+ import org.chromium.chrome.browser.sync.settings.ManageSyncSettings;
+ import org.chromium.components.browser_ui.accessibility.AccessibilitySettings;
+@@ -46,10 +44,7 @@ public class SettingsNavigationImpl implements SettingsNavigation {
+                         ClearBrowsingDataFragment.createFragmentArgs(context.getClass().getName());
+                 break;
+             case SettingsFragment.SAFETY_CHECK:
+-                if (!ChromeFeatureList.sSafetyHub.isEnabled()) {
+-                    fragmentArgs = SafetyCheckSettingsFragment.createBundle(true);
+-                }
+-                break;
++                return;
+             case SettingsFragment.MAIN:
+             case SettingsFragment.PAYMENT_METHODS:
+             case SettingsFragment.SITE:
+@@ -107,11 +102,7 @@ public class SettingsNavigationImpl implements SettingsNavigation {
+             case SettingsFragment.PAYMENT_METHODS:
+                 return AutofillPaymentMethodsFragment.class;
+             case SettingsFragment.SAFETY_CHECK:
+-                if (ChromeFeatureList.sSafetyHub.isEnabled()) {
+-                    return SafetyHubFragment.class;
+-                } else {
+-                    return SafetyCheckSettingsFragment.class;
+-                }
++                return null;
+             case SettingsFragment.SITE:
+                 return SiteSettings.class;
+             case SettingsFragment.ACCESSIBILITY:
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -3279,7 +3279,6 @@ static_library("browser") {
+       "//chrome/browser/reading_list/android",
+       "//chrome/browser/recent_tabs:jni_headers",
+       "//chrome/browser/safe_browsing/android:safe_browsing_enums",
+-      "//chrome/browser/safety_check/android",
+       "//chrome/browser/safety_hub/android",
+       "//chrome/browser/search_resumption:jni_headers",
+       "//chrome/browser/signin/services/android:jni_headers",
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
+@@ -55,9 +55,6 @@ public class OmniboxPedal extends OmniboxAction {
+             case OmniboxPedalId.UPDATE_CREDIT_CARD:
+                 delegate.openSettingsPage(SettingsFragment.PAYMENT_METHODS);
+                 break;
+-            case OmniboxPedalId.RUN_CHROME_SAFETY_CHECK:
+-                delegate.openSettingsPage(SettingsFragment.SAFETY_CHECK);
+-                break;
+             case OmniboxPedalId.MANAGE_SITE_SETTINGS:
+                 delegate.openSettingsPage(SettingsFragment.SITE);
+                 break;
+diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
+--- a/chrome/browser/ui/tab_helpers.cc
++++ b/chrome/browser/ui/tab_helpers.cc
+@@ -546,7 +546,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+   tpcd::trial::ValidityService::MaybeCreateForWebContents(web_contents);
+   TrustedVaultEncryptionKeysTabHelper::CreateForWebContents(web_contents);
+ #if BUILDFLAG(IS_ANDROID)
+-  if (base::FeatureList::IsEnabled(features::kSafetyHub)) {
++  if (((true)) || base::FeatureList::IsEnabled(features::kSafetyHub)) {
+     auto* service = UnusedSitePermissionsServiceFactory::GetForProfile(profile);
+     if (service) {
+       UnusedSitePermissionsService::TabHelper::CreateForWebContents(
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
+--- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
+@@ -87,7 +87,7 @@ public class SiteSettings extends BaseSiteSettingsFragment
+         }
+ 
+         // Remove the permission autorevocation preference if Safety Hub is not enabled.
+-        if (!getSiteSettingsDelegate().isSafetyHubEnabled()) {
++        if (((false)) && !getSiteSettingsDelegate().isSafetyHubEnabled()) {
+             getPreferenceScreen().removePreference(findPreference(PERMISSION_AUTOREVOCATION_PREF));
+             getPreferenceScreen().removePreference(findPreference(DIVIDER_PREF));
+         }
+diff --git a/cromite_flags/chrome/common/chrome_features_cc/Disable-safety-check.inc b/cromite_flags/chrome/common/chrome_features_cc/Disable-safety-check.inc
+new file mode 100644
+--- /dev/null
++++ b/cromite_flags/chrome/common/chrome_features_cc/Disable-safety-check.inc
+@@ -0,0 +1 @@
++SET_CROMITE_FEATURE_DISABLED(kSafetyHub);
+-- 
+
