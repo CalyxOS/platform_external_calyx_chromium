@@ -1,29 +1,15 @@
 From: Tommy Webb <tommy@calyxinstitute.org>
-Date: Tue, 30 Jul 2024 13:30:28 +0000
+Date: Tue, 4 Mar 2025 19:13:05 +0000
 Subject: Fix build after "Add bookmark import/export actions"
 
-Include necessary changes that were part of another patch.
+Make a couple of methods public, since they were internal and not
+accessible for use by Cromite.
 
-Partial commit of: Add-menu-item-to-bookmark-all-tabs.patch
-
-Change-Id: If92c80b5dbfee600906b439590a62c60802e1879
+Change-Id: Ia0a18b8dd8472eb9690a124fb715e8b8da40d7e3
 ---
- chrome/browser/bookmarks/android/bookmark_bridge.cc           | 2 +-
  .../browser/download/dialogs/DownloadLocationCustomView.java  | 4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browser/bookmarks/android/bookmark_bridge.cc
---- a/chrome/browser/bookmarks/android/bookmark_bridge.cc
-+++ b/chrome/browser/bookmarks/android/bookmark_bridge.cc
-@@ -184,7 +184,7 @@ class FileBookmarksExportObserver: public BookmarksExportObserver {
- 
-     JNIEnv* env = AttachCurrentThread();
-     Java_BookmarkBridge_bookmarksExported(env, obj_, window_->GetJavaObject(),
--                                          ConvertUTF8ToJavaString(env, export_path_),
-+                                          base::android::ConvertUTF8ToJavaString(env, export_path_),
-                                           result == Result::kSuccess);
-     delete this;
-   }
 diff --git a/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java b/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
 --- a/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
 +++ b/chrome/browser/download/android/java/src/org/chromium/chrome/browser/download/dialogs/DownloadLocationCustomView.java
@@ -41,7 +27,7 @@ diff --git a/chrome/browser/download/android/java/src/org/chromium/chrome/browse
      }
  
 -    void setFileName(CharSequence fileName) {
-+    public void setFileName(CharSequence fileName) { 
++    public void setFileName(CharSequence fileName) {
          mFileName.setText(fileName);
      }
  
