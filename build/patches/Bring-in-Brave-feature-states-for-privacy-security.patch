@@ -196,7 +196,7 @@ Change-Id: Ic0e67157ff4a747bb05ceba264660bfeb1ac73ef
 diff --git a/android_webview/browser/aw_permission_manager.cc b/android_webview/browser/aw_permission_manager.cc
 --- a/android_webview/browser/aw_permission_manager.cc
 +++ b/android_webview/browser/aw_permission_manager.cc
-@@ -779,6 +779,8 @@ void AwPermissionManager::CancelPermissionRequests() {
+@@ -785,6 +785,8 @@ void AwPermissionManager::CancelPermissionRequests() {
  void AwPermissionManager::SetOriginCanReadEnumerateDevicesAudioLabels(
      const url::Origin& origin,
      bool audio) {
@@ -205,7 +205,7 @@ diff --git a/android_webview/browser/aw_permission_manager.cc b/android_webview/
    auto it = enumerate_devices_labels_cache_.find(origin);
    if (it == enumerate_devices_labels_cache_.end()) {
      enumerate_devices_labels_cache_[origin] = std::make_pair(audio, false);
-@@ -790,6 +792,8 @@ void AwPermissionManager::SetOriginCanReadEnumerateDevicesAudioLabels(
+@@ -796,6 +798,8 @@ void AwPermissionManager::SetOriginCanReadEnumerateDevicesAudioLabels(
  void AwPermissionManager::SetOriginCanReadEnumerateDevicesVideoLabels(
      const url::Origin& origin,
      bool video) {
@@ -229,7 +229,7 @@ diff --git a/android_webview/browser/aw_web_contents_delegate.cc b/android_webvi
 diff --git a/android_webview/common/aw_features.cc b/android_webview/common/aw_features.cc
 --- a/android_webview/common/aw_features.cc
 +++ b/android_webview/common/aw_features.cc
-@@ -73,7 +73,7 @@ BASE_FEATURE(kWebViewMediaIntegrityApiBlinkExtension,
+@@ -74,7 +74,7 @@ BASE_FEATURE(kWebViewMediaIntegrityApiBlinkExtension,
               "WebViewMediaIntegrityApiBlinkExtension",
               base::FEATURE_ENABLED_BY_DEFAULT);
  SET_CROMITE_FEATURE_DISABLED(kWebViewMediaIntegrityApiBlinkExtension);
@@ -241,7 +241,7 @@ diff --git a/android_webview/common/aw_features.cc b/android_webview/common/aw_f
 diff --git a/base/features.cc b/base/features.cc
 --- a/base/features.cc
 +++ b/base/features.cc
-@@ -145,4 +145,5 @@ void Init(EmitThreadControllerProfilerMetadata
+@@ -154,4 +154,5 @@ void Init(EmitThreadControllerProfilerMetadata
  #endif
  }
  
@@ -262,7 +262,7 @@ diff --git a/chrome/browser/history_embeddings/history_embeddings_utils.cc b/chr
 diff --git a/chrome/browser/safe_browsing/extension_telemetry/extension_telemetry_service_factory.cc b/chrome/browser/safe_browsing/extension_telemetry/extension_telemetry_service_factory.cc
 --- a/chrome/browser/safe_browsing/extension_telemetry/extension_telemetry_service_factory.cc
 +++ b/chrome/browser/safe_browsing/extension_telemetry/extension_telemetry_service_factory.cc
-@@ -22,9 +22,13 @@
+@@ -26,9 +26,13 @@
  
  namespace safe_browsing {
  
@@ -276,7 +276,7 @@ diff --git a/chrome/browser/safe_browsing/extension_telemetry/extension_telemetr
    return static_cast<ExtensionTelemetryService*>(
        GetInstance()->GetServiceForBrowserContext(profile, /* create= */ true));
  }
-@@ -41,15 +45,13 @@ ExtensionTelemetryServiceFactory::ExtensionTelemetryServiceFactory()
+@@ -45,16 +49,14 @@ ExtensionTelemetryServiceFactory::ExtensionTelemetryServiceFactory()
            // AshInternals should be 'kNone' since ExtensionTelemetryService
            // should not be initialized for internal profiles on ChromeOS Ash.
            "ExtensionTelemetryService",
@@ -286,19 +286,20 @@ diff --git a/chrome/browser/safe_browsing/extension_telemetry/extension_telemetr
 -  DependsOn(extensions::ExtensionRegistryFactory::GetInstance());
 -  DependsOn(extensions::ExtensionManagementFactory::GetInstance());
 -  DependsOn(extensions::ExtensionSystemFactory::GetInstance());
--  DependsOn(enterprise_connectors::ConnectorsServiceFactory::GetInstance());
--  DependsOn(enterprise_connectors::ExtensionTelemetryEventRouterFactory::
--                GetInstance());
 +          ProfileSelections::BuildNoProfilesSelected()) {
 +}
 +
 +content::BrowserContext*
 +ExtensionTelemetryServiceFactory::GetBrowserContextToUse(
 +    content::BrowserContext* context) const {
+ #if BUILDFLAG(ENTERPRISE_CLOUD_CONTENT_ANALYSIS)
+-  DependsOn(enterprise_connectors::ConnectorsServiceFactory::GetInstance());
+-  DependsOn(enterprise_connectors::ExtensionTelemetryEventRouterFactory::
+-                GetInstance());
 +  return nullptr;
+ #endif  // BUILDFLAG(ENTERPRISE_CLOUD_CONTENT_ANALYSIS)
  }
  
- std::unique_ptr<KeyedService>
 diff --git a/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc b/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
 --- a/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
 +++ b/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
@@ -332,7 +333,7 @@ diff --git a/components/aggregation_service/features.cc b/components/aggregation
 diff --git a/components/autofill/core/browser/payments/credit_card_access_manager.cc b/components/autofill/core/browser/payments/credit_card_access_manager.cc
 --- a/components/autofill/core/browser/payments/credit_card_access_manager.cc
 +++ b/components/autofill/core/browser/payments/credit_card_access_manager.cc
-@@ -1567,8 +1567,10 @@ bool CreditCardAccessManager::ShouldLogServerCardUnmaskAttemptMetrics(
+@@ -1586,8 +1586,10 @@ bool CreditCardAccessManager::ShouldLogServerCardUnmaskAttemptMetrics(
    // be attempted to be unmasked.
    CHECK_NE(record_type, CreditCard::RecordType::kFullServerCard);
  
@@ -348,7 +349,7 @@ diff --git a/components/autofill/core/browser/payments/credit_card_access_manage
 diff --git a/components/autofill/core/common/autofill_features.cc b/components/autofill/core/common/autofill_features.cc
 --- a/components/autofill/core/common/autofill_features.cc
 +++ b/components/autofill/core/common/autofill_features.cc
-@@ -963,4 +963,5 @@ BASE_FEATURE(kAutofillUploadThrottling,
+@@ -880,4 +880,5 @@ BASE_FEATURE(kAutofillUploadThrottling,
  
  }  // namespace test
  
@@ -357,7 +358,7 @@ diff --git a/components/autofill/core/common/autofill_features.cc b/components/a
 diff --git a/components/autofill/core/common/autofill_payments_features.cc b/components/autofill/core/common/autofill_payments_features.cc
 --- a/components/autofill/core/common/autofill_payments_features.cc
 +++ b/components/autofill/core/common/autofill_payments_features.cc
-@@ -331,4 +331,5 @@ bool ShouldShowImprovedUserConsentForCreditCardSave() {
+@@ -301,4 +301,5 @@ bool ShouldShowImprovedUserConsentForCreditCardSave() {
  #endif
  }
  
@@ -366,7 +367,7 @@ diff --git a/components/autofill/core/common/autofill_payments_features.cc b/com
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -456,4 +456,6 @@ SET_CROMITE_FEATURE_DISABLED(kParcelTrackingRegionLaunched);
+@@ -441,4 +441,6 @@ SET_CROMITE_FEATURE_DISABLED(kParcelTrackingRegionLaunched);
  
  SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApi);
  SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApiRegionLaunched);
@@ -378,7 +379,7 @@ diff --git a/components/compose/core/browser/compose_features.cc b/components/co
 +++ b/components/compose/core/browser/compose_features.cc
 @@ -104,4 +104,5 @@ BASE_FEATURE(kComposeUpfrontInputModes,
               "ComposeUpfrontInputModes",
-              base::FEATURE_DISABLED_BY_DEFAULT);
+              base::FEATURE_ENABLED_BY_DEFAULT);
  
 +#include "cromite_flags/components_compose_core_browser_compose_features_cc.inc"
  }  // namespace compose::features
@@ -403,7 +404,7 @@ diff --git a/components/history/core/browser/features.cc b/components/history/co
 diff --git a/components/history_clusters/core/features.cc b/components/history_clusters/core/features.cc
 --- a/components/history_clusters/core/features.cc
 +++ b/components/history_clusters/core/features.cc
-@@ -79,4 +79,5 @@ BASE_FEATURE(kSearchesFindUngroupedVisits,
+@@ -75,4 +75,5 @@ BASE_FEATURE(kSearchesFindUngroupedVisits,
               "GroupedHistorySearchesFindUngroupedVisits",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
@@ -422,10 +423,10 @@ diff --git a/components/history_clusters/core/on_device_clustering_features.cc b
 diff --git a/components/lens/lens_features.cc b/components/lens/lens_features.cc
 --- a/components/lens/lens_features.cc
 +++ b/components/lens/lens_features.cc
-@@ -787,4 +787,5 @@ bool HandleSidePanelTextDirectivesEnabled() {
-   return kHandleSidePanelTextDirectives.Get();
+@@ -815,4 +815,5 @@ int GetZstdCompressionLevel() {
+ bool PageContentUploadRequestIdFixEnabled() {
+   return kPageContentUploadRequestIdFix.Get();
  }
- 
 +SET_CROMITE_FEATURE_DISABLED(kLensOverlay);    // disabled in Brave
  }  // namespace lens::features
 diff --git a/components/metrics/metrics_features.cc b/components/metrics/metrics_features.cc
@@ -458,7 +459,7 @@ diff --git a/components/network_time/network_time_tracker.cc b/components/networ
 diff --git a/components/omnibox/common/omnibox_features.cc b/components/omnibox/common/omnibox_features.cc
 --- a/components/omnibox/common/omnibox_features.cc
 +++ b/components/omnibox/common/omnibox_features.cc
-@@ -415,4 +415,5 @@ BASE_FEATURE(kEnableSearchAggregatorPolicy,
+@@ -406,4 +406,5 @@ BASE_FEATURE(kEnableSearchAggregatorPolicy,
               "EnableSearchAggregatorPolicy",
               DISABLED);
  
@@ -467,7 +468,7 @@ diff --git a/components/omnibox/common/omnibox_features.cc b/components/omnibox/
 diff --git a/components/optimization_guide/core/optimization_guide_features.cc b/components/optimization_guide/core/optimization_guide_features.cc
 --- a/components/optimization_guide/core/optimization_guide_features.cc
 +++ b/components/optimization_guide/core/optimization_guide_features.cc
-@@ -900,5 +900,6 @@ SET_CROMITE_FEATURE_DISABLED(kOptimizationGuideModelDownloading);
+@@ -891,5 +891,6 @@ SET_CROMITE_FEATURE_DISABLED(kOptimizationGuideModelDownloading);
  SET_CROMITE_FEATURE_DISABLED(kPushNotifications);
  SET_CROMITE_FEATURE_DISABLED(kPreventLongRunningPredictionModels);
  SET_CROMITE_FEATURE_DISABLED(kOptimizationGuideFetchingForSRP);
@@ -495,8 +496,8 @@ diff --git a/components/password_manager/core/common/password_manager_features.c
 diff --git a/components/plus_addresses/features.cc b/components/plus_addresses/features.cc
 --- a/components/plus_addresses/features.cc
 +++ b/components/plus_addresses/features.cc
-@@ -127,4 +127,5 @@ BASE_FEATURE(kPlusAddressUserOnboardingEnabled,
-              "PlusAddressUserOnboardingEnabled",
+@@ -97,4 +97,5 @@ BASE_FEATURE(kPlusAddressSuggestionsOnUsernameFields,
+              "PlusAddressSuggestionsOnUsernameFields",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
 +SET_CROMITE_FEATURE_DISABLED(kPlusAddressesEnabled);  // disabled in Brave
@@ -504,7 +505,7 @@ diff --git a/components/plus_addresses/features.cc b/components/plus_addresses/f
 diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
 --- a/components/privacy_sandbox/privacy_sandbox_features.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_features.cc
-@@ -290,4 +290,5 @@ SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxSettings4);
+@@ -287,4 +287,5 @@ SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxSettings4);
  SET_CROMITE_FEATURE_ENABLED(kDisablePrivacySandboxPrompts);
  SET_CROMITE_FEATURE_DISABLED(kEnforcePrivacySandboxAttestations);
  SET_CROMITE_FEATURE_DISABLED(kPrivacySandboxFirstPartySetsUI);
@@ -513,7 +514,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components
 diff --git a/components/safe_browsing/core/common/features.cc b/components/safe_browsing/core/common/features.cc
 --- a/components/safe_browsing/core/common/features.cc
 +++ b/components/safe_browsing/core/common/features.cc
-@@ -381,4 +381,5 @@ base::Value::List GetFeatureStatusList() {
+@@ -376,4 +376,5 @@ base::Value::List GetFeatureStatusList() {
    return param_list;
  }
  
@@ -522,7 +523,7 @@ diff --git a/components/safe_browsing/core/common/features.cc b/components/safe_
 diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
 --- a/components/search/ntp_features.cc
 +++ b/components/search/ntp_features.cc
-@@ -447,4 +447,6 @@ std::string GetMobilePromoTargetURL() {
+@@ -475,4 +475,6 @@ std::string GetMobilePromoTargetURL() {
        ntp_features::kNtpMobilePromoTargetUrlParam);
    return (field_trial_url.empty()) ? kMobilePromoQRCodeURL : field_trial_url;
  }
@@ -532,7 +533,7 @@ diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.
 diff --git a/components/segmentation_platform/public/features.cc b/components/segmentation_platform/public/features.cc
 --- a/components/segmentation_platform/public/features.cc
 +++ b/components/segmentation_platform/public/features.cc
-@@ -250,4 +250,6 @@ constexpr base::FeatureParam<int> kMaxTabGroupSyncCardImpressions{
+@@ -269,4 +269,6 @@ BASE_FEATURE(kSegmentationPlatformFedCmUser,
  SET_CROMITE_FEATURE_DISABLED(kSegmentationPlatformFeature);
  SET_CROMITE_FEATURE_DISABLED(kSegmentationPlatformFeedSegmentFeature);
  SET_CROMITE_FEATURE_DISABLED(kSegmentationPlatformAdaptiveToolbarV2Feature);
@@ -1253,7 +1254,7 @@ new file mode 100644
 diff --git a/third_party/blink/renderer/core/html/html_script_element.cc b/third_party/blink/renderer/core/html/html_script_element.cc
 --- a/third_party/blink/renderer/core/html/html_script_element.cc
 +++ b/third_party/blink/renderer/core/html/html_script_element.cc
-@@ -389,8 +389,8 @@ bool HTMLScriptElement::supports(const AtomicString& type) {
+@@ -393,8 +393,8 @@ bool HTMLScriptElement::supports(const AtomicString& type) {
    if (type == script_type_names::kImportmap)
      return true;
  
@@ -1267,7 +1268,7 @@ diff --git a/third_party/blink/renderer/core/html/html_script_element.cc b/third
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -285,10 +285,9 @@
+@@ -291,10 +291,9 @@
      },
      {
        // Interest Group JS API/runtimeflag.
@@ -1280,7 +1281,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        public: true,
      },
      // Adjust the end of the next paragraph if the end position for the
-@@ -299,9 +298,9 @@
+@@ -305,9 +304,9 @@
        status: "stable",
      },
      {
@@ -1292,7 +1293,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        base_feature: "none",
      },
      {
-@@ -393,8 +392,10 @@
+@@ -414,8 +413,10 @@
        name: "AnimationWorklet",
      },
      {
@@ -1305,7 +1306,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      },
      {
        name: "AOMAriaRelationshipProperties",
-@@ -1261,8 +1262,8 @@
+@@ -1298,8 +1299,8 @@
        implied_by: ["CSSStickyContainerQueries", "CSSSnapContainerQueries", "CSSScrollableContainerQueries"],
      },
      {
@@ -1316,8 +1317,8 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        base_feature: "CssSelectorFragmentAnchor",
      },
      {
-@@ -2029,8 +2030,8 @@
-       depends_on: ["FindDecomposedInShortText"],
+@@ -2060,8 +2061,8 @@
+       status: "experimental",
      },
      {
 -      name: "Fledge",
@@ -1327,7 +1328,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        base_feature: "none",
        public: true,
      },
-@@ -2073,7 +2074,8 @@
+@@ -2104,7 +2105,8 @@
        name: "FledgeDirectFromSellerSignalsWebBundles",
      },
      {
@@ -1337,7 +1338,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        public: true,
        status: "stable",
      },
-@@ -3211,7 +3213,8 @@
+@@ -3221,7 +3223,8 @@
      },
      {
        // PARAKEET ad serving runtime flag/JS API.
@@ -1347,7 +1348,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
        origin_trial_feature_name: "Parakeet",
      },
      {
-@@ -3385,8 +3388,8 @@
+@@ -3399,8 +3402,8 @@
        // preloading.) See https://crbug.com/1494471.
        //
        // It also has some feature params defined throughout the codebase.
@@ -1358,7 +1359,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      },
      {
        name: "Presentation",
-@@ -4865,8 +4868,8 @@
+@@ -4921,8 +4924,8 @@
      {
        // WebGPU experimental features are meant for features that would
        // eventually land in the WebGPU spec.
