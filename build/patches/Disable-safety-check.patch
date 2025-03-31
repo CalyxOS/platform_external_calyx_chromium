@@ -31,7 +31,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/safety_hub/android:java",
        "//chrome/browser/screenshot_monitor:java",
        "//chrome/browser/search_engines/android:java",
-@@ -1074,8 +1073,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1081,8 +1080,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/readaloud/android:junit",
        "//chrome/browser/recent_tabs:junit",
        "//chrome/browser/recent_tabs/internal:junit",
@@ -40,9 +40,9 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/search_engines/android:junit",
        "//chrome/browser/search_resumption:junit",
        "//chrome/browser/signin/services/android:junit",
-@@ -1343,8 +1340,6 @@ if (current_toolchain == default_toolchain) {
-       "//chrome/browser/privacy_sandbox/android:javatests",
+@@ -1355,8 +1352,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/quick_delete:javatests",
+       "//chrome/browser/renderer_host/android:javatests",
        "//chrome/browser/safe_browsing/android:javatests",
 -      "//chrome/browser/safety_check/android:javatests",
 -      "//chrome/browser/safety_hub/android:javatests",
@@ -52,7 +52,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -978,7 +978,6 @@ chrome_java_sources = [
+@@ -910,7 +910,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingPasswordReuseDialogBridge.java",
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingReferringAppBridge.java",
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingSettingsNavigation.java",
@@ -137,9 +137,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Fragme
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
-@@ -274,7 +274,7 @@ public class MainSettings extends ChromeBaseSettingsFragment
-                                     .removePreference(findPreference(PREF_TOOLBAR_SHORTCUT));
-                         });
+@@ -316,7 +316,7 @@ public class MainSettings extends ChromeBaseSettingsFragment
+             removePreferenceIfPresent(PREF_UI_THEME);
+         }
  
 -        if (BuildInfo.getInstance().isAutomotive) {
 +        if (((true)) || BuildInfo.getInstance().isAutomotive) {
@@ -186,9 +186,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -3279,7 +3279,6 @@ static_library("browser") {
-       "//chrome/browser/reading_list/android",
+@@ -3303,7 +3303,6 @@ static_library("browser") {
        "//chrome/browser/recent_tabs:jni_headers",
+       "//chrome/browser/regional_capabilities",
        "//chrome/browser/safe_browsing/android:safe_browsing_enums",
 -      "//chrome/browser/safety_check/android",
        "//chrome/browser/safety_hub/android",
@@ -210,7 +210,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -546,7 +546,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -561,7 +561,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    tpcd::trial::ValidityService::MaybeCreateForWebContents(web_contents);
    TrustedVaultEncryptionKeysTabHelper::CreateForWebContents(web_contents);
  #if BUILDFLAG(IS_ANDROID)
@@ -222,15 +222,15 @@ diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
-@@ -87,7 +87,7 @@ public class SiteSettings extends BaseSiteSettingsFragment
+@@ -96,7 +96,7 @@ public class SiteSettings extends BaseSiteSettingsFragment
          }
  
          // Remove the permission autorevocation preference if Safety Hub is not enabled.
 -        if (!getSiteSettingsDelegate().isSafetyHubEnabled()) {
 +        if (((false)) && !getSiteSettingsDelegate().isSafetyHubEnabled()) {
-             getPreferenceScreen().removePreference(findPreference(PERMISSION_AUTOREVOCATION_PREF));
-             getPreferenceScreen().removePreference(findPreference(DIVIDER_PREF));
-         }
+             Preference autorevocationPref =
+                     assumeNonNull(findPreference(PERMISSION_AUTOREVOCATION_PREF));
+             getPreferenceScreen().removePreference(autorevocationPref);
 diff --git a/cromite_flags/chrome/common/chrome_features_cc/Disable-safety-check.inc b/cromite_flags/chrome/common/chrome_features_cc/Disable-safety-check.inc
 new file mode 100644
 --- /dev/null
