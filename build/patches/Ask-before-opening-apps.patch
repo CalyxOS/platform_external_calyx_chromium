@@ -1,0 +1,87 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 10 Apr 2025 12:11:37 +0000
+Subject: Ask before opening apps
+
+Only start external activities if the user consents, even for trusted
+callers such as embedders of Chrome Custom Tabs.
+
+Issue: calyxos#2655
+Change-Id: Ie8f531ce6054a959d64edc4877bd79d6744485eb
+---
+ .../ExternalNavigationHandler.java            | 39 +++++++------------
+ 1 file changed, 14 insertions(+), 25 deletions(-)
+
+diff --git a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
+--- a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
++++ b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
+@@ -1716,14 +1716,8 @@ public class ExternalNavigationHandler {
+                     browserFallbackUrl);
+         }
+ 
+-        if (launchWebApkIfSoleIntentHandler(resolvingInfos, targetIntent, params)) {
+-            return OverrideUrlLoadingResult.forExternalIntent();
+-        }
+-
+         boolean requiresIntentChooser = false;
+-        if (navigationChainResult == NavigationChainResult.FOR_TRUSTED_CALLER) {
+-            mDelegate.setPackageForTrustedCallingApp(targetIntent);
+-        } else {
++        if (navigationChainResult != NavigationChainResult.FOR_TRUSTED_CALLER) {
+             requiresIntentChooser =
+                     isInsecureIntentToOtherBrowser(
+                             targetIntent, resolvingInfos, resolveActivity, intentHasExtras);
+@@ -1732,24 +1726,15 @@ public class ExternalNavigationHandler {
+                     isExternalProtocol, intentTargetUrl, resolvingInfos, resolveActivity)) {
+                 return OverrideUrlLoadingResult.forNoOverride();
+             }
+-            if (navigationChainResult == NavigationChainResult.REQUIRES_PROMPT) {
+-                return maybeAskToLaunchApp(
+-                        isExternalProtocol,
+-                        targetIntent,
+-                        resolvingInfos,
+-                        resolveActivity,
+-                        browserFallbackUrl,
+-                        params);
+-            }
+         }
+-        return startActivity(
++        return maybeAskToLaunchApp(
++                isExternalProtocol,
+                 targetIntent,
+-                params,
+-                requiresIntentChooser,
+                 resolvingInfos,
+                 resolveActivity,
+                 browserFallbackUrl,
+-                intentTargetUrl);
++                params,
++                navigationChainResult);
+     }
+ 
+     // https://crbug.com/1249964
+@@ -2321,14 +2306,18 @@ public class ExternalNavigationHandler {
+             QueryIntentActivitiesSupplier resolvingInfos,
+             ResolveActivitySupplier resolveActivity,
+             GURL browserFallbackUrl,
+-            ExternalNavigationParams params) {
++            ExternalNavigationParams params,
++            @NavigationChainResult int navigationChainResult) {
+         // For URLs the browser supports, we shouldn't have reached here.
+         assert isExternalProtocol;
+ 
+-        // Use the fallback URL if we have it, otherwise we give sites a fingerprinting mechanism
+-        // where they can repeatedly attempt to launch apps without a user gesture until they find
+-        // one the user has installed.
+-        if (!browserFallbackUrl.isEmpty()) return OverrideUrlLoadingResult.forNoOverride();
++        if (navigationChainResult != NavigationChainResult.ALLOWED &&
++                navigationChainResult != NavigationChainResult.FOR_TRUSTED_CALLER) {
++            // Use the fallback URL if we have it, otherwise we give sites a fingerprinting mechanism
++            // where they can repeatedly attempt to launch apps without a user gesture until they find
++            // one the user has installed.
++            if (!browserFallbackUrl.isEmpty()) return OverrideUrlLoadingResult.forNoOverride();
++        }
+ 
+         ResolveInfo intentResolveInfo = resolveActivity.get();
+ 
+-- 
+

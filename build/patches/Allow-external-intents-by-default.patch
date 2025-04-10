@@ -1,0 +1,49 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 10 Apr 2025 12:39:34 +0000
+Subject: Allow external intents by default
+
+Enable external intents (opening content in apps) by default. Keep the
+Cromite flag for advanced users, but remove the setting from Privacy.
+
+Notes:
+- When I simply reverted "Add flag to disable external intent requests",
+  the browser kept crashing on start, and I don't want to spend more
+  time debugging that right now.
+- I couldn't get the setting in privacy to properly reflect the default
+  state being changed to "enabled" no matter what I did; it showed as
+  toggled off when it was behaving as if it was on (because it was).
+  android:defaultValue="true" didn't help and I ran out of ideas.
+
+Issue: calyxos#2655
+Change-Id: Id37c4915fb11fd871d0520a21a8999163289d4ff
+---
+ chrome/android/java/res/xml/privacy_preferences.xml         | 6 ------
+ .../Add-flag-to-disable-external-intent-requests.inc        | 2 +-
+ 2 files changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
+--- a/chrome/android/java/res/xml/privacy_preferences.xml
++++ b/chrome/android/java/res/xml/privacy_preferences.xml
+@@ -67,12 +67,6 @@ found in the LICENSE file.
+         android:title="@string/settings_incognito_tab_lock_title"
+         android:summary="@string/settings_incognito_tab_lock_summary_android_setting_off"
+         android:persistent="false" />
+-    <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
+-        android:key="allow_external_intent_requests"
+-        android:title="@string/allow_external_intent_requests_title"
+-        android:summary="@string/allow_external_intent_requests_summary"
+-        app:featureName="AllowExternalIntentRequests"
+-        app:needRestart="false" />
+     <PreferenceCategory
+         android:key="security_section"
+         android:title="@string/security_section_title" />
+diff --git a/cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/Add-flag-to-disable-external-intent-requests.inc b/cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/Add-flag-to-disable-external-intent-requests.inc
+--- a/cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/Add-flag-to-disable-external-intent-requests.inc
++++ b/cromite_flags/chrome/browser/flags/android/chrome_feature_list_cc/Add-flag-to-disable-external-intent-requests.inc
+@@ -1,3 +1,3 @@
+ CROMITE_FEATURE(kAllowExternalIntentRequests,
+                 "AllowExternalIntentRequests",
+-                base::FEATURE_DISABLED_BY_DEFAULT);
++                base::FEATURE_ENABLED_BY_DEFAULT);
+-- 
+
