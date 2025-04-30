@@ -110,7 +110,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDis
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabIntentDataProvider.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabIntentDataProvider.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabIntentDataProvider.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabIntentDataProvider.java
-@@ -1190,7 +1190,9 @@ public class CustomTabIntentDataProvider extends BrowserServicesIntentDataProvid
+@@ -1204,7 +1204,9 @@ public class CustomTabIntentDataProvider extends BrowserServicesIntentDataProvid
      public @CustomTabProfileType int getCustomTabMode() {
          return AlwaysIncognitoLinkInterceptor.isAlwaysIncognito()
                  ? CustomTabProfileType.INCOGNITO
@@ -124,7 +124,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Cust
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnection.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnection.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnection.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabsConnection.java
-@@ -981,6 +981,7 @@ public class CustomTabsConnection {
+@@ -985,6 +985,7 @@ public class CustomTabsConnection {
          PostTask.postTask(
                  TaskTraits.UI_DEFAULT,
                  () -> {
@@ -166,7 +166,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Inco
          if (!isIncognitoRequested(intent)) return false;
          var session = SessionHolder.getSessionHolderFromIntent(intent);
          if (isIntentFromThirdPartyAllowed()
-@@ -330,6 +340,10 @@ public class IncognitoCustomTabIntentDataProvider extends BrowserServicesIntentD
+@@ -326,6 +336,10 @@ public class IncognitoCustomTabIntentDataProvider extends BrowserServicesIntentD
  
      @Override
      public @CustomTabProfileType int getCustomTabMode() {
@@ -180,8 +180,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Inco
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -56,6 +56,15 @@ import org.chromium.device.DeviceFeatureList;
- import org.chromium.device.DeviceFeatureMap;
+@@ -54,6 +54,15 @@ import org.chromium.components.signin.identitymanager.ConsentLevel;
+ import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.SpanApplier;
  
 +import android.app.role.RoleManager;
@@ -196,7 +196,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  import androidx.annotation.Nullable;
  import androidx.preference.PreferenceCategory;
  import org.chromium.chrome.browser.contextualsearch.ContextualSearchManager;
-@@ -101,6 +110,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -98,6 +107,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
      private IncognitoLockSettings mIncognitoLockSettings;
      private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
  
@@ -206,7 +206,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      @Override
      public void onCreatePreferencesCromite(Bundle savedInstanceState, String rootKey) {
          mPageTitle.set(getString(R.string.prefs_privacy_security));
-@@ -330,6 +342,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -323,6 +335,9 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
                  new SpanApplier.SpanInfo("<link2>", "</link2>", servicesLink));
      }
  
@@ -216,7 +216,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      @Override
      public boolean onPreferenceChange(Preference preference, Object newValue) {
          String key = preference.getKey();
-@@ -346,6 +361,31 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -339,6 +354,31 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
          } else if (PREF_SEARCH_SUGGESTIONS.equals(key)) {
              UserPrefs.get(getProfile())
                      .setBoolean(Pref.SEARCH_SUGGEST_ENABLED, (boolean) newValue);
@@ -248,7 +248,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          }
          return true;
      }
-@@ -378,6 +418,16 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -371,6 +411,16 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
                      UserPrefs.get(getProfile()).getBoolean(Pref.CAN_MAKE_PAYMENT_ENABLED));
          }
  
@@ -268,7 +268,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -767,6 +767,8 @@ public abstract class ChromeFeatureList {
+@@ -768,6 +768,8 @@ public abstract class ChromeFeatureList {
      public static final CachedFlag sMagicStackAndroid = newCachedFlag(MAGIC_STACK_ANDROID, true);
      public static final CachedFlag sMostVisitedTilesCustomization =
              newCachedFlag(MOST_VISITED_TILES_CUSTOMIZATION, false);
@@ -277,7 +277,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final CachedFlag sMostVisitedTilesReselect =
              newCachedFlag(MOST_VISITED_TILES_RESELECT, false);
      public static final CachedFlag sMultiInstanceApplicationStatusCleanup =
-@@ -933,6 +935,7 @@ public abstract class ChromeFeatureList {
+@@ -915,6 +917,7 @@ public abstract class ChromeFeatureList {
                      sNotificationTrampoline,
                      sMagicStackAndroid,
                      sMostVisitedTilesCustomization,
@@ -288,7 +288,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
 diff --git a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAssociatedApp.java b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAssociatedApp.java
 --- a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAssociatedApp.java
 +++ b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAssociatedApp.java
-@@ -87,7 +87,11 @@ public final class TabAssociatedApp extends TabWebContentsUserData implements Im
+@@ -88,7 +88,11 @@ public final class TabAssociatedApp extends TabWebContentsUserData implements Im
      public static boolean isOpenedFromExternalApp(Tab tab) {
          TabAssociatedApp app = get(tab);
          if (app == null) return false;
