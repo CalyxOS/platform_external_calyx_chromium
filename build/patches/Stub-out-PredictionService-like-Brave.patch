@@ -1,0 +1,76 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Thu, 1 May 2025 13:12:02 +0000
+Subject: Stub out PredictionService like Brave
+
+Port of "[cr136] `kPermissionPredictionsV3` deleted".
+
+Based on brave-core commit by Claudio DeSouza <cdesouza@brave.com>:
+https://github.com/brave/brave-core/commit/e72d3046ca79ff9cc22e2421b6a46fc93fffc697
+
+License: MPL-2.0 - https://spdx.org/licenses/MPL-2.0.html
+Change-Id: Ib8e0d2056b9a0aa914b672b84e975d42f2049c04
+---
+ .../permissions/prediction_service_factory.cc | 19 +++----------------
+ .../permissions/prediction_service_request.cc |  7 ++++---
+ 2 files changed, 7 insertions(+), 19 deletions(-)
+
+diff --git a/chrome/browser/permissions/prediction_service_factory.cc b/chrome/browser/permissions/prediction_service_factory.cc
+--- a/chrome/browser/permissions/prediction_service_factory.cc
++++ b/chrome/browser/permissions/prediction_service_factory.cc
+@@ -13,8 +13,7 @@
+ // static
+ permissions::PredictionService* PredictionServiceFactory::GetForProfile(
+     Profile* profile) {
+-  return static_cast<permissions::PredictionService*>(
+-      GetInstance()->GetServiceForBrowserContext(profile, true));
++  return nullptr;
+ }
+ 
+ // static
+@@ -26,24 +25,12 @@ PredictionServiceFactory* PredictionServiceFactory::GetInstance() {
+ PredictionServiceFactory::PredictionServiceFactory()
+     : ProfileKeyedServiceFactory(
+           "PredictionService",
+-          ProfileSelections::Builder()
+-              .WithRegular(ProfileSelection::kOwnInstance)
+-              // TODO(crbug.com/40257657): Check if this service is needed in
+-              // Guest mode.
+-              .WithGuest(ProfileSelection::kOwnInstance)
+-              // TODO(crbug.com/41488885): Check if this service is needed for
+-              // Ash Internals.
+-              .WithAshInternals(ProfileSelection::kOwnInstance)
+-              .Build()) {}
++          ProfileSelections::BuildNoProfilesSelected()) {}
+ 
+ PredictionServiceFactory::~PredictionServiceFactory() = default;
+ 
+ std::unique_ptr<KeyedService>
+ PredictionServiceFactory::BuildServiceInstanceForBrowserContext(
+     content::BrowserContext* context) const {
+-  auto url_loader_factory =
+-      std::make_unique<network::CrossThreadPendingSharedURLLoaderFactory>(
+-          g_browser_process->shared_url_loader_factory());
+-  return std::make_unique<permissions::PredictionService>(
+-      network::SharedURLLoaderFactory::Create(std::move(url_loader_factory)));
++  return nullptr;
+ }
+diff --git a/chrome/browser/permissions/prediction_service_request.cc b/chrome/browser/permissions/prediction_service_request.cc
+--- a/chrome/browser/permissions/prediction_service_request.cc
++++ b/chrome/browser/permissions/prediction_service_request.cc
+@@ -15,10 +15,11 @@ PredictionServiceRequest::PredictionServiceRequest(
+     const permissions::PredictionRequestFeatures& entity,
+     permissions::PredictionServiceBase::LookupResponseCallback callback)
+     : callback_(std::move(callback)) {
+-  service->StartLookup(
+-      entity, base::NullCallback(),
++  // Fail the prediction service request
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE,
+       base::BindOnce(&PredictionServiceRequest::LookupReponseReceived,
+-                     weak_factory_.GetWeakPtr()));
++                     weak_factory_.GetWeakPtr(), false, false, std::nullopt));
+ }
+ 
+ PredictionServiceRequest::~PredictionServiceRequest() = default;
+-- 
+

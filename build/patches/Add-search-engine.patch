@@ -16,15 +16,14 @@ Change-Id: I3d17ddba87a86200ce0b4484b9673045370f0ddc
  components/search_engines/cromite/BUILD.gn    |  12 ++++++
  .../cromite/cromite_prepopulated_engines.json |  37 ++++++++++++++++++
  .../search_engine_choice_utils.cc             |   5 +--
- .../search_engine_countries-inc.cc            |   2 +
  .../search_engines/search_engine_type.h       |   5 +++
- .../template_url_prepopulate_data.cc          |   3 +-
+ .../template_url_prepopulate_data.cc          |  30 +++++++++++---
  .../template_url_prepopulate_data.h           |   7 ----
  tools/json_to_struct/json_to_struct.gni       |   9 +++++
  tools/json_to_struct/json_to_struct.py        |  26 ++++++++----
  tools/json_to_struct/struct_generator.py      |  10 +++--
  tools/variations/fieldtrial_to_struct.py      |   4 +-
- 14 files changed, 99 insertions(+), 25 deletions(-)
+ 13 files changed, 120 insertions(+), 29 deletions(-)
  create mode 100644 components/resources/default_100_percent/search_engine_choice/default_favicon.png
  create mode 100644 components/search_engines/cromite/BUILD.gn
  create mode 100644 components/search_engines/cromite/cromite_prepopulated_engines.json
@@ -70,15 +69,15 @@ diff --git a/components/resources/search_engine_choice_scaled_resources.grdp b/c
 diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUILD.gn
 --- a/components/search_engines/BUILD.gn
 +++ b/components/search_engines/BUILD.gn
-@@ -72,6 +72,7 @@ static_library("search_engines") {
-     "//third_party/metrics_proto",
+@@ -73,6 +73,7 @@ static_library("search_engines") {
      "//third_party/omnibox_proto",
      "//third_party/search_engines_data:prepopulated_engines",
+     "//third_party/search_engines_data:regional_settings",
 +    "cromite:cromite_prepopulated_engines",
    ]
  
    deps = [
-@@ -157,6 +158,7 @@ source_set("search_engine_utils") {
+@@ -159,6 +160,7 @@ source_set("search_engine_utils") {
      ":search_engine_type",
      "//components/google/core/common",
      "//third_party/search_engines_data:prepopulated_engines",
@@ -86,7 +85,7 @@ diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUIL
    ]
  
    deps = [ "//url" ]
-@@ -237,6 +239,7 @@ source_set("unit_tests") {
+@@ -242,6 +244,7 @@ source_set("unit_tests") {
      "//testing/gmock",
      "//testing/gtest",
      "//third_party/search_engines_data:prepopulated_engines",
@@ -156,7 +155,7 @@ new file mode 100644
 diff --git a/components/search_engines/search_engine_choice/search_engine_choice_utils.cc b/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
 --- a/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
 +++ b/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
-@@ -182,10 +182,7 @@ void RecordChoiceScreenDefaultSearchProviderType(
+@@ -183,10 +183,7 @@ void RecordChoiceScreenDefaultSearchProviderType(
  }
  
  void RecordChoiceScreenSelectedIndex(int selected_engine_index) {
@@ -168,29 +167,19 @@ diff --git a/components/search_engines/search_engine_choice/search_engine_choice
  }
  
  void RecordChoiceScreenPositionsCountryMismatch(bool has_mismatch) {
-diff --git a/components/search_engines/search_engine_countries-inc.cc b/components/search_engines/search_engine_countries-inc.cc
---- a/components/search_engines/search_engine_countries-inc.cc
-+++ b/components/search_engines/search_engine_countries-inc.cc
-@@ -1453,5 +1453,7 @@ const std::vector<EngineAndTier> GetPrepopulationSetFromCountryID(
-   for (size_t i = 0; i < num_engines; i++) {
-     t_url.push_back(engines[i]);
-   }
-+  t_url.push_back({SearchEngineTier::kTopEngines, &googleen});
-+  t_url.push_back({SearchEngineTier::kTopEngines, &duckduckgo_light});
-   return t_url;
- }
 diff --git a/components/search_engines/search_engine_type.h b/components/search_engines/search_engine_type.h
 --- a/components/search_engines/search_engine_type.h
 +++ b/components/search_engines/search_engine_type.h
-@@ -94,10 +94,15 @@ enum SearchEngineType {
-   SEARCH_ENGINE_STARTPAGE = 75,
-   SEARCH_ENGINE_STARTER_PACK_PAGE = 76,
+@@ -97,11 +97,16 @@ enum SearchEngineType {
    SEARCH_ENGINE_MCAFEE = 77,
-+  SEARCH_ENGINE_GOOGLE_EN = 78,
-+  SEARCH_ENGINE_DUCKDUCKGOLIGHT = 79,
+   SEARCH_ENGINE_FREESPOKE = 78,
+   SEARCH_ENGINE_KAGI = 79,
++  SEARCH_ENGINE_GOOGLE_EN = 80,
++  SEARCH_ENGINE_DUCKDUCKGOLIGHT = 81,
  
    SEARCH_ENGINE_MAX  // Bounding value needed for UMA histogram macro.
  };
+ // LINT.ThenChange(//tools/metrics/histograms/enums.xml:OmniboxSearchEngineType)
  
 +static_assert(SEARCH_ENGINE_DUCKDUCKGOLIGHT == (SEARCH_ENGINE_MAX - 1),
 +              "Please check this patch");
@@ -201,16 +190,35 @@ diff --git a/components/search_engines/search_engine_type.h b/components/search_
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
-@@ -28,6 +28,8 @@
- #include "components/version_info/version_info.h"
+@@ -30,6 +30,8 @@
  #include "third_party/search_engines_data/resources/definitions/prepopulated_engines.h"
+ #include "third_party/search_engines_data/resources/definitions/regional_settings.h"
  
 +#include "components/search_engines/cromite/cromite_prepopulated_engines.h"
 +
  namespace TemplateURLPrepopulateData {
  
  // Helpers --------------------------------------------------------------------
-@@ -67,7 +69,6 @@ GetPrepopulatedEnginesForEeaRegionCountries(CountryID country_id,
+@@ -56,6 +58,12 @@ const RegionalSettings& GetRegionalSettings(CountryId country_id) {
+   return *iter->second;
+ }
+ 
++void AddCromiteDefaultEngines(
++    std::vector<std::unique_ptr<TemplateURLData>>& t_urls) {
++  t_urls.push_back(PrepopulatedEngineToTemplateURLData(&googleen));
++  t_urls.push_back(PrepopulatedEngineToTemplateURLData(&duckduckgo_light));
++}
++
+ std::vector<std::unique_ptr<TemplateURLData>>
+ GetPrepopulatedEnginesForEeaRegionCountries(CountryId country_id,
+                                             PrefService& prefs) {
+@@ -80,12 +88,12 @@ GetPrepopulatedEnginesForEeaRegionCountries(CountryId country_id,
+   std::vector<std::unique_ptr<TemplateURLData>> t_urls =
+       base::ToVector(GetRegionalSettings(country_id).search_engines,
+                      &PrepopulatedEngineToTemplateURLData);
++  AddCromiteDefaultEngines(t_urls);
+ 
+   std::default_random_engine generator;
    generator.seed(profile_seed);
    std::shuffle(t_urls.begin(), t_urls.end(), generator);
  
@@ -218,10 +226,55 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
    return t_urls;
  }
  
+@@ -111,8 +119,11 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedTemplateURLData(
+ 
+   const auto& engines = GetRegionalSettings(country_id).search_engines;
+   size_t num_top_engines = std::min(engines.size(), kTopSearchEnginesThreshold);
+-  return base::ToVector(base::span(engines).first(num_top_engines),
+-                        &PrepopulatedEngineToTemplateURLData);
++
++  auto result = base::ToVector(base::span(engines).first(num_top_engines),
++                               &PrepopulatedEngineToTemplateURLData);
++  AddCromiteDefaultEngines(result);
++  return result;
+ }
+ 
+ // These values are persisted to logs. Entries should not be renumbered and
+@@ -260,6 +271,12 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedEngineFromFullList(
+     }
+   }
+ 
++  if (prepopulated_id == googleen.id) {
++    return PrepopulatedEngineToTemplateURLData(&googleen);
++  } else if (prepopulated_id == duckduckgo_light.id) {
++    return PrepopulatedEngineToTemplateURLData(&duckduckgo_light);
++  }
++
+   auto engine_matcher = [&](const PrepopulatedEngine* engine) {
+     return engine->id == prepopulated_id;
+   };
+@@ -325,12 +342,15 @@ GetAllEeaRegionPrepopulatedEngines() {
+     }
+   }
+ 
++  AddCromiteDefaultEngines(result);
+   return result;
+ }
+ 
+ std::vector<std::unique_ptr<TemplateURLData>> GetDefaultPrepopulatedEngines() {
+-  return base::ToVector(GetRegionalSettings(CountryId()).search_engines,
+-                        &PrepopulatedEngineToTemplateURLData);
++  auto result = base::ToVector(GetRegionalSettings(CountryId()).search_engines,
++                               &PrepopulatedEngineToTemplateURLData);
++  AddCromiteDefaultEngines(result);
++  return result;
+ }
+ 
+ }  // namespace TemplateURLPrepopulateData
 diff --git a/components/search_engines/template_url_prepopulate_data.h b/components/search_engines/template_url_prepopulate_data.h
 --- a/components/search_engines/template_url_prepopulate_data.h
 +++ b/components/search_engines/template_url_prepopulate_data.h
-@@ -31,13 +31,6 @@ struct PrepopulatedEngine;
+@@ -32,13 +32,6 @@ struct PrepopulatedEngine;
  
  extern const int kMaxPrepopulatedEngineID;
  
@@ -238,7 +291,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.h b/compone
 diff --git a/tools/json_to_struct/json_to_struct.gni b/tools/json_to_struct/json_to_struct.gni
 --- a/tools/json_to_struct/json_to_struct.gni
 +++ b/tools/json_to_struct/json_to_struct.gni
-@@ -25,6 +25,11 @@ template("json_to_struct") {
+@@ -39,6 +39,11 @@ template("json_to_struct") {
    action_name = target_name + "_action"
    source_set_name = target_name
  
@@ -250,7 +303,7 @@ diff --git a/tools/json_to_struct/json_to_struct.gni b/tools/json_to_struct/json
    action(action_name) {
      visibility = [ ":$source_set_name" ]
      script = "//tools/json_to_struct/json_to_struct.py"
-@@ -49,6 +54,10 @@ template("json_to_struct") {
+@@ -61,6 +66,10 @@ template("json_to_struct") {
        "--namespace=" + invoker.namespace,
        "--schema=" + rebase_path(invoker.schema_file, root_build_dir),
      ]
@@ -264,7 +317,7 @@ diff --git a/tools/json_to_struct/json_to_struct.gni b/tools/json_to_struct/json
 diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_to_struct.py
 --- a/tools/json_to_struct/json_to_struct.py
 +++ b/tools/json_to_struct/json_to_struct.py
-@@ -97,7 +97,7 @@ def _GenerateHeaderGuard(h_filename):
+@@ -100,7 +100,7 @@ def _GenerateHeaderGuard(h_filename):
    return re.sub(u'^_*', '', result) + u'_'  # Remove leading underscores.
  
  
@@ -273,7 +326,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
    """Generates the .h file containing the definition of the structure specified
    by the schema.
  
-@@ -133,11 +133,15 @@ def _GenerateH(basepath, fileroot, head, namespace, schema, description):
+@@ -136,11 +136,15 @@ def _GenerateH(basepath, fileroot, head, namespace, schema, description):
        f.write(u'#include "%s"\n' % header)
      f.write(u'\n')
  
@@ -290,7 +343,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
        schema['type_name'], schema['schema']))
      f.write(u'\n')
  
-@@ -162,7 +166,7 @@ def _GenerateH(basepath, fileroot, head, namespace, schema, description):
+@@ -175,7 +179,7 @@ def _GenerateH(basepath, fileroot, head, namespace, schema, description):
      f.write(u'#endif  // %s\n' % header_guard)
  
  
@@ -299,16 +352,16 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
    """Generates the .cc file containing the static initializers for the
    of the elements specified in the description.
  
-@@ -191,7 +195,7 @@ def _GenerateCC(basepath, fileroot, head, namespace, schema, description):
+@@ -210,7 +214,7 @@ def _GenerateCC(basepath, fileroot, head, namespace, schema, description):
      f.write(element_generator.GenerateElements(schema['type_name'],
          schema['schema'], description))
  
--    if 'generate_array' in description:
-+    if excludetype == False and 'generate_array' in description:
-       f.write(u'\n')
-       f.write(
-           u'const %s* const array_%s[] = {\n' %
-@@ -283,7 +287,7 @@ def GenerateClass(basepath,
+-    if not aggregation.export_items:
++    if excludetype == False and not aggregation.export_items:
+       f.write('\n}  // anonymous namespace \n\n')
+ 
+     if aggregation.kind == AggregationKind.ARRAY:
+@@ -315,7 +319,7 @@ def GenerateClass(basepath,
  
  
  def GenerateStruct(basepath, output_root, namespace, schema, description,
@@ -317,7 +370,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
    """Generates a C++ struct from a JSON description.
  
    Args:
-@@ -302,8 +306,8 @@ def GenerateStruct(basepath, output_root, namespace, schema, description,
+@@ -334,8 +338,8 @@ def GenerateStruct(basepath, output_root, namespace, schema, description,
    """
    year = int(year) if year else datetime.now().year
    head = HEAD % (year, schema_filename, description_filename)
@@ -328,7 +381,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
  
  if __name__ == '__main__':
    parser = optparse.OptionParser(
-@@ -318,11 +322,17 @@ if __name__ == '__main__':
+@@ -350,11 +354,17 @@ if __name__ == '__main__':
    parser.add_option('-s', '--schema', help='path to the schema file, '
        'mandatory.')
    parser.add_option('-o', '--output', help='output filename, ')
@@ -346,7 +399,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
    description_filename = os.path.normpath(args[0])
    root, ext = os.path.splitext(description_filename)
    shortroot = opts.output if opts.output else os.path.split(root)[1]
-@@ -339,4 +349,4 @@ if __name__ == '__main__':
+@@ -371,4 +381,4 @@ if __name__ == '__main__':
    schema = _Load(opts.schema)
    description = _Load(description_filename)
    GenerateStruct(basepath, output_root, opts.namespace, schema, description,
