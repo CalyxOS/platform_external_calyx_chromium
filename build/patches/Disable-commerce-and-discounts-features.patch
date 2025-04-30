@@ -14,13 +14,13 @@ Change-Id: Ie9b492700a5112e280b90652eae69735239a9d9f
  chrome/browser/ui/BUILD.gn                    |  6 --
  .../page_action_icon_controller.cc            |  6 --
  components/commerce/core/BUILD.gn             |  2 -
- .../commerce/core/commerce_feature_list.cc    | 67 ++++---------------
- 4 files changed, 13 insertions(+), 68 deletions(-)
+ .../commerce/core/commerce_feature_list.cc    | 64 +++----------------
+ 4 files changed, 10 insertions(+), 68 deletions(-)
 
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -3866,12 +3866,6 @@ static_library("ui") {
+@@ -3879,12 +3879,6 @@ static_library("ui") {
        "views/chrome_web_dialog_view.h",
        "views/color_provider_browser_helper.cc",
        "views/color_provider_browser_helper.h",
@@ -36,7 +36,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
 --- a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
 +++ b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
-@@ -27,7 +27,6 @@
+@@ -26,7 +26,6 @@
  #include "chrome/browser/ui/views/autofill/payments/offer_notification_icon_view.h"
  #include "chrome/browser/ui/views/autofill/payments/save_payment_icon_view.h"
  #include "chrome/browser/ui/views/autofill/payments/virtual_card_enroll_icon_view.h"
@@ -44,7 +44,7 @@ diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc 
  #include "chrome/browser/ui/views/commerce/price_insights_icon_view.h"
  #include "chrome/browser/ui/views/commerce/price_tracking_icon_view.h"
  #include "chrome/browser/ui/views/commerce/product_specifications_icon_view.h"
-@@ -152,11 +151,6 @@ void PageActionIconController::Init(const PageActionIconParams& params,
+@@ -141,11 +140,6 @@ void PageActionIconController::Init(const PageActionIconParams& params,
                        params.browser, params.icon_label_bubble_delegate,
                        params.page_action_icon_delegate));
          break;
@@ -71,7 +71,7 @@ diff --git a/components/commerce/core/BUILD.gn b/components/commerce/core/BUILD.
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -62,56 +62,6 @@ const CountryLocaleMap& GetAllowedCountryToLocaleMap() {
+@@ -61,56 +61,6 @@ const CountryLocaleMap& GetAllowedCountryToLocaleMap() {
    return *allowed_map;
  }
  
@@ -128,7 +128,7 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
  }  // namespace
  
  BASE_FEATURE(kCommerceAllowLocalImages,
-@@ -396,16 +346,15 @@ const base::FeatureParam<bool> kRevertIconOnFailure{
+@@ -400,16 +350,15 @@ const base::FeatureParam<bool> kRevertIconOnFailure{
      &kShoppingList, kRevertIconOnFailureParam, false};
  
  bool IsPartnerMerchant(const GURL& url) {
@@ -148,7 +148,7 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
  }
  
  bool IsCartDiscountFeatureEnabled() {
-@@ -458,6 +407,7 @@ bool IsRegionLockedFeatureEnabled(const base::Feature& feature,
+@@ -462,6 +411,7 @@ bool IsRegionLockedFeatureEnabled(const base::Feature& feature,
                                    const base::Feature& feature_region_launched,
                                    const std::string& country_code,
                                    const std::string& locale) {
@@ -156,7 +156,7 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
    bool flag_enabled = base::FeatureList::IsEnabled(feature);
    bool region_launched =
        base::FeatureList::IsEnabled(feature_region_launched) &&
-@@ -480,6 +430,7 @@ base::TimeDelta GetDiscountFetchDelay() {
+@@ -484,6 +434,7 @@ base::TimeDelta GetDiscountFetchDelay() {
  }
  
  bool IsNoDiscountMerchant(const GURL& url) {
@@ -164,15 +164,12 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
    auto* pattern_from_component =
        commerce_heuristics::CommerceHeuristicsData::GetInstance()
            .GetNoDiscountMerchantPattern();
-@@ -491,4 +442,12 @@ bool IsNoDiscountMerchant(const GURL& url) {
+@@ -495,4 +446,9 @@ bool IsNoDiscountMerchant(const GURL& url) {
    return RE2::PartialMatch(url.host_piece(), *pattern_from_component);
  }
  #endif
 +
 +SET_CROMITE_FEATURE_DISABLED(kShoppingListRegionLaunched);
-+
-+SET_CROMITE_FEATURE_DISABLED(kParcelTracking);
-+SET_CROMITE_FEATURE_DISABLED(kParcelTrackingRegionLaunched);
 +
 +SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApi);
 +SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApiRegionLaunched);
