@@ -21,11 +21,11 @@ Change-Id: I4a722acfabcd9a4da886d2d164e69ac36e734813
  chrome/android/java/res/values/dimens.xml     |  11 +
  chrome/android/java/res/values/styles.xml     |  24 ++
  .../browser/firstrun/FirstRunActivity.java    |  27 +-
- .../firstrun/FirstRunFlowSequencer.java       |  70 +---
+ .../firstrun/FirstRunFlowSequencer.java       |  69 +---
  .../firstrun/ToSAndUMAFirstRunFragment.java   | 307 ++++++++++++++++
  .../firstrun/TosAndUmaFragmentView.java       | 336 ++++++++++++++++++
  .../strings/android_chrome_strings.grd        |  17 +-
- 10 files changed, 865 insertions(+), 81 deletions(-)
+ 10 files changed, 865 insertions(+), 80 deletions(-)
  create mode 100644 chrome/android/java/res/layout/fre_tosanduma.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/firstrun/TosAndUmaFragmentView.java
@@ -33,7 +33,7 @@ Change-Id: I4a722acfabcd9a4da886d2d164e69ac36e734813
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -514,6 +514,7 @@ chrome_java_resources = [
+@@ -516,6 +516,7 @@ chrome_java_resources = [
    "java/res/layout/find_in_page.xml",
    "java/res/layout/find_toolbar.xml",
    "java/res/layout/fre_tos_privacy_disclaimer.xml",
@@ -44,9 +44,9 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -597,6 +597,8 @@ chrome_java_sources = [
+@@ -602,6 +602,8 @@ chrome_java_sources = [
+   "java/src/org/chromium/chrome/browser/firstrun/LightweightFirstRunActivity.java",
    "java/src/org/chromium/chrome/browser/firstrun/SkipTosDialogPolicyListener.java",
-   "java/src/org/chromium/chrome/browser/firstrun/SyncConsentFirstRunFragment.java",
    "java/src/org/chromium/chrome/browser/firstrun/TosDialogBehaviorSharedPrefInvalidator.java",
 +  "java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java",
 +  "java/src/org/chromium/chrome/browser/firstrun/TosAndUmaFragmentView.java",
@@ -267,8 +267,8 @@ diff --git a/chrome/android/java/res/values/styles.xml b/chrome/android/java/res
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-@@ -33,22 +33,19 @@ import org.chromium.chrome.R;
- import org.chromium.chrome.browser.back_press.SecondaryActivityBackPressUma.SecondaryActivity;
+@@ -33,23 +33,20 @@ import org.chromium.base.metrics.RecordHistogram;
+ import org.chromium.chrome.R;
  import org.chromium.chrome.browser.customtabs.CustomTabActivity;
  import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
 +import org.chromium.chrome.browser.firstrun.ToSAndUMAFirstRunFragment;
@@ -284,6 +284,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  import org.chromium.chrome.browser.ui.signin.fullscreen_signin.FullscreenSigninMediator;
 -import org.chromium.chrome.browser.ui.signin.history_sync.HistorySyncHelper;
  import org.chromium.chrome.browser.ui.system.StatusBarColorController;
+ import org.chromium.components.browser_ui.edge_to_edge.EdgeToEdgeSystemBarColorHelper;
  import org.chromium.components.browser_ui.modaldialog.AppModalPresenter;
  import org.chromium.components.feature_engagement.EventConstants;
  import org.chromium.components.metrics.LowEntropySource;
@@ -291,7 +292,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  import org.chromium.ui.base.ActivityWindowAndroid;
  import org.chromium.ui.base.DeviceFormFactor;
  import org.chromium.ui.base.LocalizationUtils;
-@@ -234,7 +231,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -235,7 +232,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      /** Creates first page and sets up adapter. Should result UI being shown on the screen. */
      private void createFirstPage() {
          BooleanSupplier showWelcomePage = () -> !FirstRunStatus.shouldSkipWelcomePage();
@@ -300,7 +301,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          mFreProgressStates.add(MobileFreProgress.WELCOME_SHOWN);
          mPagerAdapter = new FirstRunPagerAdapter(FirstRunActivity.this, mPages);
          mPager.setAdapter(mPagerAdapter);
-@@ -258,8 +255,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -259,8 +256,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          // Initialize SigninChecker, to kick off sign-in for child accounts as early as possible.
          //
          // TODO(b/245912657): explicitly sign in supervised users in {@link
@@ -310,7 +311,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          mFirstRunFlowSequencer.updateFirstRunProperties(mFreProperties);
  
-@@ -274,18 +270,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -275,18 +271,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
              mFreProgressStates.add(MobileFreProgress.DEFAULT_SEARCH_ENGINE_SHOWN);
          }
  
@@ -329,7 +330,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          if (mPagerAdapter != null) {
              mPagerAdapter.notifyDataSetChanged();
          }
-@@ -697,11 +681,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -707,11 +691,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      public void acceptTermsOfService(boolean allowMetricsAndCrashUploading) {
          assert mNativeInitializationPromise.isFulfilled();
  
@@ -428,7 +429,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      private void setChildAccountStatus(boolean isChild) {
          assert mIsChild == null;
          mIsChild = isChild;
-@@ -167,14 +133,10 @@ public abstract class FirstRunFlowSequencer {
+@@ -167,9 +133,6 @@ public abstract class FirstRunFlowSequencer {
      }
  
      private void maybeProcessFreEnvironmentPreNative() {
@@ -437,13 +438,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -
          if (mIsFlowKnown) return;
          mIsFlowKnown = true;
- 
-         Bundle freProperties = new Bundle();
--        freProperties.putBoolean(SyncConsentFirstRunFragment.IS_CHILD_ACCOUNT, mIsChild);
- 
-         onFlowIsKnown(freProperties);
-     }
-@@ -186,13 +148,7 @@ public abstract class FirstRunFlowSequencer {
+         onFlowIsKnown(mIsChild);
+@@ -182,13 +145,7 @@ public abstract class FirstRunFlowSequencer {
       */
      public void updateFirstRunProperties(Bundle freProperties) {
          assert freProperties != null;
@@ -457,7 +453,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      /** Marks a given flow as completed. */
      public static void markFlowAsCompleted() {
          // When the user accepts ToS in the Setup Wizard, we do not show the ToS page to the user
-@@ -203,8 +159,6 @@ public abstract class FirstRunFlowSequencer {
+@@ -199,8 +156,6 @@ public abstract class FirstRunFlowSequencer {
  
          // Mark the FRE flow as complete.
          FirstRunStatus.setFirstRunFlowComplete(true);
@@ -466,7 +462,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      /**
-@@ -331,13 +285,17 @@ public abstract class FirstRunFlowSequencer {
+@@ -327,13 +282,17 @@ public abstract class FirstRunFlowSequencer {
              if (!(caller instanceof Activity)) {
                  freIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
              }
@@ -1142,7 +1138,7 @@ new file mode 100644
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3705,7 +3705,22 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
+@@ -3718,7 +3718,22 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
          <ph name="APP_NAME">%1$s<ex>Google Maps</ex></ph> will open in Chrome. By continuing, you agree to the <ph name="BEGIN_LINK1">&lt;LINK1&gt;</ph>Google Terms of Service<ph name="END_LINK1">&lt;/LINK1&gt;</ph>, and the <ph name="BEGIN_LINK2">&lt;LINK2&gt;</ph>Google Chrome and ChromeOS Additional Terms of Service<ph name="END_LINK2">&lt;/LINK2&gt;</ph>. The <ph name="BEGIN_LINK3">&lt;LINK3&gt;</ph>Privacy Policy<ph name="END_LINK3">&lt;/LINK3&gt;</ph> also applies.
        </message>
        <message name="IDS_FRE_ACCEPT_CONTINUE" desc="Text for first page accept and continue button [CHAR_LIMIT=20]">
