@@ -10,8 +10,6 @@ See BromiteCustomContentSetting_README.md for more information.
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 Require: bromite-build-utils.patch
-
-Change-Id: I246d2dc343ebe5150e7eb6ac0988cce0f3bf97e7
 ---
  .../ChromeSiteSettingsDelegate.java           |  17 +-
  ...page_specific_content_settings_delegate.cc |   2 +-
@@ -45,7 +43,7 @@ Change-Id: I246d2dc343ebe5150e7eb6ac0988cce0f3bf97e7
  .../BromiteCustomContentSetting.java          | 155 +++++++
  .../BromiteCustomContentSettingImpl.java      | 412 ++++++++++++++++++
  ...tomTriStateSiteSettingsPreferenceImpl.java |  24 +
- .../ContentSettingsResources.java             |  28 +-
+ .../ContentSettingsResources.java             |  38 +-
  .../site_settings/SingleCategorySettings.java |  54 ++-
  .../site_settings/SingleWebsiteSettings.java  |  58 ++-
  .../site_settings/SiteSettings.java           |  33 +-
@@ -86,7 +84,7 @@ Change-Id: I246d2dc343ebe5150e7eb6ac0988cce0f3bf97e7
  .../platform/web_content_settings_client.h    |  13 +
  .../execution_context/execution_context.cc    |  16 +
  .../execution_context/execution_context.h     |   5 +
- 73 files changed, 1954 insertions(+), 102 deletions(-)
+ 73 files changed, 1964 insertions(+), 102 deletions(-)
  create mode 100644 components/browser_ui/settings/android/java/res/layout/preference_spinner_single_widget.xml
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSetting.java
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
@@ -153,7 +151,7 @@ diff --git a/chrome/browser/content_settings/page_specific_content_settings_dele
 diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/chrome/browser/resources/settings/privacy_page/privacy_page.html
 --- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
-@@ -1555,4 +1555,5 @@
+@@ -1574,4 +1574,5 @@
            </settings-subpage>
          </template>
        </template>
@@ -177,7 +175,7 @@ diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.ts b/ch
 +  static getSettingTemplate(template: HTMLTemplateElement,
 +                            name: string) : SettingsCategoryDefaultRadioGroupElement | undefined {
 +    let value : SettingsCategoryDefaultRadioGroupElement | undefined = undefined;
-+    let page : any = template.content!.querySelector("settings-animated-pages");
++    let page : any = template.content.querySelector("settings-animated-pages");
 +
 +    page.querySelectorAll("template")!.forEach(
 +      (subTemplate: HTMLTemplateElement) => {
@@ -712,7 +710,7 @@ diff --git a/chrome/browser/resources/settings/site_settings_page/site_settings_
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -1803,6 +1803,7 @@ static_library("ui") {
+@@ -1802,6 +1802,7 @@ static_library("ui") {
        "//components/commerce/core/mojom:mojo_bindings",
        "//components/commerce/core/webui",
        "//components/endpoint_fetcher:endpoint_fetcher",
@@ -720,7 +718,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
        "//components/enterprise/common:files_scan_data",
        "//components/feedback/proto",
        "//components/headless/policy",
-@@ -5029,6 +5030,7 @@ static_library("ui") {
+@@ -5028,6 +5029,7 @@ static_library("ui") {
        "//components/power_bookmarks/storage",
        "//components/prefs",
        "//components/reading_list/features:flags",
@@ -1189,7 +1187,7 @@ diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provide
  #include "components/password_manager/core/browser/leak_detection_dialog_utils.h"
  #include "components/password_manager/core/browser/manage_passwords_referrer.h"
  #include "components/password_manager/core/common/password_manager_features.h"
-@@ -3812,6 +3816,56 @@ void AddLocalizedStrings(content::WebUIDataSource* html_source,
+@@ -3822,6 +3826,56 @@ void AddLocalizedStrings(content::WebUIDataSource* html_source,
    policy_indicator::AddLocalizedStrings(html_source);
    AddSecurityKeysStrings(html_source);
  
@@ -1452,7 +1450,7 @@ new file mode 100644
 diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/SpinnerPreference.java b/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/SpinnerPreference.java
 --- a/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/SpinnerPreference.java
 +++ b/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/SpinnerPreference.java
-@@ -28,6 +28,7 @@ public class SpinnerPreference extends Preference {
+@@ -29,6 +29,7 @@ public class SpinnerPreference extends Preference {
      private @Nullable ArrayAdapter<Object> mAdapter;
      private int mSelectedIndex;
      private final boolean mSingleLine;
@@ -1460,7 +1458,7 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
  
      /** Constructor for inflating from XML. */
      public SpinnerPreference(Context context, AttributeSet attrs) {
-@@ -42,6 +43,19 @@ public class SpinnerPreference extends Preference {
+@@ -43,6 +44,19 @@ public class SpinnerPreference extends Preference {
          }
      }
  
@@ -1480,7 +1478,7 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
      /**
       * Provides a list of arbitrary objects to be shown in the spinner. Visually, each option will
       * be presented as its toString() text. Alternative to {@link #setAdapter(ArrayAdapter, int)}.
-@@ -61,6 +75,12 @@ public class SpinnerPreference extends Preference {
+@@ -62,6 +76,12 @@ public class SpinnerPreference extends Preference {
          mSelectedIndex = selectedIndex;
      }
  
@@ -1493,7 +1491,7 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
      /** Returns the Spinner instance for introspection during tests. */
      public @Nullable Spinner getSpinnerForTesting() {
          return mSpinner;
-@@ -93,6 +113,10 @@ public class SpinnerPreference extends Preference {
+@@ -94,6 +114,10 @@ public class SpinnerPreference extends Preference {
      public void onBindViewHolder(PreferenceViewHolder holder) {
          super.onBindViewHolder(holder);
  
@@ -1502,8 +1500,8 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
 +            holder.setDividerAllowedBelow(true);
 +        }
          ((TextView) holder.findViewById(R.id.title)).setText(getTitle());
-         mSpinner = (Spinner) holder.findViewById(R.id.spinner);
-         mSpinner.setOnItemSelectedListener(
+         CharSequence summary = getSummary();
+         TextView summaryView = ((TextView) holder.findViewById(R.id.summary));
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
@@ -2194,19 +2192,11 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          private final int mIcon;
          private final int mIconBlocked;
          private final int mTitle;
-@@ -54,7 +54,7 @@ public class ContentSettingsResources {
+@@ -54,7 +54,29 @@ public class ContentSettingsResources {
          private int mEnabledDescriptionText;
          private int mDisabledDescriptionText;
  
 -        ResourceItem(
-+        public ResourceItem(
-                 int icon,
-                 int title,
-                 @ContentSettingValues @Nullable Integer defaultEnabledValue,
-@@ -79,6 +79,18 @@ public class ContentSettingsResources {
-             mDisabledDescriptionText = 0;
-         }
- 
 +        public ResourceItem(
 +                int icon,
 +                int title,
@@ -2215,14 +2205,25 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +                int enabledSummary,
 +                int disabledSummary,
 +                int summaryOverrideForScreenReader) {
-+            this(icon, title, defaultEnabledValue, defaultDisabledValue, enabledSummary,
-+                    disabledSummary, summaryOverrideForScreenReader, 0, 0, 0);
++            mIcon = icon;
++            mIconBlocked = 0;
++            mTitle = title;
++            mDefaultEnabledValue = defaultEnabledValue;
++            mDefaultDisabledValue = defaultDisabledValue;
++            mEnabledSummary = enabledSummary;
++            mDisabledSummary = disabledSummary;
++            mSummaryOverrideForScreenReader = summaryOverrideForScreenReader;
++            mEnabledPrimaryText = 0;
++            mDisabledPrimaryText = 0;
++            mEnabledDescriptionText = 0;
++            mDisabledDescriptionText = 0;
 +        }
 +
-         private int getIcon() {
-             return mIcon;
-         }
-@@ -641,6 +653,8 @@ public class ContentSettingsResources {
++        public ResourceItem(
+                 int icon,
+                 int title,
+                 @ContentSettingValues @Nullable Integer defaultEnabledValue,
+@@ -641,6 +663,8 @@ public class ContentSettingsResources {
                          R.string.website_settings_vr_ask,
                          R.string.website_settings_vr_block);
          }
@@ -2231,7 +2232,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          assert false; // NOTREACHED
          return assumeNonNull(null);
      }
-@@ -799,6 +813,14 @@ public class ContentSettingsResources {
+@@ -799,6 +823,14 @@ public class ContentSettingsResources {
          return getResourceItem(contentType).getDefaultDisabledValue();
      }
  
@@ -2246,7 +2247,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      /**
       * Returns the string resource id for a given ContentSetting to show with a permission category.
       *
-@@ -973,6 +995,8 @@ public class ContentSettingsResources {
+@@ -973,6 +1005,8 @@ public class ContentSettingsResources {
       */
      public static int @Nullable [] getTriStateSettingDescriptionIDs(
              int contentType, boolean isPermissionSiteSettingsRadioButtonFeatureEnabled) {
@@ -3608,5 +3609,4 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
  
  enum ReasonForCallingCanExecuteScripts {
    kAboutToExecuteScript,
--- 
-
+--
