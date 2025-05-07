@@ -1,11 +1,6 @@
 From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Fri, 30 Mar 2018 10:09:03 +0200
-Subject: PARTIAL Multiple fingerprinting mitigations
-
-(CalyxOS Note: Our build procedures currently do not accommodate
-making changes to submodule repos, in this case third_party/skia,
-so that portion of this match needed to be removed, hence the
-"PARTIAL" in the subject. -tmw)
+Subject: Multiple fingerprinting mitigations
 
 1. getClientRects, getBoundingClientRect, measureText: add fingerprinting mitigation
 
@@ -30,8 +25,6 @@ Added flag --fingerprinting-canvas-image-data-noise to disable Canvas image data
 Add noise also to SVGs (credits to uazo)
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: If29db53656dc4f8163ef145eb3bf153bef9058f5
 ---
  chrome/browser/BUILD.gn                       |   1 +
  chrome/browser/about_flags.cc                 |   2 +
@@ -57,10 +50,11 @@ Change-Id: If29db53656dc4f8163ef145eb3bf153bef9058f5
  .../platform/graphics/static_bitmap_image.cc  | 154 ++++++++++++++++++
  .../platform/graphics/static_bitmap_image.h   |   2 +
  .../platform/runtime_enabled_features.json5   |   9 +
+ third_party/skia/include/core/SkPixmap.h      |  16 +-
  third_party/ungoogled/BUILD.gn                |  10 ++
  third_party/ungoogled/ungoogled_switches.cc   |  18 ++
  third_party/ungoogled/ungoogled_switches.h    |  18 ++
- 27 files changed, 389 insertions(+), 9 deletions(-)
+ 28 files changed, 397 insertions(+), 17 deletions(-)
  create mode 100755 cromite_flags/chrome/browser/about_flags_cc/Multiple-fingerprinting-mitigations.inc
  create mode 100644 third_party/ungoogled/BUILD.gn
  create mode 100644 third_party/ungoogled/ungoogled_switches.cc
@@ -800,6 +794,53 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      {
        name: "Notifications",
        public: true,
+diff --git a/third_party/skia/include/core/SkPixmap.h b/third_party/skia/include/core/SkPixmap.h
+--- a/third_party/skia/include/core/SkPixmap.h
++++ b/third_party/skia/include/core/SkPixmap.h
+@@ -396,8 +396,8 @@ public:
+         @return   readable unsigned 8-bit pointer to pixel at (x, y)
+     */
+     const uint8_t* addr8(int x, int y) const {
+-        SkASSERT((unsigned)x < (unsigned)fInfo.width());
+-        SkASSERT((unsigned)y < (unsigned)fInfo.height());
++        SkASSERT_RELEASE((unsigned)x < (unsigned)fInfo.width());
++        SkASSERT_RELEASE((unsigned)y < (unsigned)fInfo.height());
+         return (const uint8_t*)((const char*)this->addr8() + (size_t)y * fRowBytes + (x << 0));
+     }
+ 
+@@ -414,8 +414,8 @@ public:
+         @return   readable unsigned 16-bit pointer to pixel at (x, y)
+     */
+     const uint16_t* addr16(int x, int y) const {
+-        SkASSERT((unsigned)x < (unsigned)fInfo.width());
+-        SkASSERT((unsigned)y < (unsigned)fInfo.height());
++        SkASSERT_RELEASE((unsigned)x < (unsigned)fInfo.width());
++        SkASSERT_RELEASE((unsigned)y < (unsigned)fInfo.height());
+         return (const uint16_t*)((const char*)this->addr16() + (size_t)y * fRowBytes + (x << 1));
+     }
+ 
+@@ -432,8 +432,8 @@ public:
+         @return   readable unsigned 32-bit pointer to pixel at (x, y)
+     */
+     const uint32_t* addr32(int x, int y) const {
+-        SkASSERT((unsigned)x < (unsigned)fInfo.width());
+-        SkASSERT((unsigned)y < (unsigned)fInfo.height());
++        SkASSERT_RELEASE((unsigned)x < (unsigned)fInfo.width());
++        SkASSERT_RELEASE((unsigned)y < (unsigned)fInfo.height());
+         return (const uint32_t*)((const char*)this->addr32() + (size_t)y * fRowBytes + (x << 2));
+     }
+ 
+@@ -450,8 +450,8 @@ public:
+         @return   readable unsigned 64-bit pointer to pixel at (x, y)
+     */
+     const uint64_t* addr64(int x, int y) const {
+-        SkASSERT((unsigned)x < (unsigned)fInfo.width());
+-        SkASSERT((unsigned)y < (unsigned)fInfo.height());
++        SkASSERT_RELEASE((unsigned)x < (unsigned)fInfo.width());
++        SkASSERT_RELEASE((unsigned)y < (unsigned)fInfo.height());
+         return (const uint64_t*)((const char*)this->addr64() + (size_t)y * fRowBytes + (x << 3));
+     }
+ 
 diff --git a/third_party/ungoogled/BUILD.gn b/third_party/ungoogled/BUILD.gn
 new file mode 100644
 --- /dev/null
@@ -861,5 +902,4 @@ new file mode 100644
 +}
 +
 +#endif  // THIRD_PARTY_UNGOOGLED_FINGERPRINTING_SWITCHES_H_
--- 
-
+--

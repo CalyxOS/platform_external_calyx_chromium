@@ -3,30 +3,29 @@ Date: Wed, 29 May 2024 13:43:50 +0000
 Subject: Enable Global Privacy Control
 
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
-
-Change-Id: I4bcbc7b2c8b9dfeb40ecf8a185ba6f06ae13e1b2
 ---
  chrome/android/chrome_java_resources.gni      |   1 +
  chrome/android/chrome_java_sources.gni        |   1 +
- .../android/java/res/xml/gpc_preferences.xml  |  15 +++
+ .../android/java/res/xml/gpc_preferences.xml  |  15 ++
  .../java/res/xml/privacy_preferences.xml      |   4 +
- .../browser/privacy/settings/GpcSettings.java |  50 ++++++++
+ .../browser/privacy/settings/GpcSettings.java |  50 ++++++
  .../privacy/settings/PrivacySettings.java     |   9 ++
- chrome/app/settings_strings.grdp              |  15 +++
+ chrome/app/settings_strings.grdp              |  15 ++
  .../api/settings_private/prefs_util.cc        |   1 +
  chrome/browser/renderer_preferences_util.cc   |   3 +
  chrome/browser/resources/settings/BUILD.gn    |   1 +
  .../settings/privacy_page/cookies_page.html   |   2 +
  .../settings/privacy_page/cookies_page.ts     |   1 +
- .../settings/privacy_page/gpc_toggle.html     |  32 +++++
- .../settings/privacy_page/gpc_toggle.ts       | 112 ++++++++++++++++++
- .../Enable-Global-Privacy-Control.grdp        |  15 +++
+ .../settings/privacy_page/gpc_toggle.html     |  32 ++++
+ .../settings/privacy_page/gpc_toggle.ts       | 112 ++++++++++++++
+ .../Enable-Global-Privacy-Control.grdp        |  15 ++
  chrome/browser/ui/prefs/pref_watcher.cc       |   4 +
  chrome/browser/ui/prefs/pref_watcher.h        |   1 +
  .../settings_localized_strings_provider.cc    |   3 +
+ .../settings/SpinnerPreference.java.porig     | 145 ++++++++++++++++++
  .../tracking_protection_prefs.cc              |   1 +
  .../tracking_protection_prefs.h               |   2 +
- .../tracking_protection_settings.cc           |  15 +++
+ .../tracking_protection_settings.cc           |  15 ++
  .../tracking_protection_settings.h            |   3 +
  .../tracking_protection_settings_observer.h   |   2 +
  .../browser_initiated_resource_request.cc     |   6 +
@@ -40,20 +39,21 @@ Change-Id: I4bcbc7b2c8b9dfeb40ecf8a185ba6f06ae13e1b2
  .../renderer/bindings/idl_in_modules.gni      |   5 +
  .../renderer/core/exported/web_view_impl.cc   |   3 +
  third_party/blink/renderer/modules/BUILD.gn   |   4 +
- .../modules/global_privacy_control/BUILD.gn   |   8 ++
+ .../modules/global_privacy_control/BUILD.gn   |   8 +
  .../global_privacy_control.cc                 |  12 ++
- .../global_privacy_control.h                  |  15 +++
+ .../global_privacy_control.h                  |  15 ++
  .../navigator_global_privacy_control.idl      |   6 +
  ...orker_navigator_global_privacy_control.idl |   6 +
  .../web_service_worker_fetch_context_impl.cc  |   3 +
  ...ted_or_shared_worker_fetch_context_impl.cc |   3 +
  .../platform/runtime_enabled_features.json5   |   5 +
- 42 files changed, 384 insertions(+)
+ 43 files changed, 529 insertions(+)
  create mode 100644 chrome/android/java/res/xml/gpc_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/GpcSettings.java
  create mode 100644 chrome/browser/resources/settings/privacy_page/gpc_toggle.html
  create mode 100644 chrome/browser/resources/settings/privacy_page/gpc_toggle.ts
  create mode 100644 chrome/browser/ui/android/strings/cromite_android_chrome_strings_grd/Enable-Global-Privacy-Control.grdp
+ create mode 100644 components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/SpinnerPreference.java.porig
  create mode 100644 third_party/blink/renderer/modules/global_privacy_control/BUILD.gn
  create mode 100644 third_party/blink/renderer/modules/global_privacy_control/global_privacy_control.cc
  create mode 100644 third_party/blink/renderer/modules/global_privacy_control/global_privacy_control.h
@@ -492,6 +492,156 @@ diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provide
        // TODO(crbug.com/40122957): This string is no longer used. Remove.
        {"permissionsPageTitle", IDS_SETTINGS_PERMISSIONS},
        {"permissionsPageDescription", IDS_SETTINGS_PERMISSIONS_DESCRIPTION},
+diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/SpinnerPreference.java.porig b/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/SpinnerPreference.java.porig
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/SpinnerPreference.java.porig
+@@ -0,0 +1,145 @@
++// Copyright 2014 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++package org.chromium.components.browser_ui.settings;
++
++import static org.chromium.build.NullUtil.assumeNonNull;
++
++import android.content.Context;
++import android.content.res.TypedArray;
++import android.util.AttributeSet;
++import android.view.View;
++import android.widget.AdapterView;
++import android.widget.ArrayAdapter;
++import android.widget.Spinner;
++import android.widget.TextView;
++
++import androidx.preference.Preference;
++import androidx.preference.PreferenceViewHolder;
++
++import org.chromium.build.annotations.NullMarked;
++import org.chromium.build.annotations.Nullable;
++
++/** A preference that takes value from a specified list of objects, presented as a dropdown. */
++@NullMarked
++public class SpinnerPreference extends Preference {
++    private @Nullable Spinner mSpinner;
++    private @Nullable ArrayAdapter<Object> mAdapter;
++    private int mSelectedIndex;
++    private final boolean mSingleLine;
++    private boolean mIsWidget = false;
++
++    /** Constructor for inflating from XML. */
++    public SpinnerPreference(Context context, AttributeSet attrs) {
++        super(context, attrs);
++        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SpinnerPreference);
++        mSingleLine = a.getBoolean(R.styleable.SpinnerPreference_singleLine, false);
++        a.recycle();
++        if (mSingleLine) {
++            setLayoutResource(R.layout.preference_spinner_single_line);
++        } else {
++            setLayoutResource(R.layout.preference_spinner);
++        }
++    }
++
++    public SpinnerPreference(Context context, boolean singleLine) {
++        super(context, null);
++        mSingleLine = singleLine;
++        mIsWidget = true;
++        setLayoutResource(R.layout.preference_spinner_single_widget);
++    }
++
++    @Override
++    protected void onClick() {
++        if (mIsWidget)
++            mSpinner.performClick();
++    }
++
++    /**
++     * Provides a list of arbitrary objects to be shown in the spinner. Visually, each option will
++     * be presented as its toString() text. Alternative to {@link #setAdapter(ArrayAdapter, int)}.
++     *
++     * @param options The options to be shown in the spinner.
++     * @param selectedIndex Index of the initially selected option.
++     */
++    public void setOptions(Object[] options, int selectedIndex) {
++        int itemLayout;
++        if (mSingleLine) {
++            itemLayout = R.layout.preference_spinner_single_line_item;
++        } else {
++            itemLayout = android.R.layout.simple_spinner_item;
++        }
++        mAdapter = new ArrayAdapter<>(getContext(), itemLayout, options);
++        mAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
++        mSelectedIndex = selectedIndex;
++    }
++
++    public void setSelectedIndex(int selectedIndex) {
++        mSelectedIndex = selectedIndex;
++        if (mSpinner != null)
++            mSpinner.setSelection(mSelectedIndex);
++    }
++
++    /** Returns the Spinner instance for introspection during tests. */
++    public @Nullable Spinner getSpinnerForTesting() {
++        return mSpinner;
++    }
++
++    /**
++     * Provides an adapter containing objects to be shown in the spinner. Alternatively, a list of
++     * objects to be shown may be provided in {@link #setOptions(Object[], int)}. It is expected
++     * that only one of these methods will be called.
++     *
++     * @param arrayAdapter  The array adapter to use.
++     * @param selectedIndex The index of the selected item.
++     */
++    public void setAdapter(ArrayAdapter<Object> arrayAdapter, int selectedIndex) {
++        mAdapter = arrayAdapter;
++        mAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
++        mSelectedIndex = selectedIndex;
++    }
++
++    /** @return The currently selected option. */
++    public @Nullable Object getSelectedOption() {
++        if (mSpinner == null) {
++            // Use the adapter directly if the view hasn't been created yet.
++            return assumeNonNull(mAdapter).getItem(mSelectedIndex);
++        }
++        return mSpinner.getSelectedItem();
++    }
++
++    @Override
++    public void onBindViewHolder(PreferenceViewHolder holder) {
++        super.onBindViewHolder(holder);
++
++        ((TextView) holder.findViewById(R.id.title)).setText(getTitle());
++        mSpinner = (Spinner) holder.findViewById(R.id.spinner);
++        mSpinner.setOnItemSelectedListener(
++                new AdapterView.OnItemSelectedListener() {
++                    @Override
++                    public void onItemSelected(
++                            AdapterView<?> parent, View view, int position, long id) {
++                        mSelectedIndex = position;
++                        if (getOnPreferenceChangeListener() != null) {
++                            getOnPreferenceChangeListener()
++                                    .onPreferenceChange(
++                                            SpinnerPreference.this, getSelectedOption());
++                        }
++                    }
++
++                    @Override
++                    public void onNothingSelected(AdapterView<?> parent) {
++                        // No callback. Only update listeners when an actual option is selected.
++                    }
++                });
++
++        // Screen readers notice the setAdapter() call and announce it. We do not want the spinner
++        // to be announced every time the view is bound (e.g. when the user scrolls away from it
++        // and then back). Therefore, only update the adapter if it has actually changed.
++        if (mSpinner.getAdapter() != mAdapter) {
++            mSpinner.setAdapter(mAdapter);
++        }
++        mSpinner.setSelection(mSelectedIndex);
++    }
++}
 diff --git a/components/privacy_sandbox/tracking_protection_prefs.cc b/components/privacy_sandbox/tracking_protection_prefs.cc
 --- a/components/privacy_sandbox/tracking_protection_prefs.cc
 +++ b/components/privacy_sandbox/tracking_protection_prefs.cc

@@ -8,15 +8,13 @@ kPartitionSSLSessionsByNetworkIsolationKey, PartitionExpectCTStateByNetworkIsola
 PartitionNelAndReportingByNetworkIsolationKey, kSplitCacheByNavigationInitiator
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
-
-Change-Id: Iae5bf07bc19de8f37435812c0cd860d2584ad9c2
 ---
- .../browser/net/profile_network_context_service.cc  |  2 +-
- .../Enable-network-isolation-features.inc           |  9 +++++++++
- .../Enable-network-isolation-features.inc           |  1 +
- net/http/http_cache.cc                              | 13 ++++++++-----
- net/http/http_cache.h                               |  2 +-
- 5 files changed, 20 insertions(+), 7 deletions(-)
+ .../browser/net/profile_network_context_service.cc |  2 +-
+ .../Enable-network-isolation-features.inc          |  9 +++++++++
+ .../Enable-network-isolation-features.inc          |  1 +
+ net/http/http_cache.cc                             | 14 +++++++++-----
+ net/http/http_cache.h                              |  2 +-
+ 5 files changed, 21 insertions(+), 7 deletions(-)
  create mode 100644 cromite_flags/net/base/features_cc/Enable-network-isolation-features.inc
  create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Enable-network-isolation-features.inc
 
@@ -64,17 +62,18 @@ diff --git a/net/http/http_cache.cc b/net/http/http_cache.cc
      const GURL& url,
      int load_flags,
      const NetworkIsolationKey& network_isolation_key,
-@@ -690,8 +690,7 @@ std::string HttpCache::GenerateCacheKey(
+@@ -690,8 +690,8 @@ std::string HttpCache::GenerateCacheKey(
        const bool is_initiator_cross_site =
            !net::SchemefulSite::IsSameSite(*initiator, url::Origin::Create(url));
        if (is_initiator_cross_site) {
 -        is_cross_site_main_frame_navigation_prefix =
 -            kCrossSiteMainFrameNavigationPrefix;
++        // LOG(INFO) << "---initiator_site cs=" << base::StrCat({"ni_", initiator->Serialize(), " "});
 +        return "";
        }
      }
      isolation_key = base::StrCat(
-@@ -706,9 +705,11 @@ std::string HttpCache::GenerateCacheKey(
+@@ -706,9 +706,11 @@ std::string HttpCache::GenerateCacheKey(
    // Strip out the reference, username, and password sections of the URL and
    // concatenate with the credential_key, the post_key, and the network
    // isolation key if we are splitting the cache.
@@ -82,12 +81,12 @@ diff --git a/net/http/http_cache.cc b/net/http/http_cache.cc
 +  auto key = base::StringPrintf("%c/%" PRId64 "/%s%s", credential_key,
                              upload_data_identifier, isolation_key.c_str(),
                              HttpUtil::SpecForRequest(url).c_str());
-+  DLOG(INFO) << "---key=" << key;
++  // LOG(INFO) << "---key=" << key;
 +  return key;
  }
  
  // static
-@@ -731,10 +732,12 @@ HttpCache::GenerateCacheKeyForRequestWithAlternateURL(
+@@ -731,10 +733,12 @@ HttpCache::GenerateCacheKeyForRequestWithAlternateURL(
    const int64_t upload_data_identifier =
        request->upload_data_stream ? request->upload_data_stream->identifier()
                                    : int64_t(0);
