@@ -17,13 +17,13 @@ Change-Id: I3d17ddba87a86200ce0b4484b9673045370f0ddc
  .../cromite/cromite_prepopulated_engines.json |  37 ++++++++++++++++++
  .../search_engine_choice_utils.cc             |   5 +--
  .../search_engines/search_engine_type.h       |   5 +++
- .../template_url_prepopulate_data.cc          |  30 +++++++++++---
+ .../template_url_prepopulate_data.cc          |  15 ++++++-
  .../template_url_prepopulate_data.h           |   7 ----
  tools/json_to_struct/json_to_struct.gni       |   9 +++++
  tools/json_to_struct/json_to_struct.py        |  26 ++++++++----
  tools/json_to_struct/struct_generator.py      |  10 +++--
  tools/variations/fieldtrial_to_struct.py      |   4 +-
- 13 files changed, 120 insertions(+), 29 deletions(-)
+ 13 files changed, 108 insertions(+), 26 deletions(-)
  create mode 100644 components/resources/default_100_percent/search_engine_choice/default_favicon.png
  create mode 100644 components/search_engines/cromite/BUILD.gn
  create mode 100644 components/search_engines/cromite/cromite_prepopulated_engines.json
@@ -199,26 +199,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  namespace TemplateURLPrepopulateData {
  
  // Helpers --------------------------------------------------------------------
-@@ -56,6 +58,12 @@ const RegionalSettings& GetRegionalSettings(CountryId country_id) {
-   return *iter->second;
- }
- 
-+void AddCromiteDefaultEngines(
-+    std::vector<std::unique_ptr<TemplateURLData>>& t_urls) {
-+  t_urls.push_back(PrepopulatedEngineToTemplateURLData(&googleen));
-+  t_urls.push_back(PrepopulatedEngineToTemplateURLData(&duckduckgo_light));
-+}
-+
- std::vector<std::unique_ptr<TemplateURLData>>
- GetPrepopulatedEnginesForEeaRegionCountries(CountryId country_id,
-                                             PrefService& prefs) {
-@@ -80,12 +88,12 @@ GetPrepopulatedEnginesForEeaRegionCountries(CountryId country_id,
-   std::vector<std::unique_ptr<TemplateURLData>> t_urls =
-       base::ToVector(GetRegionalSettings(country_id).search_engines,
-                      &PrepopulatedEngineToTemplateURLData);
-+  AddCromiteDefaultEngines(t_urls);
- 
-   std::default_random_engine generator;
+@@ -85,11 +87,10 @@ GetPrepopulatedEnginesForEeaRegionCountries(CountryId country_id,
    generator.seed(profile_seed);
    std::shuffle(t_urls.begin(), t_urls.end(), generator);
  
@@ -226,51 +207,28 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
    return t_urls;
  }
  
-@@ -111,8 +119,11 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedTemplateURLData(
- 
-   const auto& engines = GetRegionalSettings(country_id).search_engines;
-   size_t num_top_engines = std::min(engines.size(), kTopSearchEnginesThreshold);
--  return base::ToVector(base::span(engines).first(num_top_engines),
--                        &PrepopulatedEngineToTemplateURLData);
-+
-+  auto result = base::ToVector(base::span(engines).first(num_top_engines),
-+                               &PrepopulatedEngineToTemplateURLData);
-+  AddCromiteDefaultEngines(result);
-+  return result;
+-std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedTemplateURLData(
++std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedTemplateURLDataChromium(
+     CountryId country_id,
+     PrefService& prefs) {
+   if (regional_capabilities::HasSearchEngineCountryListOverride()) {
+@@ -115,6 +116,16 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedTemplateURLData(
+                         &PrepopulatedEngineToTemplateURLData);
  }
  
++std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedTemplateURLData(
++    CountryId country_id,
++    PrefService& prefs) {
++  std::vector<std::unique_ptr<TemplateURLData>> t_urls =
++    GetPrepopulatedTemplateURLDataChromium(country_id, prefs);
++  t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(googleen));
++  t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(duckduckgo_light));
++  return t_urls;
++}
++
  // These values are persisted to logs. Entries should not be renumbered and
-@@ -260,6 +271,12 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedEngineFromFullList(
-     }
-   }
- 
-+  if (prepopulated_id == googleen.id) {
-+    return PrepopulatedEngineToTemplateURLData(&googleen);
-+  } else if (prepopulated_id == duckduckgo_light.id) {
-+    return PrepopulatedEngineToTemplateURLData(&duckduckgo_light);
-+  }
-+
-   auto engine_matcher = [&](const PrepopulatedEngine* engine) {
-     return engine->id == prepopulated_id;
-   };
-@@ -325,12 +342,15 @@ GetAllEeaRegionPrepopulatedEngines() {
-     }
-   }
- 
-+  AddCromiteDefaultEngines(result);
-   return result;
- }
- 
- std::vector<std::unique_ptr<TemplateURLData>> GetDefaultPrepopulatedEngines() {
--  return base::ToVector(GetRegionalSettings(CountryId()).search_engines,
--                        &PrepopulatedEngineToTemplateURLData);
-+  auto result = base::ToVector(GetRegionalSettings(CountryId()).search_engines,
-+                               &PrepopulatedEngineToTemplateURLData);
-+  AddCromiteDefaultEngines(result);
-+  return result;
- }
- 
- }  // namespace TemplateURLPrepopulateData
+ // numeric values should never be reused.
+ enum class SearchProviderOverrideStatus {
 diff --git a/components/search_engines/template_url_prepopulate_data.h b/components/search_engines/template_url_prepopulate_data.h
 --- a/components/search_engines/template_url_prepopulate_data.h
 +++ b/components/search_engines/template_url_prepopulate_data.h
