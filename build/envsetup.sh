@@ -74,7 +74,9 @@ add() {
 resume() {
   find_chromium_src_path || return $?
   git_chromium am --continue "$@" || return $?
-  export_single_patch || return $?
+  if is_var_true EXPORT_APPLIED_PATCHES; then
+    export_single_patch || return $?
+  fi
   apply_patches_resume || return $?
 }
 
@@ -992,8 +994,8 @@ sync_cromite() {
 
   # Drop to a shell to apply the updated patches interactively, using wiggle for conflicts
   # by default.
-  USE_WIGGLE="${USE_WIGGLE:-y}" drop_to_shell "sync_cromite" "$CHROMIUM_SRC_PATH" \
-    "EXPORT_APPLIED_PATCHES=n; if apply_patches; then exit; else echo 'Once all patches are completely applied, type: exit'; fi"
+  USE_WIGGLE="${USE_WIGGLE:-y}" EXPORT_APPLIED_PATCHES=n drop_to_shell "sync_cromite" "$CHROMIUM_SRC_PATH" \
+    "if apply_patches; then exit; else echo 'Once all patches are completely applied, type: exit'; fi"
 
   # Patch application should be finished at this point.
   # Revert our change which copied the latest patches so we can access original Change-Id's.
