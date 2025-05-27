@@ -15,7 +15,7 @@ Change-Id: Ic86dc8dac25b4e9bc89ab73952ec997ce517395b
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -62,11 +62,6 @@ found in the LICENSE file.
+@@ -58,11 +58,6 @@ found in the LICENSE file.
          android:title="@string/open_external_links_incognito_title"
          android:summary="@string/open_external_links_incognito_summary"
          android:defaultValue="false" />
@@ -27,10 +27,10 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      <org.chromium.chrome.browser.incognito.reauth.IncognitoReauthSettingSwitchPreference
          android:key="incognito_lock"
          android:title="@string/settings_incognito_tab_lock_title"
-@@ -76,11 +71,6 @@ found in the LICENSE file.
-     <PreferenceCategory
-         android:key="security_section"
-         android:title="@string/security_section_title" />
+@@ -75,11 +70,6 @@ found in the LICENSE file.
+      <org.chromium.chrome.browser.safety_hub.SafetyHubExpandablePreference
+             android:key="advanced_protection_info"
+             android:title="@string/settings_privacy_and_security_advanced_protection_section_title"/>
 -    <Preference
 -        android:key="safe_browsing"
 -        android:title="@string/prefs_safe_browsing_title"
@@ -39,7 +39,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
          android:key="password_leak_detection"
          android:title="@string/passwords_leak_detection_switch_title"
-@@ -114,10 +104,6 @@ found in the LICENSE file.
+@@ -113,10 +103,6 @@ found in the LICENSE file.
            android:title="@string/improve_search_suggestions_title"
            android:summary="@string/improve_search_suggestions_summary"
            android:persistent="false"/>
@@ -50,7 +50,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
      </PreferenceCategory>
      <org.chromium.components.browser_ui.settings.ChromeBasePreference
          android:key="javascript_optimizer"
-@@ -128,8 +114,4 @@ found in the LICENSE file.
+@@ -126,8 +112,4 @@ found in the LICENSE file.
          android:key="can_make_payment"
          android:title="@string/can_make_payment_title"
          android:summary="@string/settings_can_make_payment_toggle_label" />
@@ -62,9 +62,9 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -178,20 +178,6 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
-         mIncognitoLockSettings = new IncognitoLockSettings(incognitoReauthPreference, getProfile());
-         mIncognitoLockSettings.setUpIncognitoReauthPreference(getActivity());
+@@ -218,20 +218,6 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+ 
+         maybeShowAdvancedProtectionSection();
  
 -        Preference safeBrowsingPreference = findPreference(PREF_SAFE_BROWSING);
 -        safeBrowsingPreference.setSummary(
@@ -83,7 +83,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          setHasOptionsMenu(true);
  
          ChromeSwitchPreference passwordLeakTogglePref =
-@@ -206,12 +192,6 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+@@ -246,12 +232,6 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
          mSearchSuggestions.setOnPreferenceChangeListener(this);
          mSearchSuggestions.setManagedPreferenceDelegate(mManagedPreferenceDelegate);
  
@@ -93,10 +93,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 -        mContextualSearch.setSummary(
 -                isContextualSearchEnabled ? R.string.text_on : R.string.text_off);
 -
-         ChromeSwitchPreference canMakePaymentPref =
-                 (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
-         canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -263,9 +243,6 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
+         Preference gpcPref = findPreference(PREF_GPC);
+         if (gpcPref != null) {
+             gpcPref.setSummary(
+@@ -311,9 +291,6 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
              }
          }
  
