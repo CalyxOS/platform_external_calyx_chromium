@@ -1,0 +1,35 @@
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Tue, 27 May 2025 14:31:40 +0000
+Subject: Fix build after "Add an always-incognito mode"
+
+This patch depends on a piece of "Add-menu-item-to-view-source.patch",
+which we do not include, so this change brings in the necessary piece.
+
+Change-Id: I6bf01671bf03419ba2d422d3fc906a4b39488068
+---
+ .../browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java  | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
+@@ -133,7 +133,7 @@ public class TabbedAppMenuPropertiesDelegate extends AppMenuPropertiesDelegateIm
+         if (menuGroup == MenuGroup.PAGE_MENU) {
+             preparePageMenu(menu, currentTab, handler, isIncognito);
+         }
+-        prepareCommonMenuItems(menu, menuGroup, isIncognito);
++        prepareCommonMenuItems(menu, menuGroup, isIncognito, currentTab);
+     }
+ 
+     private void setMenuGroupVisibility(@MenuGroup int menuGroup, Menu menu) {
+@@ -316,7 +316,7 @@ public class TabbedAppMenuPropertiesDelegate extends AppMenuPropertiesDelegateIm
+                 .setVisible(ChromeFeatureList.sNewTabPageCustomization.isEnabled());
+     }
+ 
+-    private void prepareCommonMenuItems(Menu menu, @MenuGroup int menuGroup, boolean isIncognito) {
++    private void prepareCommonMenuItems(Menu menu, @MenuGroup int menuGroup, boolean isIncognito, Tab currentTab) {
+         boolean always_incognito = AlwaysIncognitoLinkInterceptor.isAlwaysIncognito();
+         if (always_incognito) {
+             final MenuItem newTabOption = menu.findItem(R.id.new_tab_menu_id);
+-- 
+
