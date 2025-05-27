@@ -85,6 +85,7 @@ show() {
 }
 
 find_chromium_out_path() {
+  local err=0
   find_chromium_src_path || return $?
   _maybe_error_about_unset_chromium_version || return $?
   if [ -n "${OUT:-}" ] && \
@@ -99,6 +100,11 @@ find_chromium_out_path() {
     OUT_CHROMIUM_TARGET_CPU="$CHROMIUM_TARGET_CPU"
     [ -d "$OUT" ] || mkdir "$OUT" || return $?
   fi
+}
+
+build() {
+  local err=0
+  find_chromium_out_path || return $?
   if [ -e "$OUT/args.gn" ]; then
     diff -q "$CHROMIUM_SRC_PATH/args.gn" "$OUT/args.gn" || err=$?
     if [ $err -ne 0 ]; then
@@ -108,11 +114,6 @@ find_chromium_out_path() {
   else
     cp "$CHROMIUM_SRC_PATH/args.gn" "$OUT/args.gn" || return $?
   fi
-}
-
-build() {
-  local err=0
-  find_chromium_out_path || return $?
   if ! grep -q "^\s*target_cpu\s*=\s*"'"'"${CHROMIUM_TARGET_CPU}"'"'"\s*" "$CHROMIUM_SRC_PATH/args.gn"; then
     echo "target_cpu in args.gn does not match \$CHROMIUM_TARGET_CPU ($CHROMIUM_TARGET_CPU); please update one or the other" >&2
     return 3
