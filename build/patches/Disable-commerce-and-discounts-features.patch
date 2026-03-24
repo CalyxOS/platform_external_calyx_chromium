@@ -11,67 +11,13 @@ We take this file as-is from the patch:
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 Change-Id: Ie9b492700a5112e280b90652eae69735239a9d9f
 ---
- chrome/browser/ui/BUILD.gn                    |  6 --
- .../page_action_icon_controller.cc            |  6 --
- components/commerce/core/BUILD.gn             |  2 -
- .../commerce/core/commerce_feature_list.cc    | 64 +++----------------
- 4 files changed, 10 insertions(+), 68 deletions(-)
+ .../commerce/core/commerce_feature_list.cc    | 61 +++----------------
+ 1 file changed, 7 insertions(+), 54 deletions(-)
 
-diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
---- a/chrome/browser/ui/BUILD.gn
-+++ b/chrome/browser/ui/BUILD.gn
-@@ -3905,12 +3905,6 @@ static_library("ui") {
-       "views/chrome_web_dialog_view.h",
-       "views/color_provider_browser_helper.cc",
-       "views/color_provider_browser_helper.h",
--      "views/commerce/discounts_bubble_dialog_view.cc",
--      "views/commerce/discounts_bubble_dialog_view.h",
--      "views/commerce/discounts_coupon_code_label_view.cc",
--      "views/commerce/discounts_coupon_code_label_view.h",
--      "views/commerce/discounts_icon_view.cc",
--      "views/commerce/discounts_icon_view.h",
-       "views/commerce/price_insights_icon_view.cc",
-       "views/commerce/price_insights_icon_view.h",
-       "views/commerce/price_insights_page_action_view_controller.cc",
-diff --git a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
---- a/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
-+++ b/chrome/browser/ui/views/page_action/page_action_icon_controller.cc
-@@ -26,7 +26,6 @@
- #include "chrome/browser/ui/views/autofill/payments/offer_notification_icon_view.h"
- #include "chrome/browser/ui/views/autofill/payments/save_payment_icon_view.h"
- #include "chrome/browser/ui/views/autofill/payments/virtual_card_enroll_icon_view.h"
--#include "chrome/browser/ui/views/commerce/discounts_icon_view.h"
- #include "chrome/browser/ui/views/commerce/price_insights_icon_view.h"
- #include "chrome/browser/ui/views/commerce/price_tracking_icon_view.h"
- #include "chrome/browser/ui/views/commerce/product_specifications_icon_view.h"
-@@ -141,11 +140,6 @@ void PageActionIconController::Init(const PageActionIconParams& params,
-                       params.browser, params.icon_label_bubble_delegate,
-                       params.page_action_icon_delegate));
-         break;
--      case PageActionIconType::kDiscounts:
--        add_page_action_icon(type, std::make_unique<DiscountsIconView>(
--                                       params.icon_label_bubble_delegate,
--                                       params.page_action_icon_delegate));
--        break;
-       case PageActionIconType::kFind:
-         add_page_action_icon(
-             type, std::make_unique<FindBarIcon>(
-diff --git a/components/commerce/core/BUILD.gn b/components/commerce/core/BUILD.gn
---- a/components/commerce/core/BUILD.gn
-+++ b/components/commerce/core/BUILD.gn
-@@ -74,8 +74,6 @@ source_set("feature_list_unittests") {
- 
- static_library("metrics") {
-   sources = [
--    "metrics/discounts_metric_collector.cc",
--    "metrics/discounts_metric_collector.h",
-     "metrics/metrics_utils.cc",
-     "metrics/metrics_utils.h",
-   ]
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -61,56 +61,6 @@ const CountryLocaleMap& GetAllowedCountryToLocaleMap() {
+@@ -67,56 +67,6 @@ const CountryLocaleMap& GetAllowedCountryToLocaleMap() {
    return *allowed_map;
  }
  
@@ -127,8 +73,8 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
 -
  }  // namespace
  
- BASE_FEATURE(kCommerceAllowLocalImages,
-@@ -400,16 +350,15 @@ const base::FeatureParam<bool> kRevertIconOnFailure{
+ BASE_FEATURE(kCommerceAllowLocalImages, base::FEATURE_DISABLED_BY_DEFAULT);
+@@ -252,16 +202,15 @@ const base::FeatureParam<bool> kRevertIconOnFailure{
      &kShoppingList, kRevertIconOnFailureParam, false};
  
  bool IsPartnerMerchant(const GURL& url) {
@@ -148,31 +94,28 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
  }
  
  bool IsCartDiscountFeatureEnabled() {
-@@ -462,6 +411,7 @@ bool IsRegionLockedFeatureEnabled(const base::Feature& feature,
-                                   const base::Feature& feature_region_launched,
+@@ -313,6 +262,7 @@ bool IsEnabledForCountryAndLocale(const base::Feature& feature,
+ bool IsRegionLockedFeatureEnabled(const base::Feature& feature,
                                    const std::string& country_code,
                                    const std::string& locale) {
 +  if ((true)) return false;
-   bool flag_enabled = base::FeatureList::IsEnabled(feature);
-   bool region_launched =
-       base::FeatureList::IsEnabled(feature_region_launched) &&
-@@ -484,6 +434,7 @@ base::TimeDelta GetDiscountFetchDelay() {
+   auto* feature_list = base::FeatureList::GetInstance();
+ 
+   // If the feature has a server-side config, this check will ensure that
+@@ -345,6 +295,7 @@ base::TimeDelta GetDiscountFetchDelay() {
  }
  
  bool IsNoDiscountMerchant(const GURL& url) {
-+  if ((true)) return true;
++  if ((true)) return false;
    auto* pattern_from_component =
        commerce_heuristics::CommerceHeuristicsData::GetInstance()
            .GetNoDiscountMerchantPattern();
-@@ -495,4 +446,9 @@ bool IsNoDiscountMerchant(const GURL& url) {
-   return RE2::PartialMatch(url.host_piece(), *pattern_from_component);
+@@ -356,4 +307,6 @@ bool IsNoDiscountMerchant(const GURL& url) {
+   return RE2::PartialMatch(url.host(), *pattern_from_component);
  }
  #endif
 +
-+SET_CROMITE_FEATURE_DISABLED(kShoppingListRegionLaunched);
-+
 +SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApi);
-+SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApiRegionLaunched);
  }  // namespace commerce
 -- 
 
