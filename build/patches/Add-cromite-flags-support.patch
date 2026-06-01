@@ -29,7 +29,7 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
  .../settings/FragmentDependencyProvider.java  |  10 +-
  .../browser/settings/SettingsActivity.java    |  41 ++++-
  .../tracing/settings/DeveloperSettings.java   |   5 +-
- chrome/browser/about_flags.cc                 |  11 ++
+ chrome/browser/about_flags.cc                 | Bin 651487 -> 651835 bytes
  chrome/browser/browser_features.cc            |   1 +
  chrome/browser/browser_features.h             |   1 +
  chrome/browser/flags/BUILD.gn                 |  13 ++
@@ -39,7 +39,7 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
  .../flags/cromite/include_all_directory.java  |   1 +
  .../java_template/CromiteCachedFlag.java.tmpl |  47 +++++
  .../settings/ChromeBaseSettingsFragment.java  |  50 +++++
- .../strings/android_chrome_strings.grd        |   1 +
+ .../strings/android_chrome_strings.grd        | Bin 605838 -> 605910 bytes
  .../Add-cromite-flags-support.grdp            |   9 +
  .../placeholder.txt                           |   1 +
  chrome/browser/ui/ui_features.cc              |   1 +
@@ -109,7 +109,7 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
  third_party/blink/public/common/features.h    |   1 +
  ui/base/ui_base_features.cc                   |   1 +
  ui/base/ui_base_features.h                    |   1 +
- 96 files changed, 887 insertions(+), 31 deletions(-)
+ 96 files changed, 875 insertions(+), 31 deletions(-)
  create mode 100644 base/android/java/src/org/chromium/base/ImmutableFlagWithDefault.java
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java
  create mode 100644 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl
@@ -713,40 +713,18 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tracing/setting
  
          if (shouldRemoveBetaStableHint()) {
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
---- a/chrome/browser/about_flags.cc
-+++ b/chrome/browser/about_flags.cc
-@@ -413,6 +413,10 @@ using flags_ui::kOsLinux;
- using flags_ui::kOsMac;
- using flags_ui::kOsWin;
- 
-+#define ABOUT_FLAG_INCLUDE_SECTION
-+#include "cromite_flags/chrome_browser_about_flags_cc.inc"
-+#undef ABOUT_FLAG_INCLUDE_SECTION
-+
- namespace about_flags {
- 
- namespace {
-@@ -4706,6 +4710,10 @@ const FeatureEntry::FeatureVariation kGestureUserEducationVariations[] = {
- };
- #endif  // BUILDFLAG(IS_ANDROID)
- 
-+#define FEATURE_PARAM_SECTION
-+#include "cromite_flags/chrome_browser_about_flags_cc.inc"
-+#undef FEATURE_PARAM_SECTION
-+
- // RECORDING USER METRICS FOR FLAGS:
- // -----------------------------------------------------------------------------
- // The first line of the entry is the internal name.
-@@ -4732,6 +4740,9 @@ const FeatureEntry::FeatureVariation kGestureUserEducationVariations[] = {
- const FeatureEntry kFeatureEntries[] = {
- // Include generated flags for flag unexpiry; see //docs/flag_expiry.md and
- // //tools/flags/generate_unexpire_flags.py.
-+#define FLAG_SECTION
-+#include "cromite_flags/chrome_browser_about_flags_cc.inc"
-+#undef FLAG_SECTION
- #include "build/chromeos_buildflags.h"
- #include "chrome/browser/unexpire_flags_gen.inc"
-     {switches::kEnableBenchmarking, flag_descriptions::kEnableBenchmarkingName,
+index 501812236b5a7255a92abbbfea622a5327afba1e..4ea5dd9aa0b0ec175242e7daa8e0dccf880929ab 100644
+GIT binary patch
+delta 417
+zcmccrP<{6k^$m<c^~x!!X_<Mc3XV?xp&{{ZK9273o_@|gp)RiR!LH6Bp8kGZ%9(k|
+zIi)G73QEaE`MH@Tsqtw!iRs1q$r(UyYJ5^retB_fQG8-jerX9rDn2<`52#6rOSv=;
+zXg(gpoBs#4{|{sYVy5l?1DP9H;0|(gbqom&a*Ypg4080PqFb<=%cZZc5ajCYAGEzA
+qjCmPr5;Ro6;X%D{KsK&jCx#h_S%8=oh}nRc9f&!$>%?$wo&o^jm5|v0
+
+delta 62
+zcmdn}ME(9l^$m<c%}qh=O+k!6%(T5Jh`F9+dqp_&I@b2CSY{w*0b&rF4T#x+m}7fa
+IEa%2404mcMuK)l5
+
 diff --git a/chrome/browser/browser_features.cc b/chrome/browser/browser_features.cc
 --- a/chrome/browser/browser_features.cc
 +++ b/chrome/browser/browser_features.cc
@@ -1000,16 +978,15 @@ diff --git a/chrome/browser/settings/android/java/src/org/chromium/chrome/browse
       * @return The profile associated with the current Settings screen.
       */
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
---- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
-+++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -202,6 +202,7 @@ CHAR_LIMIT guidelines:
-   </translations>
-   <release seq="1">
-     <messages fallback_to_english="true">
-+      <part file="cromite_android_chrome_strings_grd/placeholder.txt"/>
-       <!-- NOTE: Generic strings used across multiple features belong in //components/browser_ui/strings/android. -->
- 
-        <!-- Cookie Controls -->
+index aab7bfbf79364a5d3eae9cd394f6a56927445f3d..87a247247efbae69c36c51ad5c5a5900ff793946 100644
+GIT binary patch
+delta 96
+zcmeDCt8(qH%7&ko!Uc&%B?@VoIjOcv$wm3OnI)<5lQ$}fi>4Q)=ojQ9CZ}fP=cJ?-
+q>6KKJDCswUux$Te$q2+uK+FupEI`Z(#B4y!4#XVWKUi|kV*voQ)F=M{
+
+delta 50
+vcmcciSEcW-%7&ko&5l;>j#i97%ml>DK+FQftU$~L#Oy%KvE9*%b1Dk}?qCp)
+
 diff --git a/chrome/browser/ui/android/strings/cromite_android_chrome_strings_grd/Add-cromite-flags-support.grdp b/chrome/browser/ui/android/strings/cromite_android_chrome_strings_grd/Add-cromite-flags-support.grdp
 new file mode 100644
 --- /dev/null
@@ -1033,9 +1010,9 @@ new file mode 100644
 diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
 --- a/chrome/browser/ui/ui_features.cc
 +++ b/chrome/browser/ui/ui_features.cc
-@@ -480,4 +480,5 @@ BASE_FEATURE_PARAM(bool,
+@@ -484,4 +484,5 @@ BASE_FEATURE(kToolbarProfileChipResizing, base::FEATURE_DISABLED_BY_DEFAULT);
  
- BASE_FEATURE(kOmniboxResizingPrioritization, base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kToolbarAppMenuLabelResizing, base::FEATURE_DISABLED_BY_DEFAULT);
  
 +#include "cromite_flags/chrome_browser_ui_ui_features_cc.inc"
  }  // namespace features
@@ -1074,7 +1051,7 @@ diff --git a/chrome/browser/unexpire_flags.cc b/chrome/browser/unexpire_flags.cc
 diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 --- a/chrome/common/chrome_features.cc
 +++ b/chrome/common/chrome_features.cc
-@@ -1827,4 +1827,5 @@ const base::FeatureParam<base::TimeDelta> kSmartRestartDelay{
+@@ -1829,4 +1829,5 @@ const base::FeatureParam<base::TimeDelta> kSmartRestartDelay{
      &kSmartRestart, "restart_delay", base::Minutes(5)};
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -1261,7 +1238,7 @@ diff --git a/components/offline_pages/core/offline_page_feature.h b/components/o
 diff --git a/components/password_manager/core/browser/features/password_features.cc b/components/password_manager/core/browser/features/password_features.cc
 --- a/components/password_manager/core/browser/features/password_features.cc
 +++ b/components/password_manager/core/browser/features/password_features.cc
-@@ -217,4 +217,5 @@ BASE_FEATURE(kWebAuthnUsePasskeyFromAnotherDeviceInContextMenu,
+@@ -223,4 +223,5 @@ BASE_FEATURE(kWebAuthnUsePasskeyFromAnotherDeviceInContextMenu,
  
  #endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
  
@@ -2134,7 +2111,7 @@ diff --git a/services/network/public/cpp/features.h b/services/network/public/cp
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -2840,4 +2840,5 @@ bool IsXrDevice() {
+@@ -2860,4 +2860,5 @@ bool IsXrDevice() {
  //
  // DO NOT ADD NEW FEATURES HERE.
  
@@ -2143,7 +2120,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
 --- a/third_party/blink/public/common/features.h
 +++ b/third_party/blink/public/common/features.h
-@@ -2068,6 +2068,7 @@ BLINK_COMMON_EXPORT bool IsXrDevice();
+@@ -2094,6 +2094,7 @@ BLINK_COMMON_EXPORT bool IsXrDevice();
  //
  // DO NOT ADD NEW FEATURES HERE.
  
