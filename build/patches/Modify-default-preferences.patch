@@ -33,7 +33,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -90,6 +90,7 @@
+@@ -92,6 +92,7 @@
  #include "components/autofill/core/common/autofill_switches.h"
  #include "components/autofill/core/common/autofill_util.h"
  #include "components/bookmarks/common/bookmark_features.h"
@@ -56,7 +56,7 @@ diff --git a/chrome/browser/background/extensions/background_mode_manager.cc b/c
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -1532,7 +1532,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
+@@ -1543,7 +1543,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
  void ChromeContentBrowserClient::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kDisable3DAPIs, false);
@@ -68,7 +68,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1314,7 +1314,7 @@ void RegisterProfilePrefsForMigration(
+@@ -1207,7 +1207,7 @@ void RegisterProfilePrefsForMigration(
    registry->RegisterTimePref(kMerchantTrustPageInfoLastOpenTime, base::Time());
  
    // Deprecated 12/2025.
@@ -116,7 +116,7 @@ diff --git a/chrome/browser/resources/settings/reset_page/reset_profile_dialog.h
 diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -137,7 +137,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -140,7 +140,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kWebAppCreateInAppsMenu, true);
    registry->RegisterBooleanPref(prefs::kWebAppCreateInQuickLaunchBar, true);
    registry->RegisterBooleanPref(
@@ -125,7 +125,7 @@ diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_u
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterDictionaryPref(prefs::kBrowserWindowPlacement);
    registry->RegisterDictionaryPref(prefs::kBrowserWindowPlacementPopup);
-@@ -216,7 +216,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -219,7 +219,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
  #endif
  
    registry->RegisterBooleanPref(
@@ -137,7 +137,7 @@ diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_u
 diff --git a/components/bookmarks/browser/BUILD.gn b/components/bookmarks/browser/BUILD.gn
 --- a/components/bookmarks/browser/BUILD.gn
 +++ b/components/bookmarks/browser/BUILD.gn
-@@ -24,6 +24,7 @@ static_library("browser") {
+@@ -25,6 +25,7 @@ static_library("browser") {
      "bookmark_undo_provider.h",
      "bookmark_utils.h",
      "bookmark_uuids.h",
@@ -145,7 +145,7 @@ diff --git a/components/bookmarks/browser/BUILD.gn b/components/bookmarks/browse
      "history_bookmark_model.h",
      "model_loader.h",
      "scoped_group_bookmark_actions.h",
-@@ -47,6 +48,7 @@ static_library("browser") {
+@@ -48,6 +49,7 @@ static_library("browser") {
      "bookmark_storage.cc",
      "bookmark_utils.cc",
      "bookmark_uuids.cc",
@@ -162,14 +162,18 @@ diff --git a/components/bookmarks/browser/bookmark_utils.cc b/components/bookmar
  #include "components/bookmarks/browser/bookmark_node.h"
 +#include "components/bookmarks/browser/features.h"
  #include "components/bookmarks/browser/scoped_group_bookmark_actions.h"
+ #include "components/bookmarks/common/bookmark_bar_visibility_state.h"
  #include "components/bookmarks/common/bookmark_pref_names.h"
- #include "components/pref_registry/pref_registry_syncable.h"
-@@ -450,11 +451,13 @@ bool DoesBookmarkContainWords(const std::u16string& title,
+@@ -451,7 +452,7 @@ bool DoesBookmarkContainWords(const std::u16string& title,
  
  void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(
 -      prefs::kShowBookmarkBar, false,
 +      prefs::kShowBookmarkBar, true,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   // `BookmarkBarVisibilityState::kOnlyShowOnNtp` is equivalent to
+   // `kShowBookmarkBar` set to false.
+@@ -461,7 +462,9 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(prefs::kEditBookmarksEnabled, true);
    registry->RegisterBooleanPref(
