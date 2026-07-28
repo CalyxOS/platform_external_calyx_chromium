@@ -1,0 +1,45 @@
+From 2926f9d90288eda595e5f5daf8ffb14ce9b83923 Mon Sep 17 00:00:00 2001
+From: Jan Engelhardt <jengelh@inai.de>
+Date: Mon, 15 Sep 2014 10:58:42 +0200
+Subject: [PATCH 04/15] dns: send IPv6 connectivity probes to Cloudflare DNS
+
+Original patch: "dns: send IPv6 connectivity probes to RIPE DNS".
+Modified to use Cloudflare.
+Authorship and the remainder of the commit message have been retained.
+
+Short of disabling the code (we may do that in a subsequent patch
+anyway), avoid sending to Google.
+
+Increase probe period from 1s to 15s
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+Change-Id: I45e7063241eef1bf95869156b5d4c6a4ba92b870
+---
+ net/dns/host_resolver_manager.cc | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
+index f97081f1e98c4..d30cef50c5bfb 100644
+--- a/net/dns/host_resolver_manager.cc
++++ b/net/dns/host_resolver_manager.cc
+@@ -151,12 +151,12 @@ const size_t kMaxHostLength = 4096;
+ 
+ // Time between IPv6 probes, i.e. for how long results of each IPv6 probe are
+ // cached.
+-const int kIPv6ProbePeriodMs = 1000;
++const int kIPv6ProbePeriodMs = 15000;
+ 
+-// Google DNS address used for IPv6 probes.
+-const uint8_t kIPv6ProbeAddress[] = {0x20, 0x01, 0x48, 0x60, 0x48, 0x60,
+-                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-                                     0x00, 0x00, 0x88, 0x88};
++// Cloudflare DNS address used for IPv6 probes. 2606:4700:4700::1111
++const uint8_t kIPv6ProbeAddress[] =
++    { 0x26, 0x06, 0x47, 0x00, 0x47, 0x00, 0x00, 0x00,
++      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11 };
+ 
+ // True if |hostname| ends with either ".local" or ".local.".
+ bool ResemblesMulticastDNSName(std::string_view hostname) {
+-- 
+2.47.3
+

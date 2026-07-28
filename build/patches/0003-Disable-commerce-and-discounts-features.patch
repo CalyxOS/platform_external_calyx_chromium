@@ -1,0 +1,124 @@
+From 3c8b1c0742ac42068529c9e2a1a318109fa40fc7 Mon Sep 17 00:00:00 2001
+From: Tommy Webb <tommy@calyxinstitute.org>
+Date: Tue, 20 Feb 2024 15:20:48 +0000
+Subject: [PATCH 03/15] Disable commerce and discounts features
+
+Selectively copied from uazo/cromite's add-browser-policy.patch as of
+v133.0.6943.60-3fc3e3c23494d21b4bb997d1e408b25014ce973d.
+
+We take this file as-is from the patch:
+* components/commerce/core/commerce_feature_list.cc
+
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+Change-Id: Ie9b492700a5112e280b90652eae69735239a9d9f
+---
+ .../commerce/core/commerce_feature_list.cc    | 61 +++----------------
+ 1 file changed, 7 insertions(+), 54 deletions(-)
+
+diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
+index 30567b8c4ae44..0f9c3b2b1921d 100644
+--- a/components/commerce/core/commerce_feature_list.cc
++++ b/components/commerce/core/commerce_feature_list.cc
+@@ -71,56 +71,6 @@ const CountryLocaleMap& GetAllowedCountryToLocaleMap() {
+   return *allowed_map;
+ }
+ 
+-constexpr base::FeatureParam<std::string> kRulePartnerMerchantPattern{
+-    &ntp_features::kNtpChromeCartModule, "partner-merchant-pattern",
+-    // This regex does not match anything.
+-    "\\b\\B"};
+-
+-constexpr base::FeatureParam<std::string> kCouponPartnerMerchantPattern{
+-    &commerce::kRetailCoupons, "coupon-partner-merchant-pattern",
+-    // This regex does not match anything.
+-    "\\b\\B"};
+-
+-const re2::RE2& GetRulePartnerMerchantPattern() {
+-#if !BUILDFLAG(IS_ANDROID)
+-  auto* pattern_from_component =
+-      commerce_heuristics::CommerceHeuristicsData::GetInstance()
+-          .GetRuleDiscountPartnerMerchantPattern();
+-  if (pattern_from_component && kRulePartnerMerchantPattern.Get() ==
+-                                    kRulePartnerMerchantPattern.default_value) {
+-    CommerceHeuristicsDataMetricsHelper::RecordPartnerMerchantPatternSource(
+-        CommerceHeuristicsDataMetricsHelper::HeuristicsSource::FROM_COMPONENT);
+-    return *pattern_from_component;
+-  }
+-#endif  // !BUILDFLAG(IS_ANDROID)
+-  re2::RE2::Options options;
+-  options.set_case_sensitive(false);
+-  static base::NoDestructor<re2::RE2> instance(
+-      kRulePartnerMerchantPattern.Get(), options);
+-  CommerceHeuristicsDataMetricsHelper::RecordPartnerMerchantPatternSource(
+-      CommerceHeuristicsDataMetricsHelper::HeuristicsSource::
+-          FROM_FEATURE_PARAMETER);
+-  return *instance;
+-}
+-
+-const re2::RE2& GetCouponPartnerMerchantPattern() {
+-#if !BUILDFLAG(IS_ANDROID)
+-  auto* pattern_from_component =
+-      commerce_heuristics::CommerceHeuristicsData::GetInstance()
+-          .GetCouponDiscountPartnerMerchantPattern();
+-  if (pattern_from_component &&
+-      kCouponPartnerMerchantPattern.Get() ==
+-          kCouponPartnerMerchantPattern.default_value) {
+-    return *pattern_from_component;
+-  }
+-#endif  // !BUILDFLAG(IS_ANDROID)
+-  re2::RE2::Options options;
+-  options.set_case_sensitive(false);
+-  static base::NoDestructor<re2::RE2> instance(
+-      kCouponPartnerMerchantPattern.Get(), options);
+-  return *instance;
+-}
+-
+ }  // namespace
+ 
+ BASE_FEATURE(kCommerceAllowLocalImages, base::FEATURE_DISABLED_BY_DEFAULT);
+@@ -239,16 +189,15 @@ const base::FeatureParam<bool> kRevertIconOnFailure{
+     &kShoppingList, kRevertIconOnFailureParam, false};
+ 
+ bool IsPartnerMerchant(const GURL& url) {
+-  return commerce::IsCouponDiscountPartnerMerchant(url) ||
+-         IsRuleDiscountPartnerMerchant(url);
++  return false;
+ }
+ 
+ bool IsRuleDiscountPartnerMerchant(const GURL& url) {
+-  return RE2::PartialMatch(url.spec(), GetRulePartnerMerchantPattern());
++  return false;
+ }
+ 
+ bool IsCouponDiscountPartnerMerchant(const GURL& url) {
+-  return RE2::PartialMatch(url.spec(), GetCouponPartnerMerchantPattern());
++  return false;
+ }
+ 
+ bool IsCartDiscountFeatureEnabled() {
+@@ -300,6 +249,7 @@ bool IsEnabledForCountryAndLocale(const base::Feature& feature,
+ bool IsRegionLockedFeatureEnabled(const base::Feature& feature,
+                                   const std::string& country_code,
+                                   const std::string& locale) {
++  if ((true)) return false;
+   auto* feature_list = base::FeatureList::GetInstance();
+ 
+   // If the feature has a server-side config, this check will ensure that
+@@ -332,6 +282,7 @@ base::TimeDelta GetDiscountFetchDelay() {
+ }
+ 
+ bool IsNoDiscountMerchant(const GURL& url) {
++  if ((true)) return false;
+   auto* pattern_from_component =
+       commerce_heuristics::CommerceHeuristicsData::GetInstance()
+           .GetNoDiscountMerchantPattern();
+@@ -343,4 +294,6 @@ bool IsNoDiscountMerchant(const GURL& url) {
+   return RE2::PartialMatch(url.host(), *pattern_from_component);
+ }
+ #endif
++
++SET_CROMITE_FEATURE_DISABLED(kEnableDiscountInfoApi);
+ }  // namespace commerce
+-- 
+2.47.3
+
