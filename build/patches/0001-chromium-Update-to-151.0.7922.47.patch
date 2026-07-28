@@ -1,0 +1,313 @@
+From 266e133878f5b4a712c35f4abcf98a44dfcb60ba Mon Sep 17 00:00:00 2001
+From: deepa <deepa@calyx.org>
+Date: Mon, 27 Jul 2026 20:17:06 -0700
+Subject: [PATCH] chromium: Update to 151.0.7922.47
+
+- Rebase Calyx patches for Chromium 151.0.7922.47
+- Fix build and static analysis issues for Android target
+---
+ .../chromium/base/ImmutableFlagWithDefault.java   |  1 +
+ base/feature_list.h                               | 15 +++++++++++++--
+ .../SettingsPageFragmentDelegateImpl.java         |  1 +
+ chrome/browser/component_updater/registration.cc  |  2 +-
+ chrome/browser/flags/BUILD.gn                     | 12 +++++++++++-
+ .../chrome/browser/flags/ChromeFeatureList.java   |  8 +++++++-
+ chrome/browser/global_features.cc                 |  8 +++++---
+ chrome/browser/global_features.h                  |  2 +-
+ .../PartnerBookmarksProviderIterator.java         |  2 +-
+ .../PartnerBrowserCustomizations.java             |  7 +------
+ .../configuration_policy_handler_list_factory.cc  |  2 +-
+ .../components/bookmarks/BookmarkItem.java        |  2 +-
+ .../browser_ui/accessibility/android/BUILD.gn     |  1 +
+ .../settings/ChromeSwitchPreference.java          |  4 ++--
+ components/webui/flags/resources/app.ts           |  4 ++++
+ .../browser/font/AndroidFontLookupImpl.java       |  2 +-
+ 16 files changed, 52 insertions(+), 21 deletions(-)
+
+diff --git a/base/android/java/src/org/chromium/base/ImmutableFlagWithDefault.java b/base/android/java/src/org/chromium/base/ImmutableFlagWithDefault.java
+index 39b4247404928..8327753b593cf 100644
+--- a/base/android/java/src/org/chromium/base/ImmutableFlagWithDefault.java
++++ b/base/android/java/src/org/chromium/base/ImmutableFlagWithDefault.java
+@@ -10,6 +10,7 @@ import org.chromium.build.annotations.Nullable;
+ @NullMarked
+ public class ImmutableFlagWithDefault extends MutableFlagWithSafeDefault {
+     private final boolean mDefaultValue;
++    @SuppressWarnings("UnusedVariable")
+     private @Nullable Boolean mInMemoryCachedValue;
+ 
+     public ImmutableFlagWithDefault(
+diff --git a/base/feature_list.h b/base/feature_list.h
+index 883b54a45a7f1..93ae4b8a01a74 100644
+--- a/base/feature_list.h
++++ b/base/feature_list.h
+@@ -101,7 +101,14 @@ class BASE_EXPORT FeatureList {
+     ScopedDisallowOverrides& operator=(const ScopedDisallowOverrides&) = delete;
+     ~ScopedDisallowOverrides();
+ 
+-   private:
++   
++  // Cromite feature flags support
++  static const base::Feature* GetCromiteFlag(const std::string& feature_name);
++  static bool IsCromiteFlag(const std::string& feature_name);
++  static bool IsCromiteChanged(const Feature& feature);
++  static bool GetCromiteChange(const Feature& feature);
++
++private:
+ #if DCHECK_IS_ON()
+     const char* const previous_reason_;
+ #endif
+@@ -338,7 +345,11 @@ class BASE_EXPORT FeatureList {
+   // may only be queried from the main thread. Features defined as BASE_FEATURE
+   // are effectively constants, and can be queried from any thread.
+   static bool IsEnabled(const Feature& feature);
+-
++  static bool IsCromiteFlag(const std::string& feature_name);
++  static const base::Feature* GetCromiteFlag(const std::string& feature_name);
++  static bool IsCromiteChanged(const Feature& feature);
++  static bool GetCromiteChange(const Feature& feature);
++    
+   // Some characters are not allowed to appear in feature names or the
+   // associated field trial names, as they are used as special characters for
+   // command-line serialization. This function checks that the strings are ASCII
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsPageFragmentDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsPageFragmentDelegateImpl.java
+index 4a36983c051e0..962256802a9c9 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsPageFragmentDelegateImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsPageFragmentDelegateImpl.java
+@@ -90,6 +90,7 @@ public class SettingsPageFragmentDelegateImpl implements SettingsPage.FragmentDe
+                         snackbarSupplier,
+                         bottomSheetSupplier,
+                         modalDialogSupplier,
++                        () -> null,
+                         () -> null);
+ 
+         fragmentManager.registerFragmentLifecycleCallbacks(
+diff --git a/chrome/browser/component_updater/registration.cc b/chrome/browser/component_updater/registration.cc
+index 78bb87ef64640..5adb081131d19 100644
+--- a/chrome/browser/component_updater/registration.cc
++++ b/chrome/browser/component_updater/registration.cc
+@@ -3,7 +3,7 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/component_updater/registration.h"
+-
++#include "base/functional/callback_helpers.h"
+ #include "base/feature_list.h"
+ #include "base/files/file_path.h"
+ #include "base/files/file_util.h"
+diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
+index aa06be3275841..1eea7dfa42317 100644
+--- a/chrome/browser/flags/BUILD.gn
++++ b/chrome/browser/flags/BUILD.gn
+@@ -32,9 +32,10 @@ android_library("java") {
+     "//third_party/jni_zero:jni_zero_java",
+   ]
+   srcjar_deps = [
++    ":java_cromite_cached_flags",
+     ":chrome_android_java_switches_srcjar",
+     ":chrome_browser_flags_enums_srcjar",
+-    ":jni_headers",
++    ":jni_headers", 
+   ]
+ }
+ 
+@@ -202,3 +203,12 @@ android_library("javatests") {
+     "//third_party/mockito:mockito_java",
+   ]
+ }
++
++
++java_bromite_impl("java_cromite_cached_flags") {
++  inputs = [ "android/java/src/org/chromium/chrome/browser/flags/cromite/include_all_directory.java" ]
++  namespace = "org.chromium.chrome.browser.flags.cromite"
++  template = "android/java/src/org/chromium/chrome/browser/flags/cromite/java_template/CromiteCachedFlag.java.tmpl"
++  static_classes = true
++}
++
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
+index 406ab055df7be..22e1bbf3ed953 100644
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
+@@ -1442,7 +1442,13 @@ public abstract class ChromeFeatureList {
+ 
+     @SafeVarargs
+     private static <T> List<T> concatenateLists(List<T>... collections) {
+-        return Arrays.stream(collections).flatMap(x -> x.stream()).collect(Collectors.toList());
++        List<T> result = new java.util.ArrayList<>();
++        for (List<T> collection : collections) {
++            if (collection != null) {
++                result.addAll(collection);
++            }
++        }
++        return result;
+     }
+ 
+     public static final List<CachedFlag> sFlagsCachedFullBrowser =
+diff --git a/chrome/browser/global_features.cc b/chrome/browser/global_features.cc
+index a8eb425a62855..dcc970137811a 100644
+--- a/chrome/browser/global_features.cc
++++ b/chrome/browser/global_features.cc
+@@ -75,9 +75,11 @@
+ #include "components/unexportable_keys/unexportable_key_service_impl.h"
+ #endif  // BUILDFLAG(ENABLE_DEVICE_BOUND_SESSIONS)
+ 
+-#if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
++
++#if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION) && !BUILDFLAG(IS_ANDROID)
+ #include "chrome/browser/on_device_translation/installer_impl.h"
+-#endif  // BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
++#endif  // BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION) && !BUILDFLAG(IS_ANDROID)
++
+ 
+ namespace {
+ 
+@@ -148,7 +150,7 @@ void GlobalFeatures::PostBrowserProcessInit() {
+   ip_address_space_overrides_prefs_observer_ = std::make_unique<
+       local_network_access::IPAddressSpaceOverridesPrefsObserver>(
+       g_browser_process->local_state());
+-#if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
++#if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION) && !BUILDFLAG(IS_ANDROID)
+   on_device_translation_installer_ = std::make_unique<
+       on_device_translation::OnDeviceTranslationInstallerImpl>();
+ #endif  // BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
+diff --git a/chrome/browser/global_features.h b/chrome/browser/global_features.h
+index cdc5dab98cb6a..53a1ed93bea73 100644
+--- a/chrome/browser/global_features.h
++++ b/chrome/browser/global_features.h
+@@ -4,7 +4,7 @@
+ 
+ #ifndef CHROME_BROWSER_GLOBAL_FEATURES_H_
+ #define CHROME_BROWSER_GLOBAL_FEATURES_H_
+-
++#include "components/on_device_translation/buildflags/buildflags.h"
+ #include <memory>
+ 
+ #include "base/functional/callback.h"
+diff --git a/chrome/browser/partnerbookmarks/android/java/src/org/chromium/chrome/browser/partnerbookmarks/PartnerBookmarksProviderIterator.java b/chrome/browser/partnerbookmarks/android/java/src/org/chromium/chrome/browser/partnerbookmarks/PartnerBookmarksProviderIterator.java
+index 9b524fa33ba36..0046b138b96ed 100644
+--- a/chrome/browser/partnerbookmarks/android/java/src/org/chromium/chrome/browser/partnerbookmarks/PartnerBookmarksProviderIterator.java
++++ b/chrome/browser/partnerbookmarks/android/java/src/org/chromium/chrome/browser/partnerbookmarks/PartnerBookmarksProviderIterator.java
+@@ -70,7 +70,7 @@ public class PartnerBookmarksProviderIterator implements PartnerBookmark.Bookmar
+         new AsyncTask<@Nullable Cursor>() {
+             @Override
+             protected @Nullable Cursor doInBackground() {
+-                if ((true)) return null;
++                if (true) return null;
+                 try {
+                     return ContextUtils.getApplicationContext()
+                             .getContentResolver()
+diff --git a/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java b/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
+index 741dfe196d022..41912ae6528a4 100644
+--- a/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
++++ b/chrome/browser/partnercustomizations/java/src/org/chromium/chrome/browser/partnercustomizations/PartnerBrowserCustomizations.java
+@@ -242,12 +242,7 @@ public class PartnerBrowserCustomizations {
+                     protected Void doInBackground() {
+                         try {
+                             partnerCustomizationsUma.logAsyncInitStarted();
+-                            boolean systemOrPreStable =
+-                                    (context.getApplicationInfo().flags
+-                                                            & ApplicationInfo.FLAG_SYSTEM)
+-                                                    == 1
+-                                            || !VersionInfo.isStableBuild();
+-                            if ((true)) {
++                            if (true) {
+                                 // Only allow partner customization if this browser is a system
+                                 // package, or is in pre-stable channels.
+                                 return null;
+diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
+index 1de30b0c4bf3d..9098bd8bc9ff3 100644
+--- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
++++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
+@@ -419,7 +419,7 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
+     translate::prefs::kOfferTranslateEnabled,
+     base::Value::Type::BOOLEAN },
+ #if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
+-  { key::kTranslatorAPIAllowed,
++  { prefs::kTranslatorAPIAllowed,
+     prefs::kTranslatorAPIAllowed,
+     base::Value::Type::BOOLEAN },
+ #endif
+diff --git a/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkItem.java b/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkItem.java
+index c5165f6365980..d9b4e1e9020f3 100644
+--- a/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkItem.java
++++ b/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkItem.java
+@@ -63,7 +63,7 @@ public class BookmarkItem {
+ 
+     /** Returns the string to display for the item's url. */
+     public String getUrlForDisplay() {
+-        if ((true)) return getUrl().getSpec();
++        if (true) return getUrl().getSpec();
+         return UrlFormatter.formatUrlForSecurityDisplay(
+                 getUrl(), SchemeDisplay.OMIT_HTTP_AND_HTTPS);
+     }
+diff --git a/components/browser_ui/accessibility/android/BUILD.gn b/components/browser_ui/accessibility/android/BUILD.gn
+index a10b790528471..6fd516d2ff02f 100644
+--- a/components/browser_ui/accessibility/android/BUILD.gn
++++ b/components/browser_ui/accessibility/android/BUILD.gn
+@@ -67,6 +67,7 @@ android_library("lib_java") {
+     "//base:base_java",
+     "//base:supplier_java",
+     "//build/android:build_java",
++    "//chrome/browser/settings:java",
+     "//components/browser_ui/bottomsheet/android:java",
+     "//components/browser_ui/settings/android:java",
+     "//components/browser_ui/site_settings/android:java",
+diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/ChromeSwitchPreference.java b/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/ChromeSwitchPreference.java
+index b5a34b48e3067..8965f7db4ac8f 100644
+--- a/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/ChromeSwitchPreference.java
++++ b/components/browser_ui/settings/android/widget/java/src/org/chromium/components/browser_ui/settings/ChromeSwitchPreference.java
+@@ -41,7 +41,7 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat implements Co
+     private final boolean mHasCustomLayout;
+ 
+     @Nullable
+-    private String mFeatureName;
++    private final String mFeatureName;
+ 
+     private final boolean mNeedRestart;
+ 
+@@ -76,7 +76,7 @@ public class ChromeSwitchPreference extends SwitchPreferenceCompat implements Co
+     }
+ 
+     public String getFeatureName() {
+-        return mFeatureName;
++        return mFeatureName != null ? mFeatureName : "";
+     }
+ 
+     public boolean needRestart() {
+diff --git a/components/webui/flags/resources/app.ts b/components/webui/flags/resources/app.ts
+index 549a4176515de..6412edae0f3a2 100644
+--- a/components/webui/flags/resources/app.ts
++++ b/components/webui/flags/resources/app.ts
+@@ -131,6 +131,8 @@ export interface FlagsAppElement {
+ }
+ 
+ export class FlagsAppElement extends CrLitElement {
++    protected onlyCromiteFlags: boolean = false;
++
+   static get is() {
+     return 'flags-app';
+   }
+@@ -196,6 +198,8 @@ export class FlagsAppElement extends CrLitElement {
+   };
+ 
+   protected accessor defaultFeatures: Feature[] = [];
++  protected defaultCromiteFeatures: Feature[] = [];
++  protected nonDefaultCromiteFeatures: Feature[] = [];
+   protected accessor nonDefaultFeatures: Feature[] = [];
+   protected accessor searching: boolean = false;
+   protected accessor needsRestart: boolean = false;
+diff --git a/content/public/android/java/src/org/chromium/content/browser/font/AndroidFontLookupImpl.java b/content/public/android/java/src/org/chromium/content/browser/font/AndroidFontLookupImpl.java
+index 803fcbbd89703..4011db4fc9b9b 100644
+--- a/content/public/android/java/src/org/chromium/content/browser/font/AndroidFontLookupImpl.java
++++ b/content/public/android/java/src/org/chromium/content/browser/font/AndroidFontLookupImpl.java
+@@ -207,7 +207,7 @@ public class AndroidFontLookupImpl implements AndroidFontLookup {
+      * @return An opened font file descriptor, or null if the font file is not available.
+      */
+     private @Nullable ParcelFileDescriptor tryFetchFont(String fontUniqueName) {
+-        if ((true)) return null;
++        if (true) return null;
+         ParcelFileDescriptor cachedFd = mFetchedFontCache.get(fontUniqueName);
+         if (cachedFd != null) {
+             try {
+-- 
+2.47.3
+
