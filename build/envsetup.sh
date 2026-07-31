@@ -889,15 +889,13 @@ rename_all_patches() {
   find_chromium_src_path || return $?
   local patchfile
   for patchfile in "$CHROMIUM_SRC_PATH"/0*.patch; do
-    mv "$patchfile" "$(printf "%s\n" "$patchfile" | cut -d - -f 2-)"
+    mv "$patchfile" "$CHROMIUM_SRC_PATH/$(basename "$patchfile" | cut -d - -f 2-)" || return $?
   done
 }
 
 remove_old_patches() {
   find_chromium_custom_buildfiles_path || return $?
-  mv "$CHROMIUM_CUSTOM_BUILDFILES_PATH/patches/FIRST-Add-git-review-configuration.patch"{,.2}
   rm "$CHROMIUM_CUSTOM_BUILDFILES_PATH/patches/"*.patch
-  mv "$CHROMIUM_CUSTOM_BUILDFILES_PATH/patches/FIRST-Add-git-review-configuration.patch"{.2,}
 }
 
 move_all_patches() {
