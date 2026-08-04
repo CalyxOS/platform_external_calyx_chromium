@@ -552,7 +552,7 @@ _maybe_warn_about_same_upstream() {
 
 _maybe_warn_about_branch_already_exists() {
   local calyx_branch="calyxos-$V"
-  if git_chromium rev-parse "$refs/heads/calyx_branch" >/dev/null 2>&1; then
+  if git_chromium rev-parse "refs/heads/$calyx_branch" >/dev/null 2>&1; then
     echo "WARNING: Branch $calyx_branch already exists. It must be deleted to proceed." >&2
     return 2
   fi
