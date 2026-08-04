@@ -1,4 +1,4 @@
-Building CalyxOS Chromium
+# Building CalyxOS Chromium
 
 This guide is a work in progress! Please see our website for the latest official guide:
 https://calyxos.org/docs/development/build/chromium/
@@ -20,6 +20,51 @@ available at ~/chromium/platform_external_calyx_chromium. If this is not desirab
 adapt such paths if necessary.
 
 ## Required
+### Chromium
+If you do not already have a Chromium checkout, please follow Chromium's howto:
+https://www.chromium.org/developers/how-tos/get-the-code/
+
+A short example version of the above guide is provided here:
+```bash
+cd ~
+# Clone the depot_tools repository in your home folder.
+git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+
+# Add depot_tools to the end of your PATH (alternatively you can put this in your ~/.bashrc).
+echo 'export PATH="$PATH:$HOME/depot_tools"' > cr-env.sh
+
+# Include depot_tools in PATH.
+source ~/cr-env.sh
+
+mkdir -p ~/chromium
+cd ~/chromium
+fetch --nohooks android
+```
+
+Once done, open the newly created .gclient file using your text editor of choice and update custom_vars.
+This will clone some files required by our configuration in later steps.
+
+```
+"checkout_pgo_profiles": True,
+```
+
+The configuration file looks like this after adding the variable.
+
+```
+solutions = [
+  {
+    "name": "src",
+    "url": "https://chromium.googlesource.com/chromium/src.git",
+    "managed": False,
+    "custom_deps": {},
+    "custom_vars": {
+      "checkout_pgo_profiles": True,
+    },
+  },
+]
+target_os = ["android"]
+```
+
 ### CalyxOS Chromium build files
 If you do not already have a checkout of the CalyxOS Chromium build files,
 please follow these steps:
@@ -30,10 +75,6 @@ cd ~/chromium
 # MANUAL: Replace `main` with whatever the current CalyxOS branch is, if not `main`.
 git clone https://gitlab.com/CalyxOS/platform_external_calyx_chromium.git -b main
 ```
-
-### Chromium
-If you do not already have a Chromium checkout, please follow Chromium's howto:
-https://www.chromium.org/developers/how-tos/get-the-code/
 
 ## Optional
 ### Brave (if porting to a newer major version)
@@ -57,6 +98,9 @@ Build and place somewhere in PATH (e.g. ~/bin) so that it can be executed as `wi
 # MANUAL: Replace `main` with whatever the current CalyxOS branch is, if not `main`.
 cd ~/chromium/platform_external_calyx_chromium
 git pull origin main
+
+# Include depot_tools in $PATH.
+source ~/cr-env.sh
 
 # Include the CalyxOS Chromium build helper functions.
 # (Yes, this file path follows the same scheme as AOSP's build/envsetup.sh, but this is ours.)
@@ -96,7 +140,7 @@ build
 
 # The output can be found in the "$OUT/apks" directory.
 # MANUAL: Typically, you'll want to copy "$OUT/apks/"*.apk (all .apk files) to the CalyxOS Chromium
-# prebuilts repo (prebuilts_calyx_chromium).
+# prebuilts repo (lfs_prebuilts_calyx_chromium_arm64 or lfs_prebuilts_calyx_chromium_x64).
 ```
 
 # Porting
