@@ -123,6 +123,8 @@ V='W.X.Y.Z'
 Complete the [common steps](#common-steps). Then, continue below.
 
 ```bash
+cd ~/chromium/platform_external_calyx_chromium
+
 # Update the sources.
 # See PORTING if you receive a "fatal: couldn't find remote ref" error, as that means Chromium
 # is not currently ported to the specific version you specified, so you may have some work to do.
