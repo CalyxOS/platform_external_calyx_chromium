@@ -153,6 +153,8 @@ is also 135, follow these instructions.
 Complete the [common steps](#common-steps) if not already completed this session. Then, continue below.
 
 ```bash
+cd ~/chromium/platform_external_calyx_chromium
+
 # Update Chromium sources. CalyxOS Chromium sources for the version chosen are not available,
 # so we do not pull those. If they *are* available, the BUILDING steps should be followed instead.
 # You may need to add the `--force` argument if the current src repo is not in a state that this
@@ -162,6 +164,9 @@ update_chromium_sources
 
 # Apply patches, using the wiggle tool if found.
 USE_WIGGLE=auto apply_patches
+
+# Change to the Chromium checkout folder.
+cd ~/chromium/src
 
 # Update the version code.
 # Edit args.gn to adapt the version code according to the value of $V.
@@ -189,11 +194,18 @@ component is different than 135 (e.g. 136 or greater), follow these steps.
 Complete the [common steps](#common-steps) if not already completed this session. Then, continue below.
 
 ```bash
+cd ~/chromium/platform_external_calyx_chromium
+
 # Update Chromium sources. CalyxOS Chromium sources for the version chosen are not available,
 # so we do not pull those. If they *are* available, the BUILDING steps should be followed instead.
 # This command will automatically create a branch in the calyxos-$V pattern and switch you to it.
 update_chromium_sources
+```
 
+Optionally, sync the patches from cromite.
+This step is skipped for now since cromite is falling behind multiple major versions:
+
+```bash
 # Sync cromite's sources if available.
 # First, view available Cromite release versions.
 show_cromite_releases
@@ -211,6 +223,23 @@ sync_cromite
 
 # If something goes wrong with a patch, fix it, and then run:
 apply_patches_resume
+```
+
+Alternatively if you didn't sync with cromite patches above, apply our own patches:
+
+```bash
+# Apply patches, using the wiggle tool if found.
+USE_WIGGLE=auto apply_patches
+
+# If something goes wrong with a patch, fix it, and then run:
+apply_patches_resume
+```
+
+Then you can continue with the final steps:
+
+```bash
+# Change to the Chromium checkout folder.
+cd ~/chromium/src
 
 # When all is complete, ...
 # Update the version code.
@@ -233,6 +262,28 @@ exit
 # Try to build, fix any issues, and repeat.
 # FIXME: Consider talking about how issues are fixed.
 build
+```
+
+## Testing the build, refreshing the patches and uploading to gerrit
+Once the build has finished successfully, you will find the output at:
+`~/chromium/src/out/calyx-$V-arm64/apks/*.apk`
+
+You can copy that output to your android tree at:
+`prebuilts/calyx/chromium/arm64/`
+and then test it live on your device after building android.
+
+You'll also need to upload the refreshed patches for the new version to gerrit:
+
+```bash
+cd ~/chromium/platform_external_calyx_chromium
+
+# Update patches.
+CHROMIUM_SRC_PATH=~/chromium/src update_patches
+
+# Make a commit and upload it to gerrit for review
+git add .
+git commit -m "$V"
+git review
 ```
 
 ## Reducing followup build times
