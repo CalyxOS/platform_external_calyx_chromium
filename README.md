@@ -134,6 +134,9 @@ cd ~/chromium/platform_external_calyx_chromium
 # This command will automatically create a branch in the calyxos-$V pattern and switch you to it.
 update_sources
 
+# Change to the Chromium checkout folder.
+cd ~/chromium/src
+
 # Apply patches.
 apply_patches
 
@@ -162,11 +165,17 @@ cd ~/chromium/platform_external_calyx_chromium
 # This command will automatically create a branch in the calyxos-$V pattern and switch you to it.
 update_chromium_sources
 
+# Change to the Chromium checkout folder.
+cd ~/chromium/src
+
 # Apply patches, using the wiggle tool if found.
 USE_WIGGLE=auto apply_patches
 
-# Change to the Chromium checkout folder.
-cd ~/chromium/src
+# If something goes wrong with a patch, fix the conflicts and then run:
+git add .; git am --resolved
+
+# Then you can continue applying the remaining patches until all are applied:
+USE_WIGGLE=auto apply_patches_resume
 
 # Update the version code.
 # Edit args.gn to adapt the version code according to the value of $V.
@@ -203,6 +212,7 @@ update_chromium_sources
 ```
 
 Optionally, sync the patches from cromite.
+
 This step is skipped for now since cromite is falling behind multiple major versions:
 
 ```bash
@@ -222,25 +232,28 @@ CROMITE_VERSION='vW.X.Y.Z-hash'
 sync_cromite
 
 # If something goes wrong with a patch, fix it, and then run:
-apply_patches_resume
+USE_WIGGLE=auto apply_patches_resume
 ```
 
 Alternatively if you didn't sync with cromite patches above, apply our own patches:
 
 ```bash
+# Change to the Chromium checkout folder.
+cd ~/chromium/src
+
 # Apply patches, using the wiggle tool if found.
 USE_WIGGLE=auto apply_patches
 
-# If something goes wrong with a patch, fix it, and then run:
-apply_patches_resume
+# If something goes wrong with a patch, fix the conflicts and then run:
+git add .; git am --resolved
+
+# Then you can continue applying the remaining patches until all are applied:
+USE_WIGGLE=auto apply_patches_resume
 ```
 
 Then you can continue with the final steps:
 
 ```bash
-# Change to the Chromium checkout folder.
-cd ~/chromium/src
-
 # When all is complete, ...
 # Update the version code.
 # Edit args.gn to adapt the version code according to the value of $V.
@@ -255,10 +268,18 @@ nano args.gn
 
 # Amend the LAST args commit. No need to alter the commit message.
 git commit -a --amend
+```
 
+Optional step only if you followed the cromite update process above:
+
+```bash
 # If you are still in a sync_cromite shell, type `exit`.
 exit
+```
 
+Then you can try building:
+
+```bash
 # Try to build, fix any issues, and repeat.
 # FIXME: Consider talking about how issues are fixed.
 build
@@ -277,14 +298,30 @@ You'll also need to upload the refreshed patches for the new version to gerrit:
 ```bash
 cd ~/chromium/platform_external_calyx_chromium
 
-# Update patches.
+# Refresh the patch files in preparation to upload them to gerrit.
 CHROMIUM_SRC_PATH=~/chromium/src update_patches
 
-# Make a commit and upload it to gerrit for review
+# Make a commit and upload it to gerrit for review.
 git add .
 git commit -m "$V"
 git review
 ```
+
+## Exiting a broken patch state
+In case you want to exit a current patch application process and start from scratch for example, you can run the following:
+
+```bash
+# Change to the Chromium checkout folder.
+cd ~/chromium/src
+
+# Stop the current in-progress patch application.
+apply_patches_stop
+
+# Reset the tree state.
+git reset --hard $V
+```
+
+Then you should be ready to start over.
 
 ## Reducing followup build times
 Building can take a very long time, and rebasing means a lot needs to be rebuilt! You may prefer
