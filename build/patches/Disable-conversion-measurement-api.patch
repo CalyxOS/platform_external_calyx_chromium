@@ -31,7 +31,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../attribution_os_level_manager.cc           |   3 +-
  .../attribution_report_network_sender.cc      |   9 +
  .../attribution_storage_sql.cc                |   8 +-
- .../renderer_host/render_frame_host_impl.cc   |  11 +
+ .../renderer_host/render_frame_host_impl.cc   | Bin 858584 -> 858952 bytes
  content/browser/storage_partition_impl.cc     |  12 -
  content/public/android/BUILD.gn               |   2 -
  .../browser/AttributionOsLevelManager.java    | 349 +-----------------
@@ -46,7 +46,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  third_party/blink/renderer/core/page/page.cc  |   2 +-
  .../platform/runtime_enabled_features.json5   |  20 +-
  ui/events/android/motion_event_android.cc     |   8 +-
- 35 files changed, 102 insertions(+), 436 deletions(-)
+ 35 files changed, 91 insertions(+), 436 deletions(-)
  create mode 100644 cromite_flags/services/network/public/cpp/features_cc/Disable-conversion-measurement-api.inc
  create mode 100644 cromite_flags/third_party/blink/common/features_cc/Disable-conversion-measurement-api.inc
 
@@ -399,33 +399,20 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
            /*tag=*/"Conversions"),
        delegate_(delegate),
 diff --git a/content/browser/renderer_host/render_frame_host_impl.cc b/content/browser/renderer_host/render_frame_host_impl.cc
---- a/content/browser/renderer_host/render_frame_host_impl.cc
-+++ b/content/browser/renderer_host/render_frame_host_impl.cc
-@@ -10948,6 +10948,7 @@ bool RenderFrameHostImpl::IsFencedFrameReportingFromRendererAllowed(
-     return false;
-   }
- 
-+  if ((true)) return false;
-   if (!IsActive()) {
-     // reportEvent is not allowed when this RenderFrameHost or one of its
-     // ancestors is not active.
-@@ -15077,6 +15078,16 @@ void RenderFrameHostImpl::BindTrustTokenQueryAnswerer(
-     return;
-   }
- 
-+  // flags are enforced in benign renderers by the
-+  // RuntimeEnabled=PrivateStateTokens IDL attribute (the base::Feature's value
-+  // is tied to the RuntimeEnabledFeature's).
-+  if ((true)) {
-+    mojo::ReportBadMessage(
-+        "Attempted to get a TrustTokenQueryAnswerer with Private State Tokens "
-+        "disabled.");
-+    return;
-+  }
-+
-   // TODO(crbug.com/40729410): Document.hasPrivateToken is restricted to
-   // secure contexts, so we could additionally add a check verifying that the
-   // bind request "is coming from a secure context"---but there's currently no
+index d1a4c29e3c114ed50bcbbe4fcbbd455b92a9b1cc..506ca529a43bdcfa0ce18f1cf1ddce2dd0540804 100644
+GIT binary patch
+delta 343
+zcmZ9Hu}Z{16h+Zp6Ej-a2-^scZA=i|!YyRQPQ`$Qs2||OykrOC1ZG}Vth5MhX*s`O
+zCm3;m!9ox_!A3v9%GTMqSU7N}JNKUVR&}2qyVvDZIbAl&W;s(j5AHf!^hp&M1fY-#
+zB_ZLN#!d4Tx=X{5xi+(-ka;h+S4qZG4O}6hOmcOKF$f6}N|8!S%NP|Z4bde~9~nTW
+z1BZnqagIBZM;XRj2TBY$;St&II6p(FA>7^vPNYOs5Q1+>h`7dHZx^}s!DS5to)xxl
+zV_YaSkg&s)k4OIX{~^JeofirC^=;;J&ja((a+$fg_f}Rf1odH}0<{ZFWZD+{eeGE2
+f+S$CmJ1uka?KI7E+E^F{m1o0j=0-s^f0z6K1eA8v
+
+delta 65
+zcmX@H&E&>rlZF<?7N!>F7M2#)7Pc+y#$3}m)-egUCvmX@F~{~KF3w9Urk_q{7Hprn
+Rg%gOmfS7yx%q=|Y(*Ovu7_a~U
+
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
