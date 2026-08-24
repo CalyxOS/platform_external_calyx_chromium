@@ -1,28 +1,15 @@
-From: csagan5 <32685696+csagan5@users.noreply.github.com>
-Date: Sun, 27 Oct 2019 10:00:13 +0100
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Deepa <deepa@calyx.org>
+Date: Mon, 24 Aug 2026 23:38:01 +0000
 Subject: Replace DoH probe domain with RIPE domain
 
-Replace known good hostname
-
-License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/browser/net/dns_probe_runner.cc | 2 +-
- net/dns/dns_transaction.h              | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ net/dns/dns_transaction.h        |  2 +-
+ net/dns/host_resolver_manager.cc | 10 +++++-----
+ 2 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/chrome/browser/net/dns_probe_runner.cc b/chrome/browser/net/dns_probe_runner.cc
---- a/chrome/browser/net/dns_probe_runner.cc
-+++ b/chrome/browser/net/dns_probe_runner.cc
-@@ -18,7 +18,7 @@
- 
- namespace chrome_browser_net {
- 
--const char DnsProbeRunner::kKnownGoodHostname[] = "google.com";
-+const char DnsProbeRunner::kKnownGoodHostname[] = "www.ripe.net";
- 
- namespace {
- 
 diff --git a/net/dns/dns_transaction.h b/net/dns/dns_transaction.h
+index 8343ffacd9f9a..0977448937a33 100644
 --- a/net/dns/dns_transaction.h
 +++ b/net/dns/dns_transaction.h
 @@ -29,7 +29,7 @@ class NetLogWithSource;
@@ -34,5 +21,28 @@ diff --git a/net/dns/dns_transaction.h b/net/dns/dns_transaction.h
  
  // DnsTransaction implements a stub DNS resolver as defined in RFC 1034.
  // The DnsTransaction takes care of retransmissions, name server fallback (or
+diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
+index d03f5733a32a4..6e2e6e2cffea9 100644
+--- a/net/dns/host_resolver_manager.cc
++++ b/net/dns/host_resolver_manager.cc
+@@ -151,12 +151,12 @@ const size_t kMaxHostLength = 4096;
+ 
+ // Time between IPv6 probes, i.e. for how long results of each IPv6 probe are
+ // cached.
+-const int kIPv6ProbePeriodMs = 1000;
++const int kIPv6ProbePeriodMs = 15000;
+ 
+-// Google DNS address used for IPv6 probes.
+-const uint8_t kIPv6ProbeAddress[] = {0x20, 0x01, 0x48, 0x60, 0x48, 0x60,
+-                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-                                     0x00, 0x00, 0x88, 0x88};
++// Cloudflare DNS address used for IPv6 probes. 2606:4700:4700::1111
++const uint8_t kIPv6ProbeAddress[] =
++    { 0x26, 0x06, 0x47, 0x00, 0x47, 0x00, 0x00, 0x00,
++      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11 };
+ 
+ // True if |hostname| ends with either ".local" or ".local.".
+ bool ResemblesMulticastDNSName(std::string_view hostname) {
 -- 
+2.39.5
 

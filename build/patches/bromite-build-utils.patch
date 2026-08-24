@@ -1,5 +1,6 @@
-From: uazo <uazo@users.noreply.github.com>
-Date: Fri, 9 Jun 2023 15:11:46 +0000
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Deepa <deepa@calyx.org>
+Date: Mon, 24 Aug 2026 23:35:55 +0000
 Subject: bromite build utils
 
 ---
@@ -13,7 +14,7 @@ Subject: bromite build utils
  build/config/BUILDCONFIG.gn                   |   2 +
  build/config/android/rules.gni                |   6 +-
  .../ChromeAccessibilitySettingsDelegate.java  |   5 +
- chrome/browser/flags/BUILD.gn                 |   8 +-
+ chrome/browser/flags/BUILD.gn                 |   4 +
  .../flags/android/cromite_native_utils.cc     |  94 +++++++++++++++
  .../flags/android/cromite_native_utils.h      |  14 +++
  .../browser/flags/CromiteNativeUtils.java     |  46 ++++++++
@@ -21,7 +22,7 @@ Subject: bromite build utils
  tools/grit/grit/grd_reader.py                 |  27 ++++-
  tools/grit/grit_rule.gni                      |   2 +-
  tools/grit/preprocess_if_expr.py              |  32 +++++-
- 18 files changed, 541 insertions(+), 20 deletions(-)
+ 18 files changed, 539 insertions(+), 18 deletions(-)
  create mode 100644 build/bromite/bromite_utils.gni
  create mode 100644 build/bromite/gyp/cpp_bromite_include.py
  create mode 100644 build/bromite/gyp/cpp_bromite_include.pydeps
@@ -32,9 +33,10 @@ Subject: bromite build utils
  create mode 100755 chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
 
 diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enum.py
+index 50bb059d49171..2bb96c3965f17 100755
 --- a/build/android/gyp/java_cpp_enum.py
 +++ b/build/android/gyp/java_cpp_enum.py
-@@ -208,6 +208,7 @@ class DirectiveSet:
+@@ -214,6 +214,7 @@ class DirectiveSet:
  
  
  class HeaderParser:
@@ -42,7 +44,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
    single_line_comment_re = re.compile(r'\s*//\s*([^\n]*)')
    multi_line_comment_start_re = re.compile(r'\s*/\*')
    enum_line_re = re.compile(r'^\s*(\w+)(\s*\=\s*([^,\n]+))?,?')
-@@ -230,7 +231,7 @@ class HeaderParser:
+@@ -236,7 +237,7 @@ class HeaderParser:
    enum_single_line_re = re.compile(
        r'^\s*(?:\[cpp.*\])?\s*enum.*{(?P<enum_entries>.*)}.*$')
  
@@ -51,7 +53,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      self._lines = java_cpp_utils.PreprocessIfBlocks(lines)
      self._path = path
      self._enum_definitions = []
-@@ -240,6 +241,7 @@ class HeaderParser:
+@@ -246,6 +247,7 @@ class HeaderParser:
      self._generator_directives = DirectiveSet()
      self._multi_line_generator_directive = None
      self._current_enum_entry = ''
@@ -59,7 +61,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
  
    def _ApplyGeneratorDirectives(self):
      self._generator_directives.UpdateDefinition(self._current_definition)
-@@ -266,6 +268,24 @@ class HeaderParser:
+@@ -272,6 +274,24 @@ class HeaderParser:
        raise Exception('Multi-line comments in enums are not supported in ' +
                        self._path)
  
@@ -84,7 +86,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      enum_comment = HeaderParser.single_line_comment_re.match(line)
      if enum_comment:
        comment = enum_comment.groups()[0]
-@@ -367,9 +387,9 @@ class HeaderParser:
+@@ -373,9 +393,9 @@ class HeaderParser:
          self._ParseSingleLineEnum(single_line_enum.group('enum_entries'))
  
  
@@ -96,19 +98,21 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      if not enum_definitions:
        raise Exception('No enums found in %s\n'
                        'Did you forget prefixing enums with '
-@@ -382,9 +402,9 @@ def DoGenerate(source_paths):
+@@ -388,11 +408,11 @@ def DoGenerate(source_paths):
        yield output_path, output
  
  
 -def DoParseHeaderFile(path):
 +def DoParseHeaderFile(path, options):
    with open(path, encoding='utf-8') as f:
--    return HeaderParser(f.readlines(), path).ParseDefinitions()
-+    return HeaderParser(f.readlines(), options, path).ParseDefinitions()
+     lines = f.readlines()
+     preprocessed_lines = java_cpp_utils.ProcessListMacros(lines)
+-    return HeaderParser(preprocessed_lines, path).ParseDefinitions()
++    return HeaderParser(preprocessed_lines, options, path).ParseDefinitions()
  
  
  def GenerateOutput(source_path, enum_definition):
-@@ -470,11 +490,16 @@ def DoMain(argv):
+@@ -478,11 +498,16 @@ def DoMain(argv):
                        nargs='+',
                        help='Path to at least one input file.')
  
@@ -127,9 +131,10 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
  
  
 diff --git a/build/android/gyp/util/build_utils.py b/build/android/gyp/util/build_utils.py
+index 3f0e9ff29214c..01e6c8bd1098d 100644
 --- a/build/android/gyp/util/build_utils.py
 +++ b/build/android/gyp/util/build_utils.py
-@@ -404,4 +404,27 @@ def ReadSourcesList(sources_list_file_name):
+@@ -408,4 +408,27 @@ def ReadSourcesList(sources_list_file_name):
    Note that this function should not be used to parse response files.
    """
    with open(sources_list_file_name, encoding='utf-8') as f:
@@ -160,6 +165,7 @@ diff --git a/build/android/gyp/util/build_utils.py b/build/android/gyp/util/buil
 +    return files
 diff --git a/build/bromite/bromite_utils.gni b/build/bromite/bromite_utils.gni
 new file mode 100644
+index 0000000000000..114b812e4c4be
 --- /dev/null
 +++ b/build/bromite/bromite_utils.gni
 @@ -0,0 +1,79 @@
@@ -244,6 +250,7 @@ new file mode 100644
 +}
 diff --git a/build/bromite/gyp/cpp_bromite_include.py b/build/bromite/gyp/cpp_bromite_include.py
 new file mode 100644
+index 0000000000000..d3dfbaadcd604
 --- /dev/null
 +++ b/build/bromite/gyp/cpp_bromite_include.py
 @@ -0,0 +1,35 @@
@@ -284,6 +291,7 @@ new file mode 100644
 +  _Main(sys.argv[1:])
 diff --git a/build/bromite/gyp/cpp_bromite_include.pydeps b/build/bromite/gyp/cpp_bromite_include.pydeps
 new file mode 100644
+index 0000000000000..b5adeb538b32d
 --- /dev/null
 +++ b/build/bromite/gyp/cpp_bromite_include.pydeps
 @@ -0,0 +1,9 @@
@@ -298,6 +306,7 @@ new file mode 100644
 +cpp_bromite_include.py
 diff --git a/build/bromite/gyp/java_bromite_impl.py b/build/bromite/gyp/java_bromite_impl.py
 new file mode 100644
+index 0000000000000..9525ecd1d4ed5
 --- /dev/null
 +++ b/build/bromite/gyp/java_bromite_impl.py
 @@ -0,0 +1,107 @@
@@ -410,6 +419,7 @@ new file mode 100644
 +  _Main(sys.argv[1:])
 diff --git a/build/bromite/gyp/java_bromite_impl.pydeps b/build/bromite/gyp/java_bromite_impl.pydeps
 new file mode 100644
+index 0000000000000..cfaccd9373e45
 --- /dev/null
 +++ b/build/bromite/gyp/java_bromite_impl.pydeps
 @@ -0,0 +1,9 @@
@@ -423,15 +433,17 @@ new file mode 100644
 +../../zip_helpers.py
 +java_bromite_impl.py
 diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
+index 2bd205bd7e85f..37b710cb9200c 100644
 --- a/build/config/BUILDCONFIG.gn
 +++ b/build/config/BUILDCONFIG.gn
-@@ -865,3 +865,5 @@ if (is_component_build) {
+@@ -871,3 +871,5 @@ if (is_component_build) {
  set_defaults("component") {
    configs = default_component_configs
  }
 +
 +import("//build/bromite/bromite_utils.gni")
 diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
+index 4e018fe6c5dd0..bd6ce1e0e1ab2 100644
 --- a/build/config/android/rules.gni
 +++ b/build/config/android/rules.gni
 @@ -229,6 +229,10 @@ if (!is_robolectric && enable_java_templates) {
@@ -455,6 +467,7 @@ diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
        # The sources aren't compiled so don't check their dependencies.
        check_includes = false
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
+index 80774dba5e3ba..cec824c96051d 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
 @@ -16,6 +16,11 @@ import org.chromium.components.dom_distiller.core.DistilledPagePrefs;
@@ -470,39 +483,36 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/s
  @NullMarked
  public class ChromeAccessibilitySettingsDelegate implements AccessibilitySettingsDelegate {
 diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
+index 4bd056f1ce6f0..ead54b0e49f5f 100644
 --- a/chrome/browser/flags/BUILD.gn
 +++ b/chrome/browser/flags/BUILD.gn
-@@ -7,7 +7,8 @@ import("//extensions/buildflags/buildflags.gni")
- import("//third_party/jni_zero/jni_zero.gni")
- 
- android_library("java") {
--  sources = [
-+  sources = [ "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java" ]
-+  sources += [
+@@ -11,6 +11,7 @@ android_library("java") {
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
-@@ -33,7 +34,8 @@ android_library("java") {
- }
- 
- generate_jni("jni_headers") {
--  sources = [
-+  sources = [ "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java" ]
-+  sources += [
++    "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java",
+   ]
+   public_deps = [ "//components/cached_flags:java" ]
+   deps = [
+@@ -36,12 +37,15 @@ generate_jni("jni_headers") {
+   sources = [
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
++    "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java",
    ]
-@@ -41,6 +43,8 @@ generate_jni("jni_headers") {
+ }
  
  static_library("flags_android") {
    sources = [
+     "android/chrome_feature_list.h",
 +    "android/cromite_native_utils.cc",
 +    "android/cromite_native_utils.h",
-     "android/chrome_feature_list.h",
      "android/chrome_session_state.cc",
      "android/chrome_session_state.h",
+   ]
 diff --git a/chrome/browser/flags/android/cromite_native_utils.cc b/chrome/browser/flags/android/cromite_native_utils.cc
 new file mode 100755
+index 0000000000000..085dace41b884
 --- /dev/null
 +++ b/chrome/browser/flags/android/cromite_native_utils.cc
 @@ -0,0 +1,94 @@
@@ -602,6 +612,7 @@ new file mode 100755
 +DEFINE_JNI(CromiteNativeUtils)
 diff --git a/chrome/browser/flags/android/cromite_native_utils.h b/chrome/browser/flags/android/cromite_native_utils.h
 new file mode 100755
+index 0000000000000..db44defd1ecb8
 --- /dev/null
 +++ b/chrome/browser/flags/android/cromite_native_utils.h
 @@ -0,0 +1,14 @@
@@ -621,6 +632,7 @@ new file mode 100755
 +#endif  // CHROME_BROWSER_FLAGS_ANDROID_CROMITE_NATIVE_UTILS_H_
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
 new file mode 100755
+index 0000000000000..e3ed27bc71054
 --- /dev/null
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java
 @@ -0,0 +1,46 @@
@@ -671,6 +683,7 @@ new file mode 100755
 +    }
 +}
 diff --git a/mojo/public/tools/mojom/mojom_parser.py b/mojo/public/tools/mojom/mojom_parser.py
+index 80165184c3cb2..7d5f714317e86 100755
 --- a/mojo/public/tools/mojom/mojom_parser.py
 +++ b/mojo/public/tools/mojom/mojom_parser.py
 @@ -20,6 +20,7 @@ import os
@@ -725,6 +738,7 @@ diff --git a/mojo/public/tools/mojom/mojom_parser.py b/mojo/public/tools/mojom/m
    for mojom_abspath, ast in _Shard(_ParseAstHelper, map_args):
      loaded_mojom_asts[mojom_abspath] = ast
 diff --git a/tools/grit/grit/grd_reader.py b/tools/grit/grit/grd_reader.py
+index 16397abea2a82..c088207169e5a 100755
 --- a/tools/grit/grit/grd_reader.py
 +++ b/tools/grit/grit/grd_reader.py
 @@ -96,11 +96,28 @@ class GrdContentHandler(xml.sax.handler.ContentHandler):
@@ -762,6 +776,7 @@ diff --git a/tools/grit/grit/grd_reader.py b/tools/grit/grit/grd_reader.py
      if self.debug:
        print("End parsing of element %s" % name)
 diff --git a/tools/grit/grit_rule.gni b/tools/grit/grit_rule.gni
+index b4955a1bc116e..06842fdc79de9 100644
 --- a/tools/grit/grit_rule.gni
 +++ b/tools/grit/grit_rule.gni
 @@ -360,7 +360,7 @@ template("grit") {
@@ -774,6 +789,7 @@ diff --git a/tools/grit/grit_rule.gni b/tools/grit/grit_rule.gni
    }
  
 diff --git a/tools/grit/preprocess_if_expr.py b/tools/grit/preprocess_if_expr.py
+index 35c1b20bc2c83..6a600ee42da7b 100644
 --- a/tools/grit/preprocess_if_expr.py
 +++ b/tools/grit/preprocess_if_expr.py
 @@ -8,6 +8,7 @@ import io
@@ -830,4 +846,5 @@ diff --git a/tools/grit/preprocess_if_expr.py b/tools/grit/preprocess_if_expr.py
      removal_comments_extension = None  # None means no removal comments
      if args.enable_removal_comments:
 -- 
+2.39.5
 

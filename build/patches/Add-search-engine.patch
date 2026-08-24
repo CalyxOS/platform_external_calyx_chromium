@@ -1,58 +1,26 @@
-From: csagan5 <32685696+csagan5@users.noreply.github.com>
-Date: Mon, 11 Dec 2017 22:42:11 +0100
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Deepa <deepa@calyx.org>
+Date: Mon, 24 Aug 2026 23:37:43 +0000
 Subject: Add search engine
 
-Add a Google search engine that forces languages to English,
-disable from all its searches RLZ and field experiments querystring parameters.
-Add DuckDuckGo Lite
-
-License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 ---
- .../search_engine_choice/default_favicon.png  | Bin 0 -> 903 bytes
- components/search_engines/BUILD.gn            |   3 ++
- components/search_engines/cromite/BUILD.gn    |  12 ++++++
- .../cromite/cromite_prepopulated_engines.json |  37 ++++++++++++++++++
- .../search_engine_choice_utils.cc             |   9 +----
- .../search_engines/search_engine_type.h       |   5 +++
- .../template_url_prepopulate_data.cc          |  21 +++++++++-
- .../template_url_prepopulate_data.h           |   9 -----
- tools/json_to_struct/json_to_struct.gni       |   9 +++++
- tools/json_to_struct/json_to_struct.py        |  26 ++++++++----
- tools/json_to_struct/struct_generator.py      |  10 +++--
- tools/variations/fieldtrial_to_struct.py      |   4 +-
- 12 files changed, 113 insertions(+), 32 deletions(-)
- create mode 100644 components/resources/default_100_percent/search_engine_choice/default_favicon.png
+ components/search_engines/BUILD.gn            |  3 ++
+ components/search_engines/cromite/BUILD.gn    | 12 ++++++
+ .../cromite/cromite_prepopulated_engines.json | 37 +++++++++++++++++++
+ .../search_engine_choice_utils.cc             |  9 -----
+ .../search_engines/search_engine_type.h       |  5 +++
+ .../template_url_prepopulate_data.cc          | 21 ++++++++++-
+ .../template_url_prepopulate_data.h           |  9 -----
+ tools/json_to_struct/json_to_struct.gni       |  9 +++++
+ tools/json_to_struct/json_to_struct.py        | 26 +++++++++----
+ tools/json_to_struct/struct_generator.py      | 10 +++--
+ tools/variations/fieldtrial_to_struct.py      |  4 +-
+ 11 files changed, 112 insertions(+), 33 deletions(-)
  create mode 100644 components/search_engines/cromite/BUILD.gn
  create mode 100644 components/search_engines/cromite/cromite_prepopulated_engines.json
 
-diff --git a/components/resources/default_100_percent/search_engine_choice/default_favicon.png b/components/resources/default_100_percent/search_engine_choice/default_favicon.png
-new file mode 100644
-index 0000000000000000000000000000000000000000..6533419f2d6b40f7735054dec62c51ddf1ee1201
-GIT binary patch
-literal 903
-zcmV;219<$2P)<h;3K|Lk000e1NJLTq001xm001xu1^@s6R|5Hm0009{Nkl<Zc-rk*
-zHI&>u5dJaD%uTpU6K1Ny)MmAo?2~ki?Li;rI(@haGcz+YGo$8ZtH|rstmUBf-W*z<
-z`LqMyjQ;vbR=naxn4FxTa$SOo%Y^Yq3CiCp`IM5k@HhA$JOj`EJVrBqK*>90<Y$Z!
-zD&E1~9|C4N=Y0}PoKKzZ=aBLV-UaWB-0*4BX4X}1up41G3JAO#bVTDWd3iku6Hh={
-zlma?HmsR5(hfh(b^FD*}4@!0sS4zV2hPiHTHz{QUr=p@EW3ne<xuXf?=gfeJ_n_0B
-z@lJY|QARx>G)Ly==Qj#^Pm*zg`6NIm=nm~RX-}Ss_k_usva+)JncnmH^XI=4jNih$
-zlz0y|WF4^Se4bG8m@v`L_#mWg6DB6I3T(&-X<X(aWBDC2?f1MT|2uB(BxS%X1$a%k
-z;1;{ldEPHo!pWN$|21g&X`3k)RVSdZ`1-to+dxbxpx11tSFj1eY4p>FfHecpOCzcg
-zpNwb+@DsmO2`6iI0DN;)MGkB;0q{--kR#0r9={VIfOiJ&qgPlcQV0O=qNN%EZUkK2
-zXVWfZ`h5{40I)Gg`DG2UD<uwqtRPHQ`3e=w!vhePgFgO88URJiY>`5mlRG3V0I)IO
-z^!VFvHvp@&1;F!4TUc<Tw?P23{124aYG2{<#pZ1%U*J~{i~%4NJtI_HQU19p>56LN
-z%3gt$n(-Z(idK@zIi#qli66~IxloAGzuNPP+NSLfTs{_pT7f^J06kI9KUZ>A$&#d(
-z+ZUd3gy@cNAuWhQ3vePzWtVK-4H5_<h_y6oOLkRNRsEA)yhw>iqgo-eCg3jF08o2(
-zV+xr@B`n6nQmpYnUx3CSsDwu5Yyvoe1poxnZ<>do)Aj_?EW-9wQ^cQO=(N_*SpEcF
-zA!n{N_=ZMrDQ)uj`{u@re$c++TFQW?-c&%T<H_NEl62(&6TL7nfTD(I>Jej=5G2dk
-zc*-y0$13Q-mVE%=HZZcm54P~5#qa<$Vkc|B{qUnj<Z#y}04P$B=OI-_I^4yL*CEaE
-zjS0pJfK7T{VJFY4st5f9G(|wnQru>jUSTzPpE5qa;Lv>bM_w_-mwYy_S=Aoxnl--Y
-d#;<tA>kFnu^?NN9uE_uZ002ovPDHLkV1m60sc!%P
-
-literal 0
-HcmV?d00001
-
 diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUILD.gn
+index 80b3a7cd01ad5..eb0d94a400a8d 100644
 --- a/components/search_engines/BUILD.gn
 +++ b/components/search_engines/BUILD.gn
 @@ -83,6 +83,7 @@ static_library("search_engines") {
@@ -63,7 +31,7 @@ diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUIL
    ]
  
    deps = [
-@@ -174,6 +175,7 @@ source_set("search_engine_utils") {
+@@ -175,6 +176,7 @@ source_set("search_engine_utils") {
      "//components/regional_capabilities",
      "//components/regional_capabilities:switches",
      "//third_party/search_engines_data:prepopulated_engines",
@@ -71,7 +39,7 @@ diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUIL
    ]
  
    deps = [ "//url" ]
-@@ -276,6 +278,7 @@ source_set("unit_tests") {
+@@ -277,6 +279,7 @@ source_set("unit_tests") {
      "//testing/gtest",
      "//third_party/search_engines_data:prepopulated_engines",
      "//third_party/search_engines_data:regional_settings",
@@ -81,6 +49,7 @@ diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUIL
    ]
 diff --git a/components/search_engines/cromite/BUILD.gn b/components/search_engines/cromite/BUILD.gn
 new file mode 100644
+index 0000000000000..cacf751247ab5
 --- /dev/null
 +++ b/components/search_engines/cromite/BUILD.gn
 @@ -0,0 +1,12 @@
@@ -98,6 +67,7 @@ new file mode 100644
 +}
 diff --git a/components/search_engines/cromite/cromite_prepopulated_engines.json b/components/search_engines/cromite/cromite_prepopulated_engines.json
 new file mode 100644
+index 0000000000000..0d2ebbf08bfc7
 --- /dev/null
 +++ b/components/search_engines/cromite/cromite_prepopulated_engines.json
 @@ -0,0 +1,37 @@
@@ -139,9 +109,10 @@ new file mode 100644
 +    }
 +}
 diff --git a/components/search_engines/search_engine_choice/search_engine_choice_utils.cc b/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
+index 6e4fbd49194ab..91af141668a3e 100644
 --- a/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
 +++ b/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
-@@ -202,14 +202,7 @@ void RecordChoiceScreenDefaultSearchProviderType(
+@@ -202,15 +202,6 @@ void RecordChoiceScreenDefaultSearchProviderType(
  }
  
  void RecordChoiceScreenSelectedIndex(int selected_engine_index) {
@@ -149,15 +120,16 @@ diff --git a/components/search_engines/search_engine_choice/search_engine_choice
 -      kSearchEngineChoiceScreenSelectedEngineIndexHistogram,
 -      selected_engine_index,
 -      TemplateURLPrepopulateData::kMaxEeaPrepopulatedEngines);
--  base::PumaHistogramExactLinear(
--      base::PumaType::kRc, kPumaSearchChoiceScreenSelectedEngineIndexHistogram,
+-  metrics::private_metrics::PumaHistogramExactLinear(
+-      metrics::private_metrics::PumaType::kRc,
+-      kPumaSearchChoiceScreenSelectedEngineIndexHistogram,
 -      selected_engine_index,
 -      TemplateURLPrepopulateData::kMaxEeaPrepopulatedEngines);
-+  // do nothing in Cromite
  }
  
  void RecordChoiceScreenPositionsCountryMismatch(bool has_mismatch) {
 diff --git a/components/search_engines/search_engine_type.h b/components/search_engines/search_engine_type.h
+index e1c169b82b4dc..0ed9a94dcbf4c 100644
 --- a/components/search_engines/search_engine_type.h
 +++ b/components/search_engines/search_engine_type.h
 @@ -99,11 +99,16 @@ enum SearchEngineType {
@@ -178,6 +150,7 @@ diff --git a/components/search_engines/search_engine_type.h b/components/search_
  // should be kept aligned with the `OmniboxBuiltinEngineType` enum in enums.xml.
  // Entries should not be renumbered and numeric values should never be reused.
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
+index ac35ec257779f..6a05437fabd4e 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
 @@ -29,6 +29,8 @@
@@ -189,16 +162,16 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  namespace TemplateURLPrepopulateData {
  
  // Helpers --------------------------------------------------------------------
-@@ -172,7 +174,7 @@ int GetDataVersion(PrefService* prefs) {
+@@ -173,7 +175,7 @@ int GetDataVersion(PrefService* prefs) {
    return kCurrentDataVersion;
  }
  
 -std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
 +std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEnginesChromium(
      PrefService& prefs,
-     const std::vector<const PrepopulatedEngine*>&
+     const std::vector<raw_ptr<const PrepopulatedEngine>>&
          regional_prepopulated_engines) {
-@@ -188,6 +190,17 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
+@@ -189,6 +191,17 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
                          &PrepopulatedEngineToTemplateURLData);
  }
  
@@ -215,8 +188,8 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
 +
  std::unique_ptr<TemplateURLData> GetPrepopulatedEngine(
      PrefService& prefs,
-     const std::vector<raw_ptr<const PrepopulatedEngine>>& regional_prepopulated_engines,
-@@ -208,10 +221,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetLocalPrepopulatedEngines(
+     const std::vector<raw_ptr<const PrepopulatedEngine>>&
+@@ -210,10 +223,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetLocalPrepopulatedEngines(
      return std::vector<std::unique_ptr<TemplateURLData>>();
    }
  
@@ -233,6 +206,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  
  #endif
 diff --git a/components/search_engines/template_url_prepopulate_data.h b/components/search_engines/template_url_prepopulate_data.h
+index 094b4802d52ab..e38672ce511cd 100644
 --- a/components/search_engines/template_url_prepopulate_data.h
 +++ b/components/search_engines/template_url_prepopulate_data.h
 @@ -27,15 +27,6 @@ struct PrepopulatedEngine;
@@ -252,6 +226,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.h b/compone
  // in the rest of the world by `GetPrepopulatedEngines()`.
  // TODO(crbug.com/408932087): Investigate deduping it with the constant
 diff --git a/tools/json_to_struct/json_to_struct.gni b/tools/json_to_struct/json_to_struct.gni
+index 9988b34bf347e..2533fe715316c 100644
 --- a/tools/json_to_struct/json_to_struct.gni
 +++ b/tools/json_to_struct/json_to_struct.gni
 @@ -40,6 +40,11 @@ template("json_to_struct") {
@@ -278,6 +253,7 @@ diff --git a/tools/json_to_struct/json_to_struct.gni b/tools/json_to_struct/json
  
    source_set(source_set_name) {
 diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_to_struct.py
+index e1e285dbe99df..53461147187f2 100755
 --- a/tools/json_to_struct/json_to_struct.py
 +++ b/tools/json_to_struct/json_to_struct.py
 @@ -104,7 +104,7 @@ def _GenerateHeaderGuard(h_filename):
@@ -289,7 +265,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
    """Generates the .h file containing the definition of the structure specified
    by the schema.
  
-@@ -148,11 +148,15 @@ def _GenerateH(basepath, fileroot, head, namespace, schema, description):
+@@ -151,11 +151,15 @@ def _GenerateH(basepath, fileroot, head, namespace, schema, description):
        f.write(u'#include "%s"\n' % header)
      f.write(u'\n')
  
@@ -306,7 +282,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
        schema['type_name'], schema['schema']))
      f.write(u'\n')
  
-@@ -177,7 +181,7 @@ def _GenerateH(basepath, fileroot, head, namespace, schema, description):
+@@ -180,7 +184,7 @@ def _GenerateH(basepath, fileroot, head, namespace, schema, description):
      f.write(u'#endif  // %s\n' % header_guard)
  
  
@@ -315,7 +291,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
    """Generates the .cc file containing the static initializers for the
    of the elements specified in the description.
  
-@@ -212,7 +216,7 @@ def _GenerateCC(basepath, fileroot, head, namespace, schema, description):
+@@ -215,7 +219,7 @@ def _GenerateCC(basepath, fileroot, head, namespace, schema, description):
      f.write(element_generator.GenerateElements(schema['type_name'],
          schema['schema'], description))
  
@@ -324,7 +300,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
        f.write('\n}  // anonymous namespace \n\n')
  
      aggregated = GenerateCCAggregation(schema['type_name'], aggregation)
-@@ -299,7 +303,7 @@ def GenerateClass(basepath,
+@@ -302,7 +306,7 @@ def GenerateClass(basepath,
  
  
  def GenerateStruct(basepath, output_root, namespace, schema, description,
@@ -333,7 +309,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
    """Generates a C++ struct from a JSON description.
  
    Args:
-@@ -318,8 +322,8 @@ def GenerateStruct(basepath, output_root, namespace, schema, description,
+@@ -321,8 +325,8 @@ def GenerateStruct(basepath, output_root, namespace, schema, description,
    """
    year = int(year) if year else datetime.now().year
    head = HEAD % (year, schema_filename, description_filename)
@@ -344,7 +320,7 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
  
  if __name__ == '__main__':
    parser = optparse.OptionParser(
-@@ -334,11 +338,17 @@ if __name__ == '__main__':
+@@ -337,11 +341,17 @@ if __name__ == '__main__':
    parser.add_option('-s', '--schema', help='path to the schema file, '
        'mandatory.')
    parser.add_option('-o', '--output', help='output filename, ')
@@ -362,13 +338,14 @@ diff --git a/tools/json_to_struct/json_to_struct.py b/tools/json_to_struct/json_
    description_filename = os.path.normpath(args[0])
    root, ext = os.path.splitext(description_filename)
    shortroot = opts.output if opts.output else os.path.split(root)[1]
-@@ -355,4 +365,4 @@ if __name__ == '__main__':
+@@ -358,4 +368,4 @@ if __name__ == '__main__':
    schema = _Load(opts.schema)
    description = _Load(description_filename)
    GenerateStruct(basepath, output_root, opts.namespace, schema, description,
 -                 description_filename, opts.schema)
 +                 description_filename, opts.schema, opts.excludetype, datetime.now().year)
 diff --git a/tools/json_to_struct/struct_generator.py b/tools/json_to_struct/struct_generator.py
+index 9725f80a635fd..22454a3ac8aee 100644
 --- a/tools/json_to_struct/struct_generator.py
 +++ b/tools/json_to_struct/struct_generator.py
 @@ -32,20 +32,24 @@ def GenerateField(field_info):
@@ -400,9 +377,10 @@ diff --git a/tools/json_to_struct/struct_generator.py b/tools/json_to_struct/str
      lines.append('  ' + GenerateField(field_info) + ';')
    lines.append('};')
 diff --git a/tools/variations/fieldtrial_to_struct.py b/tools/variations/fieldtrial_to_struct.py
+index 931e584eb6cfc..d7a6bf940d2f6 100755
 --- a/tools/variations/fieldtrial_to_struct.py
 +++ b/tools/variations/fieldtrial_to_struct.py
-@@ -210,14 +210,14 @@ def main(arguments):
+@@ -218,14 +218,14 @@ def main(arguments):
    json_to_struct.GenerateStruct(
        basepath, output_root, opts.namespace, schema, description,
        os.path.split(description_filename)[1], os.path.split(opts.schema)[1],
@@ -420,4 +398,5 @@ diff --git a/tools/variations/fieldtrial_to_struct.py b/tools/variations/fieldtr
  
  if __name__ == '__main__':
 -- 
+2.39.5
 

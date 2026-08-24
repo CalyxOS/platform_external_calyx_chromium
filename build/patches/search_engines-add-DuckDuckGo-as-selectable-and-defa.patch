@@ -1,18 +1,46 @@
-From: Jan Engelhardt <jengelh@inai.de>
-Date: Sun, 19 Oct 2014 14:49:10 +0200
-Subject: search_engines: add DuckDuckGo as selectable and default search
- engine
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Deepa <deepa@calyx.org>
+Date: Mon, 24 Aug 2026 23:39:01 +0000
+Subject: search_engines-add-DuckDuckGo-as-selectable-and-defa
 
-Change-Id: Ic40e537471b4f6784e36c199b49e526f7218d0d7
 ---
- components/search_engines/template_url_prepopulate_data.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .../template_url_prepopulate_data.cc               | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
+index 6a05437fabd4e..4a35e5175c79b 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
-@@ -293,7 +293,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
-     const std::vector<const PrepopulatedEngine*>&
+@@ -193,12 +193,12 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEnginesChromium(
+ 
+ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
+     PrefService& prefs,
+-    const std::vector<const PrepopulatedEngine*>&
++    const std::vector<raw_ptr<const PrepopulatedEngine>>&
+         regional_prepopulated_engines) {
+   std::vector<std::unique_ptr<TemplateURLData>> t_urls =
+-    GetPrepopulatedEnginesChromium(prefs, regional_prepopulated_engines);
+-  t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(googleen));
+-  t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(duckduckgo_light));
++      GetPrepopulatedEnginesChromium(prefs, regional_prepopulated_engines);
++  t_urls.push_back(PrepopulatedEngineToTemplateURLData(&googleen));
++  t_urls.push_back(PrepopulatedEngineToTemplateURLData(&duckduckgo_light));
+   return t_urls;
+ }
+ 
+@@ -228,8 +228,8 @@ std::vector<std::unique_ptr<TemplateURLData>> GetLocalPrepopulatedEngines(
+                             country_id, prefs,
+                             regional_capabilities::SearchEngineListType::kTopN),
+                         &PrepopulatedEngineToTemplateURLData);
+-  t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(googleen));
+-  t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(duckduckgo_light));
++  t_urls.push_back(PrepopulatedEngineToTemplateURLData(&googleen));
++  t_urls.push_back(PrepopulatedEngineToTemplateURLData(&duckduckgo_light));
+   return t_urls;
+ }
+ 
+@@ -296,7 +296,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
+     const std::vector<raw_ptr<const PrepopulatedEngine>>&
          regional_prepopulated_engines) {
    return FindPrepopulatedEngineInternal(prefs, regional_prepopulated_engines,
 -                                        google.id,
@@ -21,4 +49,5 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  }
  
 -- 
+2.39.5
 

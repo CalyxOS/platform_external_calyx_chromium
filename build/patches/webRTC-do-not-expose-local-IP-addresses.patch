@@ -1,14 +1,8 @@
-From: csagan5 <32685696+csagan5@users.noreply.github.com>
-Date: Sat, 9 May 2020 14:42:37 +0200
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Deepa <deepa@calyx.org>
+Date: Mon, 24 Aug 2026 23:37:01 +0000
 Subject: webRTC: do not expose local IP addresses
 
-Prevent leaks of local IP address and public IP address (when using VPN)
-
-See also:
-* https://github.com/bromite/bromite/issues/553
-* https://github.com/bromite/bromite/issues/589
-
-License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  chrome/browser/ui/browser_ui_prefs.cc                        | 2 +-
  .../blink/common/peerconnection/webrtc_ip_handling_policy.cc | 5 ++++-
@@ -16,6 +10,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  3 files changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
+index bfab7372d70f3..90a4a2733df78 100644
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
 @@ -152,7 +152,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
@@ -28,6 +23,7 @@ diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_u
    registry->RegisterBooleanPref(prefs::kWebRTCPostQuantumKeyAgreement, false);
    registry->RegisterStringPref(prefs::kWebRTCUDPPortRange, std::string());
 diff --git a/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.cc b/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.cc
+index 3c2475d75f4bf..a342c81627824 100644
 --- a/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.cc
 +++ b/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.cc
 @@ -30,7 +30,10 @@ blink::mojom::WebRtcIpHandlingPolicy ToWebRTCIPHandlingPolicy(
@@ -43,9 +39,10 @@ diff --git a/third_party/blink/common/peerconnection/webrtc_ip_handling_policy.c
  
  const char* ToString(blink::mojom::WebRtcIpHandlingPolicy policy) {
 diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
+index 929877a6cd440..2692251e4f2a2 100644
 --- a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
-@@ -1095,7 +1095,7 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
+@@ -1110,7 +1110,7 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
            break;
        }
  
@@ -55,4 +52,5 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_d
                << ", multiple_routes: " << port_config.enable_multiple_routes
                << ", nonproxied_udp: " << port_config.enable_nonproxied_udp
 -- 
+2.39.5
 

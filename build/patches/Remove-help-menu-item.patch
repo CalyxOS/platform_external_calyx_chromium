@@ -1,31 +1,30 @@
-From: csagan5 <32685696+csagan5@users.noreply.github.com>
-Date: Wed, 27 Jun 2018 01:32:28 +0200
-Subject: Remove help menu item
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Deepa <deepa@calyx.org>
+Date: Mon, 24 Aug 2026 23:37:49 +0000
+Subject: Remove-help-menu-item
 
-License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../chrome/browser/KeyboardShortcuts.java        |  4 ----
- .../chrome/browser/app/ChromeActivity.java       | 16 ----------------
- .../settings/AutofillHelpMenuProvider.java       |  1 +
- .../browsing_data/ClearBrowsingDataFragment.java |  1 +
- .../customtabs/BaseCustomTabActivity.java        |  1 -
- .../privacy/settings/PrivacySettings.java        |  1 +
- .../browser/settings/SettingsActivity.java       |  1 +
- .../sync/settings/GoogleServicesSettings.java    |  1 +
- .../sync/settings/ManageSyncSettings.java        |  1 +
- .../TabbedAppMenuPropertiesDelegate.java         |  2 +-
- .../java/res/menu/prefeditor_editor_menu.xml     |  1 +
- .../options/AutofillOptionsFragment.java         |  1 +
- .../PreloadPagesSettingsFragmentBase.java        |  1 +
- .../PrivacySandboxSettingsBaseFragment.java      |  1 +
- .../SafeBrowsingSettingsFragmentBase.java        |  1 +
- chrome/browser/ui/chrome_pages.cc                |  9 +++++++++
- 16 files changed, 21 insertions(+), 22 deletions(-)
+ .../org/chromium/chrome/browser/KeyboardShortcuts.java   | 4 ----
+ .../browser/browsing_data/ClearBrowsingDataFragment.java | 1 +
+ .../chrome/browser/customtabs/BaseCustomTabActivity.java | 1 -
+ .../chrome/browser/privacy/settings/PrivacySettings.java | 1 +
+ .../chrome/browser/settings/SettingsMenuHelper.java      | 1 +
+ .../browser/sync/settings/GoogleServicesSettings.java    | 1 +
+ .../chrome/browser/sync/settings/ManageSyncSettings.java | 1 +
+ .../tabbed_mode/TabbedAppMenuPropertiesDelegate.java     | 2 +-
+ .../android/java/res/menu/prefeditor_editor_menu.xml     | 1 +
+ .../settings/options/AutofillOptionsFragment.java        | 4 ++--
+ .../settings/PreloadPagesSettingsFragmentBase.java       | 1 +
+ .../PrivacySandboxSettingsBaseFragment.java              | 1 +
+ .../settings/SafeBrowsingSettingsFragmentBase.java       | 1 +
+ chrome/browser/ui/chrome_pages.cc                        | 9 +++++++++
+ 14 files changed, 21 insertions(+), 8 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcuts.java b/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcuts.java
+index 748c4dda423be..0c2af81b3ed1a 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcuts.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcuts.java
-@@ -1279,10 +1279,6 @@ public class KeyboardShortcuts {
+@@ -1304,10 +1304,6 @@ public class KeyboardShortcuts {
                          currentTab.goForward();
                      }
                      return true;
@@ -36,47 +35,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcu
                  case KeyboardShortcutsSemanticMeaning.FOCUS_APP_MENU_BUTTON:
                      View menuButtonView = toolbarManager.getMenuButtonView();
                      if (menuButtonView != null) {
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -2870,22 +2870,6 @@ public abstract class ChromeActivity extends AsyncInitializationActivity
- 
-         final Tab currentTab = getActivityTab();
- 
--        if (id == R.id.help_id) {
--            if (fromMenu) {
--                String url = currentTab != null ? currentTab.getUrl().getSpec() : "";
--                startHelpAndFeedback(
--                        url,
--                        "MobileMenuFeedback",
--                        getTabModelSelector().getCurrentModel().getProfile());
--            } else {
--                getTabCreator(getTabModelSelector().isIncognitoSelected())
--                        .launchUrl(
--                                "https://support.google.com/chrome?p=help&ctx=keyboard",
--                                TabLaunchType.FROM_CHROME_UI);
--            }
--            return true;
--        }
--
-         if (id == R.id.feedback_form || id == R.id.report_issue_menu_id) {
-             if (!FeedbackPolicyManager.getInstance().isUserFeedbackAllowed()) {
-                 return true;
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/autofill/settings/AutofillHelpMenuProvider.java b/chrome/android/java/src/org/chromium/chrome/browser/autofill/settings/AutofillHelpMenuProvider.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/autofill/settings/AutofillHelpMenuProvider.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/autofill/settings/AutofillHelpMenuProvider.java
-@@ -34,6 +34,7 @@ public class AutofillHelpMenuProvider implements MenuProvider {
-                         Menu.NONE,
-                         HelpAndFeedbackLauncher.getHelpMenuStringRes());
-         help.setIcon(R.drawable.ic_help_24dp);
-+        help.setVisible(false);
-     }
- 
-     @Override
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java
+index c3d21651c3f4e..f4b1bcab9fbab 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java
-@@ -889,6 +889,7 @@ public class ClearBrowsingDataFragment extends ChromeBaseSettingsFragment
+@@ -948,6 +948,7 @@ public class ClearBrowsingDataFragment extends ChromeBaseSettingsFragment
                  TraceEventVectorDrawableCompat.create(
                          getResources(), R.drawable.ic_help_24dp, getActivity().getTheme()));
          help.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
@@ -85,9 +48,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
  
      @Override
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/BaseCustomTabActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/BaseCustomTabActivity.java
+index 78b19c94932f3..802cad5765c8a 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/BaseCustomTabActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/BaseCustomTabActivity.java
-@@ -1294,7 +1294,6 @@ public abstract class BaseCustomTabActivity extends ChromeActivity {
+@@ -1325,7 +1325,6 @@ public abstract class BaseCustomTabActivity extends ChromeActivity {
          // Disable creating new tabs, bookmark, print, help, focus_url, etc.
          if (id == R.id.focus_url_bar
                  || id == R.id.all_bookmarks_menu_id
@@ -96,6 +60,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Base
                  || id == R.id.new_incognito_tab_menu_id
                  || id == R.id.new_tab_menu_id) {
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
+index 7b1f1f9c0bbf4..2f24a0baafeb6 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 @@ -610,6 +610,7 @@ public class PrivacySettings extends ChromeBaseSettingsFragment
@@ -106,21 +71,23 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      }
  
      @Override
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
-@@ -1063,6 +1063,7 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsMenuHelper.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsMenuHelper.java
+index fa563438b617a..e8e49580b26bd 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsMenuHelper.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsMenuHelper.java
+@@ -70,6 +70,7 @@ public class SettingsMenuHelper {
          help.setIcon(
                  TraceEventVectorDrawableCompat.create(
-                         getResources(), R.drawable.ic_help_24dp, getTheme()));
+                         activity.getResources(), R.drawable.ic_help_24dp, activity.getTheme()));
 +        help.setVisible(false);
-         return super.onCreateOptionsMenu(menu);
      }
  
+     /**
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/GoogleServicesSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/GoogleServicesSettings.java
+index 518e1cd9bcbfe..14e518363150a 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/GoogleServicesSettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/GoogleServicesSettings.java
-@@ -182,6 +182,7 @@ public class GoogleServicesSettings extends ChromeBaseSettingsFragment
+@@ -183,6 +183,7 @@ public class GoogleServicesSettings extends ChromeBaseSettingsFragment
          MenuItem help =
                  menu.add(Menu.NONE, R.id.menu_id_targeted_help, Menu.NONE, getHelpMenuStringRes());
          help.setIcon(R.drawable.ic_help_24dp);
@@ -129,6 +96,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/G
  
      @Override
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/ManageSyncSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/ManageSyncSettings.java
+index 6acb555a301eb..d7af7b7261394 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/ManageSyncSettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/ManageSyncSettings.java
 @@ -233,6 +233,7 @@ public class ManageSyncSettings extends ChromeBaseSettingsFragment
@@ -140,9 +108,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/sync/settings/M
  
      @Override
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
+index 630653e4a3265..cca56ae8b0e63 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
-@@ -546,7 +546,7 @@ public class TabbedAppMenuPropertiesDelegate extends AppMenuPropertiesDelegateIm
+@@ -562,7 +562,7 @@ public class TabbedAppMenuPropertiesDelegate extends AppMenuPropertiesDelegateIm
          }
  
          // Help
@@ -152,6 +121,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
          // Managed by
          if (shouldShowManagedByMenuItem(currentTab)) {
 diff --git a/chrome/browser/autofill/android/java/res/menu/prefeditor_editor_menu.xml b/chrome/browser/autofill/android/java/res/menu/prefeditor_editor_menu.xml
+index 11492a0dc45a1..d4a607c14b763 100644
 --- a/chrome/browser/autofill/android/java/res/menu/prefeditor_editor_menu.xml
 +++ b/chrome/browser/autofill/android/java/res/menu/prefeditor_editor_menu.xml
 @@ -24,6 +24,7 @@ found in the LICENSE file.
@@ -162,18 +132,23 @@ diff --git a/chrome/browser/autofill/android/java/res/menu/prefeditor_editor_men
          app:showAsAction="ifRoom" />
  
  </menu>
-diff --git a/chrome/browser/autofill/android/java/src/org/chromium/chrome/browser/autofill/options/AutofillOptionsFragment.java b/chrome/browser/autofill/android/java/src/org/chromium/chrome/browser/autofill/options/AutofillOptionsFragment.java
---- a/chrome/browser/autofill/android/java/src/org/chromium/chrome/browser/autofill/options/AutofillOptionsFragment.java
-+++ b/chrome/browser/autofill/android/java/src/org/chromium/chrome/browser/autofill/options/AutofillOptionsFragment.java
-@@ -177,6 +177,7 @@ public class AutofillOptionsFragment extends ChromeBaseSettingsFragment {
-         MenuItem help =
-                 menu.add(Menu.NONE, R.id.menu_id_targeted_help, Menu.NONE, getHelpMenuStringRes());
-         help.setIcon(R.drawable.ic_help_24dp);
-+        help.setVisible(false);
-     }
+diff --git a/chrome/browser/autofill/android/java/src/org/chromium/chrome/browser/autofill/settings/options/AutofillOptionsFragment.java b/chrome/browser/autofill/android/java/src/org/chromium/chrome/browser/autofill/settings/options/AutofillOptionsFragment.java
+index 9d2b3d470e0d3..08c07a9f580df 100644
+--- a/chrome/browser/autofill/android/java/src/org/chromium/chrome/browser/autofill/settings/options/AutofillOptionsFragment.java
++++ b/chrome/browser/autofill/android/java/src/org/chromium/chrome/browser/autofill/settings/options/AutofillOptionsFragment.java
+@@ -117,8 +117,8 @@ public class AutofillOptionsFragment extends ChromeBaseSettingsFragment {
  
      @Override
+     public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
+-        requireActivity()
+-                .addMenuProvider(new AutofillHelpMenuProvider(this), this, Lifecycle.State.RESUMED);
++        // requireActivity()
++        //         .addMenuProvider(new AutofillHelpMenuProvider(this), this, Lifecycle.State.RESUMED);
+         SettingsUtils.addPreferencesFromResource(this, R.xml.autofill_options_preferences);
+ 
+         AutofillAiPreference autofillAiPreference = findPreference(PREF_AUTOFILL_AI_SWITCH);
 diff --git a/chrome/browser/prefetch/android/java/src/org/chromium/chrome/browser/prefetch/settings/PreloadPagesSettingsFragmentBase.java b/chrome/browser/prefetch/android/java/src/org/chromium/chrome/browser/prefetch/settings/PreloadPagesSettingsFragmentBase.java
+index 0705107d1a469..95e0c2ca696af 100644
 --- a/chrome/browser/prefetch/android/java/src/org/chromium/chrome/browser/prefetch/settings/PreloadPagesSettingsFragmentBase.java
 +++ b/chrome/browser/prefetch/android/java/src/org/chromium/chrome/browser/prefetch/settings/PreloadPagesSettingsFragmentBase.java
 @@ -48,6 +48,7 @@ public abstract class PreloadPagesSettingsFragmentBase extends ChromeBaseSetting
@@ -185,6 +160,7 @@ diff --git a/chrome/browser/prefetch/android/java/src/org/chromium/chrome/browse
  
      @Override
 diff --git a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsBaseFragment.java b/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsBaseFragment.java
+index 0ee53cc958de6..ccc791179e728 100644
 --- a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsBaseFragment.java
 +++ b/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsBaseFragment.java
 @@ -82,6 +82,7 @@ public abstract class PrivacySandboxSettingsBaseFragment extends ChromeBaseSetti
@@ -196,6 +172,7 @@ diff --git a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome
  
      @Override
 diff --git a/chrome/browser/safe_browsing/android/java/src/org/chromium/chrome/browser/safe_browsing/settings/SafeBrowsingSettingsFragmentBase.java b/chrome/browser/safe_browsing/android/java/src/org/chromium/chrome/browser/safe_browsing/settings/SafeBrowsingSettingsFragmentBase.java
+index b4fdf708870fc..5555d1156ecaa 100644
 --- a/chrome/browser/safe_browsing/android/java/src/org/chromium/chrome/browser/safe_browsing/settings/SafeBrowsingSettingsFragmentBase.java
 +++ b/chrome/browser/safe_browsing/android/java/src/org/chromium/chrome/browser/safe_browsing/settings/SafeBrowsingSettingsFragmentBase.java
 @@ -66,6 +66,7 @@ public abstract class SafeBrowsingSettingsFragmentBase extends ChromeBaseSetting
@@ -207,6 +184,7 @@ diff --git a/chrome/browser/safe_browsing/android/java/src/org/chromium/chrome/b
  
      @Override
 diff --git a/chrome/browser/ui/chrome_pages.cc b/chrome/browser/ui/chrome_pages.cc
+index a97f162b788aa..d40aec68c56e5 100644
 --- a/chrome/browser/ui/chrome_pages.cc
 +++ b/chrome/browser/ui/chrome_pages.cc
 @@ -144,6 +144,15 @@ void LaunchReleaseNotesImpl(Profile* profile, apps::LaunchSource source) {
@@ -226,4 +204,5 @@ diff --git a/chrome/browser/ui/chrome_pages.cc b/chrome/browser/ui/chrome_pages.
  #if BUILDFLAG(IS_CHROMEOS) && BUILDFLAG(GOOGLE_CHROME_BRANDING)
    auto app_launch_source = apps::LaunchSource::kUnknown;
 -- 
+2.39.5
 
