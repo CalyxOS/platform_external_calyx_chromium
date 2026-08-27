@@ -13,7 +13,7 @@ Subject: bromite build utils
  build/config/BUILDCONFIG.gn                   |   2 +
  build/config/android/rules.gni                |   6 +-
  .../ChromeAccessibilitySettingsDelegate.java  |   5 +
- chrome/browser/flags/BUILD.gn                 |   8 +-
+ chrome/browser/flags/BUILD.gn                 |   4 +
  .../flags/android/cromite_native_utils.cc     |  94 +++++++++++++++
  .../flags/android/cromite_native_utils.h      |  14 +++
  .../browser/flags/CromiteNativeUtils.java     |  46 ++++++++
@@ -21,7 +21,7 @@ Subject: bromite build utils
  tools/grit/grit/grd_reader.py                 |  27 ++++-
  tools/grit/grit_rule.gni                      |   2 +-
  tools/grit/preprocess_if_expr.py              |  32 +++++-
- 18 files changed, 541 insertions(+), 20 deletions(-)
+ 18 files changed, 539 insertions(+), 18 deletions(-)
  create mode 100644 build/bromite/bromite_utils.gni
  create mode 100644 build/bromite/gyp/cpp_bromite_include.py
  create mode 100644 build/bromite/gyp/cpp_bromite_include.pydeps
@@ -34,7 +34,7 @@ Subject: bromite build utils
 diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enum.py
 --- a/build/android/gyp/java_cpp_enum.py
 +++ b/build/android/gyp/java_cpp_enum.py
-@@ -208,6 +208,7 @@ class DirectiveSet:
+@@ -214,6 +214,7 @@ class DirectiveSet:
  
  
  class HeaderParser:
@@ -42,7 +42,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
    single_line_comment_re = re.compile(r'\s*//\s*([^\n]*)')
    multi_line_comment_start_re = re.compile(r'\s*/\*')
    enum_line_re = re.compile(r'^\s*(\w+)(\s*\=\s*([^,\n]+))?,?')
-@@ -230,7 +231,7 @@ class HeaderParser:
+@@ -236,7 +237,7 @@ class HeaderParser:
    enum_single_line_re = re.compile(
        r'^\s*(?:\[cpp.*\])?\s*enum.*{(?P<enum_entries>.*)}.*$')
  
@@ -51,7 +51,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      self._lines = java_cpp_utils.PreprocessIfBlocks(lines)
      self._path = path
      self._enum_definitions = []
-@@ -240,6 +241,7 @@ class HeaderParser:
+@@ -246,6 +247,7 @@ class HeaderParser:
      self._generator_directives = DirectiveSet()
      self._multi_line_generator_directive = None
      self._current_enum_entry = ''
@@ -59,7 +59,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
  
    def _ApplyGeneratorDirectives(self):
      self._generator_directives.UpdateDefinition(self._current_definition)
-@@ -266,6 +268,24 @@ class HeaderParser:
+@@ -272,6 +274,24 @@ class HeaderParser:
        raise Exception('Multi-line comments in enums are not supported in ' +
                        self._path)
  
@@ -84,7 +84,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      enum_comment = HeaderParser.single_line_comment_re.match(line)
      if enum_comment:
        comment = enum_comment.groups()[0]
-@@ -367,9 +387,9 @@ class HeaderParser:
+@@ -373,9 +393,9 @@ class HeaderParser:
          self._ParseSingleLineEnum(single_line_enum.group('enum_entries'))
  
  
@@ -96,19 +96,21 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
      if not enum_definitions:
        raise Exception('No enums found in %s\n'
                        'Did you forget prefixing enums with '
-@@ -382,9 +402,9 @@ def DoGenerate(source_paths):
+@@ -388,11 +408,11 @@ def DoGenerate(source_paths):
        yield output_path, output
  
  
 -def DoParseHeaderFile(path):
 +def DoParseHeaderFile(path, options):
    with open(path, encoding='utf-8') as f:
--    return HeaderParser(f.readlines(), path).ParseDefinitions()
-+    return HeaderParser(f.readlines(), options, path).ParseDefinitions()
+     lines = f.readlines()
+     preprocessed_lines = java_cpp_utils.ProcessListMacros(lines)
+-    return HeaderParser(preprocessed_lines, path).ParseDefinitions()
++    return HeaderParser(preprocessed_lines, options, path).ParseDefinitions()
  
  
  def GenerateOutput(source_path, enum_definition):
-@@ -470,11 +490,16 @@ def DoMain(argv):
+@@ -478,11 +498,16 @@ def DoMain(argv):
                        nargs='+',
                        help='Path to at least one input file.')
  
@@ -129,7 +131,7 @@ diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enu
 diff --git a/build/android/gyp/util/build_utils.py b/build/android/gyp/util/build_utils.py
 --- a/build/android/gyp/util/build_utils.py
 +++ b/build/android/gyp/util/build_utils.py
-@@ -404,4 +404,27 @@ def ReadSourcesList(sources_list_file_name):
+@@ -408,4 +408,27 @@ def ReadSourcesList(sources_list_file_name):
    Note that this function should not be used to parse response files.
    """
    with open(sources_list_file_name, encoding='utf-8') as f:
@@ -425,7 +427,7 @@ new file mode 100644
 diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
 --- a/build/config/BUILDCONFIG.gn
 +++ b/build/config/BUILDCONFIG.gn
-@@ -865,3 +865,5 @@ if (is_component_build) {
+@@ -871,3 +871,5 @@ if (is_component_build) {
  set_defaults("component") {
    configs = default_component_configs
  }
@@ -472,35 +474,30 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/s
 diff --git a/chrome/browser/flags/BUILD.gn b/chrome/browser/flags/BUILD.gn
 --- a/chrome/browser/flags/BUILD.gn
 +++ b/chrome/browser/flags/BUILD.gn
-@@ -7,7 +7,8 @@ import("//extensions/buildflags/buildflags.gni")
- import("//third_party/jni_zero/jni_zero.gni")
- 
- android_library("java") {
--  sources = [
-+  sources = [ "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java" ]
-+  sources += [
+@@ -11,6 +11,7 @@ android_library("java") {
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
-@@ -33,7 +34,8 @@ android_library("java") {
- }
- 
- generate_jni("jni_headers") {
--  sources = [
-+  sources = [ "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java" ]
-+  sources += [
++    "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java",
+   ]
+   public_deps = [ "//components/cached_flags:java" ]
+   deps = [
+@@ -36,12 +37,15 @@ generate_jni("jni_headers") {
+   sources = [
      "android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureMap.java",
      "android/java/src/org/chromium/chrome/browser/flags/ChromeSessionState.java",
++    "android/java/src/org/chromium/chrome/browser/flags/CromiteNativeUtils.java",
    ]
-@@ -41,6 +43,8 @@ generate_jni("jni_headers") {
+ }
  
  static_library("flags_android") {
    sources = [
+     "android/chrome_feature_list.h",
 +    "android/cromite_native_utils.cc",
 +    "android/cromite_native_utils.h",
-     "android/chrome_feature_list.h",
      "android/chrome_session_state.cc",
      "android/chrome_session_state.h",
+   ]
 diff --git a/chrome/browser/flags/android/cromite_native_utils.cc b/chrome/browser/flags/android/cromite_native_utils.cc
 new file mode 100755
 --- /dev/null
