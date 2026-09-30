@@ -1,0 +1,1053 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 21 Apr 2023 13:10:20 +0000
+Subject: Disable integration with Gemini
+
+Due to errors, some points are not covered by the gn arg check.
+This patch fixes build errors.
+
+License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+---
+ .../android/java/res/xml/main_preferences.xml |  5 --
+ .../chrome/browser/ChromeTabbedActivity.java  |  2 +-
+ .../chrome/browser/SnackbarActivity.java      | 13 -----
+ .../chrome/browser/ntp/NewTabPage.java        |  3 --
+ .../browser/settings/SettingsActivity.java    |  5 --
+ .../search/SearchIndexProviderRegistry.java   |  3 +-
+ .../TabbedAdaptiveToolbarBehavior.java        | 13 -----
+ .../TabbedAppMenuPropertiesDelegate.java      | 10 +---
+ .../tabbed_mode/TabbedRootUiCoordinator.java  |  9 +---
+ chrome/browser/BUILD.gn                       |  6 +--
+ chrome/browser/actor/BUILD.gn                 |  3 --
+ chrome/browser/android/tab_features.cc        |  4 ++
+ chrome/browser/android/tab_features.h         |  9 +++-
+ ..._interface_binders_webui_parts_features.cc | 10 ++--
+ .../browser/chrome_content_browser_client.cc  |  4 +-
+ chrome/browser/component_updater/BUILD.gn     |  4 +-
+ .../ai_embeddings_component_installer.cc      |  3 ++
+ chrome/browser/extensions/api/BUILD.gn        |  2 +-
+ .../api/experimental_actor/BUILD.gn           |  4 +-
+ .../experimental_actor_api.cc                 | 11 +---
+ .../api/experimental_ai_data/BUILD.gn         |  2 +-
+ .../experimental_ai_data_api.cc               | 49 ++----------------
+ .../api/glic_private/glic_private_api.cc      |  2 +-
+ .../api/pdf_viewer_private/BUILD.gn           |  3 --
+ .../pdf_viewer_private_api.cc                 | 50 +------------------
+ chrome/browser/glic/public/glic_enabling.cc   | 23 ++++-----
+ .../optimization_guide_keyed_service.cc       | 13 +----
+ chrome/browser/pdf/BUILD.gn                   |  1 -
+ chrome/browser/profiles/BUILD.gn              |  2 +-
+ ...hrome_browser_main_extra_parts_profiles.cc |  2 +-
+ chrome/browser/sync/BUILD.gn                  |  4 +-
+ chrome/browser/sync/test/integration/BUILD.gn |  2 +-
+ chrome/browser/ui/BUILD.gn                    |  2 +-
+ chrome/browser/ui/pdf/BUILD.gn                |  1 -
+ .../pdf/chrome_pdf_document_helper_client.cc  |  2 +
+ .../browser/ui/webui/chrome_web_ui_configs.cc |  4 +-
+ ...m_eligibility_extension_binder_provider.cc |  2 +
+ .../ui/webui/private_ai_internals/BUILD.gn    |  3 ++
+ chrome/common/BUILD.gn                        |  1 +
+ chrome/common/chrome_features.cc              |  1 +
+ chrome/common/features.gni                    |  2 +
+ chrome/test/BUILD.gn                          | 16 +++---
+ chrome/utility/services.cc                    |  2 +-
+ .../autofill/core/common/autofill_prefs.cc    |  2 +-
+ components/browser_sync/BUILD.gn              |  2 +-
+ components/skills/internal/skills_fetcher.cc  |  2 +-
+ 46 files changed, 86 insertions(+), 232 deletions(-)
+
+diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
+--- a/chrome/android/java/res/xml/main_preferences.xml
++++ b/chrome/android/java/res/xml/main_preferences.xml
+@@ -107,11 +107,6 @@ found in the LICENSE file.
+         android:key="appearance"
+         android:order="23"
+         android:title="@string/appearance_settings" />
+-    <org.chromium.components.browser_ui.settings.ChromeBasePreference
+-        android:fragment="org.chromium.chrome.browser.glic.GlicSettings"
+-        android:key="glic"
+-        android:order="25"
+-        android:title="@string/glic_setting_label"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.components.browser_ui.accessibility.AccessibilitySettings"
+         android:key="accessibility"
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+@@ -1212,7 +1212,7 @@ public class ChromeTabbedActivity extends ChromeActivity implements PreAttachInt
+                             this,
+                             getModalDialogManagerSupplier().get());
+ 
+-            GlicButtonDelegate glicClickHandler = tabbedRootUiCoordinator::toggleGlic;
++            GlicButtonDelegate glicClickHandler = (preventClose, invocationSource) -> {};
+ 
+             mLayoutManager =
+                     new LayoutManagerChromeTablet(
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/SnackbarActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/SnackbarActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/SnackbarActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/SnackbarActivity.java
+@@ -12,9 +12,6 @@ import androidx.annotation.CallSuper;
+ 
+ import org.chromium.build.annotations.NullMarked;
+ import org.chromium.build.annotations.Nullable;
+-import org.chromium.chrome.browser.flags.ChromeFeatureList;
+-import org.chromium.chrome.browser.glic.GlicHelper;
+-import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
+ import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager.ParentOverrideSlot;
+ import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager.SnackbarManageable;
+@@ -44,16 +41,6 @@ public abstract class SnackbarActivity extends SynchronousInitializationActivity
+     @Override
+     protected void onStart() {
+         super.onStart();
+-        if (ChromeFeatureList.sGlicShowTaskInProgressSnackbar.getValue()) {
+-            getProfileSupplier()
+-                    .runSyncOrOnAvailable(
+-                            (Profile profile) ->
+-                                    GlicHelper.maybeShowGlicTaskInProgressSnackbar(
+-                                            this,
+-                                            profile,
+-                                            this,
+-                                            GlicHelper.Caller.SNACKBAR_ACTIVITY));
+-        }
+     }
+ 
+     @Override
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java b/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
+@@ -56,7 +56,6 @@ import org.chromium.chrome.browser.feed.FeedSurfaceProvider;
+ import org.chromium.chrome.browser.feed.FeedSwipeRefreshLayout;
+ import org.chromium.chrome.browser.feed.NtpFeedSurfaceLifecycleManager;
+ import org.chromium.chrome.browser.feed.componentinterfaces.SurfaceCoordinator;
+-import org.chromium.chrome.browser.glic.GlicHelper;
+ import org.chromium.chrome.browser.layouts.LayoutType;
+ import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
+ import org.chromium.chrome.browser.lifecycle.LifecycleObserver;
+@@ -1083,8 +1082,6 @@ public class NewTabPage
+         mLastShownTimeNs = System.nanoTime();
+         RecordUserAction.record("MobileNTPShown");
+         SuggestionsMetrics.recordSurfaceVisible();
+-        GlicHelper.maybeShowGlicTaskInProgressSnackbar(
+-                this, mTab.getProfile(), mActivity, GlicHelper.Caller.NEW_TAB_PAGE);
+     }
+ 
+     /** Records UMA for the NTP being hidden and the time spent on it. */
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
+@@ -60,7 +60,6 @@ import org.chromium.chrome.browser.browser_controls.BrowserStateBrowserControlsV
+ import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncher;
+ import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncherFactory;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+-import org.chromium.chrome.browser.glic.GlicHelper;
+ import org.chromium.chrome.browser.init.ActivityLifecycleDispatcherImpl;
+ import org.chromium.chrome.browser.init.ChromeBrowserInitializer;
+ import org.chromium.chrome.browser.lifetime.ApplicationLifetime;
+@@ -665,10 +664,6 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+     @Override
+     protected void onStart() {
+         super.onStart();
+-        if (ChromeFeatureList.sGlicShowTaskInProgressSnackbar.getValue()) {
+-            GlicHelper.maybeShowGlicTaskInProgressSnackbar(
+-                    this, mProfile, this, GlicHelper.Caller.SETTINGS_ACTIVITY);
+-        }
+     }
+ 
+     @Override
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/search/SearchIndexProviderRegistry.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/search/SearchIndexProviderRegistry.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/search/SearchIndexProviderRegistry.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/search/SearchIndexProviderRegistry.java
+@@ -26,7 +26,7 @@ import org.chromium.chrome.browser.browsing_data.ClearBrowsingDataFragment;
+ import org.chromium.chrome.browser.commerce.PriceNotificationSettingsFragment;
+ import org.chromium.chrome.browser.contextualsearch.ContextualSearchSettingsFragment;
+ import org.chromium.chrome.browser.download.settings.DownloadSettings;
+-import org.chromium.chrome.browser.glic.GlicSettings;
++
+ import org.chromium.chrome.browser.homepage.settings.HomepageSettings;
+ import org.chromium.chrome.browser.image_descriptions.ImageDescriptionsSettings;
+ import org.chromium.chrome.browser.language.settings.LanguageSettings;
+@@ -88,7 +88,6 @@ public final class SearchIndexProviderRegistry {
+                     AdaptiveToolbarSettingsFragment.SEARCH_INDEX_DATA_PROVIDER,
+                     AutofillOptionsFragment.SEARCH_INDEX_DATA_PROVIDER,
+                     ContextualSearchSettingsFragment.SEARCH_INDEX_DATA_PROVIDER,
+-                    GlicSettings.SEARCH_INDEX_DATA_PROVIDER,
+                     DoNotTrackSettings.SEARCH_INDEX_DATA_PROVIDER,
+                     UniversalOptOutSettings.SEARCH_INDEX_DATA_PROVIDER,
+                     HomepageSettings.SEARCH_INDEX_DATA_PROVIDER,
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAdaptiveToolbarBehavior.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAdaptiveToolbarBehavior.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAdaptiveToolbarBehavior.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAdaptiveToolbarBehavior.java
+@@ -152,19 +152,6 @@ public class TabbedAdaptiveToolbarBehavior implements AdaptiveToolbarBehavior {
+             controller.addButtonVariant(AdaptiveToolbarButtonVariant.TAB_GROUPING, tabGrouping);
+         }
+ 
+-        if (!BottomBarConfigUtils.isBottomBarEnabled(mActivity)) {
+-            mGlicButtonController =
+-                    new GlicToolbarButtonController(
+-                            mActivity,
+-                            mActivityTabProvider,
+-                            mToggleGlicCallback,
+-                            trackerSupplier,
+-                            mChromeAndroidTaskSupplier,
+-                            mBrowserControlsVisibilityManager,
+-                            mTabModelSelectorSupplier,
+-                            controller::recomputeUiState);
+-            controller.addButtonVariant(AdaptiveToolbarButtonVariant.GLIC, mGlicButtonController);
+-        }
+ 
+         mGlicVerticalTabsObserver = state -> controller.recomputeUiState();
+         mIsVerticalTabsActiveSupplier.addSyncObserver(mGlicVerticalTabsObserver);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
+@@ -1580,15 +1580,7 @@ public class TabbedAppMenuPropertiesDelegate extends AppMenuPropertiesDelegateIm
+             }
+         }
+ 
+-        return new ListItem(
+-                AppMenuHandler.AppMenuItemType.STANDARD,
+-                AppMenuItemUtils.buildModelForStandardMenuItem(
+-                        mContext,
+-                        getAppMenuItemTheme(),
+-                        R.id.glic_menu_id,
+-                        R.string.glic_button_entrypoint_ask_gemini_label,
+-                        shouldShowIconBeforeItem() ? R.drawable.ic_spark_24dp : Resources.ID_NULL,
+-                        isMenuIconAtStart()));
++        return null;
+     }
+ 
+     /**
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
+@@ -123,7 +123,6 @@ import org.chromium.chrome.browser.gesturenav.TabbedSheetDelegate;
+ import org.chromium.chrome.browser.glic.GlicEnabling;
+ import org.chromium.chrome.browser.glic.GlicHelper;
+ import org.chromium.chrome.browser.glic.GlicKeyedService.GlicInvocationSource;
+-import org.chromium.chrome.browser.glic.GlicKeyedServiceHandler;
+ import org.chromium.chrome.browser.glic.GlicMetrics;
+ import org.chromium.chrome.browser.glic.GlicNavigationUtils;
+ import org.chromium.chrome.browser.glic.GlicPrefNames;
+@@ -3288,13 +3287,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+             return true;
+         }
+ 
+-        boolean success =
+-                GlicKeyedServiceHandler.toggleGlic(
+-                        profile,
+-                        mChromeAndroidTaskSupplier.get(),
+-                        mActivity,
+-                        preventClose,
+-                        invocationSource);
++        boolean success = false;
+         if (!success) {
+             GlicHelper.showUnavailableSnackbar(mActivity);
+         }
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -925,7 +925,7 @@ source_set("core") {
+     "//chrome/browser/accessibility",
+     "//chrome/browser/actor",
+     "//chrome/browser/actor:impl",
+-    "//chrome/browser/ai",
++    # "//chrome/browser/ai",
+     "//chrome/browser/app_mode",
+     "//chrome/browser/autocomplete:aim_eligibility_service",
+     "//chrome/browser/back_forward_cache",
+@@ -2054,8 +2054,8 @@ source_set("browser") {
+     "//chrome/browser/actor/ui/task_list_bubble:controller",
+     "//chrome/browser/actor/ui/task_list_bubble:controller_impl",
+     "//chrome/browser/affiliations",
+-    "//chrome/browser/ai",
+-    "//chrome/browser/ai:impl",
++    # "//chrome/browser/ai",
++    # "//chrome/browser/ai:impl",
+     "//chrome/browser/autocomplete",
+     "//chrome/browser/autocomplete:impl",
+     "//chrome/browser/autofill",
+diff --git a/chrome/browser/actor/BUILD.gn b/chrome/browser/actor/BUILD.gn
+--- a/chrome/browser/actor/BUILD.gn
++++ b/chrome/browser/actor/BUILD.gn
+@@ -491,9 +491,6 @@ source_set("browser_tests") {
+     "//chrome/browser:chrome_content_browser_client",
+     "//chrome/browser/affiliations",
+     "//chrome/browser/autofill/actor",
+-    "//chrome/browser/glic",
+-    "//chrome/browser/glic/actor:browser_tests",
+-    "//chrome/browser/glic/test_support",
+     "//chrome/browser/lookalikes:test_support",
+     "//chrome/browser/optimization_guide",
+     "//chrome/browser/optimization_guide:test_support",
+diff --git a/chrome/browser/android/tab_features.cc b/chrome/browser/android/tab_features.cc
+--- a/chrome/browser/android/tab_features.cc
++++ b/chrome/browser/android/tab_features.cc
+@@ -20,9 +20,11 @@
+ #include "chrome/browser/flags/android/chrome_feature_list.h"
+ #include "chrome/browser/glic/public/features.h"
+ #include "chrome/browser/glic/public/glic_enabling.h"
++#if BUILDFLAG(ENABLE_GLIC)
+ #include "chrome/browser/glic/public/widget/glic_side_panel_coordinator_android.h"
+ #include "chrome/browser/glic/public/widget/glic_side_panel_coordinator_desktop_android.h"
+ #include "chrome/browser/glic/service/glic_instance_helper.h"
++#endif
+ #include "chrome/browser/glic/suggestions/contextual_cueing_helper.h"
+ #include "chrome/browser/net/http_auth_cache_status.h"
+ #include "chrome/browser/net/qwac_web_contents_observer.h"
+@@ -188,6 +190,7 @@ TabFeatures::TabFeatures(content::WebContents* web_contents, Profile* profile) {
+               std::make_unique<
+                   enterprise_net::EnterpriseProxyTabHelperDelegate>());
+ 
++#if BUILDFLAG(ENABLE_GLIC)
+   glic_instance_helper_ =
+       GetUserDataFactory().CreateInstance<glic::GlicInstanceHelper>(*tab, tab);
+ 
+@@ -206,6 +209,7 @@ TabFeatures::TabFeatures(content::WebContents* web_contents, Profile* profile) {
+         GetUserDataFactory()
+             .CreateInstance<glic::GlicSidePanelCoordinatorAndroid>(*tab, tab);
+   }
++#endif
+ 
+   contextual_cueing_helper_ = glic::ContextualCueingHelper::MaybeCreate(tab);
+ 
+diff --git a/chrome/browser/android/tab_features.h b/chrome/browser/android/tab_features.h
+--- a/chrome/browser/android/tab_features.h
++++ b/chrome/browser/android/tab_features.h
+@@ -54,11 +54,16 @@ namespace enterprise_reporting {
+ class SaasUsageNavigationObserver;
+ }  // namespace enterprise_reporting
+ 
++#if BUILDFLAG(ENABLE_GLIC)
+ namespace glic {
+-class ContextualCueingHelper;
+ class GlicInstanceHelper;
+ class GlicSidePanelCoordinator;
+ }  // namespace glic
++#endif
++
++namespace glic {
++class ContextualCueingHelper;
++}  // namespace glic
+ 
+ namespace sync_sessions {
+ class SyncSessionsRouterTabHelper;
+@@ -161,8 +166,10 @@ class TabFeatures {
+ #endif
+   std::unique_ptr<tabs::PageContextEligibilityHelper>
+       page_context_eligibility_helper_;
++#if BUILDFLAG(ENABLE_GLIC)
+   std::unique_ptr<glic::GlicInstanceHelper> glic_instance_helper_;
+   std::unique_ptr<glic::GlicSidePanelCoordinator> glic_side_panel_coordinator_;
++#endif
+   std::unique_ptr<actor::ui::ActorUiTabControllerInterface>
+       actor_ui_tab_controller_;
+ 
+diff --git a/chrome/browser/chrome_browser_interface_binders_webui_parts_features.cc b/chrome/browser/chrome_browser_interface_binders_webui_parts_features.cc
+--- a/chrome/browser/chrome_browser_interface_binders_webui_parts_features.cc
++++ b/chrome/browser/chrome_browser_interface_binders_webui_parts_features.cc
+@@ -159,11 +159,11 @@ void PopulateChromeWebUIFrameBindersPartsFeatures(
+                                          WatermarkUI>(map);
+ #endif
+ 
+-  if (base::FeatureList::IsEnabled(private_ai::kPrivateAi)) {
+-    RegisterWebUIControllerInterfaceBinder<
+-        private_ai_internals::mojom::PrivateAiInternalsPageHandler,
+-        private_ai::PrivateAiInternalsUI>(map);
+-  }
++  // if (base::FeatureList::IsEnabled(private_ai::kPrivateAi)) {
++  //   RegisterWebUIControllerInterfaceBinder<
++  //       private_ai_internals::mojom::PrivateAiInternalsPageHandler,
++  //       private_ai::PrivateAiInternalsUI>(map);
++  // }
+ 
+ #if BUILDFLAG(FULL_SAFE_BROWSING)
+   RegisterWebUIControllerInterfaceBinder<::mojom::ResetPasswordHandler,
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -840,8 +840,6 @@ using web_app::ChromeContentBrowserClientIsolatedWebAppsPart;
+ 
+ namespace {
+ 
+-const char kAIManagerUserDataKey[] = "ai_manager";
+-
+ #if BUILDFLAG(IS_MAC)
+ constexpr char kSecurePaymentConfirmationKeychainAccessGroup[] =
+     MAC_TEAM_IDENTIFIER_STRING "." MAC_BUNDLE_IDENTIFIER_STRING
+@@ -9273,6 +9271,7 @@ void ChromeContentBrowserClient::BindAIManager(
+     base::SupportsUserData* context_user_data,
+     content::RenderFrameHost* rfh,
+     mojo::PendingReceiver<blink::mojom::AIManager> receiver) {
++#if false
+   if (!context_user_data->GetUserData(kAIManagerUserDataKey)) {
+     context_user_data->SetUserData(
+         kAIManagerUserDataKey,
+@@ -9282,6 +9281,7 @@ void ChromeContentBrowserClient::BindAIManager(
+   AIManager* ai_manager = static_cast<AIManager*>(
+       context_user_data->GetUserData(kAIManagerUserDataKey));
+   ai_manager->AddReceiver(std::move(receiver));
++#endif
+ }
+ 
+ #if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
+diff --git a/chrome/browser/component_updater/BUILD.gn b/chrome/browser/component_updater/BUILD.gn
+--- a/chrome/browser/component_updater/BUILD.gn
++++ b/chrome/browser/component_updater/BUILD.gn
+@@ -146,7 +146,7 @@ source_set("impl") {
+     "//chrome/browser:browser_process",
+     "//chrome/browser/accessibility",
+     "//chrome/browser/actor:impl",
+-    "//chrome/browser/ai",
++    #"//chrome/browser/ai",
+     "//chrome/browser/history_embeddings",
+     "//chrome/browser/media",
+     "//chrome/browser/net",
+@@ -349,7 +349,7 @@ source_set("unit_tests") {
+     ":test_support",
+     "//base",
+     "//base/test:test_support",
+-    "//chrome/browser/ai",
++    #"//chrome/browser/ai",
+     "//chrome/test:test_support",
+     "//components/certificate_transparency",
+     "//components/certificate_transparency:proto_gen",
+diff --git a/chrome/browser/component_updater/ai_embeddings_component_installer.cc b/chrome/browser/component_updater/ai_embeddings_component_installer.cc
+--- a/chrome/browser/component_updater/ai_embeddings_component_installer.cc
++++ b/chrome/browser/component_updater/ai_embeddings_component_installer.cc
+@@ -28,6 +28,7 @@
+ #include "base/version.h"
+ #include "chrome/browser/ai/ai_semantic_embedder_service_launcher.h"
+ #include "chrome/browser/browser_process.h"
++#include "chrome/common/buildflags.h"
+ #include "chrome/common/chrome_paths.h"
+ #include "chrome/common/pref_names.h"
+ #include "components/component_updater/component_installer.h"
+@@ -105,6 +106,7 @@ class AIEmbeddingsComponentInstallerPolicy
+   void ComponentReady(const base::Version& version,
+                       const base::FilePath& install_dir,
+                       base::DictValue manifest) override {
++#if BUILDFLAG(ENABLE_GLIC)
+     optimization_guide::proto::PassageEmbeddingsModelMetadata metadata;
+     metadata.set_input_window_size(2048);
+     metadata.set_output_size(768);
+@@ -127,6 +129,7 @@ class AIEmbeddingsComponentInstallerPolicy
+     AISemanticEmbedderServiceLauncher::Get()
+         ->controller()
+         ->MaybeUpdateModelInfo(&model_info);
++#endif
+   }
+ 
+   base::FilePath GetRelativeInstallDir() const override {
+diff --git a/chrome/browser/extensions/api/BUILD.gn b/chrome/browser/extensions/api/BUILD.gn
+--- a/chrome/browser/extensions/api/BUILD.gn
++++ b/chrome/browser/extensions/api/BUILD.gn
+@@ -220,7 +220,7 @@ function_registration("api_registration") {
+     "//components/policy/proto",
+ 
+     # Different APIs include headers from these targets.
+-    "//chrome/browser/ai",
++    # "//chrome/browser/ai",
+     "//chrome/common",
+     "//chrome/common:mojo_bindings",
+     "//components/autofill/core/common/mojom:mojo_types",
+diff --git a/chrome/browser/extensions/api/experimental_actor/BUILD.gn b/chrome/browser/extensions/api/experimental_actor/BUILD.gn
+--- a/chrome/browser/extensions/api/experimental_actor/BUILD.gn
++++ b/chrome/browser/extensions/api/experimental_actor/BUILD.gn
+@@ -19,8 +19,8 @@ source_set("experimental_actor") {
+   deps = [
+     "//base",
+     "//chrome/browser/actor",
+-    "//chrome/browser/ai",
+-    "//chrome/browser/extensions",
++    # "//chrome/browser/ai",
++    # "//chrome/browser/extensions",
+     "//chrome/browser/ui",
+     "//components/actor/core:journal",
+     "//components/actor/core:task_id",
+diff --git a/chrome/browser/extensions/api/experimental_actor/experimental_actor_api.cc b/chrome/browser/extensions/api/experimental_actor/experimental_actor_api.cc
+--- a/chrome/browser/extensions/api/experimental_actor/experimental_actor_api.cc
++++ b/chrome/browser/extensions/api/experimental_actor/experimental_actor_api.cc
+@@ -117,17 +117,10 @@ ExperimentalActorApiFunction::ExperimentalActorApiFunction() = default;
+ ExperimentalActorApiFunction::~ExperimentalActorApiFunction() = default;
+ 
+ bool ExperimentalActorApiFunction::PreRunValidation(std::string* error) {
+-  if (GetCurrentChannel() == version_info::Channel::STABLE &&
+-      !AiDataKeyedService::IsExtensionAllowlistedForStable(extension_id())) {
+-    *error = "API access not allowed on this channel.";
++  if ((false)) {
++    *error = "API not allowed.";
+     return false;
+   }
+-
+-  if (!AiDataKeyedService::IsExtensionAllowlistedForActions(extension_id())) {
+-    *error = "Actions API access restricted for this extension.";
+-    return false;
+-  }
+-
+   auto* actor_service = actor::ActorKeyedService::Get(browser_context());
+   if (!actor_service) {
+     *error = "Incognito profile not supported.";
+diff --git a/chrome/browser/extensions/api/experimental_ai_data/BUILD.gn b/chrome/browser/extensions/api/experimental_ai_data/BUILD.gn
+--- a/chrome/browser/extensions/api/experimental_ai_data/BUILD.gn
++++ b/chrome/browser/extensions/api/experimental_ai_data/BUILD.gn
+@@ -17,7 +17,7 @@ source_set("experimental_ai_data") {
+ 
+   deps = [
+     "//base",
+-    "//chrome/browser/ai",
++    # "//chrome/browser/ai",
+     "//chrome/browser/extensions",
+     "//chrome/browser/ui",
+     "//pdf/mojom",
+diff --git a/chrome/browser/extensions/api/experimental_ai_data/experimental_ai_data_api.cc b/chrome/browser/extensions/api/experimental_ai_data/experimental_ai_data_api.cc
+--- a/chrome/browser/extensions/api/experimental_ai_data/experimental_ai_data_api.cc
++++ b/chrome/browser/extensions/api/experimental_ai_data/experimental_ai_data_api.cc
+@@ -28,26 +28,10 @@ ExperimentalAiDataApiFunction::ExperimentalAiDataApiFunction() = default;
+ ExperimentalAiDataApiFunction::~ExperimentalAiDataApiFunction() = default;
+ 
+ bool ExperimentalAiDataApiFunction::PreRunValidation(std::string* error) {
+-  // Check the allowlist and return an error if extension is not allow listed.
+-  if (!AiDataKeyedService::IsExtensionAllowlistedForData(extension_id())) {
+-    *error = "API access restricted for this extension.";
++  if ((false)) {
++    *error = "API not allowed.";
+     return false;
+   }
+-
+-  if (GetCurrentChannel() == version_info::Channel::STABLE &&
+-      !AiDataKeyedService::IsExtensionAllowlistedForStable(extension_id())) {
+-    *error = "API access not allowed on this channel.";
+-    return false;
+-  }
+-
+-  auto* ai_data_service =
+-      AiDataKeyedServiceFactory::GetAiDataKeyedService(browser_context());
+-  if (!ai_data_service) {
+-    *error = "Incognito profile not supported.";
+-    return false;
+-  }
+-  DCHECK(ai_data_service);
+-
+   return true;
+ }
+ 
+@@ -82,15 +66,7 @@ ExtensionFunction::ResponseAction ExperimentalAiDataGetAiDataFunction::Run() {
+   }
+   DCHECK(web_contents);
+ 
+-  auto* ai_data_service =
+-      AiDataKeyedServiceFactory::GetAiDataKeyedService(browser_context());
+-  DCHECK(ai_data_service);
+-
+-  ai_data_service->GetAiData(
+-      params->dom_node_id, web_contents, params->user_input,
+-      base::BindOnce(&ExperimentalAiDataGetAiDataFunction::OnDataCollected,
+-                     this));
+-  return RespondLater();
++  return RespondNow(Error("Invalid api."));
+ }
+ 
+ ExperimentalAiDataGetAiDataWithSpecifierFunction::
+@@ -111,24 +87,7 @@ ExperimentalAiDataGetAiDataWithSpecifierFunction::Run() {
+   }
+   DCHECK(web_contents);
+ 
+-  auto* ai_data_service =
+-      AiDataKeyedServiceFactory::GetAiDataKeyedService(browser_context());
+-  DCHECK(ai_data_service);
+-
+-  // De-serailizing protos is safe per
+-  // https://chromium.googlesource.com/chromium/src/+/HEAD/docs/security/rule-of-2.md
+-  optimization_guide::proto::ModelPrototypingCollectionSpecifier specifier;
+-  if (!specifier.ParseFromArray(params->ai_data_specifier.data(),
+-                                params->ai_data_specifier.size())) {
+-    return RespondNow(Error("Parsing ai data specifier failed."));
+-  }
+-
+-  ai_data_service->GetAiDataWithSpecifier(
+-      web_contents, specifier,
+-      base::BindOnce(
+-          &ExperimentalAiDataGetAiDataWithSpecifierFunction::OnDataCollected,
+-          this));
+-  return RespondLater();
++  return RespondNow(Error("Invalid api."));
+ }
+ 
+ }  // namespace extensions
+diff --git a/chrome/browser/extensions/api/glic_private/glic_private_api.cc b/chrome/browser/extensions/api/glic_private/glic_private_api.cc
+--- a/chrome/browser/extensions/api/glic_private/glic_private_api.cc
++++ b/chrome/browser/extensions/api/glic_private/glic_private_api.cc
+@@ -323,7 +323,7 @@ void GetPromptFromId(Profile& profile,
+           .SetContentType("application/json")
+           .SetConsentLevel(signin::ConsentLevel::kSignin)
+           .SetPostData(post_data)
+-          .Build());
++          .Build(), traffic_annotation);
+ 
+   auto* fetcher_ptr = fetcher.get();
+   fetcher_ptr->Fetch(base::BindOnce(&OnEndpointFetcherResponse,
+diff --git a/chrome/browser/extensions/api/pdf_viewer_private/BUILD.gn b/chrome/browser/extensions/api/pdf_viewer_private/BUILD.gn
+--- a/chrome/browser/extensions/api/pdf_viewer_private/BUILD.gn
++++ b/chrome/browser/extensions/api/pdf_viewer_private/BUILD.gn
+@@ -19,7 +19,6 @@ source_set("pdf_viewer_private") {
+   deps = [
+     "//base",
+     "//chrome/browser/extensions",
+-    "//chrome/browser/glic",
+     "//chrome/browser/pdf",
+     "//chrome/browser/pdf:pdf_pref_names",
+     "//chrome/browser/profiles:profile",
+@@ -51,8 +50,6 @@ source_set("browser_tests") {
+   sources = [ "pdf_viewer_private_browsertest.cc" ]
+   deps = [
+     ":pdf_viewer_private",
+-    "//chrome/browser/glic",
+-    "//chrome/browser/glic/test_support",
+     "//chrome/test:test_support",
+     "//content/test:test_support",
+   ]
+diff --git a/chrome/browser/extensions/api/pdf_viewer_private/pdf_viewer_private_api.cc b/chrome/browser/extensions/api/pdf_viewer_private/pdf_viewer_private_api.cc
+--- a/chrome/browser/extensions/api/pdf_viewer_private/pdf_viewer_private_api.cc
++++ b/chrome/browser/extensions/api/pdf_viewer_private/pdf_viewer_private_api.cc
+@@ -12,9 +12,6 @@
+ #include "base/numerics/safe_conversions.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/values.h"
+-#include "chrome/browser/glic/public/glic_enabling.h"
+-#include "chrome/browser/glic/public/glic_keyed_service.h"
+-#include "chrome/browser/glic/public/glic_keyed_service_factory.h"
+ #include "chrome/browser/pdf/pdf_pref_names.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/user_education/browser_user_education_interface.h"
+@@ -340,52 +337,7 @@ ExtensionFunction::ResponseAction PdfViewerPrivateGlicSummarizeFunction::Run() {
+     return RespondNow(Error("No tab."));
+   }
+ 
+-  if (!glic::GlicEnabling::IsEnabledForProfile(
+-          Profile::FromBrowserContext(contents->GetBrowserContext()))) {
+-    return RespondNow(Error("Glic is not enabled."));
+-  }
+-
+-  glic::GlicKeyedService* glic_service =
+-      glic::GlicKeyedServiceFactory::GetGlicKeyedService(
+-          contents->GetBrowserContext());
+-  CHECK(glic_service);
+-
+-  int arm = features::kPdfGlicSummarizeArm.Get();
+-  bool has_consented = glic::GlicEnabling::HasConsentedForProfile(
+-      Profile::FromBrowserContext(contents->GetBrowserContext()));
+-
+-  glic::GlicInvokeOptions options(
+-      glic::Target(*tab_interface, glic::NewConversation()),
+-      glic::mojom::InvocationSource::kPdfSummarizeButton);
+-  options.prompts.push_back(
+-      l10n_util::GetStringUTF8(IDS_PDF_GLIC_SUMMARIZE_PROMPT));
+-
+-  if (has_consented) {
+-    glic_service->InvokeWithAutoSubmit(
+-        glic::InvokeWithAutoSubmitPasskeyProvider::GetPassKey(),
+-        std::move(options));
+-  } else {
+-    if (arm == 3) {
+-      options.fre_override = glic::mojom::FreOverride::kTrustFirstInline;
+-      glic_service->InvokeWithAutoSubmit(
+-          glic::InvokeWithAutoSubmitPasskeyProvider::GetPassKey(),
+-          std::move(options));
+-    } else {
+-      options.fre_override = glic::mojom::FreOverride::kTrustFirstText;
+-      glic_service->Invoke(std::move(options));
+-    }
+-  }
+-
+-  if (auto* user_education =
+-          BrowserUserEducationInterface::MaybeGetForWebContentsInTab(
+-              contents)) {
+-    user_education->NotifyFeaturePromoFeatureUsed(
+-        feature_engagement::kIPHPdfGlicSummarizeFeature,
+-        FeaturePromoFeatureUsedAction::kClosePromoIfPresent);
+-  }
+-
+-  success = true;
+-  return RespondNow(NoArguments());
++  return RespondNow(Error("Glic is not enabled."));
+ }
+ 
+ }  // namespace extensions
+diff --git a/chrome/browser/glic/public/glic_enabling.cc b/chrome/browser/glic/public/glic_enabling.cc
+--- a/chrome/browser/glic/public/glic_enabling.cc
++++ b/chrome/browser/glic/public/glic_enabling.cc
+@@ -408,18 +408,15 @@ GlicEnabling::ProfileEnablement ComputeProfileEnablement(
+       g_browser_process->GetFeatures()->glic_global_enabling();
+ 
+   result.feature_flag_enabled = base::FeatureList::IsEnabled(features::kGlic);
+-  if (country_override.has_value()) {
+-    result.allowed_by_country_filter =
+-        GlicEnabling::IsRetailDemoModeDesktop() ||
+-        EvaluateCountryEnablement(country_override->first,
+-                                  country_override->second);
+-  } else {
+-    result.allowed_by_country_filter = global_enabling.IsCountryEnabled();
+-  }
+-  result.allowed_by_locale_filter = global_enabling.IsLocaleEnabled();
+-  result.system_requirement_met = global_enabling.IsSystemRequirementMet();
+-  result.fre_is_consented = GlicEnabling::HasConsentedForProfile(profile);
+-  result.os_version_supported = global_enabling.IsOsVersionSupported();
++  result.allowed_by_country_filter = false;
++  result.allowed_by_locale_filter = false;
++  result.system_requirement_met = false;
++  result.fre_is_consented = false;
++  result.os_version_supported = false;
++  result.allowed_by_chrome_policy = false;
++  result.allowed_by_remote_admin = false;
++  result.allowed_by_remote_other = false;
++  result.feature_enabled = false;
+ 
+   bool global_criteria_met = global_enabling.IsEnabledByGlobalCriteria();
+   if (!global_criteria_met) {
+@@ -885,6 +882,7 @@ bool GlicEnabling::IsLikelyDogfoodClient() {
+ 
+ // static
+ bool GlicEnabling::IsProfileEligible(Profile* profile) {
++  if ((true)) return false;
+   if (g_bypass_enablement_checks_for_testing) {
+     return true;
+   }
+@@ -961,6 +959,7 @@ void GlicEnabling::RecordProfileIneligibilityMetricsAtStartup(
+ 
+ // static
+ bool GlicEnabling::IsEnabledForProfile(Profile* profile) {
++  if ((true)) return false;
+   return EnablementForProfile(profile).IsEnabled();
+ }
+ 
+diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
+--- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
++++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
+@@ -154,18 +154,7 @@ class ModelExecutionDelegate : public ModelExecutionManager::Delegate {
+ 
+   std::unique_ptr<optimization_guide::ModelExecutionFetcher>
+   CreatePrivateAiFetcher() override {
+-    if (!base::FeatureList::IsEnabled(private_ai::kPrivateAi)) {
+-      return nullptr;
+-    }
+-    private_ai::PrivateAiService* private_ai_service =
+-        private_ai::PrivateAiServiceFactory::GetForProfile(
+-            Profile::FromBrowserContext(browser_context_));
+-    if (!private_ai_service) {
+-      return nullptr;
+-    }
+-    private_ai::Client* client = private_ai_service->GetClient();
+-    return std::make_unique<optimization_guide::PrivateAiModelExecutionFetcher>(
+-        client);
++    return nullptr;
+   }
+ 
+   network::mojom::NetworkContext* GetNetworkContext() override {
+diff --git a/chrome/browser/pdf/BUILD.gn b/chrome/browser/pdf/BUILD.gn
+--- a/chrome/browser/pdf/BUILD.gn
++++ b/chrome/browser/pdf/BUILD.gn
+@@ -34,7 +34,6 @@ source_set("pdf") {
+     "//build:chromeos_buildflags",
+     "//chrome/browser:browser_process",
+     "//chrome/browser:resources",
+-    "//chrome/browser/glic",
+     "//chrome/browser/pdf:pdf_pref_names",
+     "//chrome/browser/profiles:profile",
+     "//chrome/browser/resources/pdf:resources",
+diff --git a/chrome/browser/profiles/BUILD.gn b/chrome/browser/profiles/BUILD.gn
+--- a/chrome/browser/profiles/BUILD.gn
++++ b/chrome/browser/profiles/BUILD.gn
+@@ -719,7 +719,7 @@ source_set("profiles_extra_parts_impl") {
+     "//chrome/browser/accessibility",
+     "//chrome/browser/account_settings",
+     "//chrome/browser/affiliations",
+-    "//chrome/browser/ai",
++    # "//chrome/browser/ai",
+     "//chrome/browser/autocomplete",
+     "//chrome/browser/autocomplete:aim_eligibility_service",
+     "//chrome/browser/autofill",
+diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+--- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
++++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+@@ -753,7 +753,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+   AffiliationServiceFactory::GetInstance();
+   actor_login::ActorLoginPermissionCleaningServiceFactory::GetInstance();
+   actor_login::ActorLoginPermissionServiceFactory::GetInstance();
+-  AiDataKeyedServiceFactory::GetInstance();
++  // AiDataKeyedServiceFactory::GetInstance();
+   AiModeButtonServiceFactory::GetInstance();
+   AimEligibilityServiceFactory::GetInstance();
+ #if BUILDFLAG(IS_ANDROID)
+diff --git a/chrome/browser/sync/BUILD.gn b/chrome/browser/sync/BUILD.gn
+--- a/chrome/browser/sync/BUILD.gn
++++ b/chrome/browser/sync/BUILD.gn
+@@ -108,7 +108,7 @@ source_set("sync") {
+     "//chrome/browser/notebooks",
+     "//chrome/browser/password_manager/factories",
+     "//chrome/browser/signin",
+-    "//chrome/browser/skills",
++    #"//chrome/browser/skills",
+     "//chrome/browser/subscription_eligibility",
+     "//chrome/browser/supervised_user",
+     "//chrome/browser/ui/navigator",
+@@ -159,7 +159,7 @@ source_set("sync") {
+     "//components/saved_tab_groups/public",
+     "//components/send_tab_to_self",
+     "//components/sharing_message",
+-    "//components/skills/public",
++    #"//components/skills/public",
+     "//components/spellcheck:buildflags",
+     "//components/spellcheck/browser",
+     "//components/strings:components_strings_grit",
+diff --git a/chrome/browser/sync/test/integration/BUILD.gn b/chrome/browser/sync/test/integration/BUILD.gn
+--- a/chrome/browser/sync/test/integration/BUILD.gn
++++ b/chrome/browser/sync/test/integration/BUILD.gn
+@@ -263,7 +263,7 @@ source_set("sync_integration_tests_impl") {
+       "//chrome/browser/send_tab_to_self",
+       "//chrome/browser/send_tab_to_self:impl",
+       "//chrome/browser/sharing",
+-      "//chrome/browser/skills",
++      #"//chrome/browser/skills",
+       "//chrome/browser/themes",
+       "//chrome/browser/ui:ui_features",
+       "//chrome/browser/ui/browser_window",
+diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -854,7 +854,7 @@ static_library("ui") {
+     "//chrome/browser:font_pref",
+     "//chrome/browser:renderer_preferences_util",
+     "//chrome/browser:resources_util",
+-    "//chrome/browser/ai",
++    # "//chrome/browser/ai",
+     "//chrome/browser/banners",
+     "//chrome/browser/bookmarks",
+     "//chrome/browser/bookmarks:impl",
+diff --git a/chrome/browser/ui/pdf/BUILD.gn b/chrome/browser/ui/pdf/BUILD.gn
+--- a/chrome/browser/ui/pdf/BUILD.gn
++++ b/chrome/browser/ui/pdf/BUILD.gn
+@@ -15,7 +15,6 @@ source_set("pdf") {
+   ]
+   deps = [
+     "//chrome/browser/download",
+-    "//chrome/browser/glic",
+     "//chrome/browser/pdf",
+     "//chrome/browser/screen_ai:screen_ai_install_state",
+     "//chrome/browser/ui/tab_contents",
+diff --git a/chrome/browser/ui/pdf/chrome_pdf_document_helper_client.cc b/chrome/browser/ui/pdf/chrome_pdf_document_helper_client.cc
+--- a/chrome/browser/ui/pdf/chrome_pdf_document_helper_client.cc
++++ b/chrome/browser/ui/pdf/chrome_pdf_document_helper_client.cc
+@@ -71,6 +71,7 @@ void LogGlicSummarizeMetrics(content::RenderFrameHost& render_frame_host) {
+     return;
+   }
+ 
++#if BUILDFLAG(ENABLE_GLIC)
+   bool glic_enabled = glic::GlicEnabling::IsEnabledForProfile(
+       Profile::FromBrowserContext(web_contents_to_use->GetBrowserContext()));
+   base::UmaHistogramBoolean("PDF.GlicEnabled", glic_enabled);
+@@ -78,6 +79,7 @@ void LogGlicSummarizeMetrics(content::RenderFrameHost& render_frame_host) {
+       pdf_extension_util::ShouldShowGlicSummarizeButton(web_contents_to_use);
+   base::UmaHistogramBoolean("PDF.GlicSummarizeButtonEnabled",
+                             glic_summarize_button_enabled);
++#endif
+ }
+ 
+ }  // namespace
+diff --git a/chrome/browser/ui/webui/chrome_web_ui_configs.cc b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+--- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
++++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+@@ -310,8 +310,8 @@ void RegisterChromeWebUIConfigs() {
+   map.AddWebUIConfig(std::make_unique<PasswordManagerInternalsUIConfig>());
+   map.AddWebUIConfig(std::make_unique<PolicyUIConfig>());
+   map.AddWebUIConfig(std::make_unique<PredictorsUIConfig>());
+-  map.AddWebUIConfig(
+-      std::make_unique<private_ai::PrivateAiInternalsUIConfig>());
++  // map.AddWebUIConfig(
++  //     std::make_unique<private_ai::PrivateAiInternalsUIConfig>());
+   map.AddWebUIConfig(
+       std::make_unique<
+           security_interstitials::KnownInterceptionDisclosureUIConfig>());
+diff --git a/chrome/browser/ui/webui/omnibox/aim_eligibility_extension/aim_eligibility_extension_binder_provider.cc b/chrome/browser/ui/webui/omnibox/aim_eligibility_extension/aim_eligibility_extension_binder_provider.cc
+--- a/chrome/browser/ui/webui/omnibox/aim_eligibility_extension/aim_eligibility_extension_binder_provider.cc
++++ b/chrome/browser/ui/webui/omnibox/aim_eligibility_extension/aim_eligibility_extension_binder_provider.cc
+@@ -75,6 +75,7 @@ void AimEligibilityExtensionBinderProvider::PopulateFrameBinders(
+   binder_map.Add<aim_eligibility::mojom::PageHandlerFactory>(
+       base::BindRepeating(&BindFactoryReceiverForFrame));
+ 
++#if !BUILDFLAG(IS_ANDROID)
+   binder_map.Add<color_change_listener::mojom::PageHandler>(base::BindRepeating(
+       [](content::RenderFrameHost* frame_host,
+          mojo::PendingReceiver<color_change_listener::mojom::PageHandler>
+@@ -84,6 +85,7 @@ void AimEligibilityExtensionBinderProvider::PopulateFrameBinders(
+         handler->Bind(std::move(receiver),
+                       /*allow_non_webui=*/true);
+       }));
++#endif
+ }
+ 
+ void AimEligibilityExtensionBinderProvider::PopulateServiceWorkerBinders(
+diff --git a/chrome/browser/ui/webui/private_ai_internals/BUILD.gn b/chrome/browser/ui/webui/private_ai_internals/BUILD.gn
+--- a/chrome/browser/ui/webui/private_ai_internals/BUILD.gn
++++ b/chrome/browser/ui/webui/private_ai_internals/BUILD.gn
+@@ -3,6 +3,9 @@
+ # found in the LICENSE file.
+ 
+ source_set("private_ai_internals") {
++}
++
++source_set("private_ai_internals_notused") {
+   sources = [
+     "private_ai_internals_ui.cc",
+     "private_ai_internals_ui.h",
+diff --git a/chrome/common/BUILD.gn b/chrome/common/BUILD.gn
+--- a/chrome/common/BUILD.gn
++++ b/chrome/common/BUILD.gn
+@@ -61,6 +61,7 @@ buildflag_header("buildflags") {
+     "ENABLE_BACKGROUND_CONTENTS=$enable_background_contents",
+     "ENABLE_CHROME_NOTIFICATIONS=$enable_chrome_notifications",
+     "ENABLE_DOWNGRADE_PROCESSING=$enable_downgrade_processing",
++    "ENABLE_GLIC=$enable_glic",
+     "ENABLE_HANGOUT_SERVICES_EXTENSION=$enable_hangout_services_extension",
+     "ENABLE_PDF_SAVE_TO_DRIVE=$enable_pdf_save_to_drive",
+     "ENABLE_SEPARATE_RENDERER_BINARY=$enable_separate_renderer_binary",
+diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
+--- a/chrome/common/chrome_features.cc
++++ b/chrome/common/chrome_features.cc
+@@ -590,6 +590,7 @@ BASE_FEATURE(kGlic,
+              base::FEATURE_DISABLED_BY_DEFAULT
+ #endif
+ );
++SET_CROMITE_FEATURE_DISABLED(kGlic);
+ 
+ BASE_FEATURE(kGlicBackgroundActuation, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+diff --git a/chrome/common/features.gni b/chrome/common/features.gni
+--- a/chrome/common/features.gni
++++ b/chrome/common/features.gni
+@@ -49,6 +49,8 @@ declare_args() {
+   # Enables usage of notifications via Chrome's MessageCenter.
+   enable_chrome_notifications = is_mac || is_win || is_linux
+ 
++  enable_glic = is_mac || is_win || is_linux || is_chromeos
++
+   # Skips unmigrated actor files in the build on Android. This is temporary, and
+   # will eventually be removed once migration is done. Adding this flag likely
+   # means the code needs to be adapted for Android. Once adapted, the final code
+diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
+--- a/chrome/test/BUILD.gn
++++ b/chrome/test/BUILD.gn
+@@ -1196,7 +1196,7 @@ if (is_android) {
+       "//chrome/browser/enterprise/signals:android_browsertests",
+       "//chrome/browser/feed",
+       "//chrome/browser/flags:flags_android",
+-      "//chrome/browser/glic:browser_tests",
++      #"//chrome/browser/glic:browser_tests",
+       "//chrome/browser/glic/android:test_support_java",
+       "//chrome/browser/history",
+       "//chrome/browser/keyboard_accessory/android",
+@@ -1675,8 +1675,8 @@ if (!is_android) {
+       "//chrome/browser/actor:test_support",
+       "//chrome/browser/actor/ui:browser_tests",
+       "//chrome/browser/affiliations",
+-      "//chrome/browser/ai",
+-      "//chrome/browser/ai:browser_tests",
++      # "//chrome/browser/ai",
++      # "//chrome/browser/ai:browser_tests",
+       "//chrome/browser/apps/app_service",
+       "//chrome/browser/apps/app_service:app_registry_cache_waiter",
+       "//chrome/browser/apps/app_service:test_support",
+@@ -1771,7 +1771,7 @@ if (!is_android) {
+       "//chrome/browser/geic:ui",
+       "//chrome/browser/geolocation:browser_tests",
+       "//chrome/browser/glic",
+-      "//chrome/browser/glic:browser_tests",
++      #"//chrome/browser/glic:browser_tests",
+       "//chrome/browser/glic:impl",
+       "//chrome/browser/glic/browser_ui",
+       "//chrome/browser/glic/test_support",
+@@ -4850,8 +4850,8 @@ test("unit_tests") {
+     "//chrome/browser/actor:test_support",
+     "//chrome/browser/actor:unit_tests",
+     "//chrome/browser/actor/ui:unit_tests",
+-    "//chrome/browser/ai",
+-    "//chrome/browser/ai:test_support",
++    # "//chrome/browser/ai",
++    # "//chrome/browser/ai:test_support",
+     "//chrome/browser/apps:unit_tests",
+     "//chrome/browser/autocomplete",
+     "//chrome/browser/autocomplete:unit_tests",
+@@ -5537,7 +5537,7 @@ test("unit_tests") {
+   # CfT bypasses On Device model installation throttling breaking most of the
+   # tests below. See https://crbug.com/514435730.
+   if (!is_chrome_for_testing) {
+-    deps += [ "//chrome/browser/ai:unit_tests" ]
++    # deps += [ "//chrome/browser/ai:unit_tests" ]
+   }
+ 
+   # TODO(crbug.com/437811373): Remove this dependency when
+@@ -8107,7 +8107,7 @@ if (!is_android && !is_chromeos_device) {
+       "//chrome/browser/actor:test_support",
+       "//chrome/browser/actor/ui:interactive_ui_tests",
+       "//chrome/browser/actor/ui/task_list_bubble:interactive_ui_tests",
+-      "//chrome/browser/ai:interactive_ui_tests",
++      # "//chrome/browser/ai:interactive_ui_tests",
+       "//chrome/browser/apps/app_service",
+       "//chrome/browser/apps/app_service:app_registry_cache_waiter",
+       "//chrome/browser/apps/app_service/app_icon",
+diff --git a/chrome/utility/services.cc b/chrome/utility/services.cc
+--- a/chrome/utility/services.cc
++++ b/chrome/utility/services.cc
+@@ -295,6 +295,7 @@ auto RunReadingModeMetricsService(
+       std::move(receiver));
+ }
+ 
++[[maybe_unused]]
+ auto RunScreenAIServiceFactory(
+     mojo::PendingReceiver<screen_ai::mojom::ScreenAIServiceFactory> receiver) {
+   return std::make_unique<screen_ai::ScreenAIService>(std::move(receiver));
+@@ -497,7 +498,6 @@ void RegisterMainThreadServices(mojo::ServiceFactory& services) {
+   services.Add(RunProfileImporter);
+   services.Add(RunMirroringService);
+   services.Add(RunReadingModeMetricsService);
+-  services.Add(RunScreenAIServiceFactory);
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+ #if BUILDFLAG(ENABLE_MEDIA_REMOTING_REDIRECTION)
+diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/autofill/core/common/autofill_prefs.cc
+--- a/components/autofill/core/common/autofill_prefs.cc
++++ b/components/autofill/core/common/autofill_prefs.cc
+@@ -105,7 +105,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+       kAutofillAiPrivateInferenceNoticeAcknowledgedTimestamp, base::Time());
+   registry->RegisterTimePref(kAutofillAiPrivateInferenceNoticeShownTimestamp,
+                              base::Time());
+-  registry->RegisterBooleanPref(kAutofillEmailVerificationEnabled, true);
++  registry->RegisterBooleanPref(kAutofillEmailVerificationEnabled, false);
+   registry->RegisterDictionaryPref(kAutofillEmailVerificationState);
+   registry->RegisterBooleanPref(kAutofillCreditCardFidoAuthEnabled, false);
+ #if BUILDFLAG(IS_ANDROID)
+diff --git a/components/browser_sync/BUILD.gn b/components/browser_sync/BUILD.gn
+--- a/components/browser_sync/BUILD.gn
++++ b/components/browser_sync/BUILD.gn
+@@ -48,7 +48,7 @@ static_library("browser_sync") {
+     "//components/send_tab_to_self",
+     "//components/sharing_message",
+     "//components/skills:features",
+-    "//components/skills/public",
++    #"//components/skills/public",
+     "//components/supervised_user/core/common:buildflags",
+     "//components/sync/invalidations",
+     "//components/sync_bookmarks",
+diff --git a/components/skills/internal/skills_fetcher.cc b/components/skills/internal/skills_fetcher.cc
+--- a/components/skills/internal/skills_fetcher.cc
++++ b/components/skills/internal/skills_fetcher.cc
+@@ -165,7 +165,7 @@ void SkillsFetcher::FetchDiscoverySkills(OnFetchCompleteCallback callback) {
+           .SetAuthType(endpoint_fetcher::AuthType::OAUTH)
+           .SetOAuthConsumerId(signin::OAuthConsumerId::kSkillsService)
+           .SetConsentLevel(signin::ConsentLevel::kSignin)
+-          .Build());
++          .Build(), kSkillsFetcherNetworkTag);
+ 
+   endpoint_fetcher_->Fetch(base::BindOnce(&SkillsFetcher::OnResponseFetched,
+                                           weak_ptr_factory_.GetWeakPtr(),
+-- 
+
