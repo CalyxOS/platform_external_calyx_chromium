@@ -9,35 +9,15 @@ Instead, let them appear just like regular ones.
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- net/cert/ev_root_ca_metadata.cc | 15 +++++++++++++--
- net/cert/ev_root_ca_metadata.h  |  2 +-
- 2 files changed, 14 insertions(+), 3 deletions(-)
+ net/cert/ev_root_ca_metadata.cc      |  1 -
+ net/cert/ev_root_ca_metadata.h       |  2 +-
+ net/cert/ev_root_ca_metadata_data.cc | 14 +++++++++++++-
+ 3 files changed, 14 insertions(+), 3 deletions(-)
 
 diff --git a/net/cert/ev_root_ca_metadata.cc b/net/cert/ev_root_ca_metadata.cc
 --- a/net/cert/ev_root_ca_metadata.cc
 +++ b/net/cert/ev_root_ca_metadata.cc
-@@ -37,7 +37,19 @@ struct EVMetadata {
-   const std::string_view policy_oids[kMaxOIDsPerCA];
- };
- 
--#include "net/data/ssl/chrome_root_store/chrome-ev-roots-inc.cc"
-+static const EVMetadata kEvRootCaMetadata[] = {
-+    // need some dummy data to make compiler happy, because
-+    // arraysize() is implemented as a convoluted template rather than
-+    // the traditional sizeof(x)/sizeof(*x)
-+    {
-+       {{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}},
-+        {
-+            "1.3.159.1.17.1",
-+            "",
-+        },
-+    }
-+};
- 
- #endif  // defined(PLATFORM_USES_CHROMIUM_EV_METADATA)
- }  // namespace
-@@ -112,7 +124,6 @@ bool EVRootCAMetadata::RemoveEVCA(const SHA256HashValue& fingerprint) {
+@@ -88,7 +88,6 @@ bool EVRootCAMetadata::RemoveEVCA(const SHA256HashValue& fingerprint) {
  //
  
  bool EVRootCAMetadata::IsEVPolicyOID(bssl::der::Input policy_oid) const {
@@ -57,5 +37,29 @@ diff --git a/net/cert/ev_root_ca_metadata.h b/net/cert/ev_root_ca_metadata.h
  #endif
  
  namespace bssl {
+diff --git a/net/cert/ev_root_ca_metadata_data.cc b/net/cert/ev_root_ca_metadata_data.cc
+--- a/net/cert/ev_root_ca_metadata_data.cc
++++ b/net/cert/ev_root_ca_metadata_data.cc
+@@ -8,7 +8,19 @@ namespace net {
+ 
+ namespace {
+ 
+-#include "net/data/ssl/chrome_root_store/chrome-ev-roots-inc.cc"
++static const EVMetadata kEvRootCaMetadata[] = {
++    // need some dummy data to make compiler happy, because
++    // arraysize() is implemented as a convoluted template rather than
++    // the traditional sizeof(x)/sizeof(*x)
++    {
++       {{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
++        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}},
++        {
++            "1.3.159.1.17.1",
++            "",
++        },
++    }
++};
+ 
+ }  // namespace
+ 
 -- 
 

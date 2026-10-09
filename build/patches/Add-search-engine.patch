@@ -12,7 +12,7 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
  components/search_engines/BUILD.gn            |   3 ++
  components/search_engines/cromite/BUILD.gn    |  12 ++++++
  .../cromite/cromite_prepopulated_engines.json |  37 ++++++++++++++++++
- .../search_engine_choice_utils.cc             |  10 +----
+ .../search_engine_choice_utils.cc             |   5 +--
  .../search_engines/search_engine_type.h       |   5 +++
  .../template_url_prepopulate_data.cc          |  21 +++++++++-
  .../template_url_prepopulate_data.h           |   9 -----
@@ -20,7 +20,7 @@ License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
  tools/json_to_struct/json_to_struct.py        |  27 ++++++++++---
  tools/json_to_struct/struct_generator.py      |  12 ++++--
  tools/variations/fieldtrial_to_struct.py      |   1 +
- 12 files changed, 117 insertions(+), 29 deletions(-)
+ 12 files changed, 117 insertions(+), 24 deletions(-)
  create mode 100644 components/resources/default_100_percent/search_engine_choice/default_favicon.png
  create mode 100644 components/search_engines/cromite/BUILD.gn
  create mode 100644 components/search_engines/cromite/cromite_prepopulated_engines.json
@@ -55,7 +55,7 @@ HcmV?d00001
 diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUILD.gn
 --- a/components/search_engines/BUILD.gn
 +++ b/components/search_engines/BUILD.gn
-@@ -85,6 +85,7 @@ static_library("search_engines") {
+@@ -87,6 +87,7 @@ static_library("search_engines") {
      "//third_party/metrics_proto",
      "//third_party/omnibox_proto",
      "//third_party/search_engines_data:prepopulated_engines",
@@ -63,7 +63,7 @@ diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUIL
    ]
  
    deps = [
-@@ -177,6 +178,7 @@ source_set("search_engine_utils") {
+@@ -178,6 +179,7 @@ source_set("search_engine_utils") {
      "//components/regional_capabilities",
      "//components/regional_capabilities:switches",
      "//third_party/search_engines_data:prepopulated_engines",
@@ -71,7 +71,7 @@ diff --git a/components/search_engines/BUILD.gn b/components/search_engines/BUIL
    ]
  
    deps = [ "//url" ]
-@@ -280,6 +282,7 @@ source_set("unit_tests") {
+@@ -282,6 +284,7 @@ source_set("unit_tests") {
      "//testing/gtest",
      "//third_party/search_engines_data:prepopulated_engines",
      "//third_party/search_engines_data:regional_settings",
@@ -141,17 +141,12 @@ new file mode 100644
 diff --git a/components/search_engines/search_engine_choice/search_engine_choice_utils.cc b/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
 --- a/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
 +++ b/components/search_engines/search_engine_choice/search_engine_choice_utils.cc
-@@ -202,15 +202,7 @@ void RecordChoiceScreenDefaultSearchProviderType(
+@@ -193,10 +193,7 @@ void RecordChoiceScreenDefaultSearchProviderType(
  }
  
  void RecordChoiceScreenSelectedIndex(int selected_engine_index) {
 -  base::UmaHistogramExactLinear(
 -      kSearchEngineChoiceScreenSelectedEngineIndexHistogram,
--      selected_engine_index,
--      TemplateURLPrepopulateData::kMaxEeaPrepopulatedEngines);
--  metrics::private_metrics::PumaHistogramExactLinear(
--      metrics::private_metrics::PumaType::kRc,
--      kPumaSearchChoiceScreenSelectedEngineIndexHistogram,
 -      selected_engine_index,
 -      TemplateURLPrepopulateData::kMaxEeaPrepopulatedEngines);
 +  // do nothing in Cromite
@@ -161,12 +156,12 @@ diff --git a/components/search_engines/search_engine_choice/search_engine_choice
 diff --git a/components/search_engines/search_engine_type.h b/components/search_engines/search_engine_type.h
 --- a/components/search_engines/search_engine_type.h
 +++ b/components/search_engines/search_engine_type.h
-@@ -99,11 +99,16 @@ enum SearchEngineType {
-   SEARCH_ENGINE_KAGI = 79,
+@@ -100,11 +100,16 @@ enum SearchEngineType {
    SEARCH_ENGINE_STARTER_PACK_AI_MODE = 80,
    SEARCH_ENGINE_YAHOO_JP = 81,
-+  SEARCH_ENGINE_GOOGLE_EN = 82,
-+  SEARCH_ENGINE_DUCKDUCKGOLIGHT = 83,
+   SEARCH_ENGINE_PERPLEXITY = 82,
++  SEARCH_ENGINE_GOOGLE_EN = 83,
++  SEARCH_ENGINE_DUCKDUCKGOLIGHT = 84,
  
    SEARCH_ENGINE_MAX  // Bounding value needed for UMA histogram macro.
  };
