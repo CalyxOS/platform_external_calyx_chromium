@@ -1,0 +1,155 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Thu, 9 Jun 2022 19:45:03 +0000
+Subject: Remove segmentation platform
+
+Also fixes a crash on startup.
+
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
+Change-Id: Ief303535f95c44b1bfaa56973fe37e0f01dbc61f
+---
+ .../android/home_modules_ranking_helper.cc           | 12 ++++++++++++
+ ...browser_main_extra_parts_segmentation_platform.cc |  4 ++++
+ .../ui/app_rating/AppRatingPromoController.java      |  1 +
+ .../segmentation_internals_page_handler_impl.cc      |  4 +++-
+ .../embedder/home_modules/rank_fetcher_helper.cc     |  5 +++++
+ .../android/segmentation_platform_service_android.cc |  3 +++
+ components/segmentation_platform/public/features.cc  |  3 +++
+ 7 files changed, 31 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/browser/segmentation_platform/android/home_modules_ranking_helper.cc b/chrome/browser/segmentation_platform/android/home_modules_ranking_helper.cc
+--- a/chrome/browser/segmentation_platform/android/home_modules_ranking_helper.cc
++++ b/chrome/browser/segmentation_platform/android/home_modules_ranking_helper.cc
+@@ -50,6 +50,12 @@ static void JNI_HomeModulesRankingHelper_GetClassificationResult(
+   segmentation_platform::home_modules::HomeModulesCardRegistry* registry =
+       segmentation_platform::SegmentationPlatformServiceFactory::
+           GetHomeModulesCardRegistry(profile);
++  if (!service || !registry) {
++    RunGetClassificationResultCallback(
++        callback, segmentation_platform::ClassificationResult(
++                      segmentation_platform::PredictionStatus::kFailed));
++    return;
++  }
+   scoped_refptr<segmentation_platform::InputContext> native_input_context =
+       segmentation_platform::InputContextAndroid::ToNativeInputContext(
+           env, input_context);
+@@ -70,6 +76,9 @@ static void JNI_HomeModulesRankingHelper_NotifyCardShown(
+   segmentation_platform::home_modules::HomeModulesCardRegistry* registry =
+       segmentation_platform::SegmentationPlatformServiceFactory::
+           GetHomeModulesCardRegistry(profile);
++  if (!registry) {
++    return;
++  }
+   registry->NotifyCardShown(card_label.c_str());
+ }
+ 
+@@ -80,6 +89,9 @@ static void JNI_HomeModulesRankingHelper_NotifyCardInteracted(
+   segmentation_platform::home_modules::HomeModulesCardRegistry* registry =
+       segmentation_platform::SegmentationPlatformServiceFactory::
+           GetHomeModulesCardRegistry(profile);
++  if (!registry) {
++    return;
++  }
+   registry->NotifyCardInteracted(card_label.c_str());
+ }
+ 
+diff --git a/chrome/browser/segmentation_platform/chrome_browser_main_extra_parts_segmentation_platform.cc b/chrome/browser/segmentation_platform/chrome_browser_main_extra_parts_segmentation_platform.cc
+--- a/chrome/browser/segmentation_platform/chrome_browser_main_extra_parts_segmentation_platform.cc
++++ b/chrome/browser/segmentation_platform/chrome_browser_main_extra_parts_segmentation_platform.cc
+@@ -12,11 +12,13 @@
+ #include "components/segmentation_platform/public/segmentation_platform_service.h"
+ 
+ void ChromeBrowserMainExtraPartsSegmentationPlatform::PreCreateThreads() {
++  if ((true)) return;
+   segmentation_platform::LocalStateHelper::GetInstance().Initialize(
+       g_browser_process->local_state());
+ }
+ 
+ void ChromeBrowserMainExtraPartsSegmentationPlatform::PreProfileInit() {
++  if ((true)) return;
+   segmentation_platform::UkmDatabaseClientHolder::GetClientInstance(nullptr)
+       .PreProfileInit(
+           /*in_memory_database=*/false);
+@@ -25,6 +27,7 @@ void ChromeBrowserMainExtraPartsSegmentationPlatform::PreProfileInit() {
+ void ChromeBrowserMainExtraPartsSegmentationPlatform::PostProfileInit(
+     Profile* profile,
+     bool is_initial_profile) {
++  if ((true)) return;
+   if (!profile || profile->IsOffTheRecord())
+     return;
+ 
+@@ -36,6 +39,7 @@ void ChromeBrowserMainExtraPartsSegmentationPlatform::PostProfileInit(
+ }
+ 
+ void ChromeBrowserMainExtraPartsSegmentationPlatform::PostMainMessageLoopRun() {
++  if ((true)) return;
+   segmentation_platform::UkmDatabaseClientHolder::GetClientInstance(nullptr)
+       .PostMessageLoopRun();
+ }
+diff --git a/chrome/browser/ui/android/app_rating/java/src/org/chromium/chrome/browser/ui/app_rating/AppRatingPromoController.java b/chrome/browser/ui/android/app_rating/java/src/org/chromium/chrome/browser/ui/app_rating/AppRatingPromoController.java
+--- a/chrome/browser/ui/android/app_rating/java/src/org/chromium/chrome/browser/ui/app_rating/AppRatingPromoController.java
++++ b/chrome/browser/ui/android/app_rating/java/src/org/chromium/chrome/browser/ui/app_rating/AppRatingPromoController.java
+@@ -85,6 +85,7 @@ public class AppRatingPromoController {
+     private void checkSegmentationResult() {
+         SegmentationPlatformService segmentationService =
+                 SegmentationPlatformServiceFactory.getForProfile(mProfile);
++        if (segmentationService == null) return;
+ 
+         // We use cached results to keep startup impact minimal.
+         PredictionOptions predictionOptions = new PredictionOptions(true);
+diff --git a/chrome/browser/ui/webui/segmentation_internals/segmentation_internals_page_handler_impl.cc b/chrome/browser/ui/webui/segmentation_internals/segmentation_internals_page_handler_impl.cc
+--- a/chrome/browser/ui/webui/segmentation_internals/segmentation_internals_page_handler_impl.cc
++++ b/chrome/browser/ui/webui/segmentation_internals/segmentation_internals_page_handler_impl.cc
+@@ -18,7 +18,9 @@ SegmentationInternalsPageHandlerImpl::SegmentationInternalsPageHandlerImpl(
+     segmentation_platform::SegmentationPlatformService* segmentation_service)
+     : receiver_(this, std::move(receiver)),
+       page_(std::move(page)),
+-      service_proxy_(segmentation_service->GetServiceProxy()) {
++      service_proxy_(segmentation_service
++                         ? segmentation_service->GetServiceProxy()
++                         : nullptr) {
+   if (service_proxy_) {
+     service_proxy_->AddObserver(this);
+   }
+diff --git a/components/segmentation_platform/embedder/home_modules/rank_fetcher_helper.cc b/components/segmentation_platform/embedder/home_modules/rank_fetcher_helper.cc
+--- a/components/segmentation_platform/embedder/home_modules/rank_fetcher_helper.cc
++++ b/components/segmentation_platform/embedder/home_modules/rank_fetcher_helper.cc
+@@ -61,6 +61,11 @@ void RankFetcherHelper::GetHomeModulesRank(
+   }
+ #endif
+ 
++  if (!segmentation_service) {
++    RunFixedRankingResult(std::move(callback));
++    return;
++  }
++
+   segmentation_service->GetInputKeysForModel(
+       kModuleRankerKey,
+       base::BindOnce(&RankFetcherHelper::OnGotModuleInputKeys,
+diff --git a/components/segmentation_platform/internal/android/segmentation_platform_service_android.cc b/components/segmentation_platform/internal/android/segmentation_platform_service_android.cc
+--- a/components/segmentation_platform/internal/android/segmentation_platform_service_android.cc
++++ b/components/segmentation_platform/internal/android/segmentation_platform_service_android.cc
+@@ -71,6 +71,9 @@ void RunInputKeysForModelCallback(const JavaRef<jobject>& j_callback,
+ // SegmentationPlatformService::GetJavaObject. static
+ ScopedJavaLocalRef<jobject> SegmentationPlatformService::GetJavaObject(
+     SegmentationPlatformService* service) {
++  if (!service) {
++    return ScopedJavaLocalRef<jobject>();
++  }
+   if (!service->GetUserData(kSegmentationPlatformServiceBridgeKey)) {
+     service->SetUserData(
+         kSegmentationPlatformServiceBridgeKey,
+diff --git a/components/segmentation_platform/public/features.cc b/components/segmentation_platform/public/features.cc
+--- a/components/segmentation_platform/public/features.cc
++++ b/components/segmentation_platform/public/features.cc
+@@ -271,4 +271,7 @@ constexpr base::FeatureParam<int>
+         &kNewTabPageCustomizationV2, "iph_display_interval_days",
+         /*default_value=*/7};
+ 
++SET_CROMITE_FEATURE_DISABLED(kSegmentationPlatformFeature);
++SET_CROMITE_FEATURE_DISABLED(kSegmentationPlatformFeedSegmentFeature);
++SET_CROMITE_FEATURE_DISABLED(kSegmentationPlatformAdaptiveToolbarV2Feature);
+ }  // namespace segmentation_platform::features
+-- 
+

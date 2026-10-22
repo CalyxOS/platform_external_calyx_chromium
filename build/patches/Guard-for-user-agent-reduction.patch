@@ -1,0 +1,62 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Mon, 10 Feb 2020 23:13:13 +0100
+Subject: Guard for user-agent reduction
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
+Change-Id: I9be0a2fe34dbef6349493265c1fac4d11d4a2890
+---
+ components/embedder_support/user_agent_utils.cc | 17 ++++-------------
+ .../platform/runtime_enabled_features.json5     |  4 ++--
+ 2 files changed, 6 insertions(+), 15 deletions(-)
+
+diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
+--- a/components/embedder_support/user_agent_utils.cc
++++ b/components/embedder_support/user_agent_utils.cc
+@@ -855,19 +855,6 @@ std::string BuildUserAgentFromProduct(const std::string& product) {
+ }
+ 
+ std::string BuildModelInfo() {
+-#if BUILDFLAG(IS_ANDROID)
+-  // Model information is not exposed on Android desktop.
+-  if (base::android::device_info::is_desktop()) {
+-    return std::string();
+-  }
+-
+-  // Only send the model information if on the release build of Android,
+-  // matching user agent behaviour.
+-  if (base::SysInfo::GetAndroidBuildCodename() == "REL") {
+-    return base::SysInfo::HardwareModelName();
+-  }
+-#endif
+-
+   return std::string();
+ }
+ 
+@@ -897,6 +884,10 @@ std::string GetAndroidOSInfo(
+     IncludeAndroidModel include_android_model) {
+   std::string android_info_str;
+ 
++  // Do not send information about the device.
++  include_android_model = IncludeAndroidModel::Exclude;
++  include_android_build_number = IncludeAndroidBuildNumber::Exclude;
++
+   // Send information about the device.
+   bool semicolon_inserted = false;
+   if (include_android_model == IncludeAndroidModel::Include) {
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -5185,8 +5185,8 @@
+     // This User-Agent Reduction feature has been enabled starting from M101,
+     // but we still keep this flag for future phase tests.
+     {
+-      name: "ReduceUserAgentMinorVersion",
+-      status: "stable",
++      name: "ReduceUserAgentMinorVersion",                // keep enabled
++      status: "stable",                                   // in bromite
+     },
+     {
+       public: true,
+-- 
+
