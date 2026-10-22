@@ -1,0 +1,68 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Wed, 16 Feb 2022 14:28:58 +0000
+Subject: Disable UA full version
+
+getHighEntropyValues will return only the major version
+
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+
+Change-Id: I6c208819a50b77994890116d412762ee731434e4
+---
+ .../renderer/core/frame/navigator_ua_data.cc  | 21 +++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/frame/navigator_ua_data.cc b/third_party/blink/renderer/core/frame/navigator_ua_data.cc
+--- a/third_party/blink/renderer/core/frame/navigator_ua_data.cc
++++ b/third_party/blink/renderer/core/frame/navigator_ua_data.cc
+@@ -9,6 +9,9 @@
+ #include "base/task/single_thread_task_runner.h"
+ #include "services/network/public/mojom/permissions_policy/permissions_policy_feature.mojom-blink.h"
+ #include "third_party/blink/public/common/features.h"
++#include "base/version.h"
++#include "base/strings/strcat.h"
++#include "base/strings/string_number_conversions.h"
+ #include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom-blink.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_ua_data_values.h"
+@@ -36,6 +39,16 @@ void AppendBrandVersions(const UserAgentBrandList& source,
+   }
+ }
+ 
++const String GetReducedVersionNumber(const std::string& fullVersion) {
++  base::Version version(fullVersion);
++  std::string version_str;
++  const std::vector<uint32_t>& components = version.components();
++  if (components.size() > 0) {
++    version_str = base::StrCat({base::NumberToString(components[0]), ".0.0.0"});
++  }
++  return String::FromUtf8(version_str);
++}
++
+ }  // namespace
+ 
+ NavigatorUAData::NavigatorUAData(ExecutionContext* context)
+@@ -48,7 +61,11 @@ void NavigatorUAData::SetBrandVersionList(
+ 
+ void NavigatorUAData::SetFullVersionList(
+     const UserAgentBrandList& full_version_list) {
+-  AppendBrandVersions(full_version_list, full_version_list_);
++  for (const auto& brand_version : full_version_list) {
++    full_version_list_.push_back(
++        MakeBrandVersion(String::FromUtf8(brand_version.brand),
++                         GetReducedVersionNumber(brand_version.version)));
++  }
+ }
+ 
+ void NavigatorUAData::SetMobile(bool mobile) {
+@@ -69,7 +86,7 @@ void NavigatorUAData::SetModel(const String& model) {
+ }
+ 
+ void NavigatorUAData::SetUAFullVersion(const String& ua_full_version) {
+-  ua_full_version_ = ua_full_version;
++  ua_full_version_ = GetReducedVersionNumber(ua_full_version.Ascii());
+ }
+ 
+ void NavigatorUAData::SetBitness(const String& bitness) {
+-- 
+
