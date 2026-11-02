@@ -20,7 +20,6 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../strings/android_chrome_strings.grd        |   3 -
  .../on_device_translation_internals/BUILD.gn  |   3 +
  ...translation_internals_page_handler_impl.cc |   8 +
- chrome/test/BUILD.gn                          |   8 +-
  components/live_caption/BUILD.gn              |   3 +
  components/live_caption/features.cc           |   1 +
  .../buildflags/features.gni                   |   2 +-
@@ -30,12 +29,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  ...n_device_speech_recognition_engine_impl.cc |   2 +
  ...on_device_speech_recognition_engine_impl.h |   2 +
  media/base/media_switches.cc                  |   1 +
- 24 files changed, 56 insertions(+), 233 deletions(-)
+ 23 files changed, 50 insertions(+), 231 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -3119,6 +3119,7 @@ source_set("browser") {
+@@ -3427,6 +3427,7 @@ source_set("browser") {
        "//chrome/browser/ui/webui/updater:mojo_bindings",
        "//chrome/browser/updates:impl",
        "//chrome/browser/updates:update_metrics",
@@ -46,7 +45,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/accessibility/BUILD.gn b/chrome/browser/accessibility/BUILD.gn
 --- a/chrome/browser/accessibility/BUILD.gn
 +++ b/chrome/browser/accessibility/BUILD.gn
-@@ -106,6 +106,10 @@ source_set("impl") {
+@@ -105,6 +105,10 @@ source_set("impl") {
        "//components/live_caption:live_translate",
        "//components/on_device_translation",
      ]
@@ -70,9 +69,9 @@ diff --git a/chrome/browser/accessibility/live_caption/BUILD.gn b/chrome/browser
 +  ]
 +
    if (is_chromeos) {
-     deps += [ "//chrome/browser/ash/accessibility" ]
-   }
-@@ -130,6 +135,9 @@ source_set("browser_tests") {
+     deps += [
+       "//chrome/browser/ash/accessibility",
+@@ -135,6 +140,9 @@ source_set("browser_tests") {
      "//content/test:test_support",
      "//testing/gtest",
    ]
@@ -108,7 +107,7 @@ diff --git a/chrome/browser/accessibility/live_caption/live_translate_controller
 diff --git a/chrome/browser/global_features.h b/chrome/browser/global_features.h
 --- a/chrome/browser/global_features.h
 +++ b/chrome/browser/global_features.h
-@@ -348,8 +348,10 @@ class GlobalFeatures {
+@@ -361,8 +361,10 @@ class GlobalFeatures {
  #if !BUILDFLAG(IS_ANDROID)
    std::unique_ptr<child_module::ChildModuleManager> child_module_manager_;
  
@@ -183,7 +182,7 @@ diff --git a/chrome/browser/language/android/java/res/xml/languages_preferences.
 diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/settings/LanguageSettings.java b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/settings/LanguageSettings.java
 --- a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/settings/LanguageSettings.java
 +++ b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/settings/LanguageSettings.java
-@@ -35,7 +35,6 @@ import org.chromium.chrome.browser.settings.ChromeBaseSettingsFragment;
+@@ -33,7 +33,6 @@ import org.chromium.chrome.browser.settings.ChromeBaseSettingsFragment;
  import org.chromium.chrome.browser.settings.ChromeManagedPreferenceDelegate;
  import org.chromium.chrome.browser.settings.SettingsNavigationFactory;
  import org.chromium.chrome.browser.settings.search.ChromeBaseSearchIndexProvider;
@@ -191,7 +190,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
  import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
  import org.chromium.components.browser_ui.settings.SettingsUtils;
  import org.chromium.components.browser_ui.settings.search.SettingsIndexData;
-@@ -60,12 +59,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -58,12 +57,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
      static final String APP_LANGUAGE_PREFERENCE_KEY = "app_language_preference";
      static final String PREFERRED_LANGUAGES_KEY = "preferred_languages";
      static final String CONTENT_LANGUAGES_KEY = "content_languages_preference";
@@ -204,7 +203,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
  
      private static final String TAG = "LanguageSettings";
  
-@@ -158,35 +151,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -156,35 +149,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
          ContentLanguagesPreference languageListPref =
                  (ContentLanguagesPreference) findPreference(PREFERRED_LANGUAGES_KEY);
          languageListPref.initialize(this, getProfile(), getPrefService());
@@ -240,7 +239,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
      }
  
      /**
-@@ -206,8 +170,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -204,8 +168,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
          ContentLanguagesPreference languageListPref =
                  (ContentLanguagesPreference) findPreference(CONTENT_LANGUAGES_KEY);
          languageListPref.initialize(this, getProfile(), getPrefService());
@@ -249,7 +248,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
      }
  
      /** Setup the App Language section with a title and preference to choose the app language. */
-@@ -231,95 +193,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -229,95 +191,6 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
          mAppLanguageDelegate.setup(this, appLanguagePreference, getProfile());
      }
  
@@ -345,7 +344,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
      @Override
      public void onStart() {
          super.onStart();
-@@ -374,17 +247,9 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -361,17 +234,9 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
              // Get the actual default system language to set as target language.
              code = GlobalAppLocaleController.getInstance().getOriginalSystemLocale().getLanguage();
          }
@@ -363,7 +362,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
      }
  
      /**
-@@ -557,23 +422,5 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
+@@ -535,23 +400,5 @@ public class LanguageSettings extends ChromeBaseSettingsFragment
  
      private static void updateTranslateAdvancedSectionIndex(
              boolean enabled, boolean refreshResult) {
@@ -434,7 +433,7 @@ diff --git a/chrome/browser/speech/on_device_speech_recognition_impl.h b/chrome/
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1894,9 +1894,6 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1924,9 +1924,6 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_LANGUAGES_LIST_DESCRIPTION" desc="Description on the Languages settings screen. Appears above a list of one or more languages that the user selects, to tell Chrome which languages they prefer to use to read website content.">
          Let websites know the languages you speak. They’ll show content in those languages, when possible.
        </message>
@@ -510,25 +509,6 @@ diff --git a/chrome/browser/ui/webui/on_device_translation_internals/on_device_t
    page_->OnLanguagePackStatus(std::move(info_list));
  }
  
-diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
---- a/chrome/test/BUILD.gn
-+++ b/chrome/test/BUILD.gn
-@@ -9153,9 +9153,13 @@ if (!is_android && !is_chromeos_device) {
- 
-     deps += [
-       "//chrome/browser/media/router/discovery/access_code:interactive_ui_tests",
--      "//components/on_device_translation:public",
--      "//components/soda",
-     ]
-+    if (enable_on_device_translation) {
-+      deps += [
-+        "//components/on_device_translation:public",
-+        "//components/soda",
-+      ]
-+    }
- 
-     if (safe_browsing_mode == 1) {
-       deps += [ "//chrome/browser/safe_browsing:interactive_ui_tests" ]
 diff --git a/components/live_caption/BUILD.gn b/components/live_caption/BUILD.gn
 --- a/components/live_caption/BUILD.gn
 +++ b/components/live_caption/BUILD.gn
@@ -545,7 +525,7 @@ diff --git a/components/live_caption/BUILD.gn b/components/live_caption/BUILD.gn
 diff --git a/components/live_caption/features.cc b/components/live_caption/features.cc
 --- a/components/live_caption/features.cc
 +++ b/components/live_caption/features.cc
-@@ -8,6 +8,7 @@ namespace live_caption {
+@@ -10,6 +10,7 @@ namespace live_caption {
  
  // Enables the on-device translation model by default.
  BASE_FEATURE(kLiveCaptionOnDeviceTranslation, base::FEATURE_ENABLED_BY_DEFAULT);
@@ -578,7 +558,7 @@ diff --git a/components/on_device_translation/public/mojom/BUILD.gn b/components
 diff --git a/components/translate/core/browser/translate_manager.cc b/components/translate/core/browser/translate_manager.cc
 --- a/components/translate/core/browser/translate_manager.cc
 +++ b/components/translate/core/browser/translate_manager.cc
-@@ -942,8 +942,9 @@ void TranslateManager::FilterIsTranslatePossible(
+@@ -946,8 +946,9 @@ void TranslateManager::FilterIsTranslatePossible(
          TriggerDecision::kDisabledOffline);
    }
  
@@ -654,7 +634,7 @@ diff --git a/content/browser/speech/on_device_speech_recognition_engine_impl.h b
 diff --git a/media/base/media_switches.cc b/media/base/media_switches.cc
 --- a/media/base/media_switches.cc
 +++ b/media/base/media_switches.cc
-@@ -1880,6 +1880,7 @@ bool IsIamfAudioDecodingSupported() {
+@@ -1874,6 +1874,7 @@ bool IsIamfAudioDecodingSupported() {
  }
  
  bool IsLiveTranslateEnabled() {
