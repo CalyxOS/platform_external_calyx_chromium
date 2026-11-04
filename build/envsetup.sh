@@ -126,10 +126,7 @@ build() {
   (cd "$CHROMIUM_SRC_PATH" && gn gen "$OUT") || return $?
   # retain one prior build log
   [ ! -e "$OUT/build.log" ] || mv "$OUT/build.log" "$OUT/build.log.0"
-  (cd "$CHROMIUM_SRC_PATH" && time autoninja -k 0 -C "$OUT" trichrome_chrome_64_32_bundle trichrome_library_64_32_apk trichrome_webview_64_32_apk system_webview_shell_apk > >(tee "$OUT/build.log") && \
-    cd "$OUT/apks"     && \
-    rm -f universal.apk     && \
-    java -jar "$CHROMIUM_SRC_PATH/third_party/android_build_tools/bundletool/cipd/bundletool.jar" build-apks --mode universal --bundle TrichromeChrome6432.aab --output . --output-format DIRECTORY
+  (cd "$CHROMIUM_SRC_PATH" && time autoninja -k 0 -C "$OUT" chrome_public_apk system_webview_apk system_webview_shell_apk > >(tee "$OUT/build.log")
   ) || {
     err=$?
     echo >&2
